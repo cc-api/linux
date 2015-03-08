@@ -1732,6 +1732,9 @@ static const struct mei_hw_ops mei_me_hw_ops = {
 
 	.forcewake_get = mei_gt_forcewake_get,
 	.forcewake_put = mei_gt_forcewake_put,
+
+	.pg_enter_sync = mei_me_pg_enter_sync,
+	.pg_exit_sync = mei_me_pg_exit_sync
 };
 
 /**
