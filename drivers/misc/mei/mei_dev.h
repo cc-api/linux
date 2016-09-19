@@ -664,6 +664,9 @@ struct mei_device {
 	struct dentry *dbgfs_dir;
 #endif /* CONFIG_DEBUG_FS */
 
+	unsigned int stall_timer_cl:1;
+	unsigned int stall_timer_init:1;
+
 	struct mei_fw_status saved_fw_status;
 	enum mei_dev_state saved_dev_state;
 	bool saved_fw_status_flag;
