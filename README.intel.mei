@@ -1,0 +1,71 @@
+======================
+CSE post v5.16 changes
+======================
+
+Base: v5.17-rc2
+---------------------
+
+Affected IP: CSE/CSME
+----------------------
+
+Non public MEI Devices
+======================
+
+Tiger Lake Point
+-----------------
+0x42E0  /* Tiger Lake K */
+
+Lake Field
+-----------
+0x98E0  /* Lake Field */
+
+Inovation Engine
+-----------------
+0xA1F8  /* Lewisburg IE (SPT) */
+0xA278  /* Lewisburg IE SSX (SPT) */
+
+Jasper Lake
+------------
+0x38E0  /* Jasper Point - testing only */
+
+Denverton
+----------
+0x19D3  /* Denverton (BXT) */
+
+Embargoed Supported MEI Devices
+===============================
+
+Alder Lake
+-----------
+0x54E0  /* Alder Lake Point N */
+
+Meteor Lake
+-------------
+0x7E70  /* Meteor Lake Point M */
+0x7E58  /* Meteor Lake Point M ESE */
+0x7F68  /* Meteor Lake Point S */
+
+Raptor Lake
+-------------
+0x7A68  /* Raptor Lake Point S */
+
+Lunar Lake
+-----------
+0xA870  /* Lunar Lake Point M */
+
+New Features:
+=============
+
+ * GSC MEI driver.
+ * Enable macronix: add support for mx77l51250f
+
+New Drivers:
+============
+MEI_IAF - MEI Intel Accelerator Fabric Connector
+MEI_GSC_PROXY - MEI GSC proxy driver
+MEI_VIRTIO - MEI Virtio frontend driver
+MEI_BUS_DMA_TEST - test driver for client DMA feature
+
+Known Issues:
+=============
+PXP is not functional over consumer SKU
