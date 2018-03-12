@@ -1,0 +1,81 @@
+======================
+CSE post v6.6 changes
+======================
+
+Base: v6.6-rc1
+---------------------
+
+Affected IP: CSE/CSME
+----------------------
+
+Non public MEI Devices
+======================
+
+Tiger Lake Point
+-----------------
+0x42E0  /* Tiger Lake K */
+
+Lake Field
+-----------
+0x98E0  /* Lake Field */
+
+Inovation Engine
+-----------------
+0xA1F8  /* Lewisburg IE (SPT) */
+0xA278  /* Lewisburg IE SSX (SPT) */
+
+Jasper Lake
+------------
+0x38E0  /* Jasper Point - testing only */
+
+Denverton
+----------
+0x19D3  /* Denverton (BXT) */
+
+Meteor Lake
+------------
+0x7E58  /* Meteor Lake Point M ESE */
+
+Embargoed Supported MEI Devices
+===============================
+
+Lunar Lake
+-----------
+0xA870  /* Lunar Lake Point M */
+
+Panter Lake
+------------
+0xE470  /* Panter Lake P */
+0xE370  /* Panther Lake H */
+
+Arrow Lake
+-----------
+0x7F68  /* Arrow Lake Point S */
+
+Nova Lake
+----------
+
+0x6E68  /* Nova Lake Point S */
+0xD270  /* Nova Lake Point P */
+0xD370  /* Nova Lake Point H */
+
+Not upstreamed yet MEI Devices
+==============================
+
+New Features:
+=============
+
+PVC force wake workaround
+Prevent HW access while device is offline
+Suppress unexpected reset error print in some case
+
+New Drivers:
+============
+MEI_IAF - MEI Intel Accelerator Fabric Connector
+MEI_VIRTIO - MEI Virtio frontend driver
+MEI_BUS_DMA_TEST - test driver for client DMA feature
+
+
+Known Issues:
+=============
+PXP is not functional over consumer SKU
