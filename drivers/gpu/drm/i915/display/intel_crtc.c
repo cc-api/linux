@@ -847,6 +847,10 @@ void intel_pipe_update_end(struct intel_atomic_state *state,
 	if (intel_vgpu_active(dev_priv))
 		goto out;
 
+	/* Simulator doesn't simulate this correctly  ¯\_(ツ)_/¯ */
+	if (IS_SIMULATOR(dev_priv))
+		return;
+
 	if (crtc->debug.start_vbl_count &&
 	    crtc->debug.start_vbl_count != end_vbl_count) {
 		drm_err(&dev_priv->drm,
