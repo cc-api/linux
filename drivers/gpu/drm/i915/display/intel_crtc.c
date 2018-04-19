@@ -694,6 +694,10 @@ void intel_pipe_update_start(struct intel_atomic_state *state,
 		if (scanline < min || scanline > max)
 			break;
 
+		/* Scanline counter doesn't increment properly in fulsim */
+		if (IS_SIMULATOR(dev_priv))
+			break;
+
 		if (!timeout) {
 			drm_err(&dev_priv->drm,
 				"Potential atomic update failure on pipe %c\n",
