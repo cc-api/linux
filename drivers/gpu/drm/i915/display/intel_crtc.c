@@ -713,6 +713,10 @@ void intel_pipe_update_end(struct intel_crtc_state *new_crtc_state)
 	if (intel_vgpu_active(dev_priv))
 		return;
 
+	/* Simulator doesn't simulate this correctly  ¯\_(ツ)_/¯ */
+	if (IS_SIMULATOR(dev_priv))
+		return;
+
 	if (crtc->debug.start_vbl_count &&
 	    crtc->debug.start_vbl_count != end_vbl_count) {
 		drm_err(&dev_priv->drm,
