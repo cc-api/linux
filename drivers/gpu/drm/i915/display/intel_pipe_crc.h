@@ -19,13 +19,16 @@ int intel_crtc_verify_crc_source(struct drm_crtc *crtc,
 				 const char *source_name, size_t *values_cnt);
 const char *const *intel_crtc_get_crc_sources(struct drm_crtc *crtc,
 					      size_t *count);
+int intel_crtc_pre_crc_read(struct drm_crtc *crtc);
 void intel_crtc_disable_pipe_crc(struct intel_crtc *crtc);
 void intel_crtc_enable_pipe_crc(struct intel_crtc *crtc);
+void sim_trigger_compute_crc(struct drm_i915_private *dev_priv);
 #else
 static inline void intel_crtc_crc_init(struct intel_crtc *crtc) {}
 #define intel_crtc_set_crc_source NULL
 #define intel_crtc_verify_crc_source NULL
 #define intel_crtc_get_crc_sources NULL
+#define intel_crtc_pre_crc_read NULL
 static inline void intel_crtc_disable_pipe_crc(struct intel_crtc *crtc)
 {
 }
@@ -33,6 +36,11 @@ static inline void intel_crtc_disable_pipe_crc(struct intel_crtc *crtc)
 static inline void intel_crtc_enable_pipe_crc(struct intel_crtc *crtc)
 {
 }
+
+static inline void sim_trigger_compute_crc(struct drm_i915_private *dev_priv)
+{
+}
+
 #endif
 
 #endif /* __INTEL_PIPE_CRC_H__ */
