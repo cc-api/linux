@@ -800,6 +800,21 @@ struct drm_crtc_funcs {
 	int (*verify_crc_source)(struct drm_crtc *crtc, const char *source,
 				 size_t *values_cnt);
 	/**
+	 * @pre_crc_read:
+	 *
+	 * Driver callback for performing any preparation work required by
+	 * driver before reading CRC
+	 *
+	 * This callback is optional if the driver does not support CRC
+	 * generation or no prework is required before reading the crc
+	 *
+	 * RETURNS:
+	 *
+	 * 0 on success or a negative error code on failure.
+	 */
+	int (*pre_crc_read)(struct drm_crtc *crtc);
+
+	/**
 	 * @get_crc_sources:
 	 *
 	 * Driver callback for getting a list of all the available sources for
