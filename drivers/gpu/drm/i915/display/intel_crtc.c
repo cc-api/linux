@@ -325,6 +325,7 @@ int intel_crtc_set_property(struct drm_crtc *crtc,
 	.page_flip = drm_atomic_helper_page_flip, \
 	.atomic_duplicate_state = intel_crtc_duplicate_state, \
 	.atomic_destroy_state = intel_crtc_destroy_state, \
+	.pre_crc_read = intel_crtc_pre_crc_read, \
 	.set_crc_source = intel_crtc_set_crc_source, \
 	.verify_crc_source = intel_crtc_verify_crc_source, \
 	.get_crc_sources = intel_crtc_get_crc_sources, \
