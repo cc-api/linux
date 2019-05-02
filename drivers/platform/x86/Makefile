@@ -135,3 +135,9 @@ obj-$(CONFIG_SIEMENS_SIMATIC_IPC)	+= simatic-ipc.o
 
 # Winmate
 obj-$(CONFIG_WINMATE_FM07_KEYS)		+= winmate-fm07-keys.o
+
+# sep and socwatch drivers
+obj-$(CONFIG_INTEL_SOCPERF)     += socperf/
+obj-$(CONFIG_INTEL_SOCWATCH)    += socwatch/ socperf/
+obj-$(CONFIG_INTEL_SOCWATCH_HV) += socwatchhv/
+obj-$(CONFIG_INTEL_SEP)         += sepdk/ socperf/
