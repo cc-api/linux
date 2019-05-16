@@ -449,6 +449,9 @@ void cr4_init(void)
  */
 static void __init setup_cr_pinning(void)
 {
+#ifdef CONFIG_SVOS
+	return;
+#endif
 	cr4_pinned_bits = this_cpu_read(cpu_tlbstate.cr4) & cr4_pinned_mask;
 	static_key_enable(&cr_pinning.key);
 }
