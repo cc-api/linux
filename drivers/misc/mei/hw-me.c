@@ -590,7 +590,10 @@ static int mei_me_hbuf_write(struct mei_device *dev,
 	u32 dw_cnt;
 	int empty_slots;
 
-	if (WARN_ON(!hdr || !data || hdr_len & 0x3))
+	if (WARN_ON(!hdr || hdr_len & 0x3))
+		return -EINVAL;
+
+	if (WARN_ON(!data && data_len))
 		return -EINVAL;
 
 	dev_dbg(dev->dev, MEI_HDR_FMT, MEI_HDR_PRM((struct mei_msg_hdr *)hdr));
