@@ -251,4 +251,6 @@ long intel_get_ipcc_score(unsigned int ipcc, int cpu);
 #define arch_get_ipcc_score intel_get_ipcc_score
 #endif
 
+#define CPUTYPES_MAX_NR 2
+
 #endif /* _ASM_X86_TOPOLOGY_H */
