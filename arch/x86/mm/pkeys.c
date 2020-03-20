@@ -192,3 +192,13 @@ static __init int setup_init_pkru(char *opt)
 	return 1;
 }
 __setup("init_pkru=", setup_init_pkru);
+
+#ifdef CONFIG_ARCH_ENABLE_SUPERVISOR_PKEYS
+
+u32 get_current_pkrs(void)
+{
+	return 0;
+}
+EXPORT_SYMBOL_GPL(get_current_pkrs);
+
+#endif /* CONFIG_ARCH_ENABLE_SUPERVISOR_PKEYS */
