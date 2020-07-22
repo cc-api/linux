@@ -42,6 +42,8 @@ void __init tdx_early_init(void);
 
 void tdx_get_ve_info(struct ve_info *ve);
 
+void __init tdx_filter_init(void);
+
 bool tdx_handle_virt_exception(struct pt_regs *regs, struct ve_info *ve);
 
 void tdx_safe_halt(void);
