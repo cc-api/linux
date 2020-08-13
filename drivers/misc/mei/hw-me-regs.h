@@ -110,6 +110,7 @@
 #define MEI_DEV_ID_ADP_N      0x54E0  /* Alder Lake Point N */
 
 #define MEI_DEV_ID_MTL_M      0x7E70  /* Meteor Lake Point M */
+#define MEI_DEV_ID_MTL_M_ESE  0x7E58  /* Meteor Lake Point M ESE */
 
 /*
  * MEI HW Section
