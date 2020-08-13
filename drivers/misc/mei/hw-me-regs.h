@@ -112,6 +112,7 @@
 #define MEI_DEV_ID_RPL_S      0x7A68  /* Raptor Lake Point S */
 
 #define MEI_DEV_ID_MTL_M      0x7E70  /* Meteor Lake Point M */
+#define MEI_DEV_ID_MTL_M_ESE  0x7E58  /* Meteor Lake Point M ESE */
 #define MEI_DEV_ID_MTL_S      0x7F68  /* Meteor Lake Point S */
 
 #define MEI_DEV_ID_LNL_M      0xA870  /* Lunar Lake Point M */
