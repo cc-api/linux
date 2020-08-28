@@ -704,3 +704,16 @@ Description:	State of the Intel hardware Feedback Interface (HFI)
 
 		Shows '1' if HFI is enabled in the package of cpuX, and '0'
 		otherwise.
+
+What:		/sys/devices/system/cpu/types
+		/sys/devices/system/cpu/types/<vendor>_<cpu_type>/cpumap
+		/sys/devices/system/cpu/types/<vendor>_<cpu_type>/cpulist
+Date:		Sep 2020
+Contact:	Linux kernel mailing list <linux-kernel@vger.kernel.org>
+Description:	Types of CPUs in hybrid systems
+
+		If a platform has CPUs with more than one type of micro-
+		architecture, there is one directory for each type of CPU.
+		Inside each directory, the files cpumap and cpulist contain
+		a mask and a list representing CPUs of the same type of micro-
+		architecture. These files only contain CPUs currently online.
