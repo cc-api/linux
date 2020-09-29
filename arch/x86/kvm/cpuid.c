@@ -625,7 +625,7 @@ void kvm_set_cpu_caps(void)
 		F(PAT) | F(PSE36) | 0 /* PSN */ | F(CLFLUSH) |
 		0 /* Reserved, DS */ | F(ACPI) | F(MMX) |
 		F(FXSR) | F(XMM) | F(XMM2) | F(SELFSNOOP) |
-		0 /* HTT, TM, Reserved, PBE */
+		0 /* HTT */ | F(ACC) | 0 /* Reserved, PBE */
 	);
 
 	kvm_cpu_cap_mask(CPUID_7_0_EBX,
