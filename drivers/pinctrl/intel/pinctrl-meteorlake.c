@@ -460,6 +460,7 @@ static const struct intel_pinctrl_soc_data *mtl_soc_data_array[] = {
 
 static const struct acpi_device_id mtl_pinctrl_acpi_match[] = {
 	{ "INTC1083", (kernel_ulong_t)mtl_soc_data_array },
+	{ "INTC1086", (kernel_ulong_t)mtl_soc_data_array },
 	{ }
 };
 MODULE_DEVICE_TABLE(acpi, mtl_pinctrl_acpi_match);
