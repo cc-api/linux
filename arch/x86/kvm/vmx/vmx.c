@@ -157,6 +157,32 @@ module_param(allow_smaller_maxphyaddr, bool, S_IRUGO);
 	RTIT_STATUS_BYTECNT))
 
 /*
+ * TM2 (CPUID.01H:ECX[8]), DTHERM (CPUID.06H:EAX[0]), PLN (CPUID.06H:EAX[4]),
+ * and HWP (CPUID.06H:EAX[7]) are not emulated in kvm.
+ */
+#define MSR_IA32_THERM_STATUS_RO_MASK (THERM_STATUS_PROCHOT | \
+	THERM_STATUS_PROCHOT_FORCEPR_EVENT | THERM_STATUS_CRITICAL_TEMP)
+#define MSR_IA32_THERM_STATUS_RWC0_MASK (THERM_STATUS_PROCHOT_LOG | \
+	THERM_STATUS_PROCHOT_FORCEPR_LOG | THERM_STATUS_CRITICAL_TEMP_LOG)
+/* MSR_IA32_THERM_STATUS unavailable bits mask: unsupported and reserved bits. */
+#define MSR_IA32_THERM_STATUS_UNAVAIL_MASK (~(MSR_IA32_THERM_STATUS_RO_MASK | \
+	MSR_IA32_THERM_STATUS_RWC0_MASK))
+
+/* ECMD (CPUID.06H:EAX[5]) is not emulated in kvm. */
+#define MSR_IA32_THERM_CONTROL_AVAIL_MASK (THERM_ON_DEM_CLO_MOD_ENABLE | \
+	THERM_ON_DEM_CLO_MOD_DUTY_CYC_MASK)
+
+/*
+ * MSR_IA32_THERM_INTERRUPT available bits mask.
+ * PLN (CPUID.06H:EAX[4]) and HFN (CPUID.06H:EAX[24]) are not emulated in kvm.
+ */
+#define MSR_IA32_THERM_INTERRUPT_AVAIL_MASK (THERM_INT_HIGH_ENABLE | \
+	THERM_INT_LOW_ENABLE | THERM_INT_PROCHOT_ENABLE | \
+	THERM_INT_FORCEPR_ENABLE | THERM_INT_CRITICAL_TEM_ENABLE | \
+	THERM_MASK_THRESHOLD0 | THERM_INT_THRESHOLD0_ENABLE | \
+	THERM_MASK_THRESHOLD1 | THERM_INT_THRESHOLD1_ENABLE)
+
+/*
  * List of MSRs that can be directly passed to the guest.
  * In addition to these x2apic and PT MSRs are handled specially.
  */
@@ -1477,6 +1503,19 @@ void vmx_vcpu_load_vmcs(struct kvm_vcpu *vcpu, int cpu,
 	}
 }
 
+static void vmx_inject_therm_interrupt(struct kvm_vcpu *vcpu)
+{
+	/*
+	 * From SDM, the ACPI flag also indicates the presence of the
+	 * xAPIC thermal LVT entry.
+	 */
+	if (!guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
+		return;
+
+	if (irqchip_in_kernel(vcpu->kvm))
+		kvm_apic_therm_deliver(vcpu);
+}
+
 /*
  * Switches to specified vcpu, until a matching vcpu_put(), but assumes
  * vcpu mutex is already taken.
@@ -2114,6 +2153,24 @@ static int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	case MSR_IA32_DEBUGCTLMSR:
 		msr_info->data = vmcs_read64(GUEST_IA32_DEBUGCTL);
 		break;
+	case MSR_IA32_THERM_CONTROL:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
+			return 1;
+		msr_info->data = vmx->msr_ia32_therm_control;
+		break;
+	case MSR_IA32_THERM_INTERRUPT:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
+			return 1;
+		msr_info->data = vmx->msr_ia32_therm_interrupt;
+		break;
+	case MSR_IA32_THERM_STATUS:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
+			return 1;
+		msr_info->data = vmx->msr_ia32_therm_status;
+		break;
 	default:
 	find_uret_msr:
 		msr = vmx_find_uret_msr(vmx, msr_info->index);
@@ -2456,6 +2513,40 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 				return 1;
 		}
 		ret = kvm_set_msr_common(vcpu, msr_info);
+		break;
+	case MSR_IA32_THERM_CONTROL:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
+			return 1;
+		if (!msr_info->host_initiated &&
+		    data & ~MSR_IA32_THERM_CONTROL_AVAIL_MASK)
+			return 1;
+		vmx->msr_ia32_therm_control = data;
+		break;
+	case MSR_IA32_THERM_INTERRUPT:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
+			return 1;
+		if (!msr_info->host_initiated &&
+		    data & ~MSR_IA32_THERM_INTERRUPT_AVAIL_MASK)
+			return 1;
+		vmx->msr_ia32_therm_interrupt = data;
+		break;
+	case MSR_IA32_THERM_STATUS:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
+			return 1;
+		/* Unsupported and reserved bits: generate the exception. */
+		if (!msr_info->host_initiated &&
+		    data & MSR_IA32_THERM_STATUS_UNAVAIL_MASK)
+			return 1;
+		if (!msr_info->host_initiated) {
+			data = vmx_set_msr_rwc0_bits(data, vmx->msr_ia32_therm_status,
+						     MSR_IA32_THERM_STATUS_RWC0_MASK);
+			data = vmx_set_msr_ro_bits(data, vmx->msr_ia32_therm_status,
+						   MSR_IA32_THERM_STATUS_RO_MASK);
+		}
+		vmx->msr_ia32_therm_status = data;
 		break;
 
 	default:
@@ -4871,6 +4962,9 @@ static void vmx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 	vmx->spec_ctrl = 0;
 
 	vmx->msr_ia32_umwait_control = 0;
+	vmx->msr_ia32_therm_control = 0;
+	vmx->msr_ia32_therm_interrupt = 0;
+	vmx->msr_ia32_therm_status = 0;
 
 	vmx->hv_deadline_tsc = -1;
 	kvm_set_cr8(vcpu, 0);

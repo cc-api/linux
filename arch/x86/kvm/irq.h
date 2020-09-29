@@ -99,6 +99,7 @@ static inline int irqchip_in_kernel(struct kvm *kvm)
 void kvm_inject_pending_timer_irqs(struct kvm_vcpu *vcpu);
 void kvm_inject_apic_timer_irqs(struct kvm_vcpu *vcpu);
 void kvm_apic_nmi_wd_deliver(struct kvm_vcpu *vcpu);
+void kvm_apic_therm_deliver(struct kvm_vcpu *vcpu);
 void __kvm_migrate_apic_timer(struct kvm_vcpu *vcpu);
 void __kvm_migrate_pit_timer(struct kvm_vcpu *vcpu);
 void __kvm_migrate_timers(struct kvm_vcpu *vcpu);

@@ -4266,6 +4266,9 @@ static bool svm_has_emulated_msr(struct kvm *kvm, u32 index)
 	switch (index) {
 	case MSR_IA32_MCG_EXT_CTL:
 	case KVM_FIRST_EMULATED_VMX_MSR ... KVM_LAST_EMULATED_VMX_MSR:
+	case MSR_IA32_THERM_CONTROL:
+	case MSR_IA32_THERM_INTERRUPT:
+	case MSR_IA32_THERM_STATUS:
 		return false;
 	case MSR_IA32_SMBASE:
 		if (!IS_ENABLED(CONFIG_KVM_SMM))
