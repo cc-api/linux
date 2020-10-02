@@ -57,12 +57,16 @@ struct intel_pmt_namespace {
 	struct xarray *xa;
 	const struct attribute_group *attr_grp;
 	int (*pmt_header_decode)(struct intel_pmt_entry *entry,
-				 struct device *dev);
+				 struct device *dev,
+				 struct resource *disc_res);
 	int (*pmt_add_endpoint)(struct intel_pmt_entry *entry,
 				struct device *dev);
 };
 
 bool intel_pmt_is_early_client_hw(struct device *dev);
+int intel_pmt_populate_entry(struct intel_pmt_entry *entry,
+			     struct intel_vsec_device *intel_vsec_dev,
+			     struct resource *disc_res);
 int intel_pmt_dev_create(struct intel_pmt_entry *entry,
 			 struct intel_pmt_namespace *ns,
 			 struct intel_vsec_device *dev, int idx);
