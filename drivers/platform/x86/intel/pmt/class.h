@@ -3,6 +3,7 @@
 #define _INTEL_PMT_CLASS_H
 
 #include <linux/xarray.h>
+#include <linux/ioport.h>
 #include <linux/types.h>
 #include <linux/bits.h>
 #include <linux/err.h>
@@ -45,10 +46,13 @@ struct intel_pmt_namespace {
 	const struct attribute_group *attr_grp;
 	int (*pmt_header_decode)(struct intel_pmt_entry *entry,
 				 struct intel_pmt_header *header,
-				 struct device *dev);
+				 struct device *dev, struct resource *disc_res);
 };
 
 bool intel_pmt_is_early_client_hw(struct device *dev);
+int intel_pmt_populate_entry(struct intel_pmt_entry *entry,
+			     struct intel_pmt_header *header,
+			     struct device *dev, struct resource *disc_res);
 int intel_pmt_dev_create(struct intel_pmt_entry *entry,
 			 struct intel_pmt_namespace *ns,
 			 struct intel_vsec_device *dev, int idx);
