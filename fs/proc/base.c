@@ -379,6 +379,27 @@ static const struct file_operations proc_pid_cmdline_ops = {
 };
 
 #ifdef CONFIG_SCHED_DEBUG
+static ssize_t proc_pid_class_read(struct file *file, char __user *buf,
+				   size_t count, loff_t *pos)
+{
+	char buffer[PROC_NUMBUF];
+	struct task_struct *tsk;
+	ssize_t len;
+
+	tsk = get_proc_task(file_inode(file));
+	if (!tsk)
+		return -ESRCH;
+
+	len = snprintf(buffer, sizeof(buffer), "%d\n", arch_ipcc_of(tsk));
+	put_task_struct(tsk);
+	return simple_read_from_buffer(buf, count, pos, buffer, len);
+}
+
+static const struct file_operations proc_pid_class_ops = {
+	.read	= proc_pid_class_read,
+	.llseek	= generic_file_llseek,
+};
+
 static ssize_t proc_pid_class_raw_read(struct file *file, char __user *buf,
 				       size_t count, loff_t *pos)
 {
@@ -3297,6 +3318,7 @@ static const struct pid_entry tgid_base_stuff[] = {
 	REG("cmdline",    S_IRUGO, proc_pid_cmdline_ops),
 #ifdef CONFIG_SCHED_DEBUG
 	REG("classid_raw", S_IRUGO, proc_pid_class_raw_ops),
+	REG("classid",    S_IRUGO, proc_pid_class_ops),
 #endif
 	ONE("stat",       S_IRUGO, proc_tgid_stat),
 	ONE("statm",      S_IRUGO, proc_pid_statm),
@@ -3647,6 +3669,7 @@ static const struct pid_entry tid_base_stuff[] = {
 	REG("cmdline",   S_IRUGO, proc_pid_cmdline_ops),
 #ifdef CONFIG_SCHED_DEBUG
 	REG("classid_raw", S_IRUGO, proc_pid_class_raw_ops),
+	REG("classid",   S_IRUGO, proc_pid_class_ops),
 #endif
 	ONE("stat",      S_IRUGO, proc_tid_stat),
 	ONE("statm",     S_IRUGO, proc_pid_statm),
