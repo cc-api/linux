@@ -116,6 +116,8 @@ struct task_group;
 					 __TASK_TRACED | EXIT_DEAD | EXIT_ZOMBIE | \
 					 TASK_PARKED)
 
+#define TASK_CLASS_UNCLASSIFIED		-1
+
 #define task_is_running(task)		(READ_ONCE((task)->__state) == TASK_RUNNING)
 
 #define task_is_traced(task)		((READ_ONCE(task->__state) & __TASK_TRACED) != 0)
@@ -945,6 +947,8 @@ struct task_struct {
 
 	pid_t				pid;
 	pid_t				tgid;
+	/* Type of task */
+	int				classid;
 
 #ifdef CONFIG_STACKPROTECTOR
 	/* Canary value for the -fstack-protector GCC feature: */

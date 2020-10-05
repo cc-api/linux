@@ -212,6 +212,8 @@ int copy_thread(unsigned long clone_flags, unsigned long sp, unsigned long arg,
 		return 0;
 	}
 
+	p->classid = TASK_CLASS_UNCLASSIFIED;
+
 	/* Set a new TLS for the child thread? */
 	if (clone_flags & CLONE_SETTLS)
 		ret = set_new_tls(p, tls);
