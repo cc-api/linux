@@ -33,6 +33,7 @@
 #include <linux/percpu-defs.h>
 #include <linux/printk.h>
 #include <linux/processor.h>
+#include <linux/sched/topology.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/suspend.h>
@@ -50,6 +51,8 @@
 /* Hardware Feedback Interface MSR configuration bits */
 #define HW_FEEDBACK_PTR_VALID_BIT		BIT(0)
 #define HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT	BIT(0)
+#define HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT	BIT(1)
+#define HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT	BIT(0)
 
 /* CPUID detection and enumeration definitions for HFI */
 
@@ -70,6 +73,15 @@ union cpuid6_edx {
 		u32			table_pages:4;
 		u32			__reserved:4;
 		s32			index:16;
+	} split;
+	u32 full;
+};
+
+union cpuid6_ecx {
+	struct {
+		u32	dont_care0:8;
+		u32	nr_classes:8;
+		u32	dont_care1:16;
 	} split;
 	u32 full;
 };
@@ -399,6 +411,9 @@ static void hfi_enable(void)
 	rdmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
 	msr_val |= HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT;
 
+	if (cpu_feature_enabled(X86_FEATURE_ITD))
+		msr_val |= HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT;
+
 	wrmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
 }
 
@@ -419,7 +434,34 @@ static void hfi_disable(void)
 	rdmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
 	msr_val &= ~HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT;
 
+	if (cpu_feature_enabled(X86_FEATURE_ITD))
+		msr_val &= ~HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT;
+
 	wrmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
+}
+
+static void hfi_enable_itd_classification(void)
+{
+	u64 msr_val;
+
+	if (!cpu_feature_enabled(X86_FEATURE_ITD))
+		return;
+
+	rdmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
+	msr_val |= HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT;
+	wrmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
+}
+
+static void hfi_disable_itd_classification(void)
+{
+	u64 msr_val;
+
+	if (!cpu_feature_enabled(X86_FEATURE_ITD))
+		return;
+
+	rdmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
+	msr_val &= ~HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT;
+	wrmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
 }
 
 /**
@@ -461,6 +503,8 @@ void intel_hfi_online(unsigned int cpu)
 	}
 
 	init_hfi_cpu_index(info);
+
+	hfi_enable_itd_classification();
 
 	/*
 	 * Now check if the HFI instance of the package/die of @cpu has been
@@ -510,6 +554,16 @@ enable:
 		hfi_enable();
 	}
 
+	/*
+	 * We have all we need to support IPC classes. Task classification is
+	 * now working.
+	 *
+	 * All class scores are zero until after the first HFI update. That is
+	 * OK. The scheduler queries these scores at every load balance.
+	 */
+	if (cpu_feature_enabled(X86_FEATURE_ITD))
+		sched_enable_ipc_classes();
+
 unlock:
 	mutex_unlock(&hfi_instance_lock);
 	return;
@@ -545,6 +599,8 @@ void intel_hfi_offline(unsigned int cpu)
 
 	if (!hfi_instance->hdr)
 		return;
+
+	hfi_disable_itd_classification();
 
 	mutex_lock(&hfi_instance_lock);
 	cpumask_clear_cpu(cpu, hfi_instance->cpus);
@@ -591,8 +647,14 @@ static __init int hfi_parse_features(void)
 	 */
 	hfi_features.class_stride = nr_capabilities;
 
-	/* For now, use only one class of the HFI table */
-	hfi_features.nr_classes = 1;
+	if (cpu_feature_enabled(X86_FEATURE_ITD)) {
+		union cpuid6_ecx ecx;
+
+		ecx.full = cpuid_ecx(CPUID_HFI_LEAF);
+		hfi_features.nr_classes = ecx.split.nr_classes;
+	} else {
+		hfi_features.nr_classes = 1;
+	}
 
 	/*
 	 * The header contains change indications for each supported feature.
@@ -618,10 +680,14 @@ static void hfi_do_pm_enable(void *info)
 
 	hfi_set_hw_table(hfi_instance);
 	hfi_enable();
+
+	hfi_enable_itd_classification();
 }
 
 static void hfi_do_pm_disable(void *info)
 {
+	hfi_disable_itd_classification();
+
 	hfi_disable();
 }
 
