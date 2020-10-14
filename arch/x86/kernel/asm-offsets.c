@@ -36,6 +36,7 @@ static void __used common(void)
 #ifdef CONFIG_STACKPROTECTOR
 	OFFSET(TASK_stack_canary, task_struct, stack_canary);
 #endif
+	OFFSET(TASK_classid,	task_struct, classid);
 
 	BLANK();
 	OFFSET(pbe_address, pbe, address);
