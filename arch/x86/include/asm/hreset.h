@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 #ifndef _ASM_X86_HRESET_H
 
+#include <asm/cpufeatures.h>
+
 /* Find the supported HRESET features in this leaf */
 #define CPUID_HRESET_LEAF_EAX		0x20
 
@@ -29,6 +31,23 @@
  */
 
 #define __ASM_HRESET  .byte 0xf3, 0xf, 0x3a, 0xf0, 0xc0, 0x0
+
+#ifdef CONFIG_X86_64
+.macro HRESET
+	/*
+	 * Argument of HRESET. It can't be put in an ALTERNATIVE
+	 * due to the IP-relative indirection
+	 */
+	ALTERNATIVE "jmp 1f", "", X86_FEATURE_HRESET
+	push	%rax
+	mov hreset_features, %eax
+	__ASM_HRESET
+	pop	%rax
+	1:
+.endm
+#else /* CONFIG_X86_64 */
+#define HRESET
+#endif /* CONFIG_X86_64 */
 
 #else /* __ASSEMBLY */
 

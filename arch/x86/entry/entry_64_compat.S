@@ -10,6 +10,7 @@
 #include <asm/errno.h>
 #include <asm/ia32_unistd.h>
 #include <asm/ehfi.h>
+#include <asm/hreset.h>
 #include <asm/thread_info.h>
 #include <asm/segment.h>
 #include <asm/irqflags.h>
@@ -264,6 +265,12 @@ SYM_INNER_LABEL(entry_SYSCALL_compat_after_hwframe, SYM_L_GLOBAL)
 
 	/* Opportunistic SYSRET */
 sysret32_from_system_call:
+	/*
+	 * We don't want to leak or pollute thread classification with kernel activity.
+	 * clobber classification history before returning to user space.
+	 */
+	HRESET
+
 	/*
 	 * We are not going to return to userspace from the trampoline
 	 * stack. So let's erase the thread stack right now.

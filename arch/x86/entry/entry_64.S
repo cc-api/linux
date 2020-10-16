@@ -26,6 +26,7 @@
 #include <asm/msr.h>
 #include <asm/unistd.h>
 #include <asm/thread_info.h>
+#include <asm/hreset.h>
 #include <asm/hw_irq.h>
 #include <asm/ehfi.h>
 #include <asm/page_types.h>
@@ -205,6 +206,12 @@ syscall_return_via_sysret:
 
 	pushq	RSP-RDI(%rdi)	/* RSP */
 	pushq	(%rdi)		/* RDI */
+
+	/*
+	 * We don't want to leak or pollute thread classification with kernel activity.
+	 * clobber classification history before returning to user space.
+	 */
+	HRESET
 
 	/*
 	 * We are on the trampoline stack.  All regs except RDI are live.
@@ -600,6 +607,12 @@ SYM_INNER_LABEL(swapgs_restore_regs_and_return_to_usermode, SYM_L_GLOBAL)
 
 	/* Push user RDI on the trampoline stack. */
 	pushq	(%rdi)
+
+	/*
+	 * We don't want to leak or pollute thread classification with kernel activity.
+	 * clobber classification history before returning to user space.
+	 */
+	HRESET
 
 	/*
 	 * We are on the trampoline stack.  All regs except RDI are live.
