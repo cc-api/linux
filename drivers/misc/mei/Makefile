@@ -32,6 +32,10 @@ mei-$(CONFIG_EVENT_TRACING) += mei-trace.o
 CFLAGS_mei-trace.o = -I$(src)
 
 obj-$(CONFIG_INTEL_MEI_HDCP) += hdcp/
+
 obj-$(CONFIG_INTEL_MEI_PXP) += pxp/
 obj-$(CONFIG_INTEL_MEI_GSC_PROXY) += gsc_proxy/
 obj-$(CONFIG_INTEL_MEI_IAF) += iaf/
+
+obj-$(CONFIG_INTEL_MEI_BUS_DMA_TEST) += mei_bus_dma_test.o
+mei_mkhi-objs += mei_bus_dma_test.o
