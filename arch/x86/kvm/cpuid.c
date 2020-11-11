@@ -17,6 +17,7 @@
 #include <linux/uaccess.h>
 #include <linux/sched/stat.h>
 
+#include <asm/hfi.h>
 #include <asm/processor.h>
 #include <asm/user.h>
 #include <asm/fpu/xstate.h>
@@ -130,12 +131,77 @@ static inline struct kvm_cpuid_entry2 *cpuid_entry2_find(
 	return NULL;
 }
 
+static int kvm_check_hfi_cpuid(struct kvm_cpuid_entry2 *entries, int nent)
+{
+	struct hfi_features hfi_features;
+	struct kvm_cpuid_entry2 *best = NULL;
+	bool hfi_enabled;
+	int nr_classes, ret;
+	union cpuid6_ecx ecx;
+	union cpuid6_edx edx;
+	unsigned int data_size;
+
+	best = cpuid_entry2_find(entries, nent, 0x6, 0);
+	if (!best)
+		return 0;
+
+	hfi_enabled = cpuid_entry_has(best, X86_FEATURE_HFI);
+	if (!hfi_enabled)
+		return 0;
+
+	/* Guest's HFI must base on Host's HFI enablement. */
+	if (!intel_hfi_enabled() && hfi_enabled)
+		return -EINVAL;
+
+	/*
+	 * Only the platform with 1 HFI instance (i.e., client platform)
+	 * can enable HFI in Guest. For more information, please refer to
+	 * the comment in kvm_set_cpu_caps().
+	 */
+	if (intel_hfi_max_instances() != 1 && hfi_enabled)
+		return -EINVAL;
+
+	/*
+	 * Currently we haven't supported ITD. HFI is the default feature
+	 * with 1 class.
+	 */
+	nr_classes = 1;
+	ret = intel_hfi_build_virt_features(&hfi_features, nr_classes);
+	if (ret)
+		return ret;
+
+	ecx.full = best->ecx;
+	edx.full = best->edx;
+
+	if (ecx.split.nr_classes != hfi_features.nr_classes)
+		return -EINVAL;
+
+	if (hweight8(edx.split.capabilities.bits) != hfi_features.class_stride)
+		return -EINVAL;
+
+	if (edx.split.table_pages + 1 != hfi_features.nr_table_pages)
+		return -EINVAL;
+
+	/*
+	 * The total size of the row corresponding to index and all
+	 * previous data.
+	 */
+	data_size = hfi_features.hdr_size + (edx.split.index + 1) *
+		    hfi_features.cpu_stride;
+	/* Invalid index. */
+	if (data_size > hfi_features.nr_table_pages << PAGE_SHIFT)
+		return -EINVAL;
+
+	return 0;
+}
+
 static int kvm_check_cpuid(struct kvm_vcpu *vcpu,
 			   struct kvm_cpuid_entry2 *entries,
 			   int nent)
 {
 	struct kvm_cpuid_entry2 *best;
 	u64 xfeatures;
+	int ret;
 
 	/*
 	 * The existing code assumes virtual address is 48-bit or 57-bit in the
@@ -155,15 +221,18 @@ static int kvm_check_cpuid(struct kvm_vcpu *vcpu,
 	 * enabling in the FPU, e.g. to expand the guest XSAVE state size.
 	 */
 	best = cpuid_entry2_find(entries, nent, 0xd, 0);
-	if (!best)
-		return 0;
+	if (best) {
+		xfeatures = best->eax | ((u64)best->edx << 32);
+		xfeatures &= XFEATURE_MASK_USER_DYNAMIC;
+		if (xfeatures) {
+			ret = fpu_enable_guest_xfd_features(&vcpu->arch.guest_fpu,
+							    xfeatures);
+			if (ret)
+				return ret;
+		}
+	}
 
-	xfeatures = best->eax | ((u64)best->edx << 32);
-	xfeatures &= XFEATURE_MASK_USER_DYNAMIC;
-	if (!xfeatures)
-		return 0;
-
-	return fpu_enable_guest_xfd_features(&vcpu->arch.guest_fpu, xfeatures);
+	return kvm_check_hfi_cpuid(entries, nent);
 }
 
 /* Check whether the supplied CPUID data is equal to what is already set for the vCPU. */
@@ -633,14 +702,27 @@ void kvm_set_cpu_caps(void)
 	);
 
 	/*
-	 * PTS is the dependency of ITD, currently we only use PTS for
-	 * enabling ITD in KVM. Since KVM does not support msr topology at
-	 * present, the emulation of PTS has restrictions on the topology of
-	 * Guest, so we only expose PTS when Host enables ITD.
+	 * PTS and HFI are the dependencies of ITD, currently we only use PTS/HFI
+	 * for enabling ITD in KVM. Since KVM does not support msr topology at
+	 * present, the emulation of PTS/HFI has restrictions on the topology of
+	 * Guest, so we only expose PTS/HFI when Host enables ITD.
+	 *
+	 * We also restrict HFI virtualization support to platforms with only 1 HFI
+	 * instance (i.e., this is the client platform, and ITD is currently a
+	 * client-specific feature), while server platforms with multiple instances
+	 * do not require HFI virtualization. This restriction avoids adding
+	 * additional complex logic to handle notification register updates when
+	 * vCPUs migrate between different HFI instances.
 	 */
-	if (cpu_feature_enabled(X86_FEATURE_ITD)) {
+	if (cpu_feature_enabled(X86_FEATURE_ITD) && intel_hfi_max_instances() == 1) {
 		if (boot_cpu_has(X86_FEATURE_PTS))
 			kvm_cpu_cap_set(X86_FEATURE_PTS);
+		/*
+		 * Set HFI based on hardware capability. Only when the Host has
+		 * the valid HFI instance, KVM can build the virtual HFI table.
+		 */
+		if (intel_hfi_enabled())
+			kvm_cpu_cap_set(X86_FEATURE_HFI);
 	}
 
 	kvm_cpu_cap_mask(CPUID_7_0_EBX,
@@ -979,8 +1061,32 @@ static inline int __do_cpuid_func(struct kvm_cpuid_array *array, u32 function)
 			entry->eax |= 0x4;
 
 		entry->ebx = 0;
-		entry->ecx = 0;
-		entry->edx = 0;
+
+		if (kvm_cpu_cap_has(X86_FEATURE_HFI)) {
+			union cpuid6_ecx ecx;
+			union cpuid6_edx edx;
+
+			ecx.full = 0;
+			edx.full = 0;
+			/* Number of supported HFI classes */
+			ecx.split.nr_classes = 1;
+			/* HFI supports performance and energy efficiency capabilities. */
+			edx.split.capabilities.split.performance = 1;
+			edx.split.capabilities.split.energy_efficiency = 1;
+			/* As default, keep the same HFI table size as host. */
+			edx.split.table_pages = ((union cpuid6_edx)entry->edx).split.table_pages;
+			/*
+			 * Default HFI index = 0. User should be careful that
+			 * the index differ for each CPUs.
+			 */
+			edx.split.index = 0;
+
+			entry->ecx = ecx.full;
+			entry->edx = edx.full;
+		} else {
+			entry->ecx = 0;
+			entry->edx = 0;
+		}
 		break;
 	/* function 7 has additional index. */
 	case 7:
