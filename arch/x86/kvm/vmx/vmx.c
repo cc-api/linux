@@ -1656,6 +1656,67 @@ static void vmx_update_hfi_table(struct kvm *kvm)
 		vmx_inject_therm_interrupt(kvm_get_vcpu(kvm, 0));
 }
 
+static void vmx_hfi_notifier_unregister(struct kvm *kvm)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
+
+	if (!kvm_vmx_hfi->hfi_host_instance)
+		return;
+
+	/*
+	 * Try to unregister, whether currently Guest enables the
+	 * HFI function.
+	 */
+	intel_hfi_notifier_unregister(&kvm_vmx_hfi->hfi_nb,
+				      kvm_vmx_hfi->hfi_host_instance);
+}
+
+static void vmx_hfi_notifier_register(struct kvm *kvm)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
+	struct kvm_vcpu *vcpu;
+	unsigned long i;
+
+	if (!intel_hfi_enabled())
+		return;
+
+	if (!vmx_hfi_initialized(kvm_vmx))
+		return;
+
+	if (kvm_vmx_hfi->hfi_host_instance)
+		return;
+
+	kvm_for_each_vcpu(i, vcpu, kvm) {
+		kvm_vmx_hfi->hfi_host_instance = intel_hfi_instance(vcpu->cpu);
+		if (kvm_vmx_hfi->hfi_host_instance) {
+			intel_hfi_notifier_register(&kvm_vmx_hfi->hfi_nb,
+						    kvm_vmx_hfi->hfi_host_instance);
+			break;
+		}
+	}
+}
+
+static int vmx_hfi_update_notify(struct notifier_block *nb,
+				 unsigned long code, void *data)
+{
+	struct hfi_desc *kvm_vmx_hfi;
+	struct kvm *kvm;
+
+	kvm_vmx_hfi = container_of(nb, struct hfi_desc, hfi_nb);
+	kvm = &kvm_vmx_hfi->vmx->kvm;
+
+	/*
+	 * Don't need to check if vcpu 0 belongs to
+	 * kvm_vmx_hfi->host_hfi_instance since currently ITD/HFI
+	 * virtualization is only supported for client platforms
+	 * (with only one HFI instance).
+	 */
+	kvm_make_request(KVM_REQ_HFI_UPDATE, kvm_get_vcpu(kvm, 0));
+	return NOTIFY_OK;
+}
+
 static void vmx_dynamic_update_hfi_table(struct kvm_vcpu *vcpu)
 {
 	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
@@ -7886,6 +7947,9 @@ static int vmx_vm_init_pkg_therm(struct kvm *kvm)
 	kvm_vmx_hfi->table_ptr_valid = false;
 	kvm_vmx_hfi->hfi_update_pending = false;
 	kvm_vmx_hfi->hfi_update_status = false;
+	kvm_vmx_hfi->hfi_nb.notifier_call = vmx_hfi_update_notify;
+	kvm_vmx_hfi->hfi_host_instance = NULL;
+	kvm_vmx_hfi->vmx = to_kvm_vmx(kvm);
 
 	return 0;
 }
@@ -8555,6 +8619,7 @@ static void vmx_vm_destroy(struct kvm *kvm)
 	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
 	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
 
+	vmx_hfi_notifier_unregister(kvm);
 	kfree(kvm_vmx_hfi->hfi_table.base_addr);
 	free_pages((unsigned long)kvm_vmx->pid_table, vmx_get_pid_table_order(kvm));
 }
