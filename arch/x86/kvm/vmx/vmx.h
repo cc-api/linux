@@ -423,6 +423,8 @@ struct hfi_desc {
 struct pkg_therm_desc {
 	u64			msr_pkg_therm_int;
 	u64			msr_pkg_therm_status;
+	u64			msr_ia32_hfi_cfg;
+	u64			msr_ia32_hfi_ptr;
 	/* Currently HFI is only supported at package level. */
 	struct hfi_desc		hfi_desc;
 	/* All members before "struct mutex pkg_therm_lock" are protected by the lock. */

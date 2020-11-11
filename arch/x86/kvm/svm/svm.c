@@ -4271,6 +4271,8 @@ static bool svm_has_emulated_msr(struct kvm *kvm, u32 index)
 	case MSR_IA32_THERM_STATUS:
 	case MSR_IA32_PACKAGE_THERM_INTERRUPT:
 	case MSR_IA32_PACKAGE_THERM_STATUS:
+	case MSR_IA32_HW_FEEDBACK_CONFIG:
+	case MSR_IA32_HW_FEEDBACK_PTR:
 		return false;
 	case MSR_IA32_SMBASE:
 		if (!IS_ENABLED(CONFIG_KVM_SMM))

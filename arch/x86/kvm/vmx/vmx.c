@@ -2437,6 +2437,18 @@ static int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		msr_info->data = kvm_vmx->pkg_therm.msr_pkg_therm_status;
 		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
 		break;
+	case MSR_IA32_HW_FEEDBACK_CONFIG:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
+			return 1;
+		msr_info->data = kvm_vmx->pkg_therm.msr_ia32_hfi_cfg;
+		break;
+	case MSR_IA32_HW_FEEDBACK_PTR:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
+			return 1;
+		msr_info->data = kvm_vmx->pkg_therm.msr_ia32_hfi_ptr;
+		break;
 	default:
 	find_uret_msr:
 		msr = vmx_find_uret_msr(vmx, msr_info->index);
@@ -2566,6 +2578,77 @@ static int vmx_set_pkg_therm_status_msr(struct kvm_vcpu *vcpu,
 	 */
 	if (!kvm_vmx_hfi->hfi_update_status && kvm_vmx_hfi->hfi_update_pending)
 		vmx_update_hfi_table(vcpu->kvm, false);
+
+	return 0;
+}
+
+static int vmx_set_hfi_cfg_msr(struct kvm_vcpu *vcpu,
+			       struct msr_data *msr_info)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
+	u64 data = msr_info->data;
+	bool hfi_enabled, hfi_changed;
+
+	/*
+	 * When the HFI enable bit changes (either from 0 to 1 or 1 to
+	 * 0), HFI status bit is set and an interrupt is generated if
+	 * enabled.
+	 */
+	hfi_enabled = data & HW_FEEDBACK_CONFIG_HFI_ENABLE;
+	hfi_changed = kvm_vmx_hfi->hfi_enabled != hfi_enabled;
+
+	kvm_vmx->pkg_therm.msr_ia32_hfi_cfg = data;
+	kvm_vmx_hfi->hfi_enabled = hfi_enabled;
+
+	if (!hfi_changed)
+		return 0;
+
+	if (!hfi_enabled) {
+		/*
+		 * SDM: hardware sets the IA32_PACKAGE_THERM_STATUS[bit 26]
+		 * to 1 to acknowledge disabling of the interface.
+		 */
+		kvm_vmx_hfi->hfi_update_status = true;
+		if (vmx_hfi_int_enabled(kvm_vmx))
+			vmx_inject_therm_interrupt(vcpu);
+	} else {
+		/*
+		 * Here we don't care pending updates, because the enabed
+		 * feature change may cause the HFI table update range to
+		 * change.
+		 */
+		vmx_update_hfi_table(vcpu->kvm, true);
+		vmx_hfi_notifier_register(vcpu->kvm);
+	}
+
+	return 0;
+}
+
+static int vmx_set_hfi_ptr_msr(struct kvm_vcpu *vcpu,
+			       struct msr_data *msr_info)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
+	u64 data = msr_info->data;
+
+	if (kvm_vmx->pkg_therm.msr_ia32_hfi_ptr == data)
+		return 0;
+
+	kvm_vmx->pkg_therm.msr_ia32_hfi_ptr = data;
+	kvm_vmx_hfi->table_ptr_valid = data & HW_FEEDBACK_PTR_VALID;
+	/*
+	 * Currently we don't really support MSR handling for package
+	 * scope, so when Guest writes, it is not possible to distinguish
+	 * between writes from different packages or repeated writes from
+	 * the same package. To simplify the process, we just assume that
+	 * multiple writes are duplicate writes of the same package and
+	 * overwrite the old.
+	 */
+	kvm_vmx_hfi->table_base = data & ~HW_FEEDBACK_PTR_VALID;
+
+	vmx_update_hfi_table(vcpu->kvm, true);
+	vmx_hfi_notifier_register(vcpu->kvm);
 
 	return 0;
 }
@@ -2930,6 +3013,35 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 
 		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
 		ret = vmx_set_pkg_therm_status_msr(vcpu, msr_info);
+		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+		break;
+	case MSR_IA32_HW_FEEDBACK_CONFIG:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
+			return 1;
+		/*
+		 * Unsupported and reserved bits. ITD is not supported
+		 * (CPUID.06H:EAX[19]) yet.
+		 */
+		if (!msr_info->host_initiated &&
+		    data & ~(HW_FEEDBACK_CONFIG_HFI_ENABLE))
+			return 1;
+
+		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+		ret = vmx_set_hfi_cfg_msr(vcpu, msr_info);
+		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+		break;
+	case MSR_IA32_HW_FEEDBACK_PTR:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
+			return 1;
+		/* Reserved bits: generate the exception. */
+		if (!msr_info->host_initiated &&
+		    data & HW_FEEDBACK_PTR_RESERVED_MASK)
+			return 1;
+
+		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+		ret = vmx_set_hfi_ptr_msr(vcpu, msr_info);
 		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
 		break;
 	default:
