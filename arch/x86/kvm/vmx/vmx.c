@@ -182,7 +182,6 @@ module_param(allow_smaller_maxphyaddr, bool, S_IRUGO);
 	THERM_MASK_THRESHOLD0 | THERM_INT_THRESHOLD0_ENABLE | \
 	THERM_MASK_THRESHOLD1 | THERM_INT_THRESHOLD1_ENABLE)
 
-/* HFI (CPUID.06H:EAX[19]) is not emulated in kvm yet. */
 #define MSR_IA32_PACKAGE_THERM_STATUS_RO_MASK (PACKAGE_THERM_STATUS_PROCHOT | \
 	PACKAGE_THERM_STATUS_PROCHOT_EVENT | PACKAGE_THERM_STATUS_CRITICAL_TEMP | \
 	THERM_STATUS_THRESHOLD0 | THERM_STATUS_THRESHOLD1 | \
@@ -190,20 +189,17 @@ module_param(allow_smaller_maxphyaddr, bool, S_IRUGO);
 #define MSR_IA32_PACKAGE_THERM_STATUS_RWC0_MASK (PACKAGE_THERM_STATUS_PROCHOT_LOG | \
 	PACKAGE_THERM_STATUS_PROCHOT_EVENT_LOG | PACKAGE_THERM_STATUS_CRITICAL_TEMP_LOG | \
 	THERM_LOG_THRESHOLD0 | THERM_LOG_THRESHOLD1 | \
-	PACKAGE_THERM_STATUS_POWER_LIMIT_LOG)
+	PACKAGE_THERM_STATUS_POWER_LIMIT_LOG | PACKAGE_THERM_STATUS_HFI_UPDATED)
 /* MSR_IA32_PACKAGE_THERM_STATUS unavailable bits mask: unsupported and reserved bits. */
 #define MSR_IA32_PACKAGE_THERM_STATUS_UNAVAIL_MASK (~(MSR_IA32_PACKAGE_THERM_STATUS_RO_MASK | \
 	MSR_IA32_PACKAGE_THERM_STATUS_RWC0_MASK))
 
-/*
- * MSR_IA32_PACKAGE_THERM_INTERRUPT available bits mask.
- * HFI (CPUID.06H:EAX[19]) is not emulated in kvm yet.
- */
-#define MSR_IA32_PACKAGE_THERM_INTERRUPT_AVAIL_MASK (PACKAGE_THERM_INT_HIGH_ENABLE | \
+#define MSR_IA32_PACKAGE_THERM_INTERRUPT_MASK (PACKAGE_THERM_INT_HIGH_ENABLE | \
 	PACKAGE_THERM_INT_LOW_ENABLE | PACKAGE_THERM_INT_PROCHOT_ENABLE | \
 	PACKAGE_THERM_INT_OVERHEAT_ENABLE | THERM_MASK_THRESHOLD0 | \
 	THERM_INT_THRESHOLD0_ENABLE | THERM_MASK_THRESHOLD1 | \
-	THERM_INT_THRESHOLD1_ENABLE | PACKAGE_THERM_INT_PLN_ENABLE)
+	THERM_INT_THRESHOLD1_ENABLE | PACKAGE_THERM_INT_PLN_ENABLE | \
+	PACKAGE_THERM_INT_HFI_ENABLE)
 
 /*
  * List of MSRs that can be directly passed to the guest.
@@ -2430,7 +2426,16 @@ static int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		if (!msr_info->host_initiated &&
 		    !guest_cpuid_has(vcpu, X86_FEATURE_PTS))
 			return 1;
+
+		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+		if (kvm_vmx->pkg_therm.hfi_desc.hfi_update_status)
+			kvm_vmx->pkg_therm.msr_pkg_therm_status |=
+				PACKAGE_THERM_STATUS_HFI_UPDATED;
+		else
+			kvm_vmx->pkg_therm.msr_pkg_therm_status &=
+				~PACKAGE_THERM_STATUS_HFI_UPDATED;
 		msr_info->data = kvm_vmx->pkg_therm.msr_pkg_therm_status;
+		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
 		break;
 	default:
 	find_uret_msr:
@@ -2482,6 +2487,87 @@ static inline u64 vmx_set_msr_rwc0_bits(u64 new_val, u64 old_val, u64 rwc0_mask)
 	u64 new_rwc0 = new_val & rwc0_mask, old_rwc0 = old_val & rwc0_mask;
 
 	return ((new_rwc0 | ~old_rwc0) & old_rwc0) | (new_val & ~rwc0_mask);
+}
+
+static int vmx_set_pkg_therm_int_msr(struct kvm_vcpu *vcpu,
+				     struct msr_data *msr_info)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
+	u64 data = msr_info->data;
+	bool hfi_int_enabled, hfi_int_changed;
+
+	hfi_int_enabled = data & PACKAGE_THERM_INT_HFI_ENABLE;
+	hfi_int_changed = vmx_hfi_int_enabled(kvm_vmx) != hfi_int_enabled;
+
+	kvm_vmx->pkg_therm.msr_pkg_therm_int = data;
+	kvm_vmx_hfi->hfi_int_enabled = hfi_int_enabled;
+
+	/*
+	 * Only HFI notification is supported, otherwise behave as a
+	 * dummy MSR.
+	 */
+	if (!intel_hfi_enabled() ||
+	    !guest_cpuid_has(vcpu, X86_FEATURE_HFI) ||
+	    !hfi_int_changed)
+		return 0;
+
+	if (!hfi_int_enabled)
+		return 0;
+
+	/*
+	 * SDM: (For IA32_HW_FEEDBACK_CONFIG) no (HFI) status bit
+	 * set, no interrupt is generated.
+	 */
+	if (!kvm_vmx_hfi->hfi_enabled)
+		return 0;
+
+	/*
+	 * When HFI interrupt enable bit transitions from 0 to 1,
+	 * try to inject initial interrupt. No need to force
+	 * injection of the interrupt if there's no HFI table update.
+	 */
+	vmx_update_hfi_table(vcpu->kvm, false);
+
+	return 0;
+}
+
+static int vmx_set_pkg_therm_status_msr(struct kvm_vcpu *vcpu,
+					struct msr_data *msr_info)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
+	u64 data = msr_info->data;
+	bool hfi_status_updated, hfi_status_changed;
+
+	if (!msr_info->host_initiated) {
+		data = vmx_set_msr_rwc0_bits(data, kvm_vmx->pkg_therm.msr_pkg_therm_status,
+					     MSR_IA32_PACKAGE_THERM_STATUS_RWC0_MASK);
+		data = vmx_set_msr_ro_bits(data, kvm_vmx->pkg_therm.msr_pkg_therm_status,
+					   MSR_IA32_PACKAGE_THERM_STATUS_RO_MASK);
+	}
+
+	hfi_status_updated = data & PACKAGE_THERM_STATUS_HFI_UPDATED;
+	hfi_status_changed = kvm_vmx_hfi->hfi_update_status != hfi_status_updated;
+
+	kvm_vmx->pkg_therm.msr_pkg_therm_status = data;
+	kvm_vmx_hfi->hfi_update_status = hfi_status_updated;
+
+	if (!intel_hfi_enabled() ||
+	    !guest_cpuid_has(vcpu, X86_FEATURE_HFI) ||
+	    !hfi_status_changed)
+		return 0;
+
+	/*
+	 * From SDM, once the HFI (thermal) status bit is set, the hardware
+	 * will not generate any further updates to HFI table until the OS
+	 * clears this bit by writing 0. When this bit is cleared, apply any
+	 * pending updates to guest HFI table.
+	 */
+	if (!kvm_vmx_hfi->hfi_update_status && kvm_vmx_hfi->hfi_update_pending)
+		vmx_update_hfi_table(vcpu->kvm, false);
+
+	return 0;
 }
 
 /*
@@ -2814,11 +2900,19 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		if (!msr_info->host_initiated &&
 		    !guest_cpuid_has(vcpu, X86_FEATURE_PTS))
 			return 1;
-		/* Unsupported and reserved bits: generate the exception. */
+		/* Unsupported bit: generate the exception. */
 		if (!msr_info->host_initiated &&
-		    data & ~MSR_IA32_PACKAGE_THERM_INTERRUPT_AVAIL_MASK)
+		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI) &&
+		    data & PACKAGE_THERM_INT_HFI_ENABLE)
 			return 1;
-		kvm_vmx->pkg_therm.msr_pkg_therm_int = data;
+		/* Reserved bits: generate the exception. */
+		if (!msr_info->host_initiated &&
+		    data & ~MSR_IA32_PACKAGE_THERM_INTERRUPT_MASK)
+			return 1;
+
+		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+		ret = vmx_set_pkg_therm_int_msr(vcpu, msr_info);
+		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
 		break;
 	case MSR_IA32_PACKAGE_THERM_STATUS:
 		if (!msr_info->host_initiated &&
@@ -2828,15 +2922,14 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		if (!msr_info->host_initiated &&
 		    data & MSR_IA32_PACKAGE_THERM_STATUS_UNAVAIL_MASK)
 			return 1;
+		/* Unsupported bit: generate the exception. */
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI) &&
+		    data & PACKAGE_THERM_STATUS_HFI_UPDATED)
+			return 1;
 
 		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		if (!msr_info->host_initiated) {
-			data = vmx_set_msr_rwc0_bits(data, kvm_vmx->pkg_therm.msr_pkg_therm_status,
-						     MSR_IA32_PACKAGE_THERM_STATUS_RWC0_MASK);
-			data = vmx_set_msr_ro_bits(data, kvm_vmx->pkg_therm.msr_pkg_therm_status,
-						   MSR_IA32_PACKAGE_THERM_STATUS_RO_MASK);
-		}
-		kvm_vmx->pkg_therm.msr_pkg_therm_status = data;
+		ret = vmx_set_pkg_therm_status_msr(vcpu, msr_info);
 		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
 		break;
 	default:
