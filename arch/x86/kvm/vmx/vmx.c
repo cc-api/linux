@@ -1539,6 +1539,123 @@ static void vmx_inject_therm_interrupt(struct kvm_vcpu *vcpu)
 		kvm_apic_therm_deliver(vcpu);
 }
 
+static inline bool vmx_hfi_initialized(struct kvm_vmx *kvm_vmx)
+{
+	return kvm_vmx->pkg_therm.hfi_desc.hfi_enabled &&
+	       kvm_vmx->pkg_therm.hfi_desc.table_ptr_valid;
+}
+
+static inline bool vmx_hfi_int_enabled(struct kvm_vmx *kvm_vmx)
+{
+	return kvm_vmx->pkg_therm.hfi_desc.hfi_int_enabled;
+}
+
+static int vmx_init_hfi_table(struct kvm *kvm)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
+	struct hfi_features *hfi_features = &kvm_vmx_hfi->hfi_features;
+	struct hfi_table *hfi_table = &kvm_vmx_hfi->hfi_table;
+	int nr_classes, ret = 0;
+
+	/*
+	 * Currently we haven't supported ITD. HFI is the default feature
+	 * with 1 class.
+	 */
+	nr_classes = 1;
+	ret = intel_hfi_build_virt_features(hfi_features, nr_classes);
+	if (unlikely(ret))
+		return ret;
+
+	hfi_table->base_addr = kzalloc(hfi_features->nr_table_pages <<
+				       PAGE_SHIFT, GFP_KERNEL);
+	if (!hfi_table->base_addr)
+		return -ENOMEM;
+
+	hfi_table->hdr = hfi_table->base_addr + sizeof(*hfi_table->timestamp);
+	hfi_table->data = hfi_table->hdr + hfi_features->hdr_size;
+	return 0;
+}
+
+static int vmx_build_hfi_table(struct kvm *kvm)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
+	struct kvm_vcpu *v;
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
+	struct hfi_table *hfi_table = &kvm_vmx_hfi->hfi_table;
+	struct hfi_hdr *hfi_hdr = hfi_table->hdr;
+	struct hfi_features *hfi_features = &kvm_vmx_hfi->hfi_features;
+	int nr_classes, ret = 0, updated = 0;
+	unsigned long i;
+
+	/*
+	 * Currently we haven't supported ITD. HFI is the default feature
+	 * with 1 class.
+	 */
+	nr_classes = 1;
+	for (int i = 0; i < nr_classes; i++) {
+		hfi_hdr->perf_updated = 0;
+		hfi_hdr->ee_updated = 0;
+		hfi_hdr++;
+	}
+
+	kvm_for_each_vcpu(i, v, kvm) {
+		ret = intel_hfi_build_virt_table(hfi_table, hfi_features,
+						 nr_classes,
+						 to_vmx(v)->hfi_table_idx,
+						 v->cpu);
+		if (unlikely(ret < 0))
+			return ret;
+		updated |= ret;
+	}
+
+	if (!updated)
+		return updated;
+
+	/* Timestamp must be monotonic. */
+	(*kvm_vmx_hfi->hfi_table.timestamp)++;
+
+	/* Update the HFI table, whether the HFI interrupt is enabled or not. */
+	kvm_write_guest(kvm, kvm_vmx_hfi->table_base, hfi_table->base_addr,
+			hfi_features->nr_table_pages << PAGE_SHIFT);
+	return 1;
+}
+
+static void vmx_update_hfi_table(struct kvm *kvm)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
+	int ret = 0;
+
+	if (!intel_hfi_enabled())
+		return;
+
+	if (!vmx_hfi_initialized(kvm_vmx))
+		return;
+
+	if (!kvm_vmx_hfi->hfi_table.base_addr) {
+		ret = vmx_init_hfi_table(kvm);
+		if (unlikely(ret))
+			return;
+	}
+
+	ret = vmx_build_hfi_table(kvm);
+	if (ret <= 0)
+		return;
+
+	kvm_vmx_hfi->hfi_update_status = true;
+	kvm_vmx_hfi->hfi_update_pending = false;
+
+	/*
+	 * Since HFI is shared for all vCPUs of the same VM, we
+	 * actually support only 1 package topology VMs, so when
+	 * emulating package level interrupt, we only inject an
+	 * interrupt into one vCPU to reduce the overhead.
+	 */
+	if (vmx_hfi_int_enabled(kvm_vmx))
+		vmx_inject_therm_interrupt(kvm_get_vcpu(kvm, 0));
+}
+
 /*
  * Switches to specified vcpu, until a matching vcpu_put(), but assumes
  * vcpu mutex is already taken.
