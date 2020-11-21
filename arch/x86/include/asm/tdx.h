@@ -51,6 +51,8 @@ void tdx_safe_halt(void);
 
 bool tdx_early_handle_ve(struct pt_regs *regs);
 
+extern int tdx_notify_irq;
+
 bool tdx_allowed_port(short int port);
 
 #else
