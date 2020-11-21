@@ -10,6 +10,8 @@
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
 #include <linux/io.h>
+#include <linux/interrupt.h>
+#include <linux/irq.h>
 #include <linux/numa.h>
 #include <linux/platform-feature.h>
 #include <linux/random.h>
@@ -20,6 +22,7 @@
 #include <asm/insn.h>
 #include <asm/insn-eval.h>
 #include <asm/pgtable.h>
+#include <asm/irqdomain.h>
 
 #include "tdx.h"
 
@@ -51,6 +54,7 @@ static unsigned int gpa_width;
 static u64 td_attr;
 
 static struct miscdevice tdx_misc_dev;
+int tdx_notify_irq = -1;
 
 /* Traced version of __tdx_hypercall */
 static u64 __trace_tdx_hypercall(struct tdx_hypercall_args *args,
@@ -144,6 +148,31 @@ static inline void tdx_module_call(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
 {
 	if (__trace_tdx_module_call(fn, rcx, rdx, r8, r9, out))
 		panic("TDCALL %lld failed (Buggy TDX module!)\n", fn);
+}
+
+/*
+ * tdx_hcall_set_notify_intr() - Setup Event Notify Interrupt Vector.
+ *
+ * @vector: Vector address to be used for notification.
+ *
+ * return 0 on success or failure error number.
+ */
+static long tdx_hcall_set_notify_intr(u8 vector)
+{
+	/* Minimum vector value allowed is 32 */
+	if (vector < 32)
+		return -EINVAL;
+
+	/*
+	 * Register callback vector address with VMM. More details
+	 * about the ABI can be found in TDX Guest-Host-Communication
+	 * Interface (GHCI), sec titled
+	 * "TDG.VP.VMCALL<SetupEventNotifyInterrupt>".
+	 */
+	if (_trace_tdx_hypercall(TDVMCALL_SETUP_NOTIFY_INTR, vector, 0, 0, 0))
+		return -EIO;
+
+	return 0;
 }
 
 static void tdx_parse_tdinfo(void)
@@ -1111,3 +1140,56 @@ static int __init tdx_guest_init(void)
 	return 0;
 }
 device_initcall(tdx_guest_init)
+
+/* Reserve an IRQ from x86_vector_domain for TD event notification */
+static int __init tdx_arch_init(void)
+{
+	struct irq_alloc_info info;
+	struct irq_cfg *cfg;
+	int cpu;
+
+	if (!cpu_feature_enabled(X86_FEATURE_TDX_GUEST))
+		return 0;
+
+	/* Make sure x86 vector domain is initialized */
+	if (!x86_vector_domain) {
+		pr_err("x86 vector domain is NULL\n");
+		return 0;
+	}
+
+	init_irq_alloc_info(&info, NULL);
+
+	/*
+	 * Event notification vector will be delivered to the CPU
+	 * in which TDVMCALL_SETUP_NOTIFY_INTR hypercall is requested.
+	 * So set the IRQ affinity to the current CPU.
+	 */
+	cpu = get_cpu();
+
+	info.mask = cpumask_of(cpu);
+
+	tdx_notify_irq = irq_domain_alloc_irqs(x86_vector_domain, 1,
+				NUMA_NO_NODE, &info);
+
+	if (tdx_notify_irq < 0) {
+		pr_err("Event notification IRQ allocation failed %d\n",
+				tdx_notify_irq);
+		goto init_failed;
+	}
+
+	irq_set_handler(tdx_notify_irq, handle_edge_irq);
+
+	cfg = irq_cfg(tdx_notify_irq);
+	if (!cfg) {
+		pr_err("Event notification IRQ config not found\n");
+		goto init_failed;
+	}
+
+	if (tdx_hcall_set_notify_intr(cfg->vector))
+		pr_err("Setting event notification interrupt failed\n");
+
+init_failed:
+	put_cpu();
+	return 0;
+}
+arch_initcall(tdx_arch_init);
