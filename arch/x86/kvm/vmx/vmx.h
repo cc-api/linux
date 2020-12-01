@@ -71,6 +71,10 @@ struct pt_desc {
 	struct pt_ctx guest;
 };
 
+struct vcpu_hfi_desc {
+	u64 hfi_thread_cfg;
+};
+
 union vmx_exit_reason {
 	struct {
 		u32	basic			: 16;
@@ -284,6 +288,7 @@ struct vcpu_vmx {
 	u64		      msr_ia32_therm_control;
 	u64		      msr_ia32_therm_interrupt;
 	u64		      msr_ia32_therm_status;
+	struct vcpu_hfi_desc  vcpu_hfi_desc;
 
 	/*
 	 * loaded_vmcs points to the VMCS currently used in this vcpu. For a

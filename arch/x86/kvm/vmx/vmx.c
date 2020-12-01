@@ -2256,6 +2256,29 @@ static int vmx_get_msr_feature(struct kvm_msr_entry *msr)
 	}
 }
 
+#ifdef CONFIG_IPC_CLASSES
+static void vmx_get_itd_ipcc(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
+{
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	union itd_ipcc *itd_ipcc = (union itd_ipcc *)&current->ipcc;
+
+	if (!vmx->vcpu_hfi_desc.hfi_thread_cfg)
+		msr_info->data = 0;
+	else {
+		/*
+		 * "class_tmp" field stores the latest IPC Class. Using it can
+		 * avoid extra latency due to debounce handling for ipc class.
+		 */
+		if (itd_ipcc->split.class_tmp != IPC_CLASS_UNCLASSIFIED)
+			msr_info->data = itd_ipcc->split.class_tmp - 1;
+		else
+			msr_info->data = 0;
+
+		msr_info->data |= BIT_ULL(63);
+	}
+}
+#endif
+
 /*
  * Reads an msr value (of 'msr_info->index') into 'msr_info->data'.
  * Returns 0 on success, non-0 otherwise.
@@ -2448,6 +2471,22 @@ static int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
 			return 1;
 		msr_info->data = kvm_vmx->pkg_therm.msr_ia32_hfi_ptr;
+		break;
+	case MSR_IA32_HW_FEEDBACK_THREAD_CONFIG:
+		if (!msr_info->host_initiated &&
+		    !(guest_cpuid_has(vcpu, X86_FEATURE_ITD) &&
+		    kvm_cpu_cap_has(X86_FEATURE_ITD)))
+			return 1;
+		msr_info->data = vmx->vcpu_hfi_desc.hfi_thread_cfg;
+		break;
+	case MSR_IA32_HW_FEEDBACK_CHAR:
+		if (!msr_info->host_initiated &&
+		    !(guest_cpuid_has(vcpu, X86_FEATURE_ITD) &&
+		    kvm_cpu_cap_has(X86_FEATURE_ITD)))
+			return 1;
+#ifdef CONFIG_IPC_CLASSES
+		vmx_get_itd_ipcc(vcpu, msr_info);
+#endif
 		break;
 	default:
 	find_uret_msr:
@@ -3077,6 +3116,22 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
 		ret = vmx_set_hfi_ptr_msr(vcpu, msr_info);
 		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+		break;
+	case MSR_IA32_HW_FEEDBACK_THREAD_CONFIG:
+		if (!msr_info->host_initiated &&
+		    !(guest_cpuid_has(vcpu, X86_FEATURE_ITD) &&
+		    kvm_cpu_cap_has(X86_FEATURE_ITD)))
+			return 1;
+		vmx->vcpu_hfi_desc.hfi_thread_cfg = data;
+		break;
+	case MSR_IA32_HW_FEEDBACK_CHAR:
+		/* Read-only. */
+		if (!msr_info->host_initiated)
+			return 1;
+		/*
+		 * This MSR reflects the hardware's classification for the
+		 * task. No need to accept customized values.
+		 */
 		break;
 	default:
 	find_uret_msr:
@@ -5494,6 +5549,7 @@ static void vmx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 	vmx->msr_ia32_therm_control = 0;
 	vmx->msr_ia32_therm_interrupt = 0;
 	vmx->msr_ia32_therm_status = 0;
+	vmx->vcpu_hfi_desc.hfi_thread_cfg = 0;
 
 	vmx->hv_deadline_tsc = -1;
 	kvm_set_cr8(vcpu, 0);
