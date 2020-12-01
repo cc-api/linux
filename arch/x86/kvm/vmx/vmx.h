@@ -375,6 +375,8 @@ struct vcpu_vmx {
  * struct hfi_desc - Representation of an HFI instance (i.e., a table)
  * @hfi_enabled:	Flag to indicate whether HFI is enabled at runtime.
  *			Parsed from the Guest's MSR_IA32_HW_FEEDBACK_CONFIG.
+ * @itd_enabled:	Flag to indicate whether ITD is enabled at runtime.
+ *			Parsed from the Guest's MSR_IA32_HW_FEEDBACK_CONFIG.
  * @hfi_int_enabled:	Flag to indicate whether HFI is enabled at runtime.
  *			Parsed from Guest's MSR_IA32_PACKAGE_THERM_INTERRUPT[bit 25].
  * @table_ptr_valid:	Flag to indicate whether the memory of Guest HFI table is ready.
@@ -408,6 +410,7 @@ struct vcpu_vmx {
 
 struct hfi_desc {
 	bool			hfi_enabled;
+	bool			itd_enabled;
 	bool			hfi_int_enabled;
 	bool			table_ptr_valid;
 	bool			hfi_update_status;
