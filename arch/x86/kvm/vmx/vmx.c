@@ -1554,11 +1554,11 @@ static int vmx_init_hfi_table(struct kvm *kvm)
 	struct hfi_table *hfi_table = &kvm_vmx_hfi->hfi_table;
 	int nr_classes, ret = 0;
 
-	/*
-	 * Currently we haven't supported ITD. HFI is the default feature
-	 * with 1 class.
-	 */
-	nr_classes = 1;
+	if (guest_cpuid_has(kvm_get_vcpu(kvm, 0), X86_FEATURE_ITD))
+		nr_classes = 4;
+	else
+		nr_classes = 1;
+
 	ret = intel_hfi_build_virt_features(hfi_features, nr_classes);
 	if (unlikely(ret))
 		return ret;
@@ -1584,11 +1584,11 @@ static int vmx_build_hfi_table(struct kvm *kvm)
 	int nr_classes, ret = 0, updated = 0;
 	unsigned long i;
 
-	/*
-	 * Currently we haven't supported ITD. HFI is the default feature
-	 * with 1 class.
-	 */
-	nr_classes = 1;
+	if (kvm_vmx_hfi->itd_enabled)
+		nr_classes = kvm_vmx_hfi->hfi_features.nr_classes;
+	else
+		nr_classes = 1;
+
 	for (int i = 0; i < nr_classes; i++) {
 		hfi_hdr->perf_updated = 0;
 		hfi_hdr->ee_updated = 0;
@@ -2588,7 +2588,7 @@ static int vmx_set_hfi_cfg_msr(struct kvm_vcpu *vcpu,
 	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
 	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
 	u64 data = msr_info->data;
-	bool hfi_enabled, hfi_changed;
+	bool hfi_enabled, hfi_changed, itd_enabled, itd_changed;
 
 	/*
 	 * When the HFI enable bit changes (either from 0 to 1 or 1 to
@@ -2597,12 +2597,44 @@ static int vmx_set_hfi_cfg_msr(struct kvm_vcpu *vcpu,
 	 */
 	hfi_enabled = data & HW_FEEDBACK_CONFIG_HFI_ENABLE;
 	hfi_changed = kvm_vmx_hfi->hfi_enabled != hfi_enabled;
+	itd_enabled = data & HW_FEEDBACK_CONFIG_ITD_ENABLE;
+	itd_changed = kvm_vmx_hfi->itd_enabled != itd_enabled;
 
 	kvm_vmx->pkg_therm.msr_ia32_hfi_cfg = data;
 	kvm_vmx_hfi->hfi_enabled = hfi_enabled;
+	kvm_vmx_hfi->itd_enabled = itd_enabled;
 
-	if (!hfi_changed)
+	if (!hfi_changed && !itd_changed)
 		return 0;
+
+	/*
+	 * Refer to SDM, vol. 3B, Table 15-10. IA32_HW_FEEDBACK_CONFIG
+	 * Control Option.
+	 */
+
+	/* Invalid option; quietly ignored by the hardware. */
+	if (!hfi_changed && itd_changed && !hfi_enabled && itd_enabled) {
+		/* No action (no update in the table). */
+		return 0;
+	}
+
+	/* No action; keep HFI and Intel Thread Director disabled. */
+	if (!hfi_changed && itd_changed && !hfi_enabled && !itd_enabled) {
+		/* No action (no update in the table). */
+		return 0;
+	}
+
+	/* No action; keep HFI enabled. */
+	if (!hfi_changed && itd_changed && hfi_enabled && !itd_enabled) {
+		/* No action (no update in the table). */
+		return 0;
+	}
+
+	/* Disable HFI and Intel Thread Director whether ITD changed. */
+	if (hfi_changed && !hfi_enabled && itd_enabled) {
+		kvm_vmx_hfi->hfi_enabled = false;
+		kvm_vmx_hfi->itd_enabled = false;
+	}
 
 	if (!hfi_enabled) {
 		/*
@@ -3019,12 +3051,14 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		if (!msr_info->host_initiated &&
 		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
 			return 1;
-		/*
-		 * Unsupported and reserved bits. ITD is not supported
-		 * (CPUID.06H:EAX[19]) yet.
-		 */
+		/* Unsupported bit: generate the exception. */
 		if (!msr_info->host_initiated &&
-		    data & ~(HW_FEEDBACK_CONFIG_HFI_ENABLE))
+		    !guest_cpuid_has(vcpu, X86_FEATURE_ITD) &&
+		    (data & HW_FEEDBACK_CONFIG_ITD_ENABLE))
+			return 1;
+		/* Reserved bits: generate the exception. */
+		if (!msr_info->host_initiated &&
+		    data & ~(HW_FEEDBACK_CONFIG_HFI_ENABLE | HW_FEEDBACK_CONFIG_ITD_ENABLE))
 			return 1;
 
 		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
@@ -8162,6 +8196,7 @@ static int vmx_vm_init_pkg_therm(struct kvm *kvm)
 	mutex_init(&pkg_therm->pkg_therm_lock);
 
 	kvm_vmx_hfi->hfi_enabled = false;
+	kvm_vmx_hfi->itd_enabled = false;
 	kvm_vmx_hfi->hfi_int_enabled = false;
 	kvm_vmx_hfi->table_ptr_valid = false;
 	kvm_vmx_hfi->hfi_update_pending = false;
