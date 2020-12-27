@@ -1295,6 +1295,35 @@ static void pt_guest_exit(struct vcpu_vmx *vmx)
 		wrmsrl(MSR_IA32_RTIT_CTL, vmx->pt_desc.host.ctl);
 }
 
+static void hreset_guest_enter(struct vcpu_vmx *vmx)
+{
+	struct vcpu_hfi_desc *vcpu_hfi = &vmx->vcpu_hfi_desc;
+
+	if (!kvm_cpu_cap_has(X86_FEATURE_HRESET) ||
+	    !guest_cpuid_has(&vmx->vcpu, X86_FEATURE_HRESET))
+		return;
+
+	rdmsrl(MSR_IA32_HW_HRESET_ENABLE, vcpu_hfi->host_hreset_enable);
+	if (unlikely(vcpu_hfi->host_hreset_enable != vcpu_hfi->guest_hreset_enable))
+		wrmsrl(MSR_IA32_HW_HRESET_ENABLE, vcpu_hfi->guest_hreset_enable);
+}
+
+static void hreset_guest_exit(struct vcpu_vmx *vmx)
+{
+	struct vcpu_hfi_desc *vcpu_hfi = &vmx->vcpu_hfi_desc;
+
+	if (!kvm_cpu_cap_has(X86_FEATURE_HRESET) ||
+	    !guest_cpuid_has(&vmx->vcpu, X86_FEATURE_HRESET))
+		return;
+
+	/*
+	 * MSR_IA32_HW_HRESET_ENABLE is not passed through to Guest, so there
+	 * is no need to read the MSR to save the Guest's value.
+	 */
+	if (unlikely(vcpu_hfi->host_hreset_enable != vcpu_hfi->guest_hreset_enable))
+		wrmsrl(MSR_IA32_HW_HRESET_ENABLE, vcpu_hfi->host_hreset_enable);
+}
+
 void vmx_set_host_fs_gs(struct vmcs_host_state *host, u16 fs_sel, u16 gs_sel,
 			unsigned long fs_base, unsigned long gs_base)
 {
@@ -2488,6 +2517,13 @@ static int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		vmx_get_itd_ipcc(vcpu, msr_info);
 #endif
 		break;
+	case MSR_IA32_HW_HRESET_ENABLE:
+		if (!msr_info->host_initiated &&
+		    !(kvm_cpu_cap_has(X86_FEATURE_HRESET) &&
+		    guest_cpuid_has(&vmx->vcpu, X86_FEATURE_HRESET)))
+			return 1;
+		msr_info->data = vmx->vcpu_hfi_desc.guest_hreset_enable;
+		break;
 	default:
 	find_uret_msr:
 		msr = vmx_find_uret_msr(vmx, msr_info->index);
@@ -3132,6 +3168,18 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		 * This MSR reflects the hardware's classification for the
 		 * task. No need to accept customized values.
 		 */
+		break;
+	case MSR_IA32_HW_HRESET_ENABLE:
+		if (!msr_info->host_initiated &&
+		    !(kvm_cpu_cap_has(X86_FEATURE_HRESET) &&
+		    guest_cpuid_has(&vmx->vcpu, X86_FEATURE_HRESET)))
+			return 1;
+		/* Reserved bits: generate the exception. */
+		if (!msr_info->host_initiated && data & ~HRESET_ITD_ENABLE)
+			return 1;
+		/* hreset_guest_enter() will update MSR for Guest. */
+		if (vmx->vcpu_hfi_desc.guest_hreset_enable != data)
+			vmx->vcpu_hfi_desc.guest_hreset_enable = data;
 		break;
 	default:
 	find_uret_msr:
@@ -5550,6 +5598,8 @@ static void vmx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 	vmx->msr_ia32_therm_interrupt = 0;
 	vmx->msr_ia32_therm_status = 0;
 	vmx->vcpu_hfi_desc.hfi_thread_cfg = 0;
+	vmx->vcpu_hfi_desc.host_hreset_enable = 0;
+	vmx->vcpu_hfi_desc.guest_hreset_enable = 0;
 
 	vmx->hv_deadline_tsc = -1;
 	kvm_set_cr8(vcpu, 0);
@@ -8044,6 +8094,8 @@ static fastpath_t vmx_vcpu_run(struct kvm_vcpu *vcpu)
 
 	pt_guest_enter(vmx);
 
+	hreset_guest_enter(vmx);
+
 	atomic_switch_perf_msrs(vmx);
 	if (intel_pmu_lbr_is_enabled(vcpu))
 		vmx_passthrough_lbr_msrs(vcpu);
@@ -8080,6 +8132,8 @@ static fastpath_t vmx_vcpu_run(struct kvm_vcpu *vcpu)
 	loadsegment(ds, __USER_DS);
 	loadsegment(es, __USER_DS);
 #endif
+
+	hreset_guest_exit(vmx);
 
 	pt_guest_exit(vmx);
 
