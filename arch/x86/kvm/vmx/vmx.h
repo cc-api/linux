@@ -73,6 +73,8 @@ struct pt_desc {
 
 struct vcpu_hfi_desc {
 	u64 hfi_thread_cfg;
+	u64 host_hreset_enable;
+	u64 guest_hreset_enable;
 };
 
 union vmx_exit_reason {
