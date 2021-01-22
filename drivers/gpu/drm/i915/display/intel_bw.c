@@ -393,6 +393,37 @@ static const struct intel_sa_info xe2_hpd_sa_info = {
 	/* Other values not used by simplified algorithm */
 };
 
+static int sim_get_bw_info(struct drm_i915_private *i915)
+{
+	int num_groups = ARRAY_SIZE(i915->display.bw.max);
+	int i;
+
+	/*
+	 * If running in simulation the SAGV isn't modelled and we can't query
+	 * the pcode for QGV data.  We'll just create a single dummy QGV point
+	 * with max bandwidth for each group.
+	 */
+	for (i = 0; i < num_groups; i++) {
+		struct intel_bw_info *bi = &i915->display.bw.max[i];
+
+		bi->num_planes = 1;
+		/* Need only one dummy QGV point per group */
+		bi->num_qgv_points = 1;
+		/*
+		 * HACK: Use UINT_MAX - 1 because mtl_find_qgv_points() initializes
+		 * best_rate with UINT_MAX, which would case the difference between
+		 * bi->deratedbw[0] and a zero data_rate be the same as best_rate
+		 * and cause no QGV point to be selected.
+		 */
+		bi->deratedbw[0] = UINT_MAX - 1;
+		bi->peakbw[0] = UINT_MAX;
+	}
+
+	i915->display.sagv.status = I915_SAGV_NOT_CONTROLLED;
+
+	return 0;
+}
+
 static int icl_get_bw_info(struct drm_i915_private *dev_priv, const struct intel_sa_info *sa)
 {
 	struct intel_qgv_info qi = {};
@@ -474,6 +505,9 @@ static int tgl_get_bw_info(struct drm_i915_private *dev_priv, const struct intel
 	int clperchgroup;
 	int num_groups = ARRAY_SIZE(dev_priv->display.bw.max);
 	int i, ret;
+
+	if (XE_PRESI_SKIP_FEATURE(dev_priv, SAGV))
+		return sim_get_bw_info(dev_priv);
 
 	ret = icl_get_qgv_points(dev_priv, &qi, is_y_tile);
 	if (ret) {
@@ -611,6 +645,9 @@ static int xe2_hpd_get_bw_info(struct drm_i915_private *i915,
 	int num_channels = i915->dram_info.num_channels;
 	int peakbw, maxdebw;
 	int ret, i;
+
+	if (XE_PRESI_SKIP_FEATURE(i915, SAGV))
+		return sim_get_bw_info(i915);
 
 	ret = icl_get_qgv_points(i915, &qi, true);
 	if (ret) {
