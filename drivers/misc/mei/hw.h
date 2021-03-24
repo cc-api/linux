@@ -15,12 +15,12 @@
 #define MEI_HW_READY_TIMEOUT        2  /* Timeout on ready message */
 #define MEI_CONNECT_TIMEOUT         3  /* HPS: at least 2 seconds */
 
-#define MEI_CL_CONNECT_TIMEOUT     15  /* HPS: Client Connect Timeout */
+#define MEI_CL_CONNECT_TIMEOUT     30  /* HPS: Client Connect Timeout */
 #define MEI_CLIENTS_INIT_TIMEOUT   15  /* HPS: Clients Enumeration Timeout */
 
 #define MEI_PGI_TIMEOUT             1  /* PG Isolation time response 1 sec */
 #define MEI_D0I3_TIMEOUT            5  /* D0i3 set/unset max response time */
-#define MEI_HBM_TIMEOUT             1  /* 1 second */
+#define MEI_HBM_TIMEOUT             5  /* 5 second */
 
 /*
  * FW page size for DMA allocations
