@@ -3816,6 +3816,126 @@ int pci_enable_atomic_ops_to_root(struct pci_dev *dev, u32 cap_mask)
 EXPORT_SYMBOL(pci_enable_atomic_ops_to_root);
 
 /**
+ * pci_enable_dmwr_ops_to_root - enable DMWr requests to root port
+ * @dev: the PCI device
+ * @req_size: desired DMWr sizes, including one or more of:
+ *	PCI_EXP_DEVCAP2_DMWR_MASK
+ *
+ * Return 0 if all upstream bridges support DMWr routing, egress
+ * blocking is disabled on all upstream ports, and the root port supports
+ * the requested routing capabilities (64-bit and/or 128-bit
+ * DMWr completion), negative otherwise.
+ * At this time, we do not enable the root port being a completer
+ * and there is no support for devices to be initiators of DMWr.
+ * Hence No support for p2p as well.
+ */
+int pci_enable_dmwr_ops_to_root(struct pci_dev *dev, u32 req_size)
+{
+	struct pci_bus *bus = dev->bus;
+	struct pci_dev *bridge;
+	u32 cap2, cap3, ctl3;
+	int pos3;
+
+	if (!pci_is_pcie(dev))
+		return -EINVAL;
+
+	/*
+	 * Per PCIe r5.x, sec 6.XX, endpoints and root ports may be
+	 * DMWr requesters.  For now, we only support endpoints as
+	 * completer and root ports as requesters.  No endpoints as
+	 * requesters, and no peer-to-peer.
+	 */
+
+	switch (pci_pcie_type(dev)) {
+	case PCI_EXP_TYPE_RC_END:
+		/*
+		 * Relaxing checks on RCiEP devices. Driver owns
+		 * responsibility to make sure that they are a completer.
+		 * For RCiEP's we don't need to enforce the check.
+		 */
+		return 0;
+	case PCI_EXP_TYPE_ENDPOINT:
+		/*
+		 * Check if the PCIe endpoint supports completer
+		 * capability. Only Root ports and PCIe endpoints
+		 * can have completer capability.
+		 */
+		pcie_capability_read_dword(dev, PCI_EXP_DEVCAP2, &cap2);
+		if (!(cap2 & PCI_EXP_DEVCAP2_DMWR_COMP))
+			return -EINVAL;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	while (bus->parent) {
+		/*
+		 * Scan from the device all the way up to the root ports.
+		 * For any downstream ports, ensure that the appropriate
+		 * routing capability is present, and that egress blocking
+		 * is not set. Once we reach the top of the hierarchy, the
+		 * root port, enable requester capability.
+		 */
+		bridge = bus->self;
+
+		pos3 = pci_find_ext_capability(bridge, PCI_EXT_CAP_ID_DEV3);
+		if (!pos3)
+			return -EINVAL;
+		pci_read_config_dword(bridge, pos3 + PCI_EXP_DEVCAP3,
+				      &cap3);
+		switch (pci_pcie_type(bridge)) {
+		case PCI_EXP_TYPE_ROOT_PORT:
+			/*
+			 * Enable Requester Capability for root ports
+			 * Since we don't enable p2p, we do not need to
+			 * check routing capability check as we do for
+			 * switch ports below. The size only applies to
+			 * requesters and routing elements.
+			 */
+			pci_read_config_dword(bridge, pos3 + PCI_EXP_DEVCTL3,
+					      &ctl3);
+
+			ctl3 |= PCI_EXP_DEVCTL3_DMWRREQ;
+			pci_write_config_dword(bridge,
+					       pos3 + PCI_EXP_DEVCTL3,
+					       ctl3);
+			pci_read_config_dword(bridge, pos3 + PCI_EXP_DEVCTL3,
+					      &ctl3);
+			/*
+			 * Readback to check if the root port
+			 * allowed the write
+			 */
+			if (!(ctl3 & PCI_EXP_DEVCTL3_DMWRREQ))
+				return -EINVAL;
+			return 0;
+		/*
+		 * Ensure switch ports support DMWr routing
+		 * We only allow root ports to be initiators
+		 * And make sure all downstream ports to support the
+		 * appropriate routing capability.
+		 */
+		case PCI_EXP_TYPE_UPSTREAM:
+			break;
+		case PCI_EXP_TYPE_DOWNSTREAM:
+			if (!(cap3 & PCI_EXP_DEVCAP3_DMWR))
+				return -EINVAL;
+			if ((cap2 & PCI_EXP_DEVCAP2_DMWR_MASK) < req_size)
+				return -EINVAL;
+
+			/* Ensure downstream ports don't block DMWr on egress */
+			pci_read_config_dword(bridge, pos3 + PCI_EXP_DEVCTL3,
+					      &ctl3);
+			if (ctl3 & PCI_EXP_DEVCTL3_DMWR_EGRESS_BLOCK)
+				return -EINVAL;
+		}
+		bus = bus->parent;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(pci_enable_dmwr_ops_to_root);
+
+/**
  * pci_swizzle_interrupt_pin - swizzle INTx for device behind bridge
  * @dev: the PCI device
  * @pin: the INTx pin (1=INTA, 2=INTB, 3=INTC, 4=INTD)
