@@ -1592,6 +1592,50 @@ static void pci_restore_ltr_state(struct pci_dev *dev)
 	pci_write_config_dword(dev, ltr + PCI_LTR_MAX_SNOOP_LAT, *cap);
 }
 
+static void pci_save_devctl3_state(struct pci_dev *dev)
+{
+	int devcap3;
+	struct pci_cap_saved_state *save_state;
+	u32 *cap;
+
+	if (!pci_is_pcie(dev))
+		return;
+
+	devcap3 = pci_find_ext_capability(dev, PCI_EXT_CAP_ID_DEV3);
+	if (!devcap3)
+		return;
+
+	save_state = pci_find_saved_ext_cap(dev, PCI_EXT_CAP_ID_DEV3);
+	if (!save_state) {
+		pci_err(dev, "no suspend buffer for DMWr; DMWr issues possible after resume\n");
+		return;
+	}
+
+	cap = (u32 *)&save_state->cap.data[0];
+	pci_read_config_dword(dev, devcap3 + PCI_EXP_DEVCTL3, cap);
+}
+
+static void pci_restore_devctl3_state(struct pci_dev *dev)
+{
+	struct pci_cap_saved_state *save_state;
+	int devcap3;
+	u32 *cap;
+
+	if (!pci_is_pcie(dev))
+		return;
+
+	devcap3 = pci_find_ext_capability(dev, PCI_EXT_CAP_ID_DEV3);
+	if (!devcap3)
+		return;
+
+	save_state = pci_find_saved_ext_cap(dev, PCI_EXT_CAP_ID_DEV3);
+	if (!save_state)
+		return;
+
+	cap = (u32 *)&save_state->cap.data[0];
+	pci_write_config_dword(dev, devcap3 + PCI_EXP_DEVCTL3, *cap);
+}
+
 /**
  * pci_save_state - save the PCI configuration space of a device before
  *		    suspending
@@ -1617,6 +1661,7 @@ int pci_save_state(struct pci_dev *dev)
 		return i;
 
 	pci_save_ltr_state(dev);
+	pci_save_devctl3_state(dev);
 	pci_save_dpc_state(dev);
 	pci_save_aer_state(dev);
 	pci_save_ptm_state(dev);
@@ -1723,7 +1768,7 @@ void pci_restore_state(struct pci_dev *dev)
 	 * LTR itself (in the PCIe capability).
 	 */
 	pci_restore_ltr_state(dev);
-
+	pci_restore_devctl3_state(dev);
 	pci_restore_pcie_state(dev);
 	pci_restore_pasid_state(dev);
 	pci_restore_pri_state(dev);
@@ -3429,6 +3474,11 @@ void pci_allocate_cap_save_buffers(struct pci_dev *dev)
 					    2 * sizeof(u16));
 	if (error)
 		pci_err(dev, "unable to allocate suspend buffer for LTR\n");
+
+	error = pci_add_ext_cap_save_buffer(dev, PCI_EXT_CAP_ID_DEV3,
+					    sizeof(u32));
+	if (error)
+		pci_err(dev, "unable to allocate suspend buffer for DMWr\n");
 
 	pci_allocate_vc_save_buffers(dev);
 }
