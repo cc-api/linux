@@ -30,6 +30,12 @@
 
 #define __ASM_HRESET  .byte 0xf3, 0xf, 0x3a, 0xf0, 0xc0, 0x0
 
+#else /* __ASSEMBLY */
+
+#ifdef __KERNEL__
+extern void hreset_reload(void);
+#endif /* __KERNEL__ */
+
 #endif /* __ASSEMBLY */
 
 #endif /* _ASM_X86_HRESET_H */
