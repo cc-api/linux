@@ -1,0 +1,51 @@
+.TH uintr_wait 2
+.SH NAME
+uintr_wait - wait for user interrupts
+
+.SH SYNOPSIS
+.SY
+int uintr_wait(u64 usec, unsigned int flags);
+.YS
+
+.SH DESCRIPTION
+uintr_wait() causes the calling process (or thread) to suspend for usec
+microseconds until a user interrupt is delivered. The sleep may be lengthened
+slightly by any system activity or by the time spent processing the call or
+by the granularity of system timers.
+
+uintr_wait() will block in the kernel only when a interrupt handler has been
+registered using uintr_register_handler(2)
+
+<uintr_wait() is an experimental syscall to allow applications to wait
+specifically for uintr(7).>
+
+.SH RETURN VALUE
+uintr_wait() returns 0 upon successfully suspending execution for at least usec
+microseconds. In case of error, -1 is returned and errno is set to indicate the
+error.
+
+If it is interrupted by a uintr(7), EINTR is set as the error code.
+
+.SH ERRORS
+ENOSYS  Underlying hardware doesn't have support for Uintr.
+
+EOPNOTSUPP  No interrupt handler registered.
+
+EINVAL	    flags is not 0.
+
+EINVAL	    usec is greater than 1000000000 (1000 seconds).
+
+EINTR       A user interrupt was received and the interrupt handler returned.
+
+.SH VERSIONS
+uintr_wait() first appeared in Linux <tbd>.
+
+.SH CONFORMING TO
+uintr_wait() is Linux specific.
+
+.SH NOTES
+Currently, there is no glibc wrapper for this system call; call it
+using syscall(2).
+
+The user interrupt related system calls need hardware support to
+generate and receive user interrupts. Refer uintr(7) for details.
