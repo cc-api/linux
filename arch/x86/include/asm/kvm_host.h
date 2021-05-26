@@ -36,6 +36,7 @@
 #include <asm/kvm_page_track.h>
 #include <asm/kvm_vcpu_regs.h>
 #include <asm/hyperv-tlfs.h>
+#include <asm/sgx.h>
 
 #define __KVM_HAVE_ARCH_VCPU_DEBUGFS
 
@@ -109,6 +110,9 @@
 	KVM_ARCH_REQ_FLAGS(30, KVM_REQUEST_WAIT | KVM_REQUEST_NO_WAKEUP)
 #define KVM_REQ_MMU_FREE_OBSOLETE_ROOTS \
 	KVM_ARCH_REQ_FLAGS(31, KVM_REQUEST_WAIT | KVM_REQUEST_NO_WAKEUP)
+
+#define KVM_REQ_SLEEP \
+	KVM_ARCH_REQ_FLAGS(34, KVM_REQUEST_WAIT | KVM_REQUEST_NO_WAKEUP)
 
 #define CR0_RESERVED_BITS                                               \
 	(~(unsigned long)(X86_CR0_PE | X86_CR0_MP | X86_CR0_EM | X86_CR0_TS \
@@ -966,6 +970,8 @@ struct kvm_vcpu_arch {
 
 	/* TDX VP VMCALL post handling after userspace work completion*/
 	int (*complete_tdx_vp_vmcall)(struct kvm_vcpu *vcpu);
+
+	bool pause;
 };
 
 struct kvm_lpage_info {
@@ -1305,6 +1311,10 @@ struct kvm_arch {
 
 	/* Guest can access the SGX PROVISIONKEY. */
 	bool sgx_provisioning_allowed;
+#ifdef CONFIG_X86_SGX_KVM
+	struct sgx_kvm_notifier sgx_notifier;
+	struct mutex sgx_notifier_lock;
+#endif
 
 	struct kvm_pmu_event_filter __rcu *pmu_event_filter;
 	struct task_struct *nx_lpage_recovery_thread;
