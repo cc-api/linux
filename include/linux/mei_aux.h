@@ -11,6 +11,7 @@ struct mei_aux_device {
 	struct auxiliary_device aux_dev;
 	int irq;
 	struct resource bar;
+	struct resource ext_op_mem;
 };
 
 #define auxiliary_dev_to_mei_aux_dev(auxiliary_dev) \

@@ -62,6 +62,14 @@ enum mei_dev_state {
 	MEI_DEV_POWER_UP
 };
 
+/* MEI extended operational memory */
+enum mei_dev_ext_om {
+	MEI_DEV_EXT_OM_DISABLED = 0,
+	MEI_DEV_EXT_OM_INIT     = 1,
+	MEI_DEV_EXT_OM_SETUP    = 2,
+	MEI_DEV_EXT_OM_READY    = 3,
+};
+
 const char *mei_dev_state_str(int state);
 
 enum mei_file_transaction_states {
@@ -524,6 +532,7 @@ struct mei_device {
 	unsigned long reset_count;
 	enum mei_dev_state dev_state;
 	enum mei_hbm_state hbm_state;
+	enum mei_dev_ext_om ext_om;
 	u16 init_clients_timer;
 
 	/*
