@@ -298,6 +298,7 @@ struct idxd_device {
 	int rdbuf_limit;
 	int nr_rdbufs;		/* non-reserved read buffers */
 	unsigned int wqcfg_size;
+	int support_enqcmd;
 
 	union sw_err_reg sw_err;
 	wait_queue_head_t cmd_waitq;
@@ -471,7 +472,8 @@ static inline bool device_pasid_enabled(struct idxd_device *idxd)
 
 static inline bool device_swq_supported(struct idxd_device *idxd)
 {
-	return (support_enqcmd && device_pasid_enabled(idxd));
+	return (support_enqcmd && idxd->support_enqcmd &&
+		device_pasid_enabled(idxd));
 }
 
 enum idxd_portal_prot {

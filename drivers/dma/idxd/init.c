@@ -614,6 +614,13 @@ static int idxd_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	pci_set_drvdata(pdev, idxd);
 
 	idxd->hw.version = ioread32(idxd->reg_base + IDXD_VER_OFFSET);
+
+	rc = pci_enable_dmwr_ops_to_root(pdev, PCI_EXP_DEVCAP2_DMWR_COMP64);
+	if (rc == 0)
+		idxd->support_enqcmd = 1;
+	else
+		dev_warn(dev, "IDXD Direct Memory Write (ENQCMD) enabling failed\n");
+
 	rc = idxd_probe(idxd);
 	if (rc) {
 		dev_err(dev, "Intel(R) IDXD DMA Engine init failed\n");
