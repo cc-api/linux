@@ -8,6 +8,7 @@
 #include <linux/device.h>
 #include <linux/uuid.h>
 #include <linux/mod_devicetable.h>
+#include <linux/scatterlist.h>
 
 struct mei_cl_device;
 struct mei_device;
@@ -122,5 +123,11 @@ bool mei_cldev_enabled(const struct mei_cl_device *cldev);
 
 void *mei_cldev_dma_map(struct mei_cl_device *cldev, u8 buffer_id, size_t size);
 int mei_cldev_dma_unmap(struct mei_cl_device *cldev);
+
+ssize_t mei_cldev_send_gsc_command(struct mei_cl_device *cldev,
+				   u8 client_id, u32 fence_id,
+				   struct scatterlist *sg_in,
+				   size_t total_in_len,
+				   struct scatterlist *sg_out);
 
 #endif /* _LINUX_MEI_CL_BUS_H */
