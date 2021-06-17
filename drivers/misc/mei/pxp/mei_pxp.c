@@ -162,13 +162,20 @@ static int mei_pxp_component_match(struct device *dev, int subcomponent,
 	    subcomponent != I915_COMPONENT_PXP)
 		return 0;
 
-	base = base->parent;
-	if (!base)
+	if (!dev)
 		return 0;
 
 	base = base->parent;
-	dev = dev->parent;
+	if (!base) /* mei device */
+		return 0;
 
+	base = base->parent; /* pci device */
+	/* for dgfx */
+	if (base && dev == base)
+		return 1;
+
+	/* for pch */
+	dev = dev->parent;
 	return (base && dev && dev == base);
 }
 
