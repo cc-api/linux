@@ -177,13 +177,24 @@ static int __maybe_unused mei_gsc_pm_suspend(struct device *device)
 static int __maybe_unused mei_gsc_pm_resume(struct device *device)
 {
 	struct mei_device *dev;
+	struct auxiliary_device *aux_dev;
+	struct mei_aux_device *adev;
 	int err;
+	struct mei_me_hw *hw;
 
 	dev_dbg(device, "resume\n");
 
 	dev = dev_get_drvdata(device);
 	if (!dev)
 		return -ENODEV;
+
+	hw = to_me_hw(dev);
+	aux_dev = to_auxiliary_dev(device);
+	adev = auxiliary_dev_to_mei_aux_dev(aux_dev);
+	if (adev->ext_op_mem.start) {
+		mei_gsc_set_ext_op_mem(hw, &adev->ext_op_mem);
+		dev->ext_om = MEI_DEV_EXT_OM_INIT;
+	}
 
 	err = mei_restart(dev);
 	if (err)
