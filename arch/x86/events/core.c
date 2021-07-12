@@ -2837,6 +2837,10 @@ perf_callchain_user32(struct pt_regs *regs, struct perf_callchain_entry_ctx *ent
 
 	fp = compat_ptr(ss_base + regs->bp);
 	pagefault_disable();
+
+	if (x86_pmu.store_shadow_stack_user && x86_pmu.store_shadow_stack_user(entry))
+		goto out;
+
 	while (entry->nr < entry->max_stack) {
 		if (!valid_user_frame(fp, sizeof(frame)))
 			break;
@@ -2849,6 +2853,7 @@ perf_callchain_user32(struct pt_regs *regs, struct perf_callchain_entry_ctx *ent
 		perf_callchain_store(entry, cs_base + frame.return_address);
 		fp = compat_ptr(ss_base + frame.next_frame);
 	}
+out:
 	pagefault_enable();
 	return 1;
 }
@@ -2888,6 +2893,10 @@ perf_callchain_user(struct perf_callchain_entry_ctx *entry, struct pt_regs *regs
 		return;
 
 	pagefault_disable();
+
+	if (x86_pmu.store_shadow_stack_user && x86_pmu.store_shadow_stack_user(entry))
+		goto out;
+
 	while (entry->nr < entry->max_stack) {
 		if (!valid_user_frame(fp, sizeof(frame)))
 			break;
@@ -2900,6 +2909,7 @@ perf_callchain_user(struct perf_callchain_entry_ctx *entry, struct pt_regs *regs
 		perf_callchain_store(entry, frame.return_address);
 		fp = (void __user *)frame.next_frame;
 	}
+out:
 	pagefault_enable();
 }
 
