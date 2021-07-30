@@ -5,7 +5,7 @@
  *
  * GPL LICENSE SUMMARY
  *
- * Copyright(c) 2014 - 2020 Intel Corporation.
+ * Copyright(c) 2014 - 2021 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -24,7 +24,7 @@
  *
  * BSD LICENSE
  *
- * Copyright(c) 2014 - 2020 Intel Corporation.
+ * Copyright(c) 2014 - 2021 Intel Corporation.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -437,6 +437,7 @@ struct sw_name_info_msg {
 	pw_u8_t pairs[1];
 };
 #pragma pack(pop)
+#define MAX_NAME_INFO_BUFFER_SIZE 65536
 
 /**
  * This is the basic data structure for passing data collected by the
@@ -476,6 +477,11 @@ typedef enum sw_driver_collection_cmd {
 } sw_driver_collection_cmd_t;
 
 #pragma pack(push, 1)
+struct  sw_driver_collection_stats {
+	pw_u64_t num_samples_produced;
+	pw_u64_t num_samples_dropped;
+};
+
 struct sw_driver_version_info {
 	pw_u16_t major;
 	pw_u16_t minor;
