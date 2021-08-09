@@ -225,6 +225,9 @@ void intel_detect_pch(struct drm_i915_private *dev_priv)
 	if (DISPLAY_VER(dev_priv) >= 20) {
 		dev_priv->pch_type = PCH_LNL;
 		return;
+	} else if (IS_BATTLEMAGE(dev_priv)) {
+		dev_priv->pch_type = PCH_BMG;
+		return;
 	} else if (IS_DG2(dev_priv)) {
 		dev_priv->pch_type = PCH_DG2;
 		return;
