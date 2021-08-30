@@ -47,6 +47,7 @@
 #include <asm/proto.h>
 #include <asm/frame.h>
 #include <asm/unwind.h>
+#include <asm/cet.h>
 
 #include "process.h"
 
@@ -126,6 +127,8 @@ void exit_thread(struct task_struct *tsk)
 	free_vm86(t);
 
 	uintr_free(tsk);
+
+	shstk_free(tsk);
 
 	fpu__drop(fpu);
 }
@@ -226,6 +229,10 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
 	/* Set a new TLS for the child thread? */
 	if (clone_flags & CLONE_SETTLS)
 		ret = set_new_tls(p, tls);
+
+	/* Allocate a new shadow stack for pthread */
+	if (!ret)
+		ret = shstk_alloc_thread_stack(p, clone_flags, stack_size);
 
 	if (!ret && unlikely(test_tsk_thread_flag(current, TIF_IO_BITMAP)))
 		io_bitmap_share(p);
