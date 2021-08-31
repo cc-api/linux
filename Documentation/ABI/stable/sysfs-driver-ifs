@@ -1,0 +1,85 @@
+What:		/sys/devices/system/cpu/ifs/run_test
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	echo 1 to trigger ifs test for all online cores.
+
+What:		/sys/devices/system/cpu/ifs/status
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	Global status. Shows the most serious status across
+		all cores (fail > untested > pass)
+
+What:		/sys/devices/system/cpu/ifs/image_version
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	Version of loaded IFS binary image.
+
+What:		/sys/devices/system/cpu/ifs/reload
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	echo 1 to reload IFS image.
+
+What:		/sys/devices/system/cpu/ifs/cpu_pass_list
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	List of cpus which passed the IFS test.
+
+What:		/sys/devices/system/cpu/ifs/cpu_fail_list
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	List of cpus which failed the IFS test.
+
+What:		/sys/devices/system/cpu/ifs/cpu_untested_list
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	List of cpus which could not be tested.
+
+What:		/sys/module/intel_ifs/parameters/noint
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	SAF tunable parameter that user can modify before
+		the scan run if they wish to override default value.
+
+		When set, system interrupts are not allowed to interrupt an IFS. The
+		default state for this parameter is set.
+
+What:		/sys/module/intel_ifs/parameters/retry
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	SAF tunable parameter that user can modify at
+		load time if they wish to override default value.
+
+		Maximum retry counter when the test is not executed due to an
+		event such as interrupt. The default value is 5, it can be set to any
+		value from 1 to 20.
+
+What:		/sys/devices/system/cpu/cpu#/ifs/run_test
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	IFS target core testing. echo 1 to trigger scan test on cpu#.
+
+What:		/sys/devices/system/cpu/cpu#/ifs/status
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	The status of IFS test on a specific cpu#. It can be one of "pass", "fail"
+		or "untested".
+
+What:		/sys/devices/system/cpu/cpu#/ifs/details
+Date:		Feb 28, 2022
+KernelVersion:	5.18.0
+Contact:	linux-kernel@vger.kernel.org
+Description:	The details file reports the hex value of the SCAN_STATUS MSR. Note that
+		the error_code field may contain driver defined software code not defined
+		in the Intel SDM.
+
