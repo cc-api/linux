@@ -2109,6 +2109,14 @@ static struct extra_reg intel_grt_extra_regs[] __read_mostly = {
 	EVENT_EXTRA_END
 };
 
+static struct extra_reg intel_cmt_extra_regs[] __read_mostly = {
+	/* must define OFFCORE_RSP_X first, see intel_fixup_er() */
+	INTEL_UEVENT_EXTRA_REG(0x0127, MSR_OCR_RSP_0, 0xc048a2f2007fffffull, RSP_0),
+	INTEL_UEVENT_EXTRA_REG(0x0227, MSR_OCR_RSP_1, 0xc048a2f2007fffffull, RSP_1),
+	INTEL_UEVENT_PEBS_LDLAT_EXTRA_REG(0x5d0),
+	EVENT_EXTRA_END
+};
+
 #define KNL_OT_L2_HITE		BIT_ULL(19) /* Other Tile L2 Hit */
 #define KNL_OT_L2_HITF		BIT_ULL(20) /* Other Tile L2 Hit */
 #define KNL_MCDRAM_LOCAL	BIT_ULL(21)
@@ -4092,6 +4100,12 @@ static int hsw_hw_config(struct perf_event *event)
 static struct event_constraint counter0_constraint =
 			INTEL_ALL_EVENT_CONSTRAINT(0, 0x1);
 
+static struct event_constraint counter1_constraint =
+			INTEL_ALL_EVENT_CONSTRAINT(0, 0x2);
+
+static struct event_constraint counter0_1_constraint =
+			INTEL_ALL_EVENT_CONSTRAINT(0, 0x3);
+
 static struct event_constraint counter2_constraint =
 			EVENT_CONSTRAINT(0, 0x4, 0);
 
@@ -4227,6 +4241,51 @@ adl_get_event_constraints(struct cpu_hw_events *cpuc, int idx,
 		return spr_get_event_constraints(cpuc, idx, event);
 	else if (pmu->cpu_type == hybrid_small)
 		return tnt_get_event_constraints(cpuc, idx, event);
+
+	WARN_ON(1);
+	return &emptyconstraint;
+}
+
+static struct event_constraint *
+cmt_get_event_constraints(struct cpu_hw_events *cpuc, int idx,
+			  struct perf_event *event)
+{
+	struct event_constraint *c;
+
+	c = intel_get_event_constraints(cpuc, idx, event);
+
+	/*
+	 * The :ppp indicates the Precise Distribution (PDist) facility, which
+	 * is only supported on the GP counter 0 & 1. If a :ppp event which is
+	 * not available on the GP counter 0 or 1, error out.
+	 */
+	if (event->attr.precise_ip == 3) {
+		u64 mask = c->idxmsk64 & 0x3ull;
+
+		switch (mask) {
+		case 0x1:
+			return &counter0_constraint;
+		case 0x2:
+			return &counter1_constraint;
+		case 0x3:
+			return &counter0_1_constraint;
+		}
+		return &emptyconstraint;
+	}
+
+	return c;
+}
+
+static struct event_constraint *
+mtl_get_event_constraints(struct cpu_hw_events *cpuc, int idx,
+			  struct perf_event *event)
+{
+	struct x86_hybrid_pmu *pmu = hybrid_pmu(event->pmu);
+
+	if (pmu->cpu_type == hybrid_big)
+		return spr_get_event_constraints(cpuc, idx, event);
+	if (pmu->cpu_type == hybrid_small)
+		return cmt_get_event_constraints(cpuc, idx, event);
 
 	WARN_ON(1);
 	return &emptyconstraint;
@@ -6465,6 +6524,94 @@ __init int intel_pmu_init(void)
 		pmu->extra_regs = intel_grt_extra_regs;
 		pr_cont("Alderlake Hybrid events, ");
 		name = "alderlake_hybrid";
+		break;
+
+	case INTEL_FAM6_METEORLAKE:
+	case INTEL_FAM6_METEORLAKE_L:
+
+		x86_pmu.hybrid_pmu = kcalloc(X86_HYBRID_NUM_PMUS,
+					     sizeof(struct x86_hybrid_pmu),
+					     GFP_KERNEL);
+		if (!x86_pmu.hybrid_pmu)
+			return -ENOMEM;
+		static_branch_enable(&perf_is_hybrid);
+		x86_pmu.num_hybrid_pmus = X86_HYBRID_NUM_PMUS;
+
+		x86_pmu.pebs_aliases = NULL;
+		x86_pmu.pebs_prec_dist = true;
+		x86_pmu.pebs_block = true;
+		x86_pmu.flags |= PMU_FL_HAS_RSP_1;
+		x86_pmu.flags |= PMU_FL_NO_HT_SHARING;
+		x86_pmu.flags |= PMU_FL_PEBS_ALL;
+		x86_pmu.flags |= PMU_FL_INSTR_LATENCY;
+		x86_pmu.lbr_pt_coexist = true;
+		intel_pmu_pebs_data_source_skl(false);
+		x86_pmu.num_topdown_events = 8;
+		x86_pmu.update_topdown_event = adl_update_topdown_event;
+		x86_pmu.set_topdown_event_period = adl_set_topdown_event_period;
+
+		x86_pmu.filter_match = intel_pmu_filter_match;
+		x86_pmu.get_event_constraints = mtl_get_event_constraints;
+		x86_pmu.hw_config = adl_hw_config;
+		x86_pmu.limit_period = spr_limit_period;
+		/*
+		 * The rtm_abort_event is used to check whether to enable GPRs
+		 * for the RTM abort event. Atom doesn't have the RTM abort
+		 * event. There is no harmful to set it in the common
+		 * x86_pmu.rtm_abort_event.
+		 */
+		x86_pmu.rtm_abort_event = X86_CONFIG(.event=0xc9, .umask=0x04);
+
+		td_attr = adl_hybrid_events_attrs;
+		mem_attr = adl_hybrid_mem_attrs;
+		tsx_attr = adl_hybrid_tsx_attrs;
+		extra_attr = boot_cpu_has(X86_FEATURE_RTM) ?
+			adl_hybrid_extra_attr_rtm : adl_hybrid_extra_attr;
+
+		/* Initialize big core specific PerfMon capabilities.*/
+		pmu = &x86_pmu.hybrid_pmu[X86_HYBRID_PMU_CORE_IDX];
+		pmu->name = "cpu_core";
+		pmu->cpu_type = hybrid_big;
+		pmu->late_ack = true;
+		pmu->num_counters = x86_pmu.num_counters;
+		pmu->num_counters_fixed = x86_pmu.num_counters_fixed + 1;
+		pmu->max_pebs_events = min_t(unsigned, MAX_PEBS_EVENTS, pmu->num_counters);
+		pmu->unconstrained = (struct event_constraint)
+					__EVENT_CONSTRAINT(0, (1ULL << pmu->num_counters) - 1,
+							   0, pmu->num_counters, 0, 0);
+		pmu->intel_cap.capabilities = x86_pmu.intel_cap.capabilities;
+		pmu->intel_cap.perf_metrics = 1;
+		pmu->intel_cap.pebs_output_pt_available = 0;
+
+		memcpy(pmu->hw_cache_event_ids, spr_hw_cache_event_ids, sizeof(pmu->hw_cache_event_ids));
+		memcpy(pmu->hw_cache_extra_regs, spr_hw_cache_extra_regs, sizeof(pmu->hw_cache_extra_regs));
+		pmu->event_constraints = intel_spr_event_constraints;
+		pmu->pebs_constraints = intel_spr_pebs_event_constraints;
+		pmu->extra_regs = intel_spr_extra_regs;
+
+		/* Initialize Atom core specific PerfMon capabilities.*/
+		pmu = &x86_pmu.hybrid_pmu[X86_HYBRID_PMU_ATOM_IDX];
+		pmu->name = "cpu_atom";
+		pmu->cpu_type = hybrid_small;
+		pmu->mid_ack = true;
+		pmu->num_counters = x86_pmu.num_counters;
+		pmu->num_counters_fixed = x86_pmu.num_counters_fixed;
+		pmu->max_pebs_events = x86_pmu.max_pebs_events;
+		pmu->unconstrained = (struct event_constraint)
+					__EVENT_CONSTRAINT(0, (1ULL << pmu->num_counters) - 1,
+							   0, pmu->num_counters, 0, 0);
+		pmu->intel_cap.capabilities = x86_pmu.intel_cap.capabilities;
+		pmu->intel_cap.perf_metrics = 0;
+		pmu->intel_cap.pebs_output_pt_available = 1;
+
+		memcpy(pmu->hw_cache_event_ids, glp_hw_cache_event_ids, sizeof(pmu->hw_cache_event_ids));
+		memcpy(pmu->hw_cache_extra_regs, tnt_hw_cache_extra_regs, sizeof(pmu->hw_cache_extra_regs));
+		pmu->hw_cache_event_ids[C(ITLB)][C(OP_READ)][C(RESULT_ACCESS)] = -1;
+		pmu->event_constraints = intel_slm_event_constraints;
+		pmu->pebs_constraints = intel_grt_pebs_event_constraints;
+		pmu->extra_regs = intel_cmt_extra_regs;
+		pr_cont("Meteorlake Hybrid events, ");
+		name = "Meteorlake_hybrid";
 		break;
 
 	default:
