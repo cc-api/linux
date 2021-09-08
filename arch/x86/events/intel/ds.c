@@ -105,6 +105,15 @@ void __init intel_pmu_pebs_data_source_skl(bool pmem)
 	pebs_data_source[0x0d] = OP_LH | LEVEL(ANY_CACHE) | REM | P(SNOOP, HITM);
 }
 
+void __init intel_pmu_pebs_data_source_cmt(void)
+{
+	pebs_data_source[0x10] = OP_LH | LEVEL(MMIO) | P(SNOOP, NONE);		/* 0x10: L3 miss MMIO */
+	pebs_data_source[0x11] = OP_LH | LEVEL(PMEM) | P(SNOOP, NONE);		/* 0x11: L3 miss local PMM */
+	pebs_data_source[0x12] = OP_LH | REM | LEVEL(PMEM) | P(SNOOP, NONE);	/* 0x12: L3 miss remote PMM */
+	pebs_data_source[0x13] = OP_LH | LEVEL(HBM) | P(SNOOP, NONE);		/* 0x13: L3 miss local HBM */
+	pebs_data_source[0x14] = OP_LH | REM | LEVEL(HBM) | P(SNOOP, NONE);	/* 0x14: L3 miss remote HBM */
+}
+
 static u64 precise_store_data(u64 status)
 {
 	union intel_x86_pebs_dse dse;
