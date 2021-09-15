@@ -895,11 +895,12 @@ static int perf_sample__fprintf_brstack(struct perf_sample *sample,
 			printed += fprintf(fp, ")");
 		}
 
-		printed += fprintf(fp, "/%c/%c/%c/%d ",
+		printed += fprintf(fp, "/%c/%c/%c/%d/0x%x ",
 			mispred_str(entries + i),
 			entries[i].flags.in_tx ? 'X' : '-',
 			entries[i].flags.abort ? 'A' : '-',
-			entries[i].flags.cycles);
+			entries[i].flags.cycles,
+			entries[i].flags.events);
 	}
 
 	return printed;
@@ -941,11 +942,12 @@ static int perf_sample__fprintf_brstacksym(struct perf_sample *sample,
 			printed += map__fprintf_dsoname(alt.map, fp);
 			printed += fprintf(fp, ")");
 		}
-		printed += fprintf(fp, "/%c/%c/%c/%d ",
+		printed += fprintf(fp, "/%c/%c/%c/%d/0x%x ",
 			mispred_str(entries + i),
 			entries[i].flags.in_tx ? 'X' : '-',
 			entries[i].flags.abort ? 'A' : '-',
-			entries[i].flags.cycles);
+			entries[i].flags.cycles,
+			entries[i].flags.events);
 	}
 
 	return printed;
@@ -991,11 +993,12 @@ static int perf_sample__fprintf_brstackoff(struct perf_sample *sample,
 			printed += map__fprintf_dsoname(alt.map, fp);
 			printed += fprintf(fp, ")");
 		}
-		printed += fprintf(fp, "/%c/%c/%c/%d ",
+		printed += fprintf(fp, "/%c/%c/%c/%d/0x%x ",
 			mispred_str(entries + i),
 			entries[i].flags.in_tx ? 'X' : '-',
 			entries[i].flags.abort ? 'A' : '-',
-			entries[i].flags.cycles);
+			entries[i].flags.cycles,
+			entries[i].flags.events);
 	}
 
 	return printed;
@@ -1136,6 +1139,10 @@ static int ip__fprintf_jump(uint64_t ip, struct branch_entry *en,
 		if (insn)
 			printed += fprintf(fp, " %.2f IPC", (float)insn / en->flags.cycles);
 	}
+
+	if (en->flags.events)
+		printed += fprintf(fp, " events log 0x%x", en->flags.events);
+
 	return printed + fprintf(fp, "\n");
 }
 
