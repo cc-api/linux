@@ -12,6 +12,7 @@
 #include <linux/module.h>
 #include <linux/mm.h>
 #include <linux/pci.h>
+#include <linux/pm_runtime.h>
 
 #include "../vsec.h"
 #include "class.h"
@@ -45,6 +46,29 @@ EXPORT_SYMBOL_GPL(intel_pmt_is_early_client_hw);
 /*
  * sysfs
  */
+static int
+intel_pmt_open(struct file *filp, struct kobject *kobj, struct bin_attribute *attr)
+{
+	struct intel_pmt_entry *entry = container_of(attr,
+						     struct intel_pmt_entry,
+						     pmt_bin_attr);
+
+	pm_runtime_get_sync(&entry->pdev->dev);
+
+	return 0;
+}
+
+static void
+intel_pmt_release(struct file *filp, struct kobject *kobj, struct bin_attribute *attr)
+{
+	struct intel_pmt_entry *entry = container_of(attr,
+						     struct intel_pmt_entry,
+						     pmt_bin_attr);
+
+	pm_runtime_mark_last_busy(&entry->pdev->dev);
+	pm_runtime_put_autosuspend(&entry->pdev->dev);
+}
+
 static ssize_t
 intel_pmt_read(struct file *filp, struct kobject *kobj,
 	       struct bin_attribute *attr, char *buf, loff_t off,
@@ -239,6 +263,7 @@ static int intel_pmt_dev_register(struct intel_pmt_entry *entry,
 	}
 
 	entry->kobj = &dev->kobj;
+	entry->pdev = to_pci_dev(parent->parent);
 
 	if (ns->attr_grp) {
 		ret = sysfs_create_group(entry->kobj, ns->attr_grp);
@@ -265,6 +290,8 @@ static int intel_pmt_dev_register(struct intel_pmt_entry *entry,
 	entry->pmt_bin_attr.attr.mode = 0440;
 	entry->pmt_bin_attr.mmap = intel_pmt_mmap;
 	entry->pmt_bin_attr.read = intel_pmt_read;
+	entry->pmt_bin_attr.open = intel_pmt_open;
+	entry->pmt_bin_attr.release = intel_pmt_release;
 	entry->pmt_bin_attr.size = entry->size;
 
 	ret = sysfs_create_bin_file(&dev->kobj, &entry->pmt_bin_attr);
