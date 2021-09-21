@@ -7,6 +7,7 @@
 #include <linux/crypto.h>
 #include <linux/idxd.h>
 #include <uapi/linux/idxd.h>
+#include "iax_crypto_stats.h"
 
 #undef pr_fmt
 #define	pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
@@ -42,6 +43,11 @@ struct iax_wq {
 	struct idxd_wq		*wq;
 
 	struct iax_device	*iax_device;
+
+	u64			comp_calls;
+	u64			comp_bytes;
+	u64			decomp_calls;
+	u64			decomp_bytes;
 };
 
 /* Representation of IAX device with wqs, populated by probe */
@@ -57,6 +63,11 @@ struct iax_device {
 
 	int				n_wq;
 	struct list_head		wqs;
+
+	u64				comp_calls;
+	u64				comp_bytes;
+	u64				decomp_calls;
+	u64				decomp_bytes;
 };
 
 /*
@@ -75,5 +86,18 @@ struct aecs_table_record {
 	u32 d_sym[30];
 	u32 reserved_padding[2];
 };
+
+#if defined(CONFIG_CRYPTO_DEV_IAX_CRYPTO_STATS)
+void	global_stats_show(struct seq_file *m);
+void	device_stats_show(struct seq_file *m, struct iax_device *iax_device);
+void	reset_iax_crypto_stats(void);
+void	reset_device_stats(struct iax_device *iax_device);
+
+#else
+static inline void	global_stats_show(struct seq_file *m) {}
+static inline void	device_stats_show(struct seq_file *m, struct iax_device *iax_device) {}
+static inline void	reset_iax_crypto_stats(void) {}
+static inline void	reset_device_stats(struct iax_device *iax_device) {}
+#endif
 
 #endif
