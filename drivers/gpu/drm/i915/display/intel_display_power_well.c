@@ -1836,6 +1836,9 @@ static bool xelpdp_aux_power_well_enabled(struct drm_i915_private *dev_priv,
 		     XE2LPD_DP_AUX_CH_CTL(aux_ch) :
 		     XELPDP_DP_AUX_CH_CTL(aux_ch);
 
+	if (IS_PRESILICON(dev_priv))
+		return power_well->count;
+
 	return intel_de_read(dev_priv, aux_ch_ctl) &
 		XELPDP_DP_AUX_CH_CTL_POWER_STATUS;
 }
