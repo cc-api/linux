@@ -319,6 +319,18 @@ struct vdev_device_ops {
 	int (*device_remove)(struct idxd_device *idxd, char *vdev_name);
 };
 
+struct idxd_idpt_entry_data {
+	struct files_struct *owner_id;
+	struct list_head submit_list;
+	struct mutex lock;
+	u16 handle;
+	bool handle_valid;
+	struct idxd_device *idxd;
+	struct list_head next;
+	u32 access_pasid;
+	struct iommu_sva *owner_sva;
+};
+
 struct idxd_device {
 	struct idxd_dev idxd_dev;
 	struct idxd_driver_data *data;
@@ -371,6 +383,9 @@ struct idxd_device {
 
 	unsigned int idpt_size;
 	unsigned int idpte_support_mask;
+	struct ida idpt_ida;
+	struct mutex idpt_lock;
+	struct idxd_idpt_entry_data **idpte_data;
 
 	union sw_err_reg sw_err;
 	wait_queue_head_t cmd_waitq;
