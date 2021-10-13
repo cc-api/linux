@@ -681,6 +681,23 @@ static void idxd_disable_sva(struct pci_dev *pdev)
 	iommu_dev_disable_feature(&pdev->dev, IOMMU_DEV_FEAT_IOPF);
 }
 
+static void idxd_setup_idbr(struct idxd_device *idxd)
+{
+	union idbr_reg idbr = {};
+
+	if (!idxd->hw.gen_cap.inter_domain ||
+	    !(idxd->hw.id_cap.idpte_support_mask & BIT(1)) ||
+	    !device_pasid_enabled(idxd))
+		return;
+
+	idbr.pasid_en = 1;
+	idbr.priv = 1;
+	idbr.bitmap_pasid = idxd->pasid;
+
+	iowrite32(idbr.bits, idxd->reg_base + IDXD_IDBR_OFFSET);
+	dev_dbg(&idxd->pdev->dev, "IDBR: %#x\n", ioread32(idxd->reg_base + IDXD_IDBR_OFFSET));
+}
+
 static int idxd_probe(struct idxd_device *idxd)
 {
 	struct pci_dev *pdev = idxd->pdev;
@@ -734,6 +751,8 @@ printk("%s: %d\n", __func__, __LINE__);
 	idxd_setup_ims(idxd);
 
 	idxd->major = idxd_cdev_get_major(idxd);
+
+	idxd_setup_idbr(idxd);
 
 	rc = perfmon_pmu_init(idxd);
 	if (rc < 0)
