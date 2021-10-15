@@ -31,6 +31,9 @@ int isst_read_pm_config(int cpu, int *cp_state, int *cp_cap)
 	unsigned int resp;
 	int ret;
 
+	if (is_tpmi_if())
+		return tpmi_isst_read_pm_config(cpu, cp_state, cp_cap);
+
 	ret = isst_send_mbox_command(cpu, READ_PM_CONFIG, PM_FEATURE, 0, 0,
 				     &resp);
 	if (ret)
@@ -48,6 +51,9 @@ int isst_get_ctdp_levels(int cpu, struct isst_pkg_ctdp *pkg_dev)
 {
 	unsigned int resp;
 	int ret;
+
+	if (is_tpmi_if())
+		return tpmi_isst_get_ctdp_levels(cpu, pkg_dev);
 
 	ret = isst_send_mbox_command(cpu, CONFIG_TDP,
 				     CONFIG_TDP_GET_LEVELS_INFO, 0, 0, &resp);
@@ -77,6 +83,9 @@ int isst_get_ctdp_control(int cpu, int config_index,
 	int cp_state, cp_cap;
 	unsigned int resp;
 	int ret;
+
+	if (is_tpmi_if())
+		return tpmi_isst_get_ctdp_control(cpu, config_index, ctdp_level);
 
 	ret = isst_send_mbox_command(cpu, CONFIG_TDP,
 				     CONFIG_TDP_GET_TDP_CONTROL, 0,
@@ -112,6 +121,9 @@ int isst_get_tdp_info(int cpu, int config_index,
 	unsigned int resp;
 	int ret;
 
+	if (is_tpmi_if())
+		return tpmi_isst_get_tdp_info(cpu, config_index, ctdp_level);
+
 	ret = isst_send_mbox_command(cpu, CONFIG_TDP, CONFIG_TDP_GET_TDP_INFO,
 				     0, config_index, &resp);
 	if (ret) {
@@ -134,6 +146,9 @@ int isst_get_pwr_info(int cpu, int config_index,
 {
 	unsigned int resp;
 	int ret;
+
+	if (is_tpmi_if())
+		return tpmi_isst_get_pwr_info(cpu, config_index, ctdp_level);
 
 	ret = isst_send_mbox_command(cpu, CONFIG_TDP, CONFIG_TDP_GET_PWR_INFO,
 				     0, config_index, &resp);
@@ -235,6 +250,9 @@ int isst_get_tjmax_info(int cpu, int config_index,
 	unsigned int resp;
 	int ret;
 
+	if (is_tpmi_if())
+		return 0;
+
 	ret = isst_send_mbox_command(cpu, CONFIG_TDP, CONFIG_TDP_GET_TJMAX_INFO,
 				     0, config_index, &resp);
 	if (ret)
@@ -254,6 +272,9 @@ int isst_get_coremask_info(int cpu, int config_index,
 {
 	unsigned int resp;
 	int i, ret;
+
+	if (is_tpmi_if())
+		return tpmi_isst_get_coremask_info(cpu, config_index, ctdp_level);
 
 	ctdp_level->cpu_count = 0;
 	for (i = 0; i < 2; ++i) {
@@ -309,6 +330,21 @@ int isst_get_get_trl(int cpu, int level, int avx_level, int *trl)
 	unsigned int req, resp;
 	int ret;
 
+	if (is_tpmi_if()) {
+		/* Just return for cdyn 0 */
+		struct isst_pkg_ctdp_level_info ctdp_level;
+		int i, ret;
+
+		ret = tpmi_isst_get_get_trl(cpu, level, &ctdp_level);
+		if (!ret)
+			return ret;
+
+		for (i = 0; i < 8; ++i)
+			trl[i] = ctdp_level.trl_cdyn_level[0][i];
+
+		return 0;
+	}
+
 	req = level | (avx_level << 16);
 	ret = isst_send_mbox_command(cpu, CONFIG_TDP,
 				     CONFIG_TDP_GET_TURBO_LIMIT_RATIOS, 0, req,
@@ -343,9 +379,12 @@ int isst_get_get_trl(int cpu, int level, int avx_level, int *trl)
 	return 0;
 }
 
-int isst_get_trl_bucket_info(int cpu, unsigned long long *buckets_info)
+int isst_get_trl_bucket_info(int cpu, int config_index, unsigned long long *buckets_info)
 {
 	int ret;
+
+	if (is_tpmi_if())
+		return tpmi_isst_get_trl_bucket_info(cpu, config_index, buckets_info);
 
 	debug_printf("cpu:%d bucket info via MSR\n", cpu);
 
@@ -390,6 +429,8 @@ int isst_set_tdp_level(int cpu, int tdp_level)
 	unsigned int resp;
 	int ret;
 
+	if (is_tpmi_if())
+		return tpmi_isst_set_tdp_level(cpu, tdp_level);
 
 	if (isst_get_config_tdp_lock_status(cpu)) {
 		isst_display_error_info_message(1, "TDP is locked", 0, 0);
@@ -435,6 +476,9 @@ int isst_get_pbf_info(int cpu, int level, struct isst_pbf_info *pbf_info)
 	}
 
 	pbf_info->core_cpumask_size = alloc_cpu_set(&pbf_info->core_cpumask);
+
+	if (is_tpmi_if())
+		return tpmi_isst_get_pbf_info(cpu, level, pbf_info);
 
 	max_punit_core = get_max_punit_core_id(get_physical_package_id(cpu), get_physical_die_id(cpu));
 	max_mask_index = max_punit_core > 32 ? 2 : 1;
@@ -540,6 +584,16 @@ int isst_set_pbf_fact_status(int cpu, int pbf, int enable)
 			req |= BIT(16);
 		else
 			req &= ~BIT(16);
+	}
+
+	if (is_tpmi_if()) {
+		int _pbf = 0, _fact = 0;
+
+		if (req & BIT(16))
+			_fact = 1;
+		if (req & BIT(17))
+			_pbf = 1;
+		return tpmi_isst_set_pbf_fact_status(cpu, _pbf, _fact,  enable);
 	}
 
 	ret = isst_send_mbox_command(cpu, CONFIG_TDP,
@@ -840,7 +894,7 @@ int isst_get_process_ctdp(int cpu, int tdp_level, struct isst_pkg_ctdp *pkg_dev)
 			}
 
 			isst_get_get_trl_from_msr(cpu, ctdp_level->trl_sse_active_cores);
-			isst_get_trl_bucket_info(cpu, &ctdp_level->buckets_info);
+			isst_get_trl_bucket_info(cpu, 0, &ctdp_level->buckets_info);
 			continue;
 		}
 
@@ -862,9 +916,12 @@ int isst_get_process_ctdp(int cpu, int tdp_level, struct isst_pkg_ctdp *pkg_dev)
 		if (ret)
 			return ret;
 
-		ret = isst_get_trl_bucket_info(cpu, &ctdp_level->buckets_info);
+		ret = isst_get_trl_bucket_info(cpu, i, &ctdp_level->buckets_info);
 		if (ret)
 			return ret;
+
+		if (is_tpmi_if())
+			return tpmi_isst_get_get_trl(cpu, i, ctdp_level);
 
 		ret = isst_get_get_trl(cpu, i, 0,
 				       ctdp_level->trl_sse_active_cores);
@@ -897,6 +954,9 @@ int isst_clos_get_clos_information(int cpu, int *enable, int *type)
 	unsigned int resp;
 	int ret;
 
+	if (is_tpmi_if())
+		return tpmi_isst_clos_get_clos_information(cpu, enable, type);
+
 	ret = isst_send_mbox_command(cpu, CONFIG_CLOS, CLOS_PM_QOS_CONFIG, 0, 0,
 				     &resp);
 	if (ret)
@@ -921,6 +981,9 @@ int isst_pm_qos_config(int cpu, int enable_clos, int priority_type)
 {
 	unsigned int req, resp;
 	int ret;
+
+	if (is_tpmi_if())
+		return tpmi_isst_pm_qos_config(cpu, enable_clos, priority_type);
 
 	if (!enable_clos) {
 		struct isst_pkg_ctdp pkg_dev;
@@ -990,6 +1053,9 @@ int isst_pm_get_clos(int cpu, int clos, struct isst_clos_config *clos_config)
 	unsigned int resp;
 	int ret;
 
+	if (is_tpmi_if())
+		return tpmi_isst_pm_get_clos(cpu, clos, clos_config);
+
 	ret = isst_send_mbox_command(cpu, CONFIG_CLOS, CLOS_PM_CLOS, clos, 0,
 				     &resp);
 	if (ret)
@@ -1012,6 +1078,9 @@ int isst_set_clos(int cpu, int clos, struct isst_clos_config *clos_config)
 	unsigned int req, resp;
 	unsigned int param;
 	int ret;
+
+	if (is_tpmi_if())
+		return tpmi_isst_set_clos(cpu, clos, clos_config);
 
 	req = clos_config->epp & 0x0f;
 	req |= (clos_config->clos_prop_prio & 0x0f) << 4;
@@ -1037,6 +1106,9 @@ int isst_clos_get_assoc_status(int cpu, int *clos_id)
 	unsigned int param;
 	int core_id, ret;
 
+	if (is_tpmi_if())
+		return tpmi_isst_clos_get_assoc_status(cpu, clos_id);
+
 	core_id = find_phy_core_num(cpu);
 	param = core_id;
 
@@ -1057,6 +1129,9 @@ int isst_clos_associate(int cpu, int clos_id)
 	unsigned int req, resp;
 	unsigned int param;
 	int core_id, ret;
+
+	if (is_tpmi_if())
+		return tpmi_isst_clos_associate(cpu, clos_id);
 
 	req = (clos_id & 0x03) << 16;
 	core_id = find_phy_core_num(cpu);

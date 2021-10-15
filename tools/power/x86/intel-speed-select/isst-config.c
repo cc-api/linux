@@ -15,9 +15,8 @@ struct process_cmd_struct {
 	int arg;
 };
 
-static const char *version_str = "v1.12";
-
-static const int supported_api_ver = 1;
+static const char *version_str = "v1.12-tpmi";
+static const int supported_api_ver = 2;
 static struct isst_if_platform_info isst_platform_info;
 static char *progname;
 static int debug_flag;
@@ -57,6 +56,8 @@ static int clos_max = -1;
 static int clos_desired = -1;
 static int clos_priority_type;
 
+static int tpmi_mode;
+
 struct _cpu_map {
 	unsigned short core_id;
 	unsigned short pkg_id;
@@ -72,6 +73,11 @@ struct cpu_topology {
 	short pkg_id;
 	short die_id;
 };
+
+int is_tpmi_if(void)
+{
+	return tpmi_mode;
+}
 
 FILE *get_output_file(void)
 {
@@ -364,6 +370,14 @@ int get_cpufreq_base_freq(int cpu)
 	return parse_int_file(0, "/sys/devices/system/cpu/cpu%d/cpufreq/base_frequency", cpu);
 }
 
+int get_disp_freq_multiplier(void)
+{
+	if (is_tpmi_if())
+		return 1;
+
+	return DISP_FREQ_MULTIPLIER;
+}
+
 int get_topo_max_cpus(void)
 {
 	return topo_max_cpus;
@@ -651,9 +665,21 @@ static void create_cpu_map(void)
 		cpu_map[i].core_id = get_physical_core_id(i);
 		cpu_map[i].pkg_id = get_physical_package_id(i);
 		cpu_map[i].die_id = get_physical_die_id(i);
-		cpu_map[i].punit_cpu = map.cpu_map[0].physical_cpu;
-		cpu_map[i].punit_cpu_core = (map.cpu_map[0].physical_cpu >>
+		if (tpmi_mode) {
+			/*
+			 * Format
+			 *	Bit 0 – thread ID
+			 *	Bit 8:1 – module ID (aka IDI agent ID)
+			 *	Bit 13:9 – Compute domain ID (aka die ID)
+			 *	Bits 38:32 – co-located CHA ID
+			 */
+			cpu_map[i].punit_cpu = map.cpu_map[0].physical_cpu & 0xff;
+			cpu_map[i].punit_cpu_core = (cpu_map[i].punit_cpu >> 1); // shift to get core id
+		} else {
+			cpu_map[i].punit_cpu = map.cpu_map[0].physical_cpu;
+			cpu_map[i].punit_cpu_core = (map.cpu_map[0].physical_cpu >>
 					     1); // shift to get core id
+		}
 
 		debug_printf(
 			"map logical_cpu:%d core: %d die:%d pkg:%d punit_cpu:%d punit_core:%d\n",
@@ -900,22 +926,33 @@ int isst_send_msr_command(unsigned int cpu, unsigned int msr, int write,
 	return 0;
 }
 
-static int isst_fill_platform_info(void)
+static int isst_get_platform_info(struct isst_if_platform_info *platform_info)
 {
 	const char *pathname = "/dev/isst_interface";
 	int fd;
 
 	fd = open(pathname, O_RDWR);
 	if (fd < 0)
-		err(-1, "%s open failed", pathname);
+		return -1;
 
-	if (ioctl(fd, ISST_IF_GET_PLATFORM_INFO, &isst_platform_info) == -1) {
-		perror("ISST_IF_GET_PLATFORM_INFO");
+	if (ioctl(fd, ISST_IF_GET_PLATFORM_INFO, platform_info) == -1) {
 		close(fd);
 		return -1;
 	}
 
 	close(fd);
+
+	return 0;
+}
+
+static int isst_fill_platform_info(void)
+{
+	int ret;
+
+	ret = isst_get_platform_info(&isst_platform_info);
+	if (ret) {
+		err(-1, "get platform indo failed");
+	}
 
 	if (isst_platform_info.api_version > supported_api_ver) {
 		printf("Incompatible API versions; Upgrade of tool is required\n");
@@ -999,33 +1036,28 @@ static void isst_print_extended_platform_info(void)
 static void isst_print_platform_information(void)
 {
 	struct isst_if_platform_info platform_info;
-	const char *pathname = "/dev/isst_interface";
-	int fd;
+	int ret;
 
 	if (is_clx_n_platform()) {
 		fprintf(stderr, "\nThis option in not supported on this platform\n");
 		exit(0);
 	}
 
-	fd = open(pathname, O_RDWR);
-	if (fd < 0)
-		err(-1, "%s open failed", pathname);
-
-	if (ioctl(fd, ISST_IF_GET_PLATFORM_INFO, &platform_info) == -1) {
-		perror("ISST_IF_GET_PLATFORM_INFO");
-	} else {
-		fprintf(outf, "Platform: API version : %d\n",
-			platform_info.api_version);
-		fprintf(outf, "Platform: Driver version : %d\n",
-			platform_info.driver_version);
-		fprintf(outf, "Platform: mbox supported : %d\n",
-			platform_info.mbox_supported);
-		fprintf(outf, "Platform: mmio supported : %d\n",
-			platform_info.mmio_supported);
-		isst_print_extended_platform_info();
+	ret = isst_get_platform_info(&platform_info);
+	if (ret) {
+		err(-1, "Failed to get platform inf0");
+		exit(0);
 	}
 
-	close(fd);
+	fprintf(outf, "Platform: API version : %d\n",
+		platform_info.api_version);
+	fprintf(outf, "Platform: Driver version : %d\n",
+		platform_info.driver_version);
+	fprintf(outf, "Platform: mbox supported : %d\n",
+		platform_info.mbox_supported);
+	fprintf(outf, "Platform: mmio supported : %d\n",
+		platform_info.mmio_supported);
+	isst_print_extended_platform_info();
 
 	exit(0);
 }
@@ -2614,11 +2646,11 @@ static void parse_cmd_args(int argc, int start, char **argv)
 			break;
 		case 'n':
 			clos_min = atoi(optarg);
-			clos_min /= DISP_FREQ_MULTIPLIER;
+			clos_min /= get_disp_freq_multiplier();
 			break;
 		case 'm':
 			clos_max = atoi(optarg);
-			clos_max /= DISP_FREQ_MULTIPLIER;
+			clos_max /= get_disp_freq_multiplier();
 			break;
 		case 'p':
 			clos_priority_type = atoi(optarg);
@@ -2879,6 +2911,15 @@ static void cmdline(int argc, char **argv)
 			exit(0);
 		}
 		fclose(fp);
+	}
+
+	ret = isst_fill_platform_info();
+	if (ret) {
+		fprintf(stderr, "Failed to get platform information.\n");
+		exit(0);
+	}
+	if (isst_platform_info.api_version > 1) {
+		tpmi_mode = 1;
 	}
 
 	progname = argv[0];

@@ -82,10 +82,10 @@
 struct isst_clos_config {
 	int pkg_id;
 	int die_id;
+	unsigned int clos_min;
+	unsigned int clos_max;
 	unsigned char epp;
 	unsigned char clos_prop_prio;
-	unsigned char clos_min;
-	unsigned char clos_max;
 	unsigned char clos_desired;
 };
 
@@ -142,14 +142,19 @@ struct isst_pkg_ctdp_level_info {
 	int sse_p1;
 	int avx2_p1;
 	int avx512_p1;
+	int amx_p1;
 	int mem_freq;
 	size_t core_cpumask_size;
 	cpu_set_t *core_cpumask;
 	int cpu_count;
 	unsigned long long buckets_info;
+
 	int trl_sse_active_cores[ISST_TRL_MAX_ACTIVE_CORES];
 	int trl_avx_active_cores[ISST_TRL_MAX_ACTIVE_CORES];
 	int trl_avx_512_active_cores[ISST_TRL_MAX_ACTIVE_CORES];
+
+	int trl_cdyn_level[4][ISST_TRL_MAX_ACTIVE_CORES];
+
 	int kobj_bucket_index;
 	int active_bucket;
 	int fact_max_index;
@@ -174,6 +179,7 @@ struct isst_pkg_ctdp {
 extern int get_topo_max_cpus(void);
 extern int get_cpu_count(int pkg_id, int die_id);
 extern int get_max_punit_core_id(int pkg_id, int die_id);
+extern int get_disp_freq_multiplier(void);
 
 /* Common interfaces */
 FILE *get_output_file(void);
@@ -273,4 +279,27 @@ extern int isst_daemon(int debug_mode, int poll_interval, int no_daemon);
 extern void process_level_change(int cpu);
 extern int hfi_main(void);
 extern void hfi_exit(void);
+
+extern int is_tpmi_if(void);
+extern int tpmi_isst_get_ctdp_levels(int cpu, struct isst_pkg_ctdp *pkg_dev);
+extern int tpmi_isst_get_ctdp_control(int cpu, int config_index,
+			  struct isst_pkg_ctdp_level_info *ctdp_level);
+extern int tpmi_isst_get_coremask_info(int cpu, int config_index,
+			   struct isst_pkg_ctdp_level_info *ctdp_level);
+extern int tpmi_isst_get_tdp_info(int cpu, int config_index,
+			    struct isst_pkg_ctdp_level_info *ctdp_level);
+extern int tpmi_isst_get_trl_bucket_info(int cpu, int config_index, unsigned long long *buckets_info);
+extern int tpmi_isst_get_pwr_info(int cpu, int config_index,
+			    struct isst_pkg_ctdp_level_info *ctdp_level);
+extern int tpmi_isst_get_get_trl(int cpu, int config_index, struct isst_pkg_ctdp_level_info *ctdp_level);
+extern int tpmi_isst_get_pbf_info(int cpu, int level, struct isst_pbf_info *pbf_info);
+extern int tpmi_isst_read_pm_config(int cpu, int *cp_state, int *cp_cap);
+extern int tpmi_isst_clos_get_clos_information(int cpu, int *enable, int *type);
+extern int tpmi_isst_pm_get_clos(int cpu, int clos, struct isst_clos_config *clos_config);
+extern int tpmi_isst_set_clos(int cpu, int clos, struct isst_clos_config *clos_config);
+int tpmi_isst_pm_qos_config(int cpu, int enable_clos, int priority_type);
+int tpmi_isst_clos_associate(int cpu, int clos_id);
+int tpmi_isst_clos_get_assoc_status(int cpu, int *clos_id);
+int tpmi_isst_set_tdp_level(int cpu, int tdp_level);
+int tpmi_isst_set_pbf_fact_status(int cpu, int pbf, int fact, int enable);
 #endif
