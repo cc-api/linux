@@ -58,6 +58,7 @@ struct isst_if_cmd_cb {
 	int offset;
 	struct module *owner;
 	long (*cmd_callback)(u8 *ptr, int *write_only, int resume);
+	long (*def_ioctl)(struct file *file, unsigned int cmd, unsigned long arg);
 };
 
 /* Internal interface functions */
