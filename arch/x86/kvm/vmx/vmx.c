@@ -7805,6 +7805,17 @@ static void vmx_vm_destroy(struct kvm *kvm)
 		free_pages((unsigned long)kvm_vmx->pid_table, MAX_PID_TABLE_ORDER);
 }
 
+static void vmx_update_ipiv_pid_entry(struct kvm_vcpu *vcpu, u8 old_id, u8 new_id)
+{
+	if (enable_ipiv && kvm_vcpu_apicv_active(vcpu)) {
+		u64 *pid_table = to_kvm_vmx(vcpu->kvm)->pid_table;
+
+		WRITE_ONCE(pid_table[old_id], 0);
+		WRITE_ONCE(pid_table[new_id], __pa(&to_vmx(vcpu)->pi_desc) |
+				PID_TABLE_ENTRY_VALID);
+	}
+}
+
 static struct kvm_x86_ops vmx_x86_ops __initdata = {
 	.name = "kvm_intel",
 
@@ -7941,6 +7952,7 @@ static struct kvm_x86_ops vmx_x86_ops __initdata = {
 	.complete_emulated_msr = kvm_complete_insn_gp,
 
 	.vcpu_deliver_sipi_vector = kvm_vcpu_deliver_sipi_vector,
+	.update_ipiv_pid_entry = vmx_update_ipiv_pid_entry,
 };
 
 static unsigned int vmx_handle_intel_pt_intr(void)

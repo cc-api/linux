@@ -2001,9 +2001,12 @@ int kvm_lapic_reg_write(struct kvm_lapic *apic, u32 reg, u32 val)
 
 	switch (reg) {
 	case APIC_ID:		/* Local APIC ID */
-		if (!apic_x2apic_mode(apic))
+		if (!apic_x2apic_mode(apic)) {
+			u8 old_id = kvm_lapic_get_reg(apic, APIC_ID) >> 24;
+
 			kvm_apic_set_xapic_id(apic, val >> 24);
-		else
+			kvm_x86_ops.update_ipiv_pid_entry(apic->vcpu, old_id, val >> 24);
+		} else
 			ret = 1;
 		break;
 
