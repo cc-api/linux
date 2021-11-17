@@ -63,6 +63,12 @@ static int __init vsyscall_setup(char *str)
 		else
 			return -EINVAL;
 
+		if (cpu_feature_enabled(X86_FEATURE_LASS) &&
+		    vsyscall_mode != NONE) {
+			setup_disable_lass(NULL);
+			pr_warn("LASS disabled by command line enabling vsyscall\n");
+		}
+
 		return 0;
 	}
 
