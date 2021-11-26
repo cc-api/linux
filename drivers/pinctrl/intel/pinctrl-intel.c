@@ -1372,7 +1372,7 @@ static int intel_pinctrl_add_padgroups_by_gpps(struct intel_pinctrl *pctrl,
 	for (i = 0; i < ngpps; i++) {
 		gpps[i] = community->gpps[i];
 
-		if (gpps[i].size > 32)
+		if (gpps[i].size > INTEL_PINCTRL_MAX_GPP_SIZE)
 			return -EINVAL;
 
 		/* Special treatment for GPIO base */
@@ -1390,7 +1390,7 @@ static int intel_pinctrl_add_padgroups_by_gpps(struct intel_pinctrl *pctrl,
 		}
 
 		gpps[i].padown_num = padown_num;
-		padown_num += DIV_ROUND_UP(gpps[i].size * 4, 32);
+		padown_num += DIV_ROUND_UP(gpps[i].size * 4, INTEL_PINCTRL_MAX_GPP_SIZE);
 	}
 
 	community->gpps = gpps;
@@ -1406,7 +1406,7 @@ static int intel_pinctrl_add_padgroups_by_size(struct intel_pinctrl *pctrl,
 	unsigned int padown_num = 0;
 	size_t i, ngpps = DIV_ROUND_UP(npins, community->gpp_size);
 
-	if (community->gpp_size > 32)
+	if (community->gpp_size > INTEL_PINCTRL_MAX_GPP_SIZE)
 		return -EINVAL;
 
 	gpps = devm_kcalloc(pctrl->dev, ngpps, sizeof(*gpps), GFP_KERNEL);
@@ -1431,7 +1431,7 @@ static int intel_pinctrl_add_padgroups_by_size(struct intel_pinctrl *pctrl,
 		if (community->gpp_num_padown_regs)
 			padown_num += community->gpp_num_padown_regs;
 		else
-			padown_num += DIV_ROUND_UP(gpps[i].size * 4, 32);
+			padown_num += DIV_ROUND_UP(gpps[i].size * 4, INTEL_PINCTRL_MAX_GPP_SIZE);
 	}
 
 	community->ngpps = ngpps;
