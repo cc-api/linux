@@ -11,6 +11,7 @@
 #include <linux/io.h>
 #include <linux/pci.h>
 #include <linux/module.h>
+#include <linux/intel_tpmi.h>
 #include "vsec.h"
 
 /**
@@ -46,6 +47,7 @@ struct intel_tpmi_info {
 	struct intel_vsec_device *vsec_dev;
 	int feature_count;
 	u64 pfs_start;
+	struct intel_tpmi_plat_info plat_info;
 };
 
 enum intel_tpmi_id {
@@ -139,6 +141,8 @@ static int tpmi_create_device(struct intel_tpmi_info *tpmi_info,
 	feature_vsec_dev->pcidev = vsec_dev->pcidev;
 	feature_vsec_dev->resource = res;
 	feature_vsec_dev->num_resources = pfs->num_entries;
+	feature_vsec_dev->priv_data = &tpmi_info->plat_info;
+	feature_vsec_dev->priv_data_size = sizeof(tpmi_info->plat_info);
         feature_vsec_dev->ida = &intel_vsec_tpmi_ida;
 
 	ret = intel_vsec_add_aux(vsec_dev->pcidev, &vsec_dev->auxdev.dev, feature_vsec_dev,
@@ -170,6 +174,45 @@ static void tpmi_create_devices(struct intel_tpmi_info *tpmi_info)
 		if (ret)
 			continue;
 	}
+}
+
+#define TPMI_INFO_ID 0x81
+#define TPMI_INFO_BUS_INFO_OFFSET 0x08
+
+static int tpmi_process_info(struct intel_tpmi_info *tpmi_info,
+			     struct intel_tpmi_pm_feature *pfs)
+{
+	int fn, dev, bus, pkg_id;
+	void __iomem *info_mem;
+	u64 info;
+	u8 *mem;
+
+	info_mem = ioremap(pfs->vsec_offset + TPMI_INFO_BUS_INFO_OFFSET,
+			   pfs->entry_size * 4 - TPMI_INFO_BUS_INFO_OFFSET);
+	if (!info_mem)
+		return -ENOMEM;
+
+	info = readq(info_mem);
+
+	mem = (u8 *)&info;
+
+	fn = *mem;
+	dev = (fn >> 3) & 0xff;
+	fn = fn & 0x07;
+	mem++;
+	bus = *mem++;
+	pkg_id = *mem;
+
+	dev_dbg(tpmi_to_dev(tpmi_info), "bus:%d dev:%d fn:%d pkg_id:%d\n", bus, dev, fn,
+		pkg_id);
+	tpmi_info->plat_info.package_id = pkg_id;
+	tpmi_info->plat_info.bus_number = bus;
+	tpmi_info->plat_info.device_number = dev;
+	tpmi_info->plat_info.function_number = fn;
+
+	iounmap(info_mem);
+
+	return 0;
 }
 
 static int tpmi_get_resource(struct intel_vsec_device *vsec_dev, int index,
@@ -206,6 +249,7 @@ static int intel_vsec_tpmi_init(struct auxiliary_device *auxdev)
 
 	tpmi_info->vsec_dev = vsec_dev;
 	tpmi_info->feature_count = vsec_dev->num_resources;
+	tpmi_info->plat_info.bus_number = pci_dev->bus->number;
 
 	tpmi_info->tpmi_features = devm_kcalloc(&auxdev->dev, vsec_dev->num_resources,
 						sizeof(*tpmi_info->tpmi_features),
@@ -239,6 +283,10 @@ static int intel_vsec_tpmi_init(struct auxiliary_device *auxdev)
 
 		dev_dbg(&pci_dev->dev, "PFS[tpmi_id=0x%x num_entries=0x%x entry_size=0x%x cap_offset=0x%x pfs->attribute=0x%x\n",
 			 pfs->tpmi_id, pfs->num_entries, pfs->entry_size, pfs->cap_offset, pfs->attribute);
+
+		/* Process TPMI_INFO to get BDF to package mapping */
+		if (pfs->tpmi_id == TPMI_INFO_ID)
+			tpmi_process_info(tpmi_info, pfs);
 	}
 
 	tpmi_info->pfs_start = pfs_start;
