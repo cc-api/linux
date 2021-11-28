@@ -72,6 +72,77 @@ enum intel_tpmi_id {
 #define tpmi_to_dev(info)	&info->vsec_dev->pcidev->dev
 static DEFINE_IDA(intel_vsec_tpmi_ida);
 
+#define TPMI_MAX_INSTANCE	16
+static struct intel_tpmi_info *tpmi_instances[TPMI_MAX_INSTANCE];
+static int tpmi_instance_count;
+
+static int tpmi_get_feature_status(struct intel_tpmi_info *tpmi_info,
+				   int feature_id, int *locked, int *disabled);
+
+static struct intel_tpmi_pm_feature *tpmi_pfs_info(int package_id, int tpmi_id)
+{
+	int i;
+
+	for (i = 0; i < tpmi_instance_count; ++i) {
+		struct intel_tpmi_info *tpmi_info = tpmi_instances[i];
+		int j;
+
+		if (!tpmi_info)
+			continue;
+
+		if (tpmi_info->plat_info.package_id != package_id)
+			continue;
+
+		for (j = 0; j < tpmi_info->feature_count; ++j) {
+			struct intel_tpmi_pm_feature *pfs;
+
+			pfs = &tpmi_info->tpmi_features[j];
+			if (pfs->tpmi_id == tpmi_id) {
+				return pfs;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+int tpmi_get_info(int package_id, int tpmi_id, int *num_entries, int *entry_size)
+{
+	struct intel_tpmi_pm_feature *pfs;
+
+	pfs = tpmi_pfs_info(package_id, tpmi_id);
+	if (!pfs)
+		return -EINVAL;
+
+	*num_entries = pfs->num_entries;
+	*entry_size = 4 * pfs->entry_size;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(tpmi_get_info);
+
+void __iomem *tpmi_get_mem(int package_id, int tpmi_id, int *size)
+{
+	struct intel_tpmi_pm_feature *pfs;
+	int _size;
+
+	pfs = tpmi_pfs_info(package_id, tpmi_id);
+	if (!pfs)
+		return NULL;
+
+	_size = pfs->num_entries * pfs->entry_size * 4;
+	*size = _size;
+
+	return ioremap(pfs->vsec_offset, _size);
+}
+EXPORT_SYMBOL_GPL(tpmi_get_mem);
+
+void tpmi_free_mem(void __iomem *mem)
+{
+	iounmap(mem);
+}
+EXPORT_SYMBOL_GPL(tpmi_free_mem);
+
 static int tpmi_get_feature_status(struct intel_tpmi_info *tpmi_info,
 				   int feature_id, int *locked, int *disabled)
 {
@@ -690,6 +761,12 @@ static int intel_vsec_tpmi_init(struct auxiliary_device *auxdev)
 
 	tpmi_create_devices(tpmi_info);
 	tpmi_dbgfs_register(tpmi_info);
+
+	if (tpmi_info->plat_info.package_id < TPMI_MAX_INSTANCE) {
+		tpmi_instances[tpmi_info->plat_info.package_id] = tpmi_info;
+		++tpmi_instance_count;
+		pr_debug("TPMI NO intances %d\n", tpmi_instance_count);
+	}
 
 	pm_runtime_enable(&auxdev->dev);
 	pm_runtime_set_autosuspend_delay(&auxdev->dev, 2000);
