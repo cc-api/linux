@@ -50,6 +50,7 @@ struct intel_tpmi_info {
 	int feature_count;
 	u64 pfs_start;
 	struct intel_tpmi_plat_info plat_info;
+	void __iomem *tpmi_control_mem;
 };
 
 enum intel_tpmi_id {
@@ -59,8 +60,123 @@ enum intel_tpmi_id {
 	TPMI_ID_SST = 5,
 };
 
+/* TPMI Control Interface */
+#define TPMI_CONTROL_ID		0x80
+#define TPMI_INTERFACE_OFFSET	0x00
+#define TPMI_COMMAND_OFFSET	0x08
+#define TPMI_DATA_OFFSET	0x0C
+#define CONTROL_TIMEOUT_US	5000
+
 #define tpmi_to_dev(info)	&info->vsec_dev->pcidev->dev
 static DEFINE_IDA(intel_vsec_tpmi_ida);
+
+static void tpmi_set_control_base(struct intel_tpmi_info *tpmi_info,
+				  struct intel_tpmi_pm_feature *pfs)
+{
+	void __iomem *mem;
+	u16 size;
+
+	size = pfs->num_entries * pfs->entry_size * 4;
+	mem = ioremap(pfs->vsec_offset, size);
+	if (!mem)
+		return;
+
+	/* mem is pointing to TPMI CONTROL base */
+	tpmi_info->tpmi_control_mem = mem;
+}
+
+static int tpmi_get_feature_status(struct intel_tpmi_info *tpmi_info,
+				   int feature_id, int *locked, int *disabled)
+{
+	struct intel_vsec_device *vsec_dev = tpmi_info->vsec_dev;
+	u32 interface, data;
+	s64 tm_delta = 0;
+	ktime_t tm;
+	int ret;
+
+	if (!tpmi_info->tpmi_control_mem)
+		return -EFAULT;
+
+	pm_runtime_get_sync(&vsec_dev->auxdev.dev);
+	/* Poll for rb bit == 0 */
+	tm = ktime_get();
+	do {
+		interface = readl(tpmi_info->tpmi_control_mem +
+				  TPMI_INTERFACE_OFFSET);
+		if (interface & BIT(0)) {
+			ret = -EBUSY;
+			tm_delta = ktime_us_delta(ktime_get(), tm);
+			if (tm_delta > 1000)
+				cond_resched();
+			continue;
+		}
+		ret = 0;
+		break;
+	} while (tm_delta < CONTROL_TIMEOUT_US);
+
+	pr_debug("interface reg:%x\n", interface);
+
+	if (ret)
+		return ret;
+
+	pr_debug("ready: Run busy is 0\n");
+	/* cmd == 0x10 for TPMI_GET_STATE */
+	writel(0x10, tpmi_info->tpmi_control_mem + TPMI_COMMAND_OFFSET);
+	pr_debug("tpmi_cmd: %x\n", readl(tpmi_info->tpmi_control_mem + TPMI_COMMAND_OFFSET));
+
+	writel(feature_id << 8, tpmi_info->tpmi_control_mem +
+		TPMI_DATA_OFFSET); /* data = feature_id */
+
+	pr_debug("tpmi_data: %x\n", readl(tpmi_info->tpmi_control_mem + TPMI_DATA_OFFSET));
+
+	writel(BIT(0) | (1 << 16),  tpmi_info->tpmi_control_mem + TPMI_INTERFACE_OFFSET);
+	pr_debug("tpmi_interface: %x\n", readl(tpmi_info->tpmi_control_mem + TPMI_INTERFACE_OFFSET));
+
+	/* Poll for rb bit == 0 */
+	tm = ktime_get();
+	do {
+		interface = readl(tpmi_info->tpmi_control_mem +
+				  TPMI_INTERFACE_OFFSET);
+		if (interface & BIT_ULL(0)) {
+			ret = -EBUSY;
+			tm_delta = ktime_us_delta(ktime_get(), tm);
+			if (tm_delta > 1000)
+				cond_resched();
+			continue;
+		}
+		ret = 0;
+		break;
+	} while (tm_delta < CONTROL_TIMEOUT_US);
+
+	pr_debug("tpmi_interface after poll: %x\n", readl(tpmi_info->tpmi_control_mem + TPMI_INTERFACE_OFFSET));
+
+	if (ret)
+		goto done_proc;
+
+	data = (interface << 8) & 0xff;
+	if (data != 0x40)
+		return -EBUSY;
+
+	data = readl(tpmi_info->tpmi_control_mem + TPMI_DATA_OFFSET);
+	pr_debug("tpmi_data result: %x\n", readl(tpmi_info->tpmi_control_mem + TPMI_DATA_OFFSET));
+
+	*disabled = 0;
+	*locked = 0;
+
+	if (data & BIT(0))
+		*disabled = 1;
+
+	if (data & BIT(31))
+		*locked = 1;
+
+	ret = 0;
+
+done_proc:
+	pm_runtime_mark_last_busy(&vsec_dev->auxdev.dev);
+	pm_runtime_put_autosuspend(&vsec_dev->auxdev.dev);
+
+	return ret;
+}
 
 static int tpmi_update_pfs(struct intel_tpmi_pm_feature *pfs, u64 start,
 			   int size)
@@ -169,8 +285,15 @@ static void tpmi_create_devices(struct intel_tpmi_info *tpmi_info)
 
 	for (i = 0; i < vsec_dev->num_resources; i++) {
 		struct intel_tpmi_pm_feature *pfs;
+		int locked, disabled;
 
 		pfs = &tpmi_info->tpmi_features[i];
+		ret = tpmi_get_feature_status(tpmi_info, pfs->tpmi_id,
+					      &locked, &disabled);
+		if (!ret)
+			dev_dbg(tpmi_to_dev(tpmi_info), "id:%d, locked:%d disabled:%d\n",
+				pfs->tpmi_id, locked, disabled);
+		/* Todo "continue" for locked/disabled fatures */
 		ret = tpmi_create_device(tpmi_info, &tpmi_info->tpmi_features[i],
 					 tpmi_info->pfs_start);
 		if (ret)
@@ -290,6 +413,9 @@ static int intel_vsec_tpmi_init(struct auxiliary_device *auxdev)
 		/* Process TPMI_INFO to get BDF to package mapping */
 		if (pfs->tpmi_id == TPMI_INFO_ID)
 			tpmi_process_info(tpmi_info, pfs);
+
+		if (pfs->tpmi_id == TPMI_CONTROL_ID)
+			tpmi_set_control_base(tpmi_info, pfs);
 	}
 
 	tpmi_info->pfs_start = pfs_start;
@@ -314,6 +440,11 @@ static int tpmi_probe(struct auxiliary_device *auxdev,
 
 static void tpmi_remove(struct auxiliary_device *auxdev)
 {
+	struct intel_tpmi_info *tpmi_info = auxiliary_get_drvdata(auxdev);
+
+	if (tpmi_info->tpmi_control_mem)
+		iounmap(tpmi_info->tpmi_control_mem);
+
 	pm_runtime_get_sync(&auxdev->dev);
 	pm_runtime_put_noidle(&auxdev->dev);
 	pm_runtime_disable(&auxdev->dev);
