@@ -399,6 +399,36 @@ static void tpmi_dbgfs_unregister(struct intel_tpmi_info *tpmi_info)
 	debugfs_remove_recursive(tpmi_info->dbgfs_dir);
 }
 
+struct intel_tpmi_plat_info *tpmi_get_platform_data(struct auxiliary_device *auxdev)
+{
+	struct intel_vsec_device *vsec_dev = auxdev_to_ivdev(auxdev);
+
+	return vsec_dev->priv_data;
+}
+EXPORT_SYMBOL_GPL(tpmi_get_platform_data);
+
+int tpmi_get_resource_count(struct auxiliary_device *auxdev)
+{
+	struct intel_vsec_device *vsec_dev = auxdev_to_ivdev(auxdev);
+
+	if (vsec_dev)
+		return vsec_dev->num_resources;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(tpmi_get_resource_count);
+
+struct resource *tpmi_get_resource_at_index(struct auxiliary_device *auxdev, int index)
+{
+	struct intel_vsec_device *vsec_dev = auxdev_to_ivdev(auxdev);
+
+	if (vsec_dev && index < vsec_dev->num_resources)
+		return &vsec_dev->resource[index];
+
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(tpmi_get_resource_at_index);
+
 static void tpmi_set_control_base(struct intel_tpmi_info *tpmi_info,
 				  struct intel_tpmi_pm_feature *pfs)
 {
