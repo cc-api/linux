@@ -217,6 +217,8 @@ struct idxd_wq {
 	u32 max_batch_size;
 	bool ats_dis;
 	char driver_name[WQ_NAME_SIZE + 1];
+
+	void *private_data;
 };
 
 struct idxd_engine {
