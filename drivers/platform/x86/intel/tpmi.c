@@ -6,6 +6,7 @@
  * All Rights Reserved.
  *
  */
+#define DEBUG
 
 #include <linux/auxiliary_bus.h>
 #include <linux/debugfs.h>
