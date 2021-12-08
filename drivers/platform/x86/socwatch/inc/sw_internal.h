@@ -5,7 +5,7 @@
  *
  * GPL LICENSE SUMMARY
  *
- * Copyright(c) 2014 - 2020 Intel Corporation.
+ * Copyright(c) 2014 - 2021 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -24,7 +24,7 @@
  *
  * BSD LICENSE
  *
- * Copyright(c) 2014 - 2020 Intel Corporation.
+ * Copyright(c) 2014 - 2021 Intel Corporation.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,7 +74,6 @@
 #include <linux/wait.h>    /* wait_event_interruptible */
 #include <linux/pci.h>     /* pci_get_bus_and_slot */
 #include <linux/version.h> /* LINUX_VERSION_CODE */
-#include <linux/sfi.h>     /* For SFI F/W version */
 #include <asm/hardirq.h>
 #include <linux/cpufreq.h>
 #include <asm/local.h>     /* local_t */
