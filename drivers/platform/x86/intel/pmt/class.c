@@ -35,6 +35,7 @@ static const struct pci_device_id pmt_telem_early_client_pci_ids[] = {
 	{ PCI_VDEVICE(INTEL, 0x490e) }, /* DG1 */
 	{ PCI_VDEVICE(INTEL, 0x4f93) }, /* DG2_G10 */
 	{ PCI_VDEVICE(INTEL, 0x4f95) }, /* DG2_G11 */
+	{ PCI_VDEVICE(INTEL, 0xa77d) }, /* RPL */
 	{ PCI_VDEVICE(INTEL, 0x9a0d) }, /* TGL */
 	{ }
 };
