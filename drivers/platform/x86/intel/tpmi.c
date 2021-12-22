@@ -11,6 +11,7 @@
 #include <linux/io.h>
 #include <linux/pci.h>
 #include <linux/module.h>
+#include <linux/pm_runtime.h>
 #include <linux/intel_tpmi.h>
 #include "vsec.h"
 
@@ -40,6 +41,7 @@ struct intel_tpmi_pm_feature {
 	unsigned int cap_offset;
 	unsigned int attribute;
 	unsigned int vsec_offset;
+	struct intel_vsec_device *vsec_dev;
 };
 
 struct intel_tpmi_info {
@@ -265,6 +267,7 @@ static int intel_vsec_tpmi_init(struct auxiliary_device *auxdev)
 		int size, ret;
 
 		pfs = &tpmi_info->tpmi_features[i];
+		pfs->vsec_dev = vsec_dev;
 
 		size = tpmi_get_resource(vsec_dev, i, &res_start);
 		if (size < 0)
@@ -295,6 +298,11 @@ static int intel_vsec_tpmi_init(struct auxiliary_device *auxdev)
 
 	tpmi_create_devices(tpmi_info);
 
+	pm_runtime_enable(&auxdev->dev);
+	pm_runtime_set_autosuspend_delay(&auxdev->dev, 2000);
+	pm_runtime_use_autosuspend(&auxdev->dev);
+	pm_runtime_put(&auxdev->dev);
+
 	return 0;
 }
 
@@ -306,10 +314,9 @@ static int tpmi_probe(struct auxiliary_device *auxdev,
 
 static void tpmi_remove(struct auxiliary_device *auxdev)
 {
-	/*
-	 * TODO: Remove processing by getting
-	 * struct intel_tpmi_info *tpmi_info = auxiliary_get_drvdata(auxdev);
-	 */
+	pm_runtime_get_sync(&auxdev->dev);
+	pm_runtime_put_noidle(&auxdev->dev);
+	pm_runtime_disable(&auxdev->dev);
 }
 
 static const struct auxiliary_device_id tpmi_id_table[] = {
