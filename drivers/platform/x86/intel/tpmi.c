@@ -57,6 +57,7 @@
 #include <linux/pci.h>
 #include <linux/security.h>
 #include <linux/string_helpers.h>
+#include <linux/pm_runtime.h>
 
 #include "vsec.h"
 
@@ -688,6 +689,7 @@ static int tpmi_fetch_pfs_header(struct intel_tpmi_pm_feature *pfs, u64 start, i
 }
 
 #define TPMI_CAP_OFFSET_UNIT	1024
+#define TPMI_AUTO_SUSPEND_DELAY_MS	2000
 
 static int intel_vsec_tpmi_init(struct auxiliary_device *auxdev)
 {
@@ -715,7 +717,7 @@ static int intel_vsec_tpmi_init(struct auxiliary_device *auxdev)
 		struct intel_tpmi_pm_feature *pfs;
 		struct resource *res;
 		u64 res_start;
-		int size, ret;
+		int size;
 
 		pfs = &tpmi_info->tpmi_features[i];
 		pfs->vsec_dev = vsec_dev;
@@ -769,6 +771,12 @@ static int intel_vsec_tpmi_init(struct auxiliary_device *auxdev)
 	if (!security_locked_down(LOCKDOWN_DEV_MEM) && capable(CAP_SYS_RAWIO))
 		tpmi_dbgfs_register(tpmi_info);
 
+	pm_runtime_set_active(&auxdev->dev);
+	pm_runtime_set_autosuspend_delay(&auxdev->dev, TPMI_AUTO_SUSPEND_DELAY_MS);
+	pm_runtime_use_autosuspend(&auxdev->dev);
+	pm_runtime_enable(&auxdev->dev);
+	pm_runtime_mark_last_busy(&auxdev->dev);
+
 	return 0;
 }
 
@@ -783,6 +791,7 @@ static void tpmi_remove(struct auxiliary_device *auxdev)
 	struct intel_tpmi_info *tpmi_info = auxiliary_get_drvdata(auxdev);
 
 	debugfs_remove_recursive(tpmi_info->dbgfs_dir);
+	pm_runtime_disable(&auxdev->dev);
 }
 
 static const struct auxiliary_device_id tpmi_id_table[] = {
