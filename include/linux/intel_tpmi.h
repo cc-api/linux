@@ -22,4 +22,7 @@ int tpmi_get_info(int package_id, int tpmi_id, int *num_entries, int *entry_size
 void __iomem *tpmi_get_mem(int package_id, int tpmi_id, int *size);
 void tpmi_free_mem(void __iomem *mem);
 
+u64 intel_tpmi_readq(struct auxiliary_device *auxdev, const volatile void __iomem *addr);
+void intel_tpmi_writeq(struct auxiliary_device *auxdev, u64 value, volatile void __iomem *addr);
+
 #endif

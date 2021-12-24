@@ -80,6 +80,28 @@ static int tpmi_instance_count;
 static int tpmi_get_feature_status(struct intel_tpmi_info *tpmi_info,
 				   int feature_id, int *locked, int *disabled);
 
+u64 intel_tpmi_readq(struct auxiliary_device *auxdev, const volatile void __iomem *addr)
+{
+	u64 val;
+
+	pm_runtime_get_sync(&auxdev->dev);
+	val = readq(addr);
+	pm_runtime_mark_last_busy(&auxdev->dev);
+	pm_runtime_put_autosuspend(&auxdev->dev);
+
+	return val;
+}
+EXPORT_SYMBOL_GPL(intel_tpmi_readq);
+
+void intel_tpmi_writeq(struct auxiliary_device *auxdev, u64 value, volatile void __iomem *addr)
+{
+	pm_runtime_get_sync(&auxdev->dev);
+	writeq(value, addr);
+	pm_runtime_mark_last_busy(&auxdev->dev);
+	pm_runtime_put_autosuspend(&auxdev->dev);
+}
+EXPORT_SYMBOL_GPL(intel_tpmi_writeq);
+
 static struct intel_tpmi_pm_feature *tpmi_pfs_info(int package_id, int tpmi_id)
 {
 	int i;
