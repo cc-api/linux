@@ -231,8 +231,9 @@ static const struct {
 
 #define L1D_CACHE_ORDER 4
 
-/* PID(Posted-Interrupt Descriptor)-pointer table entry is 64-bit long */
-#define MAX_PID_TABLE_ORDER get_order(KVM_MAX_VCPU_IDS * sizeof(u64))
+/* Each entry in PID(Posted-Interrupt Descriptor)-pointer table is 8 bytes */
+#define table_index_to_size(index) ((index) << 3)
+#define table_size_to_index(size) ((size) >> 3)
 #define PID_TABLE_ENTRY_VALID 1
 
 static void *vmx_l1d_flush_pages;
@@ -4434,6 +4435,42 @@ static u32 vmx_secondary_exec_control(struct vcpu_vmx *vmx)
 	return exec_control;
 }
 
+static int vmx_alloc_pid_table(struct kvm_vmx *kvm_vmx, int order)
+{
+	u64 *pid_table;
+
+	pid_table = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, order);
+	if (!pid_table)
+		return -ENOMEM;
+
+	kvm_vmx->pid_table = pid_table;
+	kvm_vmx->pid_last_index = table_size_to_index(PAGE_SIZE << order) - 1;
+	return 0;
+}
+
+static int vmx_expand_pid_table(struct kvm_vmx *kvm_vmx, int entry_idx)
+{
+	u64 *last_pid_table;
+	int last_table_size, new_order;
+
+	if (entry_idx <= kvm_vmx->pid_last_index)
+		return 0;
+
+	last_pid_table = kvm_vmx->pid_table;
+	last_table_size = table_index_to_size(kvm_vmx->pid_last_index + 1);
+	new_order = get_order(table_index_to_size(entry_idx + 1));
+
+	if (vmx_alloc_pid_table(kvm_vmx, new_order))
+		return -ENOMEM;
+
+	memcpy(kvm_vmx->pid_table, last_pid_table, last_table_size);
+	kvm_make_all_cpus_request(&kvm_vmx->kvm, KVM_REQ_PID_TABLE_UPDATE);
+
+	/* Now old PID table can be freed safely as no vCPU is using it. */
+	free_pages((unsigned long)last_pid_table, get_order(last_table_size));
+	return 0;
+}
+
 #define VMX_XSS_EXIT_BITMAP 0
 
 static void init_vmcs(struct vcpu_vmx *vmx)
@@ -4472,10 +4509,19 @@ static void init_vmcs(struct vcpu_vmx *vmx)
 		vmcs_write64(POSTED_INTR_DESC_ADDR, __pa((&vmx->pi_desc)));
 
 		if (enable_ipiv) {
-			WRITE_ONCE(kvm_vmx->pid_table[vcpu->vcpu_id],
-				__pa(&vmx->pi_desc) | PID_TABLE_ENTRY_VALID);
+			down_write(&kvm_vmx->pid_table_lock);
+
+			/*
+			 * In case new memory allocation for PID table fails,
+			 * skip setting Posted-Interrupt descriptor of current
+			 * vCPU which index is beyond present table limit.
+			 */
+			if (!vmx_expand_pid_table(kvm_vmx, vcpu->vcpu_id))
+				WRITE_ONCE(kvm_vmx->pid_table[vcpu->vcpu_id],
+					__pa(&vmx->pi_desc) | PID_TABLE_ENTRY_VALID);
 			vmcs_write64(PID_POINTER_TABLE, __pa(kvm_vmx->pid_table));
 			vmcs_write16(LAST_PID_POINTER_INDEX, kvm_vmx->pid_last_index);
+			up_write(&kvm_vmx->pid_table_lock);
 		}
 	}
 
@@ -7196,14 +7242,11 @@ static int vmx_vm_init(struct kvm *kvm)
 	}
 
 	if (enable_ipiv) {
-		struct page *pages;
+		struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
 
-		pages = alloc_pages(GFP_KERNEL | __GFP_ZERO, MAX_PID_TABLE_ORDER);
-		if (!pages)
+		if (vmx_alloc_pid_table(kvm_vmx, 0))
 			return -ENOMEM;
-
-		to_kvm_vmx(kvm)->pid_table = (void *)page_address(pages);
-		to_kvm_vmx(kvm)->pid_last_index = KVM_MAX_VCPU_IDS - 1;
+		init_rwsem(&kvm_vmx->pid_table_lock);
 	}
 
 	return 0;
@@ -7802,7 +7845,18 @@ static void vmx_vm_destroy(struct kvm *kvm)
 	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
 
 	if (kvm_vmx->pid_table)
-		free_pages((unsigned long)kvm_vmx->pid_table, MAX_PID_TABLE_ORDER);
+		free_pages((unsigned long)kvm_vmx->pid_table,
+			get_order(table_index_to_size(kvm_vmx->pid_last_index)));
+}
+
+static void vmx_update_ipiv_pid_table(struct kvm_vcpu *vcpu)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
+
+	down_read(&kvm_vmx->pid_table_lock);
+	vmcs_write64(PID_POINTER_TABLE, __pa(kvm_vmx->pid_table));
+	vmcs_write16(LAST_PID_POINTER_INDEX, kvm_vmx->pid_last_index);
+	up_read(&kvm_vmx->pid_table_lock);
 }
 
 static void vmx_update_ipiv_pid_entry(struct kvm_vcpu *vcpu, u8 old_id, u8 new_id)
@@ -7953,6 +8007,7 @@ static struct kvm_x86_ops vmx_x86_ops __initdata = {
 
 	.vcpu_deliver_sipi_vector = kvm_vcpu_deliver_sipi_vector,
 	.update_ipiv_pid_entry = vmx_update_ipiv_pid_entry,
+	.update_ipiv_pid_table = vmx_update_ipiv_pid_table,
 };
 
 static unsigned int vmx_handle_intel_pt_intr(void)

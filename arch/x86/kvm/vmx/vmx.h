@@ -368,6 +368,12 @@ struct kvm_vmx {
 	/* PID table for IPI virtualization */
 	u64 *pid_table;
 	u16 pid_last_index;
+	/*
+	 * Protects accesses to pid_table and pid_last_index.
+	 * Request to reallocate and update PID table could
+	 * happen on multiple vCPUs simultaneously.
+	 */
+	struct rw_semaphore pid_table_lock;
 };
 
 bool nested_vmx_allowed(struct kvm_vcpu *vcpu);
