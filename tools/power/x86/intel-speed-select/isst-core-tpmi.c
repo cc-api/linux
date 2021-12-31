@@ -30,6 +30,21 @@ int tpmi_process_ioctl(int ioctl_no, void *info)
 	return 0;
 }
 
+int tpmi_get_instance_count(int pkg, __u16 *valid_mask)
+{
+	struct isst_tpmi_instance_count info;
+	int ret;
+
+	info.socket_id = pkg;
+	ret = tpmi_process_ioctl(ISST_IF_COUNT_TPMI_INSTANCES, &info);
+	if (ret == -1)
+		return 0;
+
+	*valid_mask = info.valid_mask;
+
+	return info.count;
+}
+
 int tpmi_isst_set_tdp_level(int cpu, int tdp_level)
 {
 	struct isst_perf_level_control info;
@@ -47,13 +62,13 @@ int tpmi_isst_set_tdp_level(int cpu, int tdp_level)
 	return 0;
 }
 
-int tpmi_isst_get_ctdp_levels(int cpu, struct isst_pkg_ctdp *pkg_dev)
+int tpmi_isst_get_ctdp_levels(int cpu, int pkg, int die, struct isst_pkg_ctdp *pkg_dev)
 {
 	struct isst_perf_level_info info;
 	int ret;
 
-	info.socket_id = get_physical_package_id(cpu);
-	info.die_id =  get_physical_die_id(cpu);
+	info.socket_id = pkg;
+	info.die_id = die;
 
 	ret = tpmi_process_ioctl(ISST_IF_PERF_LEVELS, &info);
 	if (ret == -1) {
@@ -61,7 +76,7 @@ int tpmi_isst_get_ctdp_levels(int cpu, struct isst_pkg_ctdp *pkg_dev)
 	}
 
 	pkg_dev->version = info.feature_rev;
-	pkg_dev->levels = info.levels;
+	pkg_dev->levels = info.levels - 1;
 	pkg_dev->locked = info.locked;
 	pkg_dev->current_level = info.current_level;
 	pkg_dev->locked = info.locked;
@@ -70,15 +85,16 @@ int tpmi_isst_get_ctdp_levels(int cpu, struct isst_pkg_ctdp *pkg_dev)
 	return 0;
 }
 
-int tpmi_isst_get_ctdp_control(int cpu, int config_index,
+int tpmi_isst_get_ctdp_control(int cpu, int pkg, int die, int config_index,
 				struct isst_pkg_ctdp_level_info *ctdp_level)
 {
 	struct isst_core_power core_power_info;
 	struct isst_perf_level_info info;
 	int ret;
 
-	info.socket_id = get_physical_package_id(cpu);
-	info.die_id =  get_physical_die_id(cpu);
+
+	info.socket_id = pkg;
+	info.die_id =  die;
 
 	ret = tpmi_process_ioctl(ISST_IF_PERF_LEVELS, &info);
 	if (ret == -1) {
@@ -91,8 +107,8 @@ int tpmi_isst_get_ctdp_control(int cpu, int config_index,
 	ctdp_level->pbf_enabled = !!(info.feature_state & BIT(0));
 
 	core_power_info.get_set = 0;
-	core_power_info.socket_id = get_physical_package_id(cpu);;
-	core_power_info.die_id = get_physical_die_id(cpu);
+	core_power_info.socket_id = pkg;;
+	core_power_info.die_id = die;
 
 	ret = tpmi_process_ioctl(ISST_IF_CORE_POWER_STATE, &core_power_info);
 	if (ret == -1) {
@@ -110,14 +126,14 @@ int tpmi_isst_get_ctdp_control(int cpu, int config_index,
 	return 0;
 }
 
-int tpmi_isst_get_tdp_info(int cpu, int config_index,
+int tpmi_isst_get_tdp_info(int cpu, int pkg, int die, int config_index,
 			    struct isst_pkg_ctdp_level_info *ctdp_level)
 {
 	struct isst_perf_level_data_info info;
 	int ret;
 
-	info.socket_id =  get_physical_package_id(cpu);;
-	info.die_id = get_physical_die_id(cpu);
+	info.socket_id = pkg;
+	info.die_id = die;
 	info.level = config_index;
 
 	ret = tpmi_process_ioctl(ISST_IF_GET_PERF_LEVEL_INFO, &info);
@@ -133,6 +149,11 @@ int tpmi_isst_get_tdp_info(int cpu, int config_index,
 	ctdp_level->amx_p1 = info.base_freq_amx_mhz;
 
 	ctdp_level->t_proc_hot = info.tjunction_max_c;
+	ctdp_level->mem_freq = info.max_memory_freq_mhz;
+	ctdp_level->cooling_type = info.cooling_type;
+
+	ctdp_level->uncore_p0 = info.p0_fabric_ratio * 100;
+	ctdp_level->uncore_p1 = info.p1_fabric_ratio * 100;
 
 	debug_printf(
 		"cpu:%d ctdp:%d CONFIG_TDP_GET_TDP_INFO tdp_ratio:%d pkg_tdp:%d ctdp_level->t_proc_hot:%d\n",
@@ -142,14 +163,14 @@ int tpmi_isst_get_tdp_info(int cpu, int config_index,
 	return 0;
 }
 
-int tpmi_isst_get_trl_bucket_info(int cpu, int config_index, unsigned long long *buckets_info)
+int tpmi_isst_get_trl_bucket_info(int cpu, int pkg, int die, int config_index, unsigned long long *buckets_info)
 {
 	struct isst_perf_level_data_info info;
 	unsigned char *mask = (unsigned char *) buckets_info;
 	int ret;
 
-	info.socket_id =  get_physical_package_id(cpu);;
-	info.die_id = get_physical_die_id(cpu);
+	info.socket_id =  pkg;
+	info.die_id = die;
 	info.level = config_index;
 
 	ret = tpmi_process_ioctl(ISST_IF_GET_PERF_LEVEL_INFO, &info);
@@ -172,13 +193,13 @@ int tpmi_isst_get_trl_bucket_info(int cpu, int config_index, unsigned long long 
 	return 0;
 }
 
-int tpmi_isst_get_get_trl(int cpu, int config_index, struct isst_pkg_ctdp_level_info *ctdp_level)
+int tpmi_isst_get_get_trl(int cpu, int pkg, int die, int config_index, struct isst_pkg_ctdp_level_info *ctdp_level)
 {
 	struct isst_perf_level_data_info info;
 	int ret;
 
-	info.socket_id =  get_physical_package_id(cpu);;
-	info.die_id = get_physical_die_id(cpu);
+	info.socket_id = pkg;
+	info.die_id = die;
 	info.level = config_index;
 
 	ret = tpmi_process_ioctl(ISST_IF_GET_PERF_LEVEL_INFO, &info);
@@ -225,7 +246,7 @@ int tpmi_isst_get_get_trl(int cpu, int config_index, struct isst_pkg_ctdp_level_
 	return 0;
 }
 
-int tpmi_isst_get_pwr_info(int cpu, int config_index,
+int tpmi_isst_get_pwr_info(int cpu, int pkg, int die, int config_index,
 			    struct isst_pkg_ctdp_level_info *ctdp_level)
 {
 	/* TBD */
@@ -240,14 +261,14 @@ int tpmi_isst_get_pwr_info(int cpu, int config_index,
 	return 0;
 }
 
-int tpmi_isst_get_coremask_info(int cpu, int config_index,
+int tpmi_isst_get_coremask_info(int cpu, int pkg, int die, int config_index,
 				 struct isst_pkg_ctdp_level_info *ctdp_level)
 {
 	struct isst_perf_level_cpu_mask info;
 	int i, ret, cpu_count;
 
-	info.socket_id =  get_physical_package_id(cpu);;
-	info.die_id = get_physical_die_id(cpu);
+	info.socket_id =  pkg;
+	info.die_id = die;
 	info.level = config_index;
 
 	ret = tpmi_process_ioctl(ISST_IF_GET_PERF_LEVEL_CPU_MASK, &info);
@@ -274,14 +295,14 @@ int tpmi_isst_get_coremask_info(int cpu, int config_index,
 	return 0;
 }
 
-int tpmi_isst_pbf_get_coremask_info(int cpu, int config_index,
+int tpmi_isst_pbf_get_coremask_info(int cpu, int pkg, int die, int config_index,
 				     struct isst_pbf_info *pbf_info)
 {
 	struct isst_perf_level_cpu_mask info;
 	int i, ret, cpu_count;
 
-	info.socket_id =  get_physical_package_id(cpu);;
-	info.die_id = get_physical_die_id(cpu);
+	info.socket_id =  pkg;
+	info.die_id = die;
 	info.level = config_index;
 
 	ret = tpmi_process_ioctl(ISST_IF_GET_BASE_FREQ_CPU_MASK, &info);
@@ -305,13 +326,13 @@ int tpmi_isst_pbf_get_coremask_info(int cpu, int config_index,
 	return 0;
 }
 
-int tpmi_isst_get_pbf_info(int cpu, int level, struct isst_pbf_info *pbf_info)
+int tpmi_isst_get_pbf_info(int cpu, int pkg, int die, int level, struct isst_pbf_info *pbf_info)
 {
 	struct isst_base_freq_info info;
 	int ret;
 
-	info.socket_id =  get_physical_package_id(cpu);;
-	info.die_id = get_physical_die_id(cpu);
+	info.socket_id =  pkg;
+	info.die_id = die;
 	info.level = level;
 
 	ret = tpmi_process_ioctl(ISST_IF_GET_BASE_FREQ_INFO, &info);
@@ -327,16 +348,16 @@ int tpmi_isst_get_pbf_info(int cpu, int level, struct isst_pbf_info *pbf_info)
 		"cpu:%d ctdp:%d pbf info:%d:%d:%d:%d\n",
 		cpu, level, pbf_info->p1_low, pbf_info->p1_high, pbf_info->tdp, pbf_info->t_prochot);
 
-	return tpmi_isst_pbf_get_coremask_info(cpu, level, pbf_info);
+	return tpmi_isst_pbf_get_coremask_info(cpu, pkg, die, level, pbf_info);
 }
 
-int tpmi_isst_set_pbf_fact_status(int cpu, int pbf, int fact, int enable)
+int tpmi_isst_set_pbf_fact_status(int cpu, int pkg, int die, int pbf, int fact, int enable)
 {
 	struct isst_perf_feature_control info;
 	int ret;
 
-	info.socket_id = get_physical_package_id(cpu);
-	info.die_id =  get_physical_die_id(cpu);
+	info.socket_id = pkg;
+	info.die_id = die;
 
 	info.feature = 0;
 	if (pbf)
@@ -353,7 +374,64 @@ int tpmi_isst_set_pbf_fact_status(int cpu, int pbf, int fact, int enable)
 	return 0;
 }
 
-int tpmi_isst_read_pm_config(int cpu, int *cp_state, int *cp_cap)
+int tpmi_get_fact_info(int cpu, int pkg, int die, int level, int fact_bucket, struct isst_fact_info *fact_info)
+{
+	struct isst_turbo_freq_info info;
+
+	int ret;
+
+	info.socket_id = get_physical_package_id(cpu);
+	info.die_id =  get_physical_die_id(cpu);
+
+	ret = tpmi_process_ioctl(ISST_IF_GET_TURBO_FREQ_INFO, &info);
+	if (ret == -1) {
+		return ret;
+	}
+
+
+	fact_info->lp_clipping_ratio_license_sse = info.lp_clip_0_mhz;
+	fact_info->lp_clipping_ratio_license_avx2 = info.lp_clip_1_mhz;
+	fact_info->lp_clipping_ratio_license_avx512 = info.lp_clip_2_mhz;
+
+	fact_info->bucket_info[0].sse_trl = info.bucket_0_cydn_level_0_trl;
+	fact_info->bucket_info[0].avx_trl = info.bucket_0_cydn_level_1_trl;
+	fact_info->bucket_info[0].avx512_trl = info.bucket_0_cydn_level_2_trl;
+	fact_info->bucket_info[0].high_priority_cores_count = info.bucket_0_core_count;
+
+	fact_info->bucket_info[1].sse_trl = info.bucket_1_cydn_level_0_trl;
+	fact_info->bucket_info[1].avx_trl = info.bucket_1_cydn_level_1_trl;
+	fact_info->bucket_info[1].avx512_trl = info.bucket_1_cydn_level_2_trl;
+	fact_info->bucket_info[1].high_priority_cores_count = info.bucket_1_core_count;
+
+	fact_info->bucket_info[2].sse_trl = info.bucket_2_cydn_level_0_trl;
+	fact_info->bucket_info[2].avx_trl = info.bucket_2_cydn_level_1_trl;
+	fact_info->bucket_info[2].avx512_trl = info.bucket_2_cydn_level_2_trl;
+	fact_info->bucket_info[2].high_priority_cores_count = info.bucket_2_core_count;
+
+	return 0;
+}
+
+void tpmi_isst_get_uncore_p0_p1_info(int cpu, int pkg, int die, int config_index,
+									 struct isst_pkg_ctdp_level_info *ctdp_level)
+{
+	/* Not required. Data is already collected in tpmi_isst_get_tdp_info() */
+
+}
+
+void tpmi_isst_get_p1_info(int cpu, int pkg, int die, int config_index,
+						   struct isst_pkg_ctdp_level_info *ctdp_level)
+{
+	/* Not required. Data is already collected in tpmi_isst_get_tdp_info() */
+}
+
+void tpmi_isst_get_uncore_mem_freq(int cpu, int pkg, int die, int config_index,
+								   struct isst_pkg_ctdp_level_info *ctdp_level)
+{
+	/* Not required. Data is already collected in tpmi_isst_get_tdp_info() */
+
+}
+
+int tpmi_isst_read_pm_config(int cpu, int pkg, int die, int *cp_state, int *cp_cap)
 {
 	struct isst_core_power info;
 	int ret;
@@ -371,14 +449,14 @@ int tpmi_isst_read_pm_config(int cpu, int *cp_state, int *cp_cap)
 	return 0;
 }
 
-int tpmi_isst_clos_get_clos_information(int cpu, int *enable, int *type)
+int tpmi_isst_clos_get_clos_information(int cpu, int pkg, int die, int *enable, int *type)
 {
 	struct isst_core_power info;
 	int ret;
 
 	info.get_set = 0;
-	info.socket_id =  get_physical_package_id(cpu);;
-	info.die_id = get_physical_die_id(cpu);
+	info.socket_id =  pkg;
+	info.die_id = die;
 	ret = tpmi_process_ioctl(ISST_IF_CORE_POWER_STATE, &info);
 	if (ret == -1)
 		return ret;
@@ -395,8 +473,8 @@ int tpmi_isst_pm_get_clos(int cpu, int clos, struct isst_clos_config *clos_confi
 	int ret;
 
 	info.get_set = 0;
-	info.socket_id =  get_physical_package_id(cpu);;
-	info.die_id = get_physical_die_id(cpu);
+	info.socket_id =  clos_config->pkg_id;
+	info.die_id = clos_config->die_id;
 	info.clos = clos;
 	ret = tpmi_process_ioctl(ISST_IF_CLOS_PARAM, &info);
 	if (ret == -1)
@@ -419,8 +497,8 @@ int tpmi_isst_set_clos(int cpu, int clos, struct isst_clos_config *clos_config)
 	int ret;
 
 	info.get_set = 1;
-	info.socket_id =  get_physical_package_id(cpu);;
-	info.die_id = get_physical_die_id(cpu);
+	info.socket_id = clos_config->pkg_id;
+	info.die_id = clos_config->die_id;
 	info.clos = clos;
 	info.prop_prio = clos_config->clos_prop_prio;
 	info.min_freq_mhz = clos_config->clos_min;
@@ -434,14 +512,14 @@ int tpmi_isst_set_clos(int cpu, int clos, struct isst_clos_config *clos_config)
 	return 0;
 }
 
-int tpmi_isst_pm_qos_config(int cpu, int enable_clos, int priority_type)
+int tpmi_isst_pm_qos_config(int cpu, int pkg, int die, int enable_clos, int priority_type)
 {
 	struct isst_core_power info;
 	int ret;
 
 	info.get_set = 1;
-	info.socket_id =  get_physical_package_id(cpu);
-	info.die_id = get_physical_die_id(cpu);
+	info.socket_id = pkg;
+	info.die_id = die;
 	info.enable = enable_clos;
 	info.priority_type = priority_type;
 	ret = tpmi_process_ioctl(ISST_IF_CORE_POWER_STATE, &info);
@@ -451,7 +529,7 @@ int tpmi_isst_pm_qos_config(int cpu, int enable_clos, int priority_type)
 	return 0;
 }
 
-int tpmi_isst_clos_associate(int cpu, int clos_id)
+int tpmi_isst_clos_associate(int cpu, int pkg, int die, int clos_id)
 {
 	struct isst_if_clos_assoc_cmds assoc_cmds;
 	int ret;
@@ -461,8 +539,8 @@ int tpmi_isst_clos_associate(int cpu, int clos_id)
 	assoc_cmds.punit_cpu_map = 1;
 	assoc_cmds.assoc_info[0].logical_cpu = find_phy_core_num(cpu);
 	assoc_cmds.assoc_info[0].clos = clos_id;
-	assoc_cmds.assoc_info[0].socket_id = get_physical_package_id(cpu);
-	assoc_cmds.assoc_info[0].die_id = get_physical_die_id(cpu);
+	assoc_cmds.assoc_info[0].socket_id = pkg;
+	assoc_cmds.assoc_info[0].die_id = die;
 
 	ret = tpmi_process_ioctl(ISST_IF_CLOS_ASSOC, &assoc_cmds);
 	if (ret == -1)
@@ -471,7 +549,7 @@ int tpmi_isst_clos_associate(int cpu, int clos_id)
 	return 0;
 }
 
-int tpmi_isst_clos_get_assoc_status(int cpu, int *clos_id)
+int tpmi_isst_clos_get_assoc_status(int cpu, int pkg, int die, int *clos_id)
 {
 	struct isst_if_clos_assoc_cmds assoc_cmds;
 	int ret;
@@ -480,8 +558,8 @@ int tpmi_isst_clos_get_assoc_status(int cpu, int *clos_id)
 	assoc_cmds.get_set = 0;
 	assoc_cmds.punit_cpu_map = 1;
 	assoc_cmds.assoc_info[0].logical_cpu = find_phy_core_num(cpu);
-	assoc_cmds.assoc_info[0].socket_id = get_physical_package_id(cpu);
-	assoc_cmds.assoc_info[0].die_id = get_physical_die_id(cpu);
+	assoc_cmds.assoc_info[0].socket_id = pkg;
+	assoc_cmds.assoc_info[0].die_id = die;
 
 	ret = tpmi_process_ioctl(ISST_IF_CLOS_ASSOC, &assoc_cmds);
 	if (ret == -1)

@@ -166,21 +166,26 @@ static void format_and_print(FILE *outf, int level, char *header, char *value)
 	last_level = level;
 }
 
-static int print_package_info(int cpu, FILE *outf)
+static int print_package_info(int cpu, int pkg, int die, FILE *outf)
 {
 	char header[256];
 
+	if (!pkg)
+		pkg = get_physical_package_id(cpu);
+
+	if (die != get_physical_die_id(cpu))
+		cpu = -1;
+	else
+		die = get_physical_die_id(cpu);
+
 	if (out_format_is_json()) {
-		snprintf(header, sizeof(header), "package-%d:die-%d:cpu-%d",
-			 get_physical_package_id(cpu), get_physical_die_id(cpu),
-			 cpu);
+		snprintf(header, sizeof(header), "package-%d:die-%d:cpu-%d", pkg, die, cpu);
 		format_and_print(outf, 1, header, NULL);
 		return 1;
 	}
-	snprintf(header, sizeof(header), "package-%d",
-		 get_physical_package_id(cpu));
+	snprintf(header, sizeof(header), "package-%d", pkg);
 	format_and_print(outf, 1, header, NULL);
-	snprintf(header, sizeof(header), "die-%d", get_physical_die_id(cpu));
+	snprintf(header, sizeof(header), "die-%d", die);
 	format_and_print(outf, 2, header, NULL);
 	snprintf(header, sizeof(header), "cpu-%d", cpu);
 	format_and_print(outf, 3, header, NULL);
@@ -319,24 +324,32 @@ static void _isst_fact_display_information(int cpu, FILE *outf, int level,
 	format_and_print(outf, base_level + 2, header, value);
 }
 
-void isst_ctdp_display_core_info(int cpu, FILE *outf, char *prefix,
+void isst_ctdp_display_core_info(int cpu, int pkg, int die, FILE *outf, char *prefix,
 				 unsigned int val, char *str0, char *str1)
 {
 	char header[256];
 	char value[256];
 	int level = 1;
 
+	if (!pkg)
+		pkg = get_physical_package_id(cpu);
+
+	if (die != get_physical_die_id(cpu))
+		cpu = -1;
+	else
+		die = get_physical_die_id(cpu);
+
 	if (out_format_is_json()) {
 		snprintf(header, sizeof(header), "package-%d:die-%d:cpu-%d",
-			 get_physical_package_id(cpu), get_physical_die_id(cpu),
+			 pkg, die,
 			 cpu);
 		format_and_print(outf, level++, header, NULL);
 	} else {
 		snprintf(header, sizeof(header), "package-%d",
-			 get_physical_package_id(cpu));
+			 pkg);
 		format_and_print(outf, level++, header, NULL);
 		snprintf(header, sizeof(header), "die-%d",
-			 get_physical_die_id(cpu));
+			 die);
 		format_and_print(outf, level++, header, NULL);
 		snprintf(header, sizeof(header), "cpu-%d", cpu);
 		format_and_print(outf, level++, header, NULL);
@@ -353,7 +366,7 @@ void isst_ctdp_display_core_info(int cpu, FILE *outf, char *prefix,
 	format_and_print(outf, 1, NULL, NULL);
 }
 
-void isst_ctdp_display_information(int cpu, FILE *outf, int tdp_level,
+void isst_ctdp_display_information(int cpu, int pkg, int die, FILE *outf, int tdp_level,
 				   struct isst_pkg_ctdp *pkg_dev)
 {
 	char header[256];
@@ -362,7 +375,7 @@ void isst_ctdp_display_information(int cpu, FILE *outf, int tdp_level,
 	int i;
 
 	if (pkg_dev->processed)
-		level = print_package_info(cpu, outf);
+		level = print_package_info(cpu, pkg, die, outf);
 
 	for (i = 0; i <= pkg_dev->levels; ++i) {
 		struct isst_pkg_ctdp_level_info *ctdp_level;
@@ -388,9 +401,6 @@ void isst_ctdp_display_information(int cpu, FILE *outf, int tdp_level,
 			snprintf(header, sizeof(header), "enable-cpu-count");
 			snprintf(value, sizeof(value), "%d", j);
 			format_and_print(outf, level + 2, header, value);
-		}
-
-		if (ctdp_level->core_cpumask_size) {
 			snprintf(header, sizeof(header), "enable-cpu-mask");
 			printcpumask(sizeof(value), value,
 				     ctdp_level->core_cpumask_size,
@@ -456,6 +466,11 @@ void isst_ctdp_display_information(int cpu, FILE *outf, int tdp_level,
 				 ctdp_level->mem_freq);
 			format_and_print(outf, level + 2, header, value);
 		}
+
+		snprintf(header, sizeof(header), "cooling_type");
+		snprintf(value, sizeof(value), "%d",
+			 ctdp_level->cooling_type);
+		format_and_print(outf, level + 2, header, value);
 
 		snprintf(header, sizeof(header),
 			 "speed-select-turbo-freq");
@@ -622,7 +637,7 @@ void isst_pbf_display_information(int cpu, FILE *outf, int level,
 {
 	int _level;
 
-	_level = print_package_info(cpu, outf);
+	_level = print_package_info(cpu, 0, 0, outf);
 	_isst_pbf_display_information(cpu, outf, level, pbf_info, _level + 1);
 	format_and_print(outf, 1, NULL, NULL);
 }
@@ -633,7 +648,7 @@ void isst_fact_display_information(int cpu, FILE *outf, int level,
 {
 	int _level;
 
-	_level = print_package_info(cpu, outf);
+	_level = print_package_info(cpu, 0, 0, outf);
 	_isst_fact_display_information(cpu, outf, level, fact_bucket, fact_avx,
 				       fact_info, _level + 1);
 	format_and_print(outf, 1, NULL, NULL);
@@ -646,7 +661,7 @@ void isst_clos_display_information(int cpu, FILE *outf, int clos,
 	char value[256];
 	int level;
 
-	level = print_package_info(cpu, outf);
+	level = print_package_info(cpu, clos_config->pkg_id, clos_config->die_id, outf);
 
 	snprintf(header, sizeof(header), "core-power");
 	format_and_print(outf, level + 1, header, NULL);
@@ -681,7 +696,7 @@ void isst_clos_display_information(int cpu, FILE *outf, int clos,
 	format_and_print(outf, level, NULL, NULL);
 }
 
-void isst_clos_display_clos_information(int cpu, FILE *outf,
+void isst_clos_display_clos_information(int cpu, int pkg, int die, FILE *outf,
 					int clos_enable, int type,
 					int state, int cap)
 {
@@ -689,7 +704,7 @@ void isst_clos_display_clos_information(int cpu, FILE *outf,
 	char value[256];
 	int level;
 
-	level = print_package_info(cpu, outf);
+	level = print_package_info(cpu, pkg, die, outf);
 
 	snprintf(header, sizeof(header), "core-power");
 	format_and_print(outf, level + 1, header, NULL);
@@ -731,7 +746,7 @@ void isst_clos_display_assoc_information(int cpu, FILE *outf, int clos)
 	char value[256];
 	int level;
 
-	level = print_package_info(cpu, outf);
+	level = print_package_info(cpu, 0, 0, outf);
 
 	snprintf(header, sizeof(header), "get-assoc");
 	format_and_print(outf, level + 1, header, NULL);
@@ -751,7 +766,7 @@ void isst_display_result(int cpu, FILE *outf, char *feature, char *cmd,
 	int level = 3;
 
 	if (cpu >= 0)
-		level = print_package_info(cpu, outf);
+		level = print_package_info(cpu, 0, 0, outf);
 
 	snprintf(header, sizeof(header), "%s", feature);
 	format_and_print(outf, level + 1, header, NULL);
@@ -812,7 +827,7 @@ void isst_trl_display_information(int cpu, FILE *outf, unsigned long long trl)
 	char value[256];
 	int level;
 
-	level = print_package_info(cpu, outf);
+	level = print_package_info(cpu, 0, 0, outf);
 
 	snprintf(header, sizeof(header), "get-trl");
 	format_and_print(outf, level + 1, header, NULL);
