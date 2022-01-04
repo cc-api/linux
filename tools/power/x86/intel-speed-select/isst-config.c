@@ -1027,7 +1027,6 @@ static void isst_tpmi_print_extended_platform_info(void)
 		}
 	}
 
-
 	if (pp_enable) {
 		fprintf(outf, "Intel(R) SST-PP (feature perf-profile) is supported\n");
 	} else {
@@ -1049,7 +1048,6 @@ static void isst_tpmi_print_extended_platform_info(void)
 		fprintf(outf, "Intel(R) SST-BF (feature base-freq) is supported\n");
 	else
 		fprintf(outf, "Intel(R) SST-BF (feature base-freq) is not supported\n");
-
 
 	ret = isst_read_pm_config(0, 0, 0, &cp_state, &cp_cap);
 	if (ret) {
