@@ -983,6 +983,86 @@ static int isst_fill_platform_info(void)
 	return 0;
 }
 
+static void isst_tpmi_print_extended_platform_info(void)
+{
+	int cp_state, cp_cap, fact_support = 0, pbf_support = 0;
+	int pp_enable = 0, pp_locked = 0, max_level = 0;
+	int i, count, ret;
+	__u16 valid_mask;
+
+	count = tpmi_get_instance_count(0, &valid_mask);
+	if (count) {
+		for (i = 0; i < count; ++i) {
+			if (valid_mask & BIT(i)) {
+				struct isst_pkg_ctdp pkg_dev;
+				int j, ret;
+
+				ret = isst_get_ctdp_levels(0, 0, i, &pkg_dev);
+				if (ret)
+					continue;
+
+				if (!pp_enable && pkg_dev.enabled)
+					pp_enable = 1;
+
+				if (!pp_locked && pkg_dev.locked)
+					pp_locked = 1;
+
+				if (max_level < pkg_dev.levels)
+					max_level = pkg_dev.levels;
+
+				for (j = 0; j <= pkg_dev.levels; ++j) {
+					struct isst_pkg_ctdp_level_info ctdp_level;
+
+					ret = isst_get_ctdp_control(0, 0, i, j, &ctdp_level);
+					if (ret)
+						continue;
+
+					if (!fact_support && ctdp_level.fact_support)
+						fact_support = 1;
+
+					if (!pbf_support && ctdp_level.pbf_support)
+						pbf_support = 1;
+				}
+			}
+		}
+	}
+
+
+	if (pp_enable) {
+		fprintf(outf, "Intel(R) SST-PP (feature perf-profile) is supported\n");
+	} else {
+		fprintf(outf, "Intel(R) SST-PP (feature perf-profile) is not supported\n");
+		fprintf(outf, "Only performance level 0 (base level) is present\n");
+	}
+
+	if (pp_locked)
+		fprintf(outf, "TDP level change control is locked\n");
+	else
+		fprintf(outf, "TDP level change control is unlocked, max level: %d \n", max_level);
+
+	if (fact_support)
+		fprintf(outf, "Intel(R) SST-TF (feature turbo-freq) is supported\n");
+	else
+		fprintf(outf, "Intel(R) SST-TF (feature turbo-freq) is not supported\n");
+
+	if (pbf_support)
+		fprintf(outf, "Intel(R) SST-BF (feature base-freq) is supported\n");
+	else
+		fprintf(outf, "Intel(R) SST-BF (feature base-freq) is not supported\n");
+
+
+	ret = isst_read_pm_config(0, 0, 0, &cp_state, &cp_cap);
+	if (ret) {
+		fprintf(outf, "Intel(R) SST-CP (feature core-power) status is unknown\n");
+		return;
+	}
+	if (cp_cap)
+		fprintf(outf, "Intel(R) SST-CP (feature core-power) is supported\n");
+	else
+		fprintf(outf, "Intel(R) SST-CP (feature core-power) is not supported\n");
+
+}
+
 static void isst_print_extended_platform_info(void)
 {
 	int cp_state, cp_cap, fact_support = 0, pbf_support = 0;
@@ -1079,7 +1159,9 @@ static void isst_print_platform_information(void)
 		platform_info.mbox_supported);
 	fprintf(outf, "Platform: mmio supported : %d\n",
 		platform_info.mmio_supported);
-	if (!tpmi_mode)
+	if (tpmi_mode)
+		isst_tpmi_print_extended_platform_info();
+	else
 		isst_print_extended_platform_info();
 
 	exit(0);
