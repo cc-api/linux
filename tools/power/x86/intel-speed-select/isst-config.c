@@ -689,13 +689,13 @@ static void create_cpu_map(void)
 			/*
 			 * Format
 			 *	Bit 0 – thread ID
-			 *	Bit 8:1 – module ID (aka IDI agent ID)
+			 *	Bit 8:1 – core ID
 			 *	Bit 13:9 – Compute domain ID (aka die ID)
 			 *	Bits 38:32 – co-located CHA ID
 			 */
-			cpu_map[i].punit_cpu = map.cpu_map[0].physical_cpu & 0xff;
+			cpu_map[i].punit_cpu = map.cpu_map[0].physical_cpu & 0x1ff;
 			cpu_map[i].punit_cpu_core = (cpu_map[i].punit_cpu >> 1); // shift to get core id
-			cpu_map[i].punit_die = (cpu_map[i].punit_cpu >> 9) & 0x1f; // shift to get die id
+			cpu_map[i].punit_die = (map.cpu_map[0].physical_cpu >> 9) & 0x1f; // shift to get die id
 		} else {
 			cpu_map[i].punit_cpu = map.cpu_map[0].physical_cpu;
 			cpu_map[i].punit_cpu_core = (map.cpu_map[0].physical_cpu >>
