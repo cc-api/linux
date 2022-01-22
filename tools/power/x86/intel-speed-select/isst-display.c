@@ -389,11 +389,13 @@ void isst_ctdp_display_information(int cpu, int pkg, int die, FILE *outf, int td
 			 ctdp_level->level);
 		format_and_print(outf, level + 1, header, NULL);
 
-		snprintf(header, sizeof(header), "cpu-count");
-		j = get_cpu_count(get_physical_die_id(cpu),
-				  get_physical_die_id(cpu));
-		snprintf(value, sizeof(value), "%d", j);
-		format_and_print(outf, level + 2, header, value);
+		if (cpu >= 0) {
+			snprintf(header, sizeof(header), "cpu-count");
+			j = get_cpu_count(get_physical_die_id(cpu),
+					  get_physical_die_id(cpu));
+			snprintf(value, sizeof(value), "%d", j);
+			format_and_print(outf, level + 2, header, value);
+		}
 
 		j = CPU_COUNT_S(ctdp_level->core_cpumask_size,
 				ctdp_level->core_cpumask);
