@@ -77,7 +77,7 @@
 #define DISP_FREQ_MULTIPLIER 100
 
 #define MAX_PACKAGE_COUNT 8
-#define MAX_DIE_PER_PACKAGE 2
+#define MAX_DIE_PER_PACKAGE 8
 
 struct isst_clos_config {
 	int pkg_id;

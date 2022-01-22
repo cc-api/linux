@@ -66,7 +66,7 @@ struct _cpu_map {
 	unsigned short punit_cpu_core;
 	unsigned short punit_die;
 };
-struct _cpu_map *cpu_map;
+static struct _cpu_map *cpu_map;
 
 struct cpu_topology {
 	short cpu;
@@ -345,14 +345,14 @@ int get_physical_die_id(int cpu)
 {
 	int ret;
 
+	if (cpu_map && cpu_map[cpu].punit_die >= 0)
+		return cpu_map[cpu].punit_die;
+
 	ret = parse_int_file(0,
 			"/sys/devices/system/cpu/cpu%d/topology/die_id",
 			cpu);
 	if (ret < 0) {
 		int core_id, pkg_id, die_id;
-
-		if (cpu_map[cpu].punit_die > 0)
-			return cpu_map[cpu].punit_die;
 
 		ret = get_stored_topology_info(cpu, &core_id, &pkg_id, &die_id);
 		if (!ret) {
@@ -433,12 +433,14 @@ void for_each_online_package_in_set(void (*callback)(int, int, int, void *, void
 				    void *arg1, void *arg2, void *arg3,
 				    void *arg4)
 {
-	int max_packages[MAX_PACKAGE_COUNT * MAX_PACKAGE_COUNT];
+	int max_instances[MAX_PACKAGE_COUNT * MAX_PACKAGE_COUNT];
 	int pkg_index = 0, i;
+	int die_mask[MAX_PACKAGE_COUNT] = {0};
+	int max_pkg_id = 0;
 
-	memset(max_packages, 0xff, sizeof(max_packages));
+	memset(max_instances, 0xff, sizeof(max_instances));
 	for (i = 0; i < topo_max_cpus; ++i) {
-		int j, online, pkg_id, die_id = 0, skip = 0;
+		int j, online, pkg_id, die_id = 0, skip = 0, instance;
 
 		if (!CPU_ISSET_S(i, present_cpumask_size, present_cpumask))
 			continue;
@@ -449,44 +451,51 @@ void for_each_online_package_in_set(void (*callback)(int, int, int, void *, void
 			online =
 				1; /* online entry for CPU 0 needs some special configs */
 
+		die_id = get_physical_die_id(i);
+		if (die_id < 0)
+			die_id = 0;
+
 		pkg_id = parse_int_file(0,
 			"/sys/devices/system/cpu/cpu%d/topology/physical_package_id", i);
 		if (pkg_id < 0)
 			continue;
 
-		die_id = get_physical_die_id(i);
-		if (die_id < 0)
-			die_id = 0;
-
 		/* Create an unique id for package, die combination to store */
-		pkg_id = (MAX_PACKAGE_COUNT * pkg_id + die_id);
+		instance = (MAX_PACKAGE_COUNT * pkg_id + die_id);
 
 		for (j = 0; j < pkg_index; ++j) {
-			if (max_packages[j] == pkg_id) {
+			if (max_instances[j] == instance) {
 				skip = 1;
 				break;
 			}
 		}
 
 		if (!skip && online && callback) {
+			callback(i, pkg_id, die_id, arg1, arg2, arg3, arg4);
+			max_instances[pkg_index++] = instance;
+			die_mask[pkg_id] |= BIT(die_id);
+			if (pkg_id > max_pkg_id)
+				max_pkg_id = pkg_id;
+		}
+	}
 
-			if (tpmi_mode) {
-				int j, count;
-				__u16 valid_mask;
+	for (i = 0; i <= max_pkg_id; ++i) {
+		__u16 valid_mask, non_cpu_die_mask;
+		int count;
 
-				count = tpmi_get_instance_count(get_physical_package_id(i), &valid_mask);
-				if (count) {
-					for (j = 0; j < count; ++j) {
-						if (valid_mask & BIT(j))
-							callback(i, pkg_id, j, arg1, arg2, arg3, arg4);
-					}
-				} else {
-					callback(i, 0, 0, arg1, arg2, arg3, arg4);
+		count = tpmi_get_instance_count(i, &valid_mask);
+		if (count) {
+			int j;
+
+			non_cpu_die_mask = valid_mask ^ die_mask[i];
+			if (!non_cpu_die_mask)
+				continue;
+
+			for (j = 0; j < count; ++j) {
+				if (non_cpu_die_mask & BIT(j)) {
+					callback(-1, i, j, arg1, arg2, arg3, arg4);
 				}
-			} else {
-				callback(i, 0, 0, arg1, arg2, arg3, arg4);
 			}
-			max_packages[pkg_index++] = pkg_id;
 		}
 	}
 }
@@ -682,6 +691,7 @@ static void create_cpu_map(void)
 				map.cpu_map[0].logical_cpu);
 			continue;
 		}
+		cpu_map[i].punit_die = -1;
 		cpu_map[i].core_id = get_physical_core_id(i);
 		cpu_map[i].pkg_id = get_physical_package_id(i);
 		cpu_map[i].die_id = get_physical_die_id(i);
@@ -696,6 +706,7 @@ static void create_cpu_map(void)
 			cpu_map[i].punit_cpu = map.cpu_map[0].physical_cpu & 0x1ff;
 			cpu_map[i].punit_cpu_core = (cpu_map[i].punit_cpu >> 1); // shift to get core id
 			cpu_map[i].punit_die = (map.cpu_map[0].physical_cpu >> 9) & 0x1f; // shift to get die id
+			cpu_map[i].die_id = cpu_map[i].punit_die;
 		} else {
 			cpu_map[i].punit_cpu = map.cpu_map[0].physical_cpu;
 			cpu_map[i].punit_cpu_core = (map.cpu_map[0].physical_cpu >>
@@ -734,6 +745,9 @@ void set_cpu_mask_from_punit_coremask(int cpu, unsigned long long core_mask,
 {
 	int i, cnt = 0;
 	int die_id, pkg_id;
+
+	if (cpu < 0)
+		return;
 
 	*cpu_cnt = 0;
 	die_id = get_physical_die_id(cpu);
