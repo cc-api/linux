@@ -39,6 +39,31 @@ MODULE_PARM_DESC(iax_verify_compress,
 static LIST_HEAD(iax_devices);
 static DEFINE_SPINLOCK(iax_devices_lock);
 
+static struct crypto_comp *deflate_generic_tfm;
+
+static bool iax_crypto_enabled;
+static int iax_crypto_enable(const char *val, const struct kernel_param *kp)
+{
+	int ret = 0;
+
+        if (val[0] == '0')
+		iax_crypto_enabled = false;
+	else if (val[0] == '1')
+		iax_crypto_enabled = true;
+	else
+		ret = -EINVAL;
+
+	pr_info("%s: iax_crypto now %s\n", __func__,
+		iax_crypto_enabled ? "ENABLED" : "DISABLED");
+
+	return ret;
+}
+static const struct kernel_param_ops enable_ops = {
+        .set = iax_crypto_enable,
+};
+module_param_cb(iax_crypto_enable, &enable_ops, &iax_crypto_enabled, 0644);
+MODULE_PARM_DESC(iax_crypto_enable, "Enable (value = 1) or disable (value = 0) iax_crypto");
+
 int wq_stats_show(struct seq_file *m, void *v)
 {
 	struct iax_device *iax_device;
@@ -782,7 +807,14 @@ static int iax_comp_compress(struct crypto_tfm *tfm,
 			     u8 *dst, unsigned int *dlen)
 {
 	u64 start_time_ns;
-	int ret;
+	int ret = 0;
+
+	if (!iax_crypto_enabled) {
+		pr_debug("%s: iax_crypto disabled, using deflate-generic compression\n", __func__);
+		ret = crypto_comp_compress(deflate_generic_tfm,
+					   src, slen, dst, dlen);
+		return ret;
+	}
 
 	pr_debug("%s: src %p, slen %d, dst %p, dlen %u\n",
 		 __func__, src, slen, dst, *dlen);
@@ -801,7 +833,14 @@ static int iax_comp_decompress(struct crypto_tfm *tfm,
 			       u8 *dst, unsigned int *dlen)
 {
 	u64 start_time_ns;
-	int ret;
+	int ret = 0;
+
+	if (!iax_crypto_enabled) {
+		pr_debug("%s: iax_crypto disabled, using deflate-generic decompression\n", __func__);
+		ret = crypto_comp_decompress(deflate_generic_tfm,
+					     src, slen, dst, dlen);
+		return ret;
+	}
 
 	pr_debug("%s: src %p, slen %d, dst %p, dlen %u\n",
 		 __func__, src, slen, dst, *dlen);
@@ -834,10 +873,20 @@ static int iax_comp_acompress(struct acomp_req *req)
 	struct crypto_tfm *tfm = req->base.tfm;
 	u64 start_time_ns;
 	void *src, *dst;
-	int ret;
+	int ret = 0;
 
 	src = kmap_atomic(sg_page(req->src)) + req->src->offset;
 	dst = kmap_atomic(sg_page(req->dst)) + req->dst->offset;
+
+	if (!iax_crypto_enabled) {
+		pr_debug("%s: iax_crypto disabled, using deflate-generic compression\n", __func__);
+		ret = crypto_comp_compress(deflate_generic_tfm,
+					   src, req->slen, dst, &req->dlen);
+		kunmap_atomic(src);
+		kunmap_atomic(dst);
+
+		return ret;
+	}
 
 	pr_debug("%s: src %p (offset %d), slen %d, dst %p (offset %d), dlen %u\n",
 		 __func__, src, req->src->offset, req->slen,
@@ -865,6 +914,15 @@ static int iax_comp_adecompress(struct acomp_req *req)
 
 	src = kmap_atomic(sg_page(req->src)) + req->src->offset;
 	dst = kmap_atomic(sg_page(req->dst)) + req->dst->offset;
+
+	if (!iax_crypto_enabled) {
+		pr_debug("%s: iax_crypto disabled, using deflate-generic decompression\n", __func__);
+		ret = crypto_comp_decompress(deflate_generic_tfm,
+					     src, req->slen, dst, &req->dlen);
+		kunmap_atomic(src);
+		kunmap_atomic(dst);
+		return ret;
+	}
 
 	pr_debug("%s: src %p (offset %d), slen %d, dst %p (offset %d), dlen %u\n",
 		 __func__, src, req->src->offset, req->slen,
@@ -1057,6 +1115,15 @@ static int __init iax_crypto_init_module(void)
 	nr_cpus = num_online_cpus();
 	nr_nodes = num_online_nodes();
 
+	if (crypto_has_comp("deflate-generic", 0, 0))
+		deflate_generic_tfm = crypto_alloc_comp("deflate-generic", 0, 0);
+
+	if (IS_ERR_OR_NULL(deflate_generic_tfm)) {
+		pr_err("IAX could not alloc %s tfm: errcode = %ld\n",
+		       "deflate-generic", PTR_ERR(deflate_generic_tfm));
+		return -ENOMEM;
+	}
+
 	wq_table = alloc_percpu(struct idxd_wq *);
 	if (!wq_table)
 		return -ENOMEM;
@@ -1084,6 +1151,7 @@ out:
 err_crypto_register:
 	idxd_driver_unregister(&iax_crypto_driver);
 err_driver_register:
+	crypto_free_comp(deflate_generic_tfm);
 	free_percpu(wq_table);
 
 	goto out;
@@ -1096,6 +1164,7 @@ static void __exit iax_crypto_cleanup_module(void)
 	iax_unregister_compression_device();
 	free_percpu(wq_table);
 	free_iax_devices();
+	crypto_free_comp(deflate_generic_tfm);
 	pr_info("%s: cleaned up\n", __func__);
 }
 
