@@ -1751,7 +1751,7 @@ int xfd_enable_guest_features(struct fpu_guest *guest_fpu)
 }
 
 #else /* CONFIG_X86_64 */
-static inline int xstate_request_perm(unsigned long idx, bool guest)
+static inline int xstate_request_perm(unsigned long idx)
 {
 	return -EPERM;
 }
