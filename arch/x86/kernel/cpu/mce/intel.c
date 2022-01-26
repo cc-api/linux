@@ -272,6 +272,9 @@ static void intel_threshold_interrupt(void)
 		return;
 	}
 #endif
+	if (cmci_storm_detect())
+		return;
+
 	machine_check_poll(MCP_TIMESTAMP, this_cpu_ptr(&mce_banks_owned));
 }
 

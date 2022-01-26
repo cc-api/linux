@@ -125,7 +125,7 @@ void svoskern_kdb_symbol_print(unsigned long addr,  unsigned int punc)
 EXPORT_SYMBOL(svoskern_kdb_symbol_print);
 
 static int
-kdb_cpuid(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+kdb_cpuid(int argc, const char **argv)
 {
 	int cpu = smp_processor_id();
 	int i;
@@ -204,7 +204,7 @@ kdb_cpuid(int argc, const char **argv, const char **envp, struct pt_regs *regs)
 }
 
 static int
-kdb_bpC(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+kdb_bpC(int argc, const char **argv)
 {
 	extern int sv_kdb_bc(int argc, const char **argv);
 	
@@ -213,7 +213,7 @@ kdb_bpC(int argc, const char **argv, const char **envp, struct pt_regs *regs)
 }
 
 static int
-kdb_bpD(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+kdb_bpD(int argc, const char **argv)
 {
 	extern int sv_kdb_bc(int argc, const char **argv);	
 
@@ -222,7 +222,7 @@ kdb_bpD(int argc, const char **argv, const char **envp, struct pt_regs *regs)
 }
 
 static int
-kdb_bpE(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+kdb_bpE(int argc, const char **argv)
 {
 	extern int sv_kdb_bc(int argc, const char **argv);	
 
@@ -243,7 +243,7 @@ char opcode[50]="";
 extern int sv_kdb_go(int argc, const char **argv);
 
 static int
-kdb_ssr(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+kdb_ssr(int argc, const char **argv)
 {
 	extern int sv_kdb_ss(int argc,const char **argv);	
 
@@ -269,7 +269,7 @@ kdb_so_end( unsigned long ip )
 } 
 
 static int
-kdb_so(int argc, const char **argv, const char **envp)
+kdb_so(int argc, const char **argv)
 {
 
 	struct pt_regs *regs = kdb_current_regs;
@@ -305,7 +305,7 @@ kdb_so(int argc, const char **argv, const char **envp)
 }
 
 static int
-kdb_sout(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+kdb_sout(int argc, const char **argv)
 {
 	extern int sv_kdb_bp(int argc, const char **argv);
 	extern int sv_kdb_ss(int argc, const char **argv);
@@ -350,7 +350,7 @@ static char
 }
 
 static int
-kdb_mf(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+kdb_mf(int argc, const char **argv)
 {
 	int		diag;
 	kdb_machreg_t	addr;
@@ -454,7 +454,7 @@ static char *sv_strtok( char *s, const char *ct)
 }
 
 static int
-kdb_ms(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+kdb_ms(int argc, const char **argv)
 {	
 	static kdb_machreg_t last_addr;
 	static int last_radix, last_bytesperword, last_repeat;
@@ -693,7 +693,7 @@ kdb_ms(int argc, const char **argv, const char **envp, struct pt_regs *regs)
 }
 
 static int
-svKDBwrlapic(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+svKDBwrlapic(int argc, const char **argv)
 {
 #ifndef CONFIG_XXAPIC
 	unsigned long lreg = 0;
@@ -721,7 +721,7 @@ svKDBwrlapic(int argc, const char **argv, const char **envp, struct pt_regs *reg
 }
 
 static int
-svKDBrdlapic(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+svKDBrdlapic(int argc, const char **argv)
 {
 	unsigned int id, ldr, tpr, apr, ppr, dfr;
 	unsigned int lint0, lint1, spiv;
@@ -782,7 +782,7 @@ svKDBrdlapic(int argc, const char **argv, const char **envp, struct pt_regs *reg
 }
 
 static int
-svKDBio(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+svKDBio(int argc, const char **argv)
 {
 	int	error;
 	unsigned long	value;
@@ -835,7 +835,7 @@ svKDBio(int argc, const char **argv, const char **envp, struct pt_regs *regs)
 // This routine is unprotected. If an invalid msr argument is passed, the system
 // will panic.
 static int
-svKDBrdmsr(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+svKDBrdmsr(int argc, const char **argv)
 {
 	unsigned long msr = 0;
 	unsigned long msr_low = 0;
@@ -864,7 +864,7 @@ svKDBrdmsr(int argc, const char **argv, const char **envp, struct pt_regs *regs)
 // This routine is unprotected. If an invalid msr argument is passed, the system
 // will panic. Bad data could panic the system as well.
 static int
-svKDBwrmsr(int argc, const char **argv, const char **envp, struct pt_regs *regs)
+svKDBwrmsr(int argc, const char **argv)
 {
 	unsigned long msr = 0;
 	unsigned long msr_low = 0;
@@ -917,7 +917,7 @@ svKDBwrmsr(int argc, const char **argv, const char **envp, struct pt_regs *regs)
 #endif
 
 	// Use this to do the display of what was written.
-	return(svKDBrdmsr(argc, argv, envp, regs));
+	return(svKDBrdmsr(argc, argv));
 }
 
 extern int kdb_id(int, const char **);
