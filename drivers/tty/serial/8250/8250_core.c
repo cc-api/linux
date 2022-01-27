@@ -17,9 +17,6 @@
 #include <linux/acpi.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
-#ifdef CONFIG_SVOS
-#include <linux/printk.h>
-#endif
 #include <linux/ioport.h>
 #include <linux/init.h>
 #include <linux/console.h>
