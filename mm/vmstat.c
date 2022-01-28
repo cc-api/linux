@@ -1255,6 +1255,10 @@ const char * const vmstat_text[] = {
 	"pswpout",
 
 	TEXTS_FOR_ZONES("pgalloc")
+	TEXTS_FOR_ZONES("pgalloc_gfp_zero")
+	TEXTS_FOR_ZONES("pgalloc_fast_zero")
+	TEXTS_FOR_ZONES("pgalloc_clear_in_progress")
+	TEXTS_FOR_ZONES("pgalloc_memset")
 	TEXTS_FOR_ZONES("allocstall")
 	TEXTS_FOR_ZONES("pgskip")
 

@@ -3717,6 +3717,7 @@ static struct page *rmqueue_pcplist(struct zone *preferred_zone,
 	struct list_head *list;
 	struct page *page;
 	unsigned long flags;
+	gfp_t orig_gfp_flags = *gfp_flags;
 
 	local_lock_irqsave(&pagesets.lock, flags);
 
@@ -3730,6 +3731,7 @@ static struct page *rmqueue_pcplist(struct zone *preferred_zone,
 	if (order == 0 && zone->private && (*gfp_flags & __GFP_ZERO)) {
 		page = __rmqueue_pcp_zero_list(zone, migratetype, alloc_flags, pcp);
 		if (page) {
+			__count_zid_vm_events(PGALLOC_FASTZERO, page_zonenum(page), 1);
 			*gfp_flags &= ~__GFP_ZERO;
 			goto gotpage;
 		}
@@ -3740,6 +3742,10 @@ gotpage:
 	local_unlock_irqrestore(&pagesets.lock, flags);
 	if (page) {
 		__count_zid_vm_events(PGALLOC, page_zonenum(page), 1);
+		if (orig_gfp_flags & __GFP_ZERO)
+			__count_zid_vm_events(PGALLOC_ZERO, page_zonenum(page), 1);
+		if (*gfp_flags & __GFP_ZERO)
+			__count_zid_vm_events(PGALLOC_MEMSET, page_zonenum(page), 1);
 		zone_statistics(preferred_zone, zone, 1);
 	}
 	return page;
