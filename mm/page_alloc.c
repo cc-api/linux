@@ -163,6 +163,13 @@ volatile unsigned long latent_entropy __latent_entropy;
 EXPORT_SYMBOL(latent_entropy);
 #endif
 
+#ifdef CONFIG_NUMA
+static void *(*alloc_zone_private)(int node);
+static int (*get_zero_pages)(void *private, int want, struct list_head *l, int *countp);
+static void (*provide_page)(void *v, struct page *page);
+static int (*engine_cleanup)(void *v);
+#endif /* CONFIG_NUMA */
+
 /*
  * Array of node states.
  */
@@ -3646,6 +3653,7 @@ struct page *__rmqueue_pcplist(struct zone *zone, unsigned int order,
 	return page;
 }
 
+#ifdef CONFIG_NUMA
 /* Like __rmqueue_pcplist() above, but remove page from prezeroed list */
 static inline
 struct page *__rmqueue_pcp_zero_list(struct zone *zone, int migratetype,
@@ -3654,10 +3662,30 @@ struct page *__rmqueue_pcp_zero_list(struct zone *zone, int migratetype,
 {
 	struct list_head *list = &pcp->lists[MIGRATE_PREZEROED];
 	struct page *page;
+	int order;
 
 	do {
 		if (list_empty(list)) {
-			// place holder to allocate pages
+			spin_lock(&zone->lock);
+			/*
+			 * Page clear driver may have been unloaded, give
+			 * up here if the driver has gone.
+			 */
+			if (!zone->private)
+				goto unlock;
+			order = get_zero_pages(zone->private, pcp->batch, list, &pcp->count);
+			if (order > 0) {
+				page = __rmqueue(zone, order, migratetype, alloc_flags);
+				if (page) {
+					if (is_migrate_cma(get_pcppage_migratetype(page)))
+						__mod_zone_page_state(zone, NR_FREE_CMA_PAGES,
+								      -(1 << order));
+					__mod_zone_page_state(zone, NR_FREE_PAGES, -(1 << order));
+					provide_page(zone->private, page);
+				}
+			}
+unlock:
+			spin_unlock(&zone->lock);
 			if (list_empty(list))
 				return NULL;
 		}
@@ -3669,6 +3697,15 @@ struct page *__rmqueue_pcp_zero_list(struct zone *zone, int migratetype,
 
 	return page;
 }
+#else /* CONFIG_NUMA */
+static inline
+struct page *__rmqueue_pcp_zero_list(struct zone *zone, int migratetype,
+				     unsigned int alloc_flags,
+				     struct per_cpu_pages *pcp)
+{
+	return NULL;
+}
+#endif /* CONFIG_NUMA */
 
 /* Lock and remove page from the per-cpu list */
 static struct page *rmqueue_pcplist(struct zone *preferred_zone,
@@ -9597,3 +9634,87 @@ bool has_managed_dma(void)
 	return false;
 }
 #endif /* CONFIG_ZONE_DMA */
+
+#ifdef CONFIG_NUMA
+static int walk_all_nodes(int (*fn)(struct zone *zone))
+{
+	pg_data_t *node;
+	struct zone *zone;
+	int n, ret = 0;
+
+	for_each_node_state(n, N_MEMORY) {
+		node = NODE_DATA(n);
+
+		zone = &node->node_zones[ZONE_NORMAL];
+		if (atomic_long_read(&zone->managed_pages)) {
+			ret = fn(zone);
+			if (ret)
+				goto done;
+		}
+	}
+done:
+	return ret;
+}
+
+static int do_alloc(struct zone *zone)
+{
+	void *ptr = alloc_zone_private(zone->node);
+
+	if (ptr) {
+		mb();
+		zone->private = ptr;
+	}
+
+	return ptr ? 0 : -ENOMEM;
+}
+
+static int do_clean(struct zone *zone)
+{
+	void *private;
+
+	spin_lock(&zone->lock);
+	private = zone->private;
+	zone->private = NULL;
+	spin_unlock(&zone->lock);
+
+	engine_cleanup(private);
+
+	return 0;
+}
+
+int register_page_clear_engine(const struct page_clear_engine_ops *engine_ops)
+{
+	int	ret;
+
+	if (alloc_zone_private)
+		return -EBUSY;
+
+	alloc_zone_private = engine_ops->create;
+
+	ret = walk_all_nodes(do_alloc);
+	if (ret) {
+		walk_all_nodes(do_clean);
+		return ret;
+	}
+
+	get_zero_pages = engine_ops->getpages;
+	provide_page = engine_ops->provide;
+	engine_cleanup = engine_ops->clean;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(register_page_clear_engine);
+
+int unregister_page_clear_engine(const struct page_clear_engine_ops *engine_ops)
+{
+	if (engine_ops->clean != engine_cleanup)
+		return -EINVAL;
+
+	walk_all_nodes(do_clean);
+
+	alloc_zone_private = NULL;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(unregister_page_clear_engine);
+#endif /* CONFIG_NUMA */
