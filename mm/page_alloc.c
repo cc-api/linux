@@ -163,12 +163,12 @@ volatile unsigned long latent_entropy __latent_entropy;
 EXPORT_SYMBOL(latent_entropy);
 #endif
 
-#ifdef CONFIG_NUMA
+#ifdef CONFIG_HAVE_PAGE_CLEAR_ENGINE
 static void *(*alloc_zone_private)(int node);
 static int (*get_zero_pages)(void *private, int want, struct list_head *l, int *countp);
 static void (*provide_page)(void *v, struct page *page);
 static int (*engine_cleanup)(void *v);
-#endif /* CONFIG_NUMA */
+#endif /* CONFIG_HAVE_PAGE_CLEAR_ENGINE */
 
 /*
  * Array of node states.
@@ -3653,7 +3653,7 @@ struct page *__rmqueue_pcplist(struct zone *zone, unsigned int order,
 	return page;
 }
 
-#ifdef CONFIG_NUMA
+#ifdef CONFIG_HAVE_PAGE_CLEAR_ENGINE
 /* Like __rmqueue_pcplist() above, but remove page from prezeroed list */
 static inline
 struct page *__rmqueue_pcp_zero_list(struct zone *zone, int migratetype,
@@ -3697,7 +3697,7 @@ unlock:
 
 	return page;
 }
-#else /* CONFIG_NUMA */
+#else /* CONFIG_HAVE_PAGE_CLEAR_ENGINE */
 static inline
 struct page *__rmqueue_pcp_zero_list(struct zone *zone, int migratetype,
 				     unsigned int alloc_flags,
@@ -3705,7 +3705,7 @@ struct page *__rmqueue_pcp_zero_list(struct zone *zone, int migratetype,
 {
 	return NULL;
 }
-#endif /* CONFIG_NUMA */
+#endif /* CONFIG_HAVE_PAGE_CLEAR_ENGINE */
 
 /* Lock and remove page from the per-cpu list */
 static struct page *rmqueue_pcplist(struct zone *preferred_zone,
@@ -9641,7 +9641,7 @@ bool has_managed_dma(void)
 }
 #endif /* CONFIG_ZONE_DMA */
 
-#ifdef CONFIG_NUMA
+#ifdef CONFIG_HAVE_PAGE_CLEAR_ENGINE
 static int walk_all_nodes(int (*fn)(struct zone *zone))
 {
 	pg_data_t *node;
@@ -9723,4 +9723,4 @@ int unregister_page_clear_engine(const struct page_clear_engine_ops *engine_ops)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(unregister_page_clear_engine);
-#endif /* CONFIG_NUMA */
+#endif /* CONFIG_HAVE_PAGE_CLEAR_ENGINE */
