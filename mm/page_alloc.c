@@ -3646,6 +3646,30 @@ struct page *__rmqueue_pcplist(struct zone *zone, unsigned int order,
 	return page;
 }
 
+/* Like __rmqueue_pcplist() above, but remove page from prezeroed list */
+static inline
+struct page *__rmqueue_pcp_zero_list(struct zone *zone, int migratetype,
+				     unsigned int alloc_flags,
+				     struct per_cpu_pages *pcp)
+{
+	struct list_head *list = &pcp->lists[MIGRATE_PREZEROED];
+	struct page *page;
+
+	do {
+		if (list_empty(list)) {
+			// place holder to allocate pages
+			if (list_empty(list))
+				return NULL;
+		}
+
+		page = list_first_entry(list, struct page, lru);
+		list_del(&page->lru);
+		pcp->count--;
+	} while (check_new_pcp(page));
+
+	return page;
+}
+
 /* Lock and remove page from the per-cpu list */
 static struct page *rmqueue_pcplist(struct zone *preferred_zone,
 			struct zone *zone, unsigned int order,
@@ -3666,8 +3690,16 @@ static struct page *rmqueue_pcplist(struct zone *preferred_zone,
 	 */
 	pcp = this_cpu_ptr(zone->per_cpu_pageset);
 	pcp->free_factor >>= 1;
+	if (order == 0 && zone->private && (*gfp_flags & __GFP_ZERO)) {
+		page = __rmqueue_pcp_zero_list(zone, migratetype, alloc_flags, pcp);
+		if (page) {
+			*gfp_flags &= ~__GFP_ZERO;
+			goto gotpage;
+		}
+	}
 	list = &pcp->lists[order_to_pindex(migratetype, order)];
 	page = __rmqueue_pcplist(zone, order, migratetype, alloc_flags, pcp, list);
+gotpage:
 	local_unlock_irqrestore(&pagesets.lock, flags);
 	if (page) {
 		__count_zid_vm_events(PGALLOC, page_zonenum(page), 1);
