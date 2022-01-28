@@ -187,7 +187,11 @@ int uncore_freq_add_entry(struct uncore_data *data, int cpu)
 		goto uncore_unlock;
 	}
 
-	sprintf(data->name, "package_%02d_die_%02d", data->package_id, data->die_id);
+	if (data->cluster_id)
+		sprintf(data->name, "package_%02d_die_%02d_cluster_%02d",
+			data->package_id, data->die_id, data->cluster_id);
+	else
+		sprintf(data->name, "package_%02d_die_%02d", data->package_id, data->die_id);
 
 	uncore_read(data, &data->initial_min_freq_khz, &data->initial_max_freq_khz);
 

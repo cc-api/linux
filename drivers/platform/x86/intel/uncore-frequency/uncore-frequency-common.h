@@ -21,6 +21,7 @@
  * @valid:		Mark the data valid/invalid
  * @package_id:	Package id for this instance
  * @die_id:		Die id for this instance
+ * @cluster_id:		Cluster id for this instance when present
  * @name:		Sysfs entry name for this instance
  * @uncore_attr_group:	Attribute group storage
  * @max_freq_khz_dev_attr: Storage for device attribute max_freq_khz
@@ -41,6 +42,7 @@ struct uncore_data {
 	bool valid;
 	int package_id;
 	int die_id;
+	int cluster_id;
 	char name[64];
 
 	struct attribute_group uncore_attr_group;
