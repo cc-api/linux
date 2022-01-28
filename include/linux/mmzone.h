@@ -43,6 +43,7 @@ enum migratetype {
 	MIGRATE_UNMOVABLE,
 	MIGRATE_MOVABLE,
 	MIGRATE_RECLAIMABLE,
+	MIGRATE_PREZEROED,	/* pre-zeroed 4K page list */
 	MIGRATE_PCPTYPES,	/* the number of types on the pcp lists */
 	MIGRATE_HIGHATOMIC = MIGRATE_PCPTYPES,
 #ifdef CONFIG_CMA
@@ -515,6 +516,9 @@ struct zone {
 	 * changes.
 	 */
 	long lowmem_reserve[MAX_NR_ZONES];
+
+	/* Page clear engine data (when active) */
+	void *private;
 
 #ifdef CONFIG_NUMA
 	int node;
