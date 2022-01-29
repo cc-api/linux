@@ -318,6 +318,17 @@ static __init int setup_disable_smap(char *arg)
 }
 __setup("nosmap", setup_disable_smap);
 
+static int lass_cap_disabled __ro_after_init;
+int __init setup_disable_lass(char *arg)
+{
+	lass_cap_disabled = cpu_feature_enabled(X86_FEATURE_LASS);
+	setup_clear_cpu_cap(X86_FEATURE_LASS);
+	return 0;
+}
+
+/* apply nolass before kernel maps vsyscall which is done ahead __setup() */
+early_param("nolass", setup_disable_lass);
+
 static __always_inline void setup_smap(struct cpuinfo_x86 *c)
 {
 	unsigned long eflags = native_save_fl();
