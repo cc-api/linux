@@ -3397,6 +3397,10 @@
 			Disable SMEP (Supervisor Mode Execution Prevention)
 			even if it is supported by processor.
 
+	nolass		[X86]
+			Disable LASS (Linear Address Space Separation)
+			even if it is supported by processor
+
 	noexec32	[X86-64]
 			This affects only 32-bit executables.
 			noexec32=on: enable non-executable mappings (default)
