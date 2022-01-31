@@ -74,9 +74,10 @@
 #define DT_OFFSET(v)			((v) & GENMASK(31, 3))
 
 enum sdsi_command {
-	SDSI_CMD_PROVISION_AKC		= 0x04,
-	SDSI_CMD_PROVISION_CAP		= 0x08,
-	SDSI_CMD_READ_STATE		= 0x10,
+	SDSI_CMD_PROVISION_AKC		= 0x0004,
+	SDSI_CMD_PROVISION_CAP		= 0x0008,
+	SDSI_CMD_READ_STATE		= 0x0010,
+	SDSI_CMD_READ_METER		= 0x0012,
 };
 
 struct sdsi_mbox_info {
@@ -378,13 +379,10 @@ static ssize_t provision_cap_write(struct file *filp, struct kobject *kobj,
 }
 static BIN_ATTR_WO(provision_cap, SDSI_SIZE_WRITE_MSG);
 
-static long state_certificate_read(struct file *filp, struct kobject *kobj,
-				   struct bin_attribute *attr, char *buf, loff_t off,
-				   size_t count)
+static ssize_t
+certificate_read(u64 command, struct sdsi_priv *priv, char *buf, loff_t off,
+		 size_t count)
 {
-	struct device *dev = kobj_to_dev(kobj);
-	struct sdsi_priv *priv = dev_get_drvdata(dev);
-	u64 command = SDSI_CMD_READ_STATE;
 	struct sdsi_mbox_info info;
 	size_t size;
 	int ret;
@@ -424,7 +422,30 @@ free_buffer:
 
 	return size;
 }
+
+static ssize_t
+state_certificate_read(struct file *filp, struct kobject *kobj,
+		       struct bin_attribute *attr, char *buf, loff_t off,
+		       size_t count)
+{
+	struct device *dev = kobj_to_dev(kobj);
+	struct sdsi_priv *priv = dev_get_drvdata(dev);
+
+	return certificate_read(SDSI_CMD_READ_STATE, priv, buf, off, count);
+}
 static BIN_ATTR(state_certificate, 0400, state_certificate_read, NULL, SDSI_SIZE_READ_MSG);
+
+static ssize_t
+meter_certificate_read(struct file *filp, struct kobject *kobj,
+		       struct bin_attribute *attr, char *buf, loff_t off,
+		       size_t count)
+{
+	struct device *dev = kobj_to_dev(kobj);
+	struct sdsi_priv *priv = dev_get_drvdata(dev);
+
+	return certificate_read(SDSI_CMD_READ_METER, priv, buf, off, count);
+}
+static BIN_ATTR(meter_certificate, 0400, meter_certificate_read, NULL, SDSI_SIZE_READ_MSG);
 
 static ssize_t registers_read(struct file *filp, struct kobject *kobj,
 			      struct bin_attribute *attr, char *buf, loff_t off,
@@ -443,6 +464,7 @@ static BIN_ATTR(registers, 0400, registers_read, NULL, SDSI_SIZE_REGS);
 static struct bin_attribute *sdsi_bin_attrs[] = {
 	&bin_attr_registers,
 	&bin_attr_state_certificate,
+	&bin_attr_meter_certificate,
 	&bin_attr_provision_akc,
 	&bin_attr_provision_cap,
 	NULL
