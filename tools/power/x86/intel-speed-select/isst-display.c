@@ -170,7 +170,7 @@ static int print_package_info(int cpu, int pkg, int die, FILE *outf)
 {
 	char header[256];
 
-	if (!pkg)
+	if (!pkg && cpu >= 0)
 		pkg = get_physical_package_id(cpu);
 
 	if (die != get_physical_die_id(cpu))
@@ -331,7 +331,7 @@ void isst_ctdp_display_core_info(int cpu, int pkg, int die, FILE *outf, char *pr
 	char value[256];
 	int level = 1;
 
-	if (!pkg)
+	if (!pkg && cpu >= 0)
 		pkg = get_physical_package_id(cpu);
 
 	if (die != get_physical_die_id(cpu))
@@ -767,8 +767,7 @@ void isst_display_result(int cpu, FILE *outf, char *feature, char *cmd,
 	char value[256];
 	int level = 3;
 
-	if (cpu >= 0)
-		level = print_package_info(cpu, 0, 0, outf);
+	level = print_package_info(cpu, 0, 0, outf);
 
 	snprintf(header, sizeof(header), "%s", feature);
 	format_and_print(outf, level + 1, header, NULL);
