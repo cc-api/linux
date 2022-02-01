@@ -135,22 +135,34 @@ struct tpmi_sst_common_struct sst_common;
 
 static struct tpmi_per_punit_info *get_instance(int pkg_id, int die_id)
 {
+	struct tpmi_per_punit_info *punit_info = NULL;
 	struct tpmi_sst_struct *sst_inst;
+	int i;
 
-	if (pkg_id >= SST_MAX_INSTANCES)
+	pr_debug("%s pkg:%d die:%d\n", __func__, pkg_id, die_id);
+
+	if (pkg_id < 0 || die_id < 0 || pkg_id >= SST_MAX_INSTANCES)
 		return NULL;
 
 	sst_inst = sst_common.sst_inst[pkg_id];
 	if (!sst_inst)
 		return NULL;
 
-	if (die_id >= sst_inst->number_of_punits)
+	/* Die id has holes, so we have to match in the list */
+	for (i = 0; i < sst_inst->number_of_punits; ++i) {
+		if (sst_inst->punit_info[i].die_id == die_id) {
+			punit_info = &sst_inst->punit_info[i];
+			break;
+		}
+	}
+
+	if (!punit_info)
 		return NULL;
 
-	if (!sst_inst->punit_info[die_id].sst_base)
+	if (!punit_info->sst_base)
 		return NULL;
 
-	return &sst_inst->punit_info[die_id];
+	return punit_info;
 }
 
 #define _read_cp_info(name_str, name, offset, shift, mask, mult_factor)\
