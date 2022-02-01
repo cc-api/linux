@@ -13,7 +13,50 @@ int tpmi_process_ioctl(int ioctl_no, void *info)
 	const char *pathname = "/dev/isst_interface";
 	int fd;
 
-	debug_printf("IOCTL:%x\n", ioctl_no);
+	if (is_debug_enabled()) {
+		debug_printf("Issue IOCTL: ");
+		switch(ioctl_no) {
+		case ISST_IF_CORE_POWER_STATE:
+			debug_printf("ISST_IF_CORE_POWER_STATE\n");
+			break;
+		case ISST_IF_CLOS_PARAM:
+			debug_printf("ISST_IF_CLOS_PARAM\n");
+			break;
+		case ISST_IF_CLOS_ASSOC:
+			debug_printf("ISST_IF_CLOS_ASSOC\n");
+			break;
+		case ISST_IF_PERF_LEVELS:
+			debug_printf("ISST_IF_PERF_LEVELS\n");
+			break;
+		case ISST_IF_PERF_SET_LEVEL:
+			debug_printf("ISST_IF_PERF_SET_LEVEL\n");
+			break;
+		case ISST_IF_PERF_SET_FEATURE:
+			debug_printf("ISST_IF_PERF_SET_FEATURE\n");
+			break;
+		case ISST_IF_GET_PERF_LEVEL_INFO:
+			debug_printf("ISST_IF_GET_PERF_LEVEL_INFO\n");
+			break;
+		case ISST_IF_GET_PERF_LEVEL_CPU_MASK:
+			debug_printf("ISST_IF_GET_PERF_LEVEL_CPU_MASK\n");
+			break;
+		case ISST_IF_GET_BASE_FREQ_INFO:
+			debug_printf("ISST_IF_GET_BASE_FREQ_INFO\n");
+			break;
+		case ISST_IF_GET_BASE_FREQ_CPU_MASK:
+			debug_printf("ISST_IF_GET_BASE_FREQ_CPU_MASK\n");
+			break;
+		case ISST_IF_GET_TURBO_FREQ_INFO:
+			debug_printf("ISST_IF_GET_TURBO_FREQ_INFO\n");
+			break;
+		case ISST_IF_COUNT_TPMI_INSTANCES:
+			debug_printf("ISST_IF_COUNT_TPMI_INSTANCES\n");
+			break;
+		default:
+			debug_printf("%d\n", ioctl_no);
+			break;
+		}
+	}
 
 	fd = open(pathname, O_RDWR);
 	if (fd < 0)

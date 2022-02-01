@@ -184,6 +184,7 @@ extern int get_disp_freq_multiplier(void);
 
 /* Common interfaces */
 FILE *get_output_file(void);
+extern int is_debug_enabled(void);
 extern void debug_printf(const char *format, ...);
 extern int out_format_is_json(void);
 extern int get_physical_package_id(int cpu);
