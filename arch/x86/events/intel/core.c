@@ -5842,6 +5842,11 @@ static void intel_pmu_check_hybrid_pmus(u64 fixed_mask)
 	}
 }
 
+static inline int intel_pmu_addr_offset(int index, bool eventsel)
+{
+	return 4 * index;
+}
+
 __init int intel_pmu_init(void)
 {
 	struct attribute **extra_skl_attr = &empty_attrs;
@@ -6820,6 +6825,13 @@ __init int intel_pmu_init(void)
 		x86_pmu.max_period = x86_pmu.cntval_mask >> 1;
 		x86_pmu.perfctr = MSR_IA32_PMC0;
 		pr_cont("full-width counters, ");
+	}
+
+	if (version >= 6) {
+		x86_pmu.max_period = x86_pmu.cntval_mask >> 1;
+		x86_pmu.perfctr = MSR_IA32_V6_PMC0;
+		x86_pmu.eventsel = MSR_IA32_V6_EVNTSEL0;
+		x86_pmu.addr_offset = intel_pmu_addr_offset;
 	}
 
 	if (!is_hybrid() && x86_pmu.intel_cap.perf_metrics)
