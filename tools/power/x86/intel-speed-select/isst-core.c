@@ -435,13 +435,13 @@ int isst_set_tdp_level_msr(int cpu, int tdp_level)
 	return 0;
 }
 
-int isst_set_tdp_level(int cpu, int tdp_level)
+int isst_set_tdp_level(int cpu, int pkg, int die, int tdp_level)
 {
 	unsigned int resp;
 	int ret;
 
 	if (is_tpmi_if())
-		return tpmi_isst_set_tdp_level(cpu, tdp_level);
+		return tpmi_isst_set_tdp_level(cpu, pkg, die, tdp_level);
 
 	if (isst_get_config_tdp_lock_status(cpu)) {
 		isst_display_error_info_message(1, "TDP is locked", 0, 0);

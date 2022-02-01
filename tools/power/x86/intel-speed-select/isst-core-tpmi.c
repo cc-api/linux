@@ -88,16 +88,13 @@ int tpmi_get_instance_count(int pkg, __u16 *valid_mask)
 	return info.count;
 }
 
-int tpmi_isst_set_tdp_level(int cpu, int tdp_level)
+int tpmi_isst_set_tdp_level(int cpu, int pkg, int die, int tdp_level)
 {
 	struct isst_perf_level_control info;
 	int ret;
 
-	if (cpu < 0)
-		return 0;
-
-	info.socket_id = get_physical_package_id(cpu);
-	info.die_id =  get_physical_die_id(cpu);
+	info.socket_id = pkg;
+	info.die_id =  die;
 	info.level = tdp_level;
 
 	ret = tpmi_process_ioctl(ISST_IF_PERF_SET_LEVEL, &info);

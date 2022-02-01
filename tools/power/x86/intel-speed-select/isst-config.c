@@ -1441,7 +1441,7 @@ static void set_tdp_level_for_cpu(int cpu, int pkg, int die, void *arg1, void *a
 {
 	int ret;
 
-	ret = isst_set_tdp_level(cpu, tdp_level);
+	ret = isst_set_tdp_level(cpu, pkg, die, tdp_level);
 	if (ret) {
 		isst_display_error_info_message(1, "Set TDP level failed", 0, 0);
 		isst_ctdp_display_information_end(outf);
