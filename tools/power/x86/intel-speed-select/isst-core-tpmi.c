@@ -50,6 +50,9 @@ int tpmi_isst_set_tdp_level(int cpu, int tdp_level)
 	struct isst_perf_level_control info;
 	int ret;
 
+	if (cpu < 0)
+		return 0;
+
 	info.socket_id = get_physical_package_id(cpu);
 	info.die_id =  get_physical_die_id(cpu);
 	info.level = tdp_level;
