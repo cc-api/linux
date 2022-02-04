@@ -133,6 +133,9 @@ static void add_new_page(void *v, struct page *page)
 	if (dma_mapping_error(dev, pz->dst_dma))
 		goto err_map;
 
+	if (!engine_flag_cc)
+		dma_flags |= DMA_PREP_NONTEMPORAL;
+
 	tx = dmaengine_prep_dma_memset(dma_chan, pz->dst_dma, 0,
 				       PAGE_SIZE << engine_order, dma_flags);
 	if (!tx)
