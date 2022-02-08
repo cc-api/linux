@@ -502,6 +502,8 @@ struct irq_domain *pci_subdevice_msi_create_irq_domain(struct pci_dev *pdev,
 # endif
 #endif /* CONFIG_DEVICE_MSI */
 
+bool arch_support_pci_device_msi(struct pci_dev *pdev);
+
 #ifdef CONFIG_PCI_MSI_IRQ_DOMAIN
 struct irq_domain *pci_msi_create_irq_domain(struct fwnode_handle *fwnode,
 					     struct msi_domain_info *info,
