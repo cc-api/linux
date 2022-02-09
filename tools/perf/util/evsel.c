@@ -1294,6 +1294,7 @@ void evsel__config(struct evsel *evsel, struct record_opts *opts,
 	clockid = opts->clockid;
 	if (opts->use_clockid) {
 		attr->use_clockid = 1;
+		attr->ns_clockid = opts->ns_clockid;
 		attr->clockid = opts->clockid;
 	}
 

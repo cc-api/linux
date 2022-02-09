@@ -12,10 +12,14 @@
 struct clockid_map {
 	const char *name;
 	int clockid;
+	bool non_standard;
 };
 
 #define CLOCKID_MAP(n, c)	\
 	{ .name = n, .clockid = (c), }
+
+#define CLOCKID_MAP_NS(n, c)	\
+	{ .name = n, .clockid = (c), .non_standard = true, }
 
 #define CLOCKID_END	{ .name = NULL, }
 
@@ -48,6 +52,10 @@ static const struct clockid_map clockids[] = {
 	CLOCKID_MAP("raw", CLOCK_MONOTONIC_RAW),
 	CLOCKID_MAP("real", CLOCK_REALTIME),
 	CLOCKID_MAP("boot", CLOCK_BOOTTIME),
+
+	/* non-standard clocks */
+	CLOCKID_MAP_NS("perf_hw_clock", CLOCK_PERF_HW_CLOCK),
+	CLOCKID_MAP_NS("perf_hw_clock_ns", CLOCK_PERF_HW_CLOCK_NS),
 
 	CLOCKID_END,
 };
@@ -97,6 +105,11 @@ int parse_clockid(const struct option *opt, const char *str, int unset)
 	for (cm = clockids; cm->name; cm++) {
 		if (!strcasecmp(str, cm->name)) {
 			opts->clockid = cm->clockid;
+			if (cm->non_standard) {
+				opts->ns_clockid = true;
+				opts->clockid_res_ns = 0;
+				return 0;
+			}
 			return get_clockid_res(opts->clockid,
 					       &opts->clockid_res_ns);
 		}

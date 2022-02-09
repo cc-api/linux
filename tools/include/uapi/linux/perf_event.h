@@ -291,6 +291,21 @@ enum {
 };
 
 /*
+ * If supported, clockid value to select an architecture dependent hardware
+ * clock. Note this means the unit of time is ticks not nanoseconds.
+ * Requires ns_clockid to be set in addition to use_clockid.
+ * On x86, this clock is provided by the rdtsc instruction, and is not
+ * paravirtualized.
+ */
+#define CLOCK_PERF_HW_CLOCK		0x10000000
+/*
+ * Same as CLOCK_PERF_HW_CLOCK but in nanoseconds. Note support of
+ * CLOCK_PERF_HW_CLOCK_NS does not necesssarily imply support of
+ * CLOCK_PERF_HW_CLOCK or vice versa.
+ */
+#define CLOCK_PERF_HW_CLOCK_NS	0x10000001
+
+/*
  * The format of the data returned by read() on a perf event fd,
  * as specified by attr.read_format:
  *
@@ -409,7 +424,8 @@ struct perf_event_attr {
 				inherit_thread :  1, /* children only inherit if cloned with CLONE_THREAD */
 				remove_on_exec :  1, /* event is removed from task on exec */
 				sigtrap        :  1, /* send synchronous SIGTRAP on event */
-				__reserved_1   : 26;
+				ns_clockid     :  1, /* non-standard clockid */
+				__reserved_1   : 25;
 
 	union {
 		__u32		wakeup_events;	  /* wakeup every n events */

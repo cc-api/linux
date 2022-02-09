@@ -1553,7 +1553,7 @@ static int record__init_clock(struct record *rec)
 	struct timeval ref_tod;
 	u64 ref;
 
-	if (!rec->opts.use_clockid)
+	if (!rec->opts.use_clockid || rec->opts.ns_clockid)
 		return 0;
 
 	if (rec->opts.use_clockid && rec->opts.clockid_res_ns)
