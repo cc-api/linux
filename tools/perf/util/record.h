@@ -68,6 +68,7 @@ struct record_opts {
 	int	      initial_delay;
 	bool	      use_clockid;
 	bool	      ns_clockid;
+	bool	      no_clockid;
 	clockid_t     clockid;
 	u64	      clockid_res_ns;
 	int	      nr_cblocks;

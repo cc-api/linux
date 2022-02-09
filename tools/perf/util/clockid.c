@@ -81,6 +81,7 @@ int parse_clockid(const struct option *opt, const char *str, int unset)
 
 	if (unset) {
 		opts->use_clockid = 0;
+		opts->no_clockid = true;
 		return 0;
 	}
 

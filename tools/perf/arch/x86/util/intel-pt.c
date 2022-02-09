@@ -927,6 +927,12 @@ static int intel_pt_recording_options(struct auxtrace_record *itr,
 		evsel__reset_sample_bit(tracking_evsel, BRANCH_STACK);
 	}
 
+	if (!opts->use_clockid && !opts->no_clockid && perf_can_perf_clock_hw_clock_ns()) {
+		opts->use_clockid = true;
+		opts->ns_clockid = true;
+		opts->clockid = CLOCK_PERF_HW_CLOCK_NS;
+	}
+
 	/*
 	 * Warn the user when we do not have enough information to decode i.e.
 	 * per-cpu with no sched_switch (except workload-only).
