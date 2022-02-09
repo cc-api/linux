@@ -11931,35 +11931,48 @@ static void mutex_lock_double(struct mutex *a, struct mutex *b)
 	mutex_lock_nested(b, SINGLE_DEPTH_NESTING);
 }
 
-static int perf_event_set_clock(struct perf_event *event, clockid_t clk_id)
+static int perf_event_set_clock(struct perf_event *event, clockid_t clk_id, bool ns_clockid)
 {
 	bool nmi_safe = false;
 
-	switch (clk_id) {
-	case CLOCK_MONOTONIC:
-		event->clock = &ktime_get_mono_fast_ns;
-		nmi_safe = true;
-		break;
+	if (ns_clockid) {
+		switch (clk_id) {
+#ifdef perf_hw_clock
+		case CLOCK_PERF_HW_CLOCK:
+			event->clock = &perf_hw_clock;
+			nmi_safe = true;
+			break;
+#endif
+		default:
+			return -EINVAL;
+		}
+	} else {
+		switch (clk_id) {
+		case CLOCK_MONOTONIC:
+			event->clock = &ktime_get_mono_fast_ns;
+			nmi_safe = true;
+			break;
 
-	case CLOCK_MONOTONIC_RAW:
-		event->clock = &ktime_get_raw_fast_ns;
-		nmi_safe = true;
-		break;
+		case CLOCK_MONOTONIC_RAW:
+			event->clock = &ktime_get_raw_fast_ns;
+			nmi_safe = true;
+			break;
 
-	case CLOCK_REALTIME:
-		event->clock = &ktime_get_real_ns;
-		break;
+		case CLOCK_REALTIME:
+			event->clock = &ktime_get_real_ns;
+			break;
 
-	case CLOCK_BOOTTIME:
-		event->clock = &ktime_get_boottime_ns;
-		break;
+		case CLOCK_BOOTTIME:
+			event->clock = &ktime_get_boottime_ns;
+			break;
 
-	case CLOCK_TAI:
-		event->clock = &ktime_get_clocktai_ns;
-		break;
+		case CLOCK_TAI:
+			event->clock = &ktime_get_clocktai_ns;
+			break;
 
-	default:
-		return -EINVAL;
+		default:
+			return -EINVAL;
+		}
 	}
 
 	if (!nmi_safe && !(event->pmu->capabilities & PERF_PMU_CAP_NO_NMI))
@@ -12168,7 +12181,7 @@ SYSCALL_DEFINE5(perf_event_open,
 	pmu = event->pmu;
 
 	if (attr.use_clockid) {
-		err = perf_event_set_clock(event, attr.clockid);
+		err = perf_event_set_clock(event, attr.clockid, attr.ns_clockid);
 		if (err)
 			goto err_alloc;
 	}
