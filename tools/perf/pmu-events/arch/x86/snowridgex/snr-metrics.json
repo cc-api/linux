@@ -15,12 +15,12 @@
         "Unit": "cpu_atom"
     },
     {
-        "BriefDescription": "Counts the total number of cycles  that were not consumed by the backend due to backend stalls",
+        "BriefDescription": "Counts the total number of issue slots  that were not consumed by the backend due to backend stalls",
         "MetricConstraint": "NO_NMI_WATCHDOG",
         "MetricExpr": "TOPDOWN_BE_BOUND.ALL / (4 * CPU_CLK_UNHALTED.CORE)",
         "MetricGroup": "TopdownL1",
         "MetricName": "Backend_Bound",
-        "PublicDescription": "Counts the total number of cycles  that were not consumed by the backend due to backend stalls.  Counts backend stalls, in cycles, due to an outstanding request which is memory bound vs core bound.   These are not slot based events and therefore can not be precisely added or subtracted from the Backend_Bound_Aux subevents.",
+        "PublicDescription": "Counts the total number of issue slots  that were not consumed by the backend due to backend stalls.  Note that uops must be available for consumption in order for this event to count.  If a uop is not available (IQ is empty), this event will not count.   The rest of these subevents count backend stalls, in cycles, due to an outstanding request which is memory bound vs core bound.   The subevents are not slot based events and therefore can not be precisely added or subtracted from the Backend_Bound_Aux subevents which are slot based.",
         "Unit": "cpu_atom"
     },
     {
@@ -28,7 +28,7 @@
         "MetricExpr": "Backend_Bound",
         "MetricGroup": "TopdownL1",
         "MetricName": "Backend_Bound_Aux",
-        "PublicDescription": "Counts the total number of issue slots  that were not consumed by the backend due to backend stalls.  Note that UOPS must be available for consumption in order for this event to count.  If a uop is not available (IQ is empty), this event will not count. ",
+        "PublicDescription": "Counts the total number of issue slots  that were not consumed by the backend due to backend stalls.  Note that UOPS must be available for consumption in order for this event to count.  If a uop is not available (IQ is empty), this event will not count.  All of these subevents count backend stalls, in slots, due to a resource limitation.   These are not cycle based events and therefore can not be precisely added or subtracted from the Backend_Bound subevents which are cycle based.  These subevents are supplementary to Backend_Bound and can be used to analyze results from a resource perspective at allocation.  ",
         "Unit": "cpu_atom"
     },
     {
