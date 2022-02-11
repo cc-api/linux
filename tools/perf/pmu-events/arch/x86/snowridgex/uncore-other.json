@@ -24901,7 +24901,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4C",
         "EventName": "UNC_U_RACU_DRNG.RDRAND",
@@ -24911,7 +24911,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4C",
         "EventName": "UNC_U_RACU_DRNG.RDSEED",
@@ -24921,7 +24921,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4C",
         "EventName": "UNC_U_RACU_DRNG.PFTCH_BUF_EMPTY",
@@ -24931,7 +24931,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4D",
         "EventName": "UNC_U_M2U_MISC1.RxC_CYCLES_NE_CBO_NCB",
@@ -24941,7 +24941,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4D",
         "EventName": "UNC_U_M2U_MISC1.RxC_CYCLES_NE_CBO_NCS",
@@ -24951,7 +24951,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4D",
         "EventName": "UNC_U_M2U_MISC1.TxC_CYCLES_CRD_OVF_CBO_NCB",
@@ -24961,7 +24961,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4D",
         "EventName": "UNC_U_M2U_MISC1.TxC_CYCLES_CRD_OVF_CBO_NCS",
@@ -24971,7 +24971,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4E",
         "EventName": "UNC_U_M2U_MISC2.RxC_CYCLES_FULL_BL",
@@ -24981,7 +24981,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4E",
         "EventName": "UNC_U_M2U_MISC2.RxC_CYCLES_EMPTY_BL",
@@ -24991,7 +24991,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4E",
         "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_CRD_OVF_VN0_NCB",
@@ -25001,7 +25001,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4E",
         "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_CRD_OVF_VN0_NCS",
@@ -25011,7 +25011,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4E",
         "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_EMPTY_BL",
@@ -25021,7 +25021,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4E",
         "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_EMPTY_AK",
@@ -25031,7 +25031,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4E",
         "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_EMPTY_AKC",
@@ -25041,7 +25041,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4E",
         "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_FULL_BL",
@@ -25051,7 +25051,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4F",
         "EventName": "UNC_U_M2U_MISC3.TxC_CYCLES_FULL_AK",
@@ -25061,7 +25061,7 @@
     },
     {
         "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
+        "Counter": "0,1",
         "CounterType": "PGMABLE",
         "EventCode": "0x4F",
         "EventName": "UNC_U_M2U_MISC3.TxC_CYCLES_FULL_AKC",

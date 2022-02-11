@@ -275,6 +275,17 @@
         "UMask": "0x4"
     },
     {
+        "BriefDescription": "Counts the number of retired loads that are blocked for any of the following reasons:  DTLB miss, address alias, store forward or data unknown (includes memory disambiguation blocks and ESP consuming load blocks).",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x03",
+        "EventName": "LD_BLOCKS.ALL",
+        "PEBS": "1",
+        "PEBScounters": "0,1,2,3",
+        "SampleAfterValue": "1000003",
+        "UMask": "0x10"
+    },
+    {
         "BriefDescription": "Counts the number of retired loads that are blocked because its address exactly matches an older store whose data is not ready.",
         "CollectPEBSRecord": "2",
         "Counter": "0,1,2,3",
@@ -286,6 +297,17 @@
         "UMask": "0x1"
     },
     {
+        "BriefDescription": "Counts the number of retired loads that are blocked because its address partially overlapped with an older store.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x03",
+        "EventName": "LD_BLOCKS.STORE_FORWARD",
+        "PEBS": "1",
+        "PEBScounters": "0,1,2,3",
+        "SampleAfterValue": "1000003",
+        "UMask": "0x2"
+    },
+    {
         "BriefDescription": "Counts the total number of machine clears for any reason including, but not limited to, memory ordering, memory disambiguation, SMC, and FP assist.",
         "CollectPEBSRecord": "2",
         "Counter": "0,1,2,3",
@@ -294,6 +316,17 @@
         "PDIR_COUNTER": "na",
         "PEBScounters": "0,1,2,3",
         "SampleAfterValue": "20003"
+    },
+    {
+        "BriefDescription": "Counts the number of machine clears due to memory ordering in which an internal load passes an older store within the same CPU.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0xc3",
+        "EventName": "MACHINE_CLEARS.DISAMBIGUATION",
+        "PDIR_COUNTER": "na",
+        "PEBScounters": "0,1,2,3",
+        "SampleAfterValue": "20003",
+        "UMask": "0x8"
     },
     {
         "BriefDescription": "Counts the number of machine clears due to a page fault.  Counts both I-Side and D-Side (Loads/Stores) page faults.  A page fault occurs when either the page is not present, or an access violation occurs.",
@@ -316,6 +349,17 @@
         "PEBScounters": "0,1,2,3",
         "SampleAfterValue": "20003",
         "UMask": "0x1"
+    },
+    {
+        "BriefDescription": "Counts the number of uops issued by the front end every cycle.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x0e",
+        "EventName": "UOPS_ISSUED.ANY",
+        "PDIR_COUNTER": "na",
+        "PEBScounters": "0,1,2,3",
+        "PublicDescription": "Counts the number of uops issued by the front end every cycle. When 4-uops are requested and only 2-uops are delivered, the event counts 2.  Uops_issued correlates to the number of ROB entries.  If uop takes 2 ROB slots it counts as 2 uops_issued.",
+        "SampleAfterValue": "200003"
     },
     {
         "BriefDescription": "Counts the total number of uops retired.",
@@ -350,5 +394,16 @@
         "PublicDescription": "Counts the number of uops that are from complex flows issued by the Microcode Sequencer (MS). This includes uops from flows due to complex instructions, faults, assists, and inserted flows.",
         "SampleAfterValue": "2000003",
         "UMask": "0x1"
+    },
+    {
+        "BriefDescription": "Counts the number of x87 uops retired, includes those in MS flows.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0xc2",
+        "EventName": "UOPS_RETIRED.X87",
+        "PEBS": "1",
+        "PEBScounters": "0,1,2,3",
+        "SampleAfterValue": "2000003",
+        "UMask": "0x2"
     }
 ]

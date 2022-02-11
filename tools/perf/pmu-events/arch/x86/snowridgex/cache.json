@@ -34,6 +34,53 @@
         "SampleAfterValue": "200003"
     },
     {
+        "BriefDescription": "Counts the total number of L2 Cache accesses. Counts on a per core basis.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x24",
+        "EventName": "L2_REQUEST.ALL",
+        "PDIR_COUNTER": "na",
+        "PEBScounters": "0,1,2,3",
+        "PublicDescription": "Counts the total number of L2 Cache Accesses, includes hits, misses, rejects  front door requests for CRd/DRd/RFO/ItoM/L2 Prefetches only.  Counts on a per core basis.",
+        "SampleAfterValue": "200003"
+    },
+    {
+        "BriefDescription": "Counts the number of L2 Cache accesses that resulted in a hit. Counts on a per core basis.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x24",
+        "EventName": "L2_REQUEST.HIT",
+        "PDIR_COUNTER": "na",
+        "PEBScounters": "0,1,2,3",
+        "PublicDescription": "Counts the number of L2 Cache accesses that resulted in a hit from a front door request only (does not include rejects or recycles), Counts on a per core basis.",
+        "SampleAfterValue": "200003",
+        "UMask": "0x2"
+    },
+    {
+        "BriefDescription": "Counts the number of L2 Cache accesses that resulted in a miss. Counts on a per core basis.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x24",
+        "EventName": "L2_REQUEST.MISS",
+        "PDIR_COUNTER": "na",
+        "PEBScounters": "0,1,2,3",
+        "PublicDescription": "Counts the number of L2 Cache accesses that resulted in a miss from a front door request only (does not include rejects or recycles). Counts on a per core basis.",
+        "SampleAfterValue": "200003",
+        "UMask": "0x1"
+    },
+    {
+        "BriefDescription": "Counts the number of L2 Cache accesses that miss the L2 and get rejected. Counts on a per core basis.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x24",
+        "EventName": "L2_REQUEST.REJECTS",
+        "PDIR_COUNTER": "na",
+        "PEBScounters": "0,1,2,3",
+        "PublicDescription": "Counts the number of L2 Cache accesses that miss the L2 and get BBL reject  short and long rejects (includes those counted in L2_reject_XQ.any). Counts on a per core basis.",
+        "SampleAfterValue": "200003",
+        "UMask": "0x4"
+    },
+    {
         "BriefDescription": "Counts the number of cacheable memory requests that miss in the LLC. Counts on a per core basis.",
         "CollectPEBSRecord": "2",
         "Counter": "0,1,2,3",
@@ -59,6 +106,7 @@
     },
     {
         "BriefDescription": "Counts the number of cycles the core is stalled due to an instruction cache or TLB miss which hit in the L2, LLC, DRAM or MMIO (Non-DRAM).",
+        "CollectPEBSRecord": "2",
         "Counter": "0,1,2,3",
         "EventCode": "0x34",
         "EventName": "MEM_BOUND_STALLS.IFETCH",
@@ -242,6 +290,18 @@
         "UMask": "0x4"
     },
     {
+        "BriefDescription": "Counts the number of memory uops retired.  A single uop that performs both a load AND a store will be counted as 1, not 2 (e.g. ADD [mem], CONST)",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "Data_LA": "1",
+        "EventCode": "0xd0",
+        "EventName": "MEM_UOPS_RETIRED.ALL",
+        "PEBS": "1",
+        "PEBScounters": "0,1,2,3",
+        "SampleAfterValue": "200003",
+        "UMask": "0x83"
+    },
+    {
         "BriefDescription": "Counts the number of load uops retired.",
         "CollectPEBSRecord": "2",
         "Counter": "0,1,2,3",
@@ -268,6 +328,18 @@
         "UMask": "0x82"
     },
     {
+        "BriefDescription": "Counts the number of load uops retired that performed one or more locks.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "Data_LA": "1",
+        "EventCode": "0xd0",
+        "EventName": "MEM_UOPS_RETIRED.LOCK_LOADS",
+        "PEBS": "1",
+        "PEBScounters": "0,1,2,3",
+        "SampleAfterValue": "200003",
+        "UMask": "0x21"
+    },
+    {
         "BriefDescription": "Counts the number of memory uops retired that were splits.",
         "CollectPEBSRecord": "2",
         "Counter": "0,1,2,3",
@@ -290,6 +362,18 @@
         "PEBScounters": "0,1,2,3",
         "SampleAfterValue": "200003",
         "UMask": "0x41"
+    },
+    {
+        "BriefDescription": "Counts the number of retired split store uops.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "Data_LA": "1",
+        "EventCode": "0xd0",
+        "EventName": "MEM_UOPS_RETIRED.SPLIT_STORES",
+        "PEBS": "1",
+        "PEBScounters": "0,1,2,3",
+        "SampleAfterValue": "200003",
+        "UMask": "0x42"
     },
     {
         "BriefDescription": "Counts the number of issue slots every cycle that were not delivered by the frontend due to instruction cache misses.",

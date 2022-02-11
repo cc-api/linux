@@ -11,6 +11,28 @@
         "UMask": "0x2"
     },
     {
+        "BriefDescription": "Counts the number of misaligned load uops that are 4K page splits.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x13",
+        "EventName": "MISALIGN_MEM_REF.LOAD_PAGE_SPLIT",
+        "PEBS": "1",
+        "PEBScounters": "0,1,2,3",
+        "SampleAfterValue": "200003",
+        "UMask": "0x2"
+    },
+    {
+        "BriefDescription": "Counts the number of misaligned store uops that are 4K page splits.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x13",
+        "EventName": "MISALIGN_MEM_REF.STORE_PAGE_SPLIT",
+        "PEBS": "1",
+        "PEBScounters": "0,1,2,3",
+        "SampleAfterValue": "200003",
+        "UMask": "0x4"
+    },
+    {
         "BriefDescription": "Counts all code reads that were not supplied by the L3 cache.",
         "Counter": "0,1,2,3",
         "EventCode": "0XB7",
