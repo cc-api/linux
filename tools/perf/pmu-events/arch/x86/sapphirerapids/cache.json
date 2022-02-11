@@ -111,28 +111,6 @@
         "UMask": "0x1"
     },
     {
-        "BriefDescription": "All L2 requests. Alias",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3",
-        "EventCode": "0x24",
-        "EventName": "L2_REQUEST.ALL",
-        "PEBScounters": "0,1,2,3",
-        "PublicDescription": "Counts all L2 requests.",
-        "SampleAfterValue": "200003",
-        "UMask": "0xff"
-    },
-    {
-        "BriefDescription": "All requests that miss L2 cache. Alias",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3",
-        "EventCode": "0x24",
-        "EventName": "L2_REQUEST.MISS",
-        "PEBScounters": "0,1,2,3",
-        "PublicDescription": "Counts all requests that miss L2 cache.",
-        "SampleAfterValue": "200003",
-        "UMask": "0x3f"
-    },
-    {
         "BriefDescription": "L2 code requests",
         "CollectPEBSRecord": "2",
         "Counter": "0,1,2,3",
@@ -230,6 +208,28 @@
         "PublicDescription": "Counts the number of demand Data Read requests that miss L2 cache. Only not rejected loads are counted.",
         "SampleAfterValue": "200003",
         "UMask": "0x21"
+    },
+    {
+        "BriefDescription": "Read requests with true-miss in L2 cache.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x24",
+        "EventName": "L2_RQSTS.MISS",
+        "PEBScounters": "0,1,2,3",
+        "PublicDescription": "Counts read requests of any type with true-miss in the L2 cache. True-miss excludes L2 misses that were merged with ongoing L2 misses.",
+        "SampleAfterValue": "200003",
+        "UMask": "0x3f"
+    },
+    {
+        "BriefDescription": "All L2 requests.",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x24",
+        "EventName": "L2_RQSTS.REFERENCES",
+        "PEBScounters": "0,1,2,3",
+        "PublicDescription": "Counts all L2 requests.",
+        "SampleAfterValue": "200003",
+        "UMask": "0xff"
     },
     {
         "BriefDescription": "RFO requests that hit L2 cache",
@@ -716,6 +716,18 @@
         "UMask": "0x1"
     },
     {
+        "BriefDescription": "Counts all data read, code read and RFO requests including demands and prefetches to the core caches (L1 or L2) that were supplied by a cache on a remote socket where a snoop was sent and data was returned (Modified or Not Modified).",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x2A,0x2B",
+        "EventName": "OCR.READS_TO_CORE.REMOTE_CACHE.SNOOP_FWD",
+        "MSRIndex": "0x1a6,0x1a7",
+        "MSRValue": "0x1830004477",
+        "Offcore": "1",
+        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
+        "SampleAfterValue": "100003",
+        "UMask": "0x1"
+    },
+    {
         "BriefDescription": "TBD",
         "CollectPEBSRecord": "2",
         "Counter": "0,1,2,3",
@@ -724,6 +736,28 @@
         "PEBScounters": "0,1,2,3",
         "SampleAfterValue": "100003",
         "UMask": "0x80"
+    },
+    {
+        "BriefDescription": "Demand and prefetch data reads",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x21",
+        "EventName": "OFFCORE_REQUESTS.DATA_RD",
+        "PEBScounters": "0,1,2,3",
+        "PublicDescription": "Counts the demand and prefetch data reads. All Core Data Reads include cacheable 'Demands' and L2 prefetchers (not L3 prefetchers). Counting also covers reads due to page walks resulted from any request type.",
+        "SampleAfterValue": "100003",
+        "UMask": "0x8"
+    },
+    {
+        "BriefDescription": "Demand Data Read requests sent to uncore",
+        "CollectPEBSRecord": "2",
+        "Counter": "0,1,2,3",
+        "EventCode": "0x21",
+        "EventName": "OFFCORE_REQUESTS.DEMAND_DATA_RD",
+        "PEBScounters": "0,1,2,3",
+        "PublicDescription": "Counts the Demand Data Read requests sent to uncore. Use it in conjunction with OFFCORE_REQUESTS_OUTSTANDING to determine average latency in the uncore.",
+        "SampleAfterValue": "100003",
+        "UMask": "0x1"
     },
     {
         "BriefDescription": "This event is deprecated. Refer to new event OFFCORE_REQUESTS_OUTSTANDING.DATA_RD",
