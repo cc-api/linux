@@ -25,11 +25,15 @@
 #define TELEM_GUID_OFFSET	0x4
 #define TELEM_BASE_OFFSET	0x8
 #define TELEM_ACCESS(v)		((v) & GENMASK(3, 0))
+#define TELEM_TYPE(v)		(((v) & GENMASK(7, 4)) >> 4)
 /* size is in bytes */
 #define TELEM_SIZE(v)		(((v) & GENMASK(27, 12)) >> 10)
 
-/* Used by client hardware to identify a fixed telemetry entry*/
-#define TELEM_CLIENT_FIXED_BLOCK_GUID	0x10000000
+enum telem_type {
+	TELEM_TYPE_PUNIT = 0,
+	TELEM_TYPE_CRASHLOG,
+	TELEM_TYPE_PUNIT_FIXED,
+};
 
 #define NUM_BYTES_QWORD(v)	((v) << 3)
 #define SAMPLE_ID_OFFSET(v)	((v) << 3)
@@ -49,12 +53,18 @@ struct pmt_telem_priv {
 static bool pmt_telem_region_overlaps(struct intel_pmt_entry *entry,
 				      struct device *dev)
 {
-	u32 guid = readl(entry->disc_table + TELEM_GUID_OFFSET);
+	/*
+	 * TODO: Need to confirm DG and ATS-M support telem_type or at least
+	 * have the field set to 0
+	 */
+	if (intel_pmt_is_early_client_hw(dev)) {
+		u32 type = TELEM_TYPE(readl(entry->disc_table));
 
-	if (guid != TELEM_CLIENT_FIXED_BLOCK_GUID)
-		return false;
+		if (type == TELEM_TYPE_PUNIT_FIXED)
+			return true;
+	}
 
-	return intel_pmt_is_early_client_hw(dev);
+	return false;
 }
 
 static int pmt_telem_header_decode(struct intel_pmt_entry *entry,
