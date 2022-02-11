@@ -55,6 +55,7 @@ void detect_tdx_keyids(struct cpuinfo_x86 *c);
 int detect_tdx(void);
 int init_tdx(struct tdsysinfo_struct *r);
 #else
+struct tdsysinfo_struct;
 static inline void detect_tdx_keyids(struct cpuinfo_x86 *c) { }
 static inline int detect_tdx(void) { return -ENODEV; }
 static inline int init_tdx(struct tdsysinfo_struct *r) { return -ENODEV; }
