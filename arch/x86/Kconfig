@@ -1947,6 +1947,7 @@ config INTEL_TDX_HOST
 	depends on CPU_SUP_INTEL
 	depends on X86_64
 	select CONTIG_ALLOC
+	select CMA
 	select NUMA_KEEP_MEMINFO if NUMA
 	help
 	  Intel Trust Domain Extensions (TDX) protects guest VMs from malicious
