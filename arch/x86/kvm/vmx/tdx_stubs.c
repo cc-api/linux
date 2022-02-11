@@ -36,7 +36,8 @@ u64 tdx_get_segment_base(struct kvm_vcpu *vcpu, int seg) { return 0; }
 void tdx_get_segment(struct kvm_vcpu *vcpu, struct kvm_segment *var, int seg) {}
 
 void tdx_apicv_post_state_restore(struct kvm_vcpu *vcpu) {}
-int tdx_deliver_posted_interrupt(struct kvm_vcpu *vcpu, int vector) { return 0; }
+void tdx_deliver_interrupt(struct kvm_lapic *apic, int delivery_mode,
+			int trig_mode, int vector) {};
 void tdx_get_exit_info(struct kvm_vcpu *vcpu, u32 *reason,
 		u64 *info1, u64 *info2, u32 *intr_info, u32 *error_code) {}
 int tdx_smi_allowed(struct kvm_vcpu *vcpu, bool for_injection) { return false; }
