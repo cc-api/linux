@@ -107,6 +107,9 @@ module_param(fasteoi, bool, S_IRUGO);
 
 module_param(enable_apicv, bool, S_IRUGO);
 
+bool __read_mostly enable_ipiv = true;
+module_param(enable_ipiv, bool, 0444);
+
 /*
  * If nested=1, nested virtualization is supported, i.e., guests may use
  * VMX and be a hypervisor for its own guests. If nested=0, guests may not
@@ -229,6 +232,12 @@ static const struct {
 };
 
 #define L1D_CACHE_ORDER 4
+
+/* Each entry in PID(Posted-Interrupt Descriptor)-pointer table is 8 bytes */
+#define table_index_to_size(index) ((index) << 3)
+#define table_size_to_index(size) ((size) >> 3)
+#define PID_TABLE_ENTRY_VALID 1
+
 static void *vmx_l1d_flush_pages;
 
 static int vmx_setup_l1d_flush(enum vmx_l1d_flush_state l1tf)
@@ -2424,6 +2433,21 @@ static __init int adjust_vmx_controls(u32 ctl_min, u32 ctl_opt,
 	return 0;
 }
 
+static __init int adjust_vmx_controls_64(u64 ctl_min, u64 ctl_opt,
+					 u32 msr, u64 *result)
+{
+	u64 allowed1;
+
+	rdmsrl(msr, allowed1);
+
+	/* Ensure minimum (required) set of control bits are supported. */
+	if (ctl_min & ~allowed1)
+		return -EIO;
+
+	*result = (ctl_min | ctl_opt) & allowed1;
+	return 0;
+}
+
 static __init int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 				    struct vmx_capability *vmx_cap)
 {
@@ -2432,6 +2456,7 @@ static __init int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 	u32 _pin_based_exec_control = 0;
 	u32 _cpu_based_exec_control = 0;
 	u32 _cpu_based_2nd_exec_control = 0;
+	u64 _cpu_based_3rd_exec_control = 0;
 	u32 _vmexit_control = 0;
 	u32 _vmentry_control = 0;
 
@@ -2453,7 +2478,8 @@ static __init int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 
 	opt = CPU_BASED_TPR_SHADOW |
 	      CPU_BASED_USE_MSR_BITMAPS |
-	      CPU_BASED_ACTIVATE_SECONDARY_CONTROLS;
+	      CPU_BASED_ACTIVATE_SECONDARY_CONTROLS |
+	      CPU_BASED_ACTIVATE_TERTIARY_CONTROLS;
 	if (adjust_vmx_controls(min, opt, MSR_IA32_VMX_PROCBASED_CTLS,
 				&_cpu_based_exec_control) < 0)
 		return -EIO;
@@ -2525,6 +2551,16 @@ static __init int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 		vmx_cap->vpid = 0;
 		pr_warn_once("VPID CAP should not exist if not support "
 				"1-setting enable VPID VM-execution control\n");
+	}
+
+	if (_cpu_based_exec_control & CPU_BASED_ACTIVATE_TERTIARY_CONTROLS) {
+		u64 opt3 = TERTIARY_EXEC_IPI_VIRT;
+		u64 min3 = 0;
+
+		if (adjust_vmx_controls_64(min3, opt3,
+					   MSR_IA32_VMX_PROCBASED_CTLS3,
+					   &_cpu_based_3rd_exec_control))
+			return -EIO;
 	}
 
 	min = VM_EXIT_SAVE_DEBUG_CONTROLS | VM_EXIT_ACK_INTR_ON_EXIT;
@@ -2613,6 +2649,7 @@ static __init int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 	vmcs_conf->pin_based_exec_ctrl = _pin_based_exec_control;
 	vmcs_conf->cpu_based_exec_ctrl = _cpu_based_exec_control;
 	vmcs_conf->cpu_based_2nd_exec_ctrl = _cpu_based_2nd_exec_control;
+	vmcs_conf->cpu_based_3rd_exec_ctrl = _cpu_based_3rd_exec_control;
 	vmcs_conf->vmexit_ctrl         = _vmexit_control;
 	vmcs_conf->vmentry_ctrl        = _vmentry_control;
 
@@ -3870,6 +3907,8 @@ static void vmx_update_msr_bitmap_x2apic(struct kvm_vcpu *vcpu)
 		vmx_enable_intercept_for_msr(vcpu, X2APIC_MSR(APIC_TMCCT), MSR_TYPE_RW);
 		vmx_disable_intercept_for_msr(vcpu, X2APIC_MSR(APIC_EOI), MSR_TYPE_W);
 		vmx_disable_intercept_for_msr(vcpu, X2APIC_MSR(APIC_SELF_IPI), MSR_TYPE_W);
+		if (enable_ipiv)
+			vmx_disable_intercept_for_msr(vcpu, X2APIC_MSR(APIC_ICR),MSR_TYPE_RW);
 	}
 }
 
@@ -4136,14 +4175,21 @@ void vmx_refresh_apicv_exec_ctrl(struct kvm_vcpu *vcpu)
 
 	pin_controls_set(vmx, vmx_pin_based_exec_ctrl(vmx));
 	if (cpu_has_secondary_exec_ctrls()) {
-		if (kvm_vcpu_apicv_active(vcpu))
+		if (kvm_vcpu_apicv_active(vcpu)) {
 			secondary_exec_controls_setbit(vmx,
 				      SECONDARY_EXEC_APIC_REGISTER_VIRT |
 				      SECONDARY_EXEC_VIRTUAL_INTR_DELIVERY);
-		else
+			if (cpu_has_tertiary_exec_ctrls() && enable_ipiv)
+				tertiary_exec_controls_setbit(vmx,
+						TERTIARY_EXEC_IPI_VIRT);
+		} else {
 			secondary_exec_controls_clearbit(vmx,
 					SECONDARY_EXEC_APIC_REGISTER_VIRT |
 					SECONDARY_EXEC_VIRTUAL_INTR_DELIVERY);
+			if (cpu_has_tertiary_exec_ctrls())
+				tertiary_exec_controls_clearbit(vmx,
+						TERTIARY_EXEC_IPI_VIRT);
+		}
 	}
 
 	vmx_update_msr_bitmap_x2apic(vcpu);
@@ -4172,6 +4218,20 @@ static u32 vmx_exec_control(struct vcpu_vmx *vmx)
 				CPU_BASED_MONITOR_EXITING);
 	if (kvm_hlt_in_guest(vmx->vcpu.kvm))
 		exec_control &= ~CPU_BASED_HLT_EXITING;
+	return exec_control;
+}
+
+static u64 vmx_tertiary_exec_control(struct vcpu_vmx *vmx)
+{
+	u64 exec_control = vmcs_config.cpu_based_3rd_exec_ctrl;
+
+	/*
+	 * IPI virtualization relies on APICv. Disable IPI
+	 * virtualization if APICv is inhibited.
+	 */
+	if (!enable_ipiv || !kvm_vcpu_apicv_active(&vmx->vcpu))
+		exec_control &= ~TERTIARY_EXEC_IPI_VIRT;
+
 	return exec_control;
 }
 
@@ -4320,10 +4380,49 @@ static u32 vmx_secondary_exec_control(struct vcpu_vmx *vmx)
 	return exec_control;
 }
 
+static int vmx_alloc_pid_table(struct kvm_vmx *kvm_vmx, int order)
+{
+	u64 *pid_table;
+
+	pid_table = (void *)__get_free_pages(GFP_KERNEL | __GFP_ZERO, order);
+	if (!pid_table)
+		return -ENOMEM;
+
+	kvm_vmx->pid_table = pid_table;
+	kvm_vmx->pid_last_index = table_size_to_index(PAGE_SIZE << order) - 1;
+	return 0;
+}
+
+static int vmx_expand_pid_table(struct kvm_vmx *kvm_vmx, int entry_idx)
+{
+	u64 *last_pid_table;
+	int last_table_size, new_order;
+
+	if (entry_idx <= kvm_vmx->pid_last_index)
+		return 0;
+
+	last_pid_table = kvm_vmx->pid_table;
+	last_table_size = table_index_to_size(kvm_vmx->pid_last_index + 1);
+	new_order = get_order(table_index_to_size(entry_idx + 1));
+
+	if (vmx_alloc_pid_table(kvm_vmx, new_order))
+		return -ENOMEM;
+
+	memcpy(kvm_vmx->pid_table, last_pid_table, last_table_size);
+	kvm_make_all_cpus_request(&kvm_vmx->kvm, KVM_REQ_PID_TABLE_UPDATE);
+
+	/* Now old PID table can be freed safely as no vCPU is using it. */
+	free_pages((unsigned long)last_pid_table, get_order(last_table_size));
+	return 0;
+}
+
 #define VMX_XSS_EXIT_BITMAP 0
 
 static void init_vmcs(struct vcpu_vmx *vmx)
 {
+	struct kvm_vcpu *vcpu = &vmx->vcpu;
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
+
 	if (nested)
 		nested_vmx_set_vmcs_shadowing_bitmap();
 
@@ -4340,7 +4439,10 @@ static void init_vmcs(struct vcpu_vmx *vmx)
 	if (cpu_has_secondary_exec_ctrls())
 		secondary_exec_controls_set(vmx, vmx_secondary_exec_control(vmx));
 
-	if (kvm_vcpu_apicv_active(&vmx->vcpu)) {
+	if (cpu_has_tertiary_exec_ctrls())
+		tertiary_exec_controls_set(vmx, vmx_tertiary_exec_control(vmx));
+
+	if (kvm_vcpu_apicv_active(vcpu)) {
 		vmcs_write64(EOI_EXIT_BITMAP0, 0);
 		vmcs_write64(EOI_EXIT_BITMAP1, 0);
 		vmcs_write64(EOI_EXIT_BITMAP2, 0);
@@ -4350,6 +4452,22 @@ static void init_vmcs(struct vcpu_vmx *vmx)
 
 		vmcs_write16(POSTED_INTR_NV, POSTED_INTR_VECTOR);
 		vmcs_write64(POSTED_INTR_DESC_ADDR, __pa((&vmx->pi_desc)));
+
+		if (enable_ipiv) {
+			down_write(&kvm_vmx->pid_table_lock);
+
+			/*
+			 * In case new memory allocation for PID table fails,
+			 * skip setting Posted-Interrupt descriptor of current
+			 * vCPU which index is beyond present table limit.
+			 */
+			if (!vmx_expand_pid_table(kvm_vmx, vcpu->vcpu_id))
+				WRITE_ONCE(kvm_vmx->pid_table[vcpu->vcpu_id],
+					__pa(&vmx->pi_desc) | PID_TABLE_ENTRY_VALID);
+			vmcs_write64(PID_POINTER_TABLE, __pa(kvm_vmx->pid_table));
+			vmcs_write16(LAST_PID_POINTER_INDEX, kvm_vmx->pid_last_index);
+			up_write(&kvm_vmx->pid_table_lock);
+		}
 	}
 
 	if (!kvm_pause_in_guest(vmx->vcpu.kvm)) {
@@ -4401,7 +4519,7 @@ static void init_vmcs(struct vcpu_vmx *vmx)
 		vmcs_write16(GUEST_PML_INDEX, PML_ENTITY_NUM - 1);
 	}
 
-	vmx_write_encls_bitmap(&vmx->vcpu, NULL);
+	vmx_write_encls_bitmap(vcpu, NULL);
 
 	if (vmx_pt_mode_is_host_guest()) {
 		memset(&vmx->pt_desc, 0, sizeof(vmx->pt_desc));
@@ -4417,7 +4535,7 @@ static void init_vmcs(struct vcpu_vmx *vmx)
 
 	if (cpu_has_vmx_tpr_shadow()) {
 		vmcs_write64(VIRTUAL_APIC_PAGE_ADDR, 0);
-		if (cpu_need_tpr_shadow(&vmx->vcpu))
+		if (cpu_need_tpr_shadow(vcpu))
 			vmcs_write64(VIRTUAL_APIC_PAGE_ADDR,
 				     __pa(vmx->vcpu.arch.apic->regs));
 		vmcs_write32(TPR_THRESHOLD, 0);
@@ -5768,6 +5886,7 @@ void dump_vmcs(struct kvm_vcpu *vcpu)
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 	u32 vmentry_ctl, vmexit_ctl;
 	u32 cpu_based_exec_ctrl, pin_based_exec_ctrl, secondary_exec_control;
+	u64 tertiary_exec_control;
 	unsigned long cr4;
 	int efer_slot;
 
@@ -5781,9 +5900,16 @@ void dump_vmcs(struct kvm_vcpu *vcpu)
 	cpu_based_exec_ctrl = vmcs_read32(CPU_BASED_VM_EXEC_CONTROL);
 	pin_based_exec_ctrl = vmcs_read32(PIN_BASED_VM_EXEC_CONTROL);
 	cr4 = vmcs_readl(GUEST_CR4);
-	secondary_exec_control = 0;
+
 	if (cpu_has_secondary_exec_ctrls())
 		secondary_exec_control = vmcs_read32(SECONDARY_VM_EXEC_CONTROL);
+	else
+		secondary_exec_control = 0;
+
+	if (cpu_has_tertiary_exec_ctrls())
+		tertiary_exec_control = vmcs_read64(TERTIARY_VM_EXEC_CONTROL);
+	else
+		tertiary_exec_control = 0;
 
 	pr_err("VMCS %p, last attempted VM-entry on CPU %d\n",
 	       vmx->loaded_vmcs->vmcs, vcpu->arch.last_vmentry_cpu);
@@ -5883,9 +6009,10 @@ void dump_vmcs(struct kvm_vcpu *vcpu)
 		vmx_dump_msrs("host autoload", &vmx->msr_autoload.host);
 
 	pr_err("*** Control State ***\n");
-	pr_err("PinBased=%08x CPUBased=%08x SecondaryExec=%08x\n",
-	       pin_based_exec_ctrl, cpu_based_exec_ctrl, secondary_exec_control);
-	pr_err("EntryControls=%08x ExitControls=%08x\n", vmentry_ctl, vmexit_ctl);
+	pr_err("CPUBased=0x%08x SecondaryExec=0x%08x TertiaryExec=0x%016llx\n",
+	       cpu_based_exec_ctrl, secondary_exec_control, tertiary_exec_control);
+	pr_err("PinBased=0x%08x EntryControls=%08x ExitControls=%08x\n",
+	       pin_based_exec_ctrl, vmentry_ctl, vmexit_ctl);
 	pr_err("ExceptionBitmap=%08x PFECmask=%08x PFECmatch=%08x\n",
 	       vmcs_read32(EXCEPTION_BITMAP),
 	       vmcs_read32(PAGE_FAULT_ERROR_CODE_MASK),
@@ -6998,6 +7125,15 @@ int vmx_vm_init(struct kvm *kvm)
 			break;
 		}
 	}
+
+	if (enable_ipiv) {
+		struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
+
+		if (vmx_alloc_pid_table(kvm_vmx, 0))
+			return -ENOMEM;
+		init_rwsem(&kvm_vmx->pid_table_lock);
+	}
+
 	return 0;
 }
 
@@ -7589,6 +7725,36 @@ bool vmx_check_apicv_inhibit_reasons(ulong bit)
 	return supported & BIT(bit);
 }
 
+void vmx_vm_destroy(struct kvm *kvm)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
+
+	if (kvm_vmx->pid_table)
+		free_pages((unsigned long)kvm_vmx->pid_table,
+			get_order(table_index_to_size(kvm_vmx->pid_last_index)));
+}
+
+void vmx_update_ipiv_pid_table(struct kvm_vcpu *vcpu)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
+
+	down_read(&kvm_vmx->pid_table_lock);
+	vmcs_write64(PID_POINTER_TABLE, __pa(kvm_vmx->pid_table));
+	vmcs_write16(LAST_PID_POINTER_INDEX, kvm_vmx->pid_last_index);
+	up_read(&kvm_vmx->pid_table_lock);
+}
+
+void vmx_update_ipiv_pid_entry(struct kvm_vcpu *vcpu, u8 old_id, u8 new_id)
+{
+	if (enable_ipiv && kvm_vcpu_apicv_active(vcpu)) {
+		u64 *pid_table = to_kvm_vmx(vcpu->kvm)->pid_table;
+
+		WRITE_ONCE(pid_table[old_id], 0);
+		WRITE_ONCE(pid_table[new_id], __pa(&to_vmx(vcpu)->pi_desc) |
+				PID_TABLE_ENTRY_VALID);
+	}
+}
+
 static unsigned int vmx_handle_intel_pt_intr(void)
 {
 	struct kvm_vcpu *vcpu = kvm_get_running_vcpu();
@@ -7715,6 +7881,9 @@ __init int vmx_hardware_setup(void)
 		enable_apicv = 0;
 	if (!enable_apicv)
 		vt_x86_ops.sync_pir_to_irr = NULL;
+
+	if (!enable_apicv || !cpu_has_vmx_ipiv())
+		enable_ipiv = false;
 
 	if (cpu_has_vmx_tsc_scaling()) {
 		kvm_has_tsc_control = true;

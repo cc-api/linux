@@ -2001,9 +2001,12 @@ int kvm_lapic_reg_write(struct kvm_lapic *apic, u32 reg, u32 val)
 
 	switch (reg) {
 	case APIC_ID:		/* Local APIC ID */
-		if (!apic_x2apic_mode(apic))
+		if (!apic_x2apic_mode(apic)) {
+			u8 old_id = kvm_lapic_get_reg(apic, APIC_ID) >> 24;
+
 			kvm_apic_set_xapic_id(apic, val >> 24);
-		else
+			kvm_x86_ops.update_ipiv_pid_entry(apic->vcpu, old_id, val >> 24);
+		} else
 			ret = 1;
 		break;
 
@@ -2180,15 +2183,21 @@ EXPORT_SYMBOL_GPL(kvm_lapic_set_eoi);
 /* emulate APIC access in a trap manner */
 void kvm_apic_write_nodecode(struct kvm_vcpu *vcpu, u32 offset)
 {
-	u32 val = 0;
+	struct kvm_lapic *apic = vcpu->arch.apic;
+	u64 val = 0;
 
 	/* hw has done the conditional check and inst decode */
 	offset &= 0xff0;
 
-	kvm_lapic_reg_read(vcpu->arch.apic, offset, 4, &val);
+	/* exception dealing with 64bit data on vICR in x2apic mode */
+	if ((offset == APIC_ICR) && apic_x2apic_mode(apic)) {
+		val = kvm_lapic_get_reg64(apic, offset);
+		kvm_lapic_reg_write(apic, APIC_ICR2, (u32)(val>>32));
+	} else
+		kvm_lapic_reg_read(apic, offset, 4, &val);
 
 	/* TODO: optimize to just emulate side effect w/o one more write */
-	kvm_lapic_reg_write(vcpu->arch.apic, offset, val);
+	kvm_lapic_reg_write(apic, offset, (u32)val);
 }
 EXPORT_SYMBOL_GPL(kvm_apic_write_nodecode);
 

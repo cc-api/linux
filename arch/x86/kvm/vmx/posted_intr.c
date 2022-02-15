@@ -183,11 +183,21 @@ static void pi_enable_wakeup_handler(struct kvm_vcpu *vcpu)
 	local_irq_restore(flags);
 }
 
+static bool vmx_can_use_ipiv_pi(struct kvm *kvm)
+{
+	return irqchip_in_kernel(kvm) && enable_ipiv;
+}
+
+static bool vmx_can_use_posted_interrupts(struct kvm *kvm)
+{
+	return vmx_can_use_ipiv_pi(kvm) || vmx_can_use_vtd_pi(kvm);
+}
+
 void vmx_vcpu_pi_put(struct kvm_vcpu *vcpu)
 {
 	struct pi_desc *pi_desc = vcpu_to_pi_desc(vcpu);
 
-	if (!vmx_can_use_vtd_pi(vcpu->kvm))
+	if (!vmx_can_use_posted_interrupts(vcpu->kvm))
 		return;
 
 	if (kvm_vcpu_is_blocking(vcpu) && !vmx_interrupt_blocked(vcpu))
