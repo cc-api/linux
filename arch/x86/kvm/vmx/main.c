@@ -1019,6 +1019,8 @@ struct kvm_x86_ops vt_x86_ops __initdata = {
 
 	.mem_enc_op = vt_mem_enc_op,
 	.mem_enc_op_vcpu = vt_mem_enc_op_vcpu,
+	.update_ipiv_pid_entry = vmx_update_ipiv_pid_entry,
+	.update_ipiv_pid_table = vmx_update_ipiv_pid_table,
 };
 
 struct kvm_x86_init_ops vt_init_ops __initdata = {
