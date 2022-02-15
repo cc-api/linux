@@ -729,6 +729,7 @@ static const struct intel_pinctrl_soc_data adls_soc_data = {
 
 static const struct acpi_device_id adl_pinctrl_acpi_match[] = {
 	{ "INTC1056", (kernel_ulong_t)&adls_soc_data },
+	{ "INTC1057", (kernel_ulong_t)&adln_soc_data },
 	{ "INTC1085", (kernel_ulong_t)&adls_soc_data },
 	{ }
 };
