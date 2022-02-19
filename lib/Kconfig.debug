@@ -1535,7 +1535,7 @@ config PROVE_CXL_LOCKING
 	bool "CXL"
 	depends on CXL_BUS
 	help
-	  Enable lockdep to validate cxl_device_lock() usage.
+	  Enable lockdep to validate CXL subsystem usage of the device lock.
 
 endchoice
 
