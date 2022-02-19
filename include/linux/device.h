@@ -402,6 +402,7 @@ struct dev_msi_info {
  * @mutex:	Mutex to synchronize calls to its driver.
  * @lockdep_mutex: An optional debug lock that a subsystem can use as a
  * 		peer lock to gain localized lockdep coverage of the device_lock.
+ * @lock_class: per-subsystem annotated device lock class
  * @bus:	Type of bus device is on.
  * @driver:	Which driver has allocated this
  * @platform_data: Platform data specific to the device.
@@ -501,6 +502,7 @@ struct device {
 					   dev_set_drvdata/dev_get_drvdata */
 #ifdef CONFIG_PROVE_LOCKING
 	struct mutex		lockdep_mutex;
+	int			lock_class;
 #endif
 	struct mutex		mutex;	/* mutex to synchronize calls to
 					 * its driver.
@@ -762,6 +764,12 @@ static inline bool dev_pm_test_driver_flags(struct device *dev, u32 flags)
 	return !!(dev->power.driver_flags & flags);
 }
 
+static inline void device_lock_assert(struct device *dev)
+{
+	lockdep_assert_held(&dev->mutex);
+}
+
+#ifndef CONFIG_PROVE_LOCKING
 static inline void device_lock(struct device *dev)
 {
 	mutex_lock(&dev->mutex);
@@ -782,10 +790,71 @@ static inline void device_unlock(struct device *dev)
 	mutex_unlock(&dev->mutex);
 }
 
-static inline void device_lock_assert(struct device *dev)
+static inline void device_set_lock_class(struct device *dev, int lock_class)
 {
-	lockdep_assert_held(&dev->mutex);
 }
+#else
+static inline void device_lock(struct device *dev)
+{
+	lockdep_assert_not_held(&dev->lockdep_mutex);
+
+	mutex_lock(&dev->mutex);
+	if (dev->lock_class >= 0)
+		mutex_lock_nested(&dev->lockdep_mutex, dev->lock_class);
+}
+
+static inline int device_lock_interruptible(struct device *dev)
+{
+	int rc = mutex_lock_interruptible(&dev->mutex);
+
+	if (rc || dev->lock_class < 0)
+		return rc;
+
+	return mutex_lock_interruptible_nested(&dev->lockdep_mutex,
+					       dev->lock_class);
+}
+
+static inline int device_trylock(struct device *dev)
+{
+	if (mutex_trylock(&dev->mutex)) {
+		if (dev->lock_class >= 0)
+			mutex_lock_nested(&dev->lockdep_mutex, dev->lock_class);
+		return 1;
+	}
+
+	return 0;
+}
+
+static inline void device_unlock(struct device *dev)
+{
+	if (dev->lock_class >= 0)
+		mutex_unlock(&dev->lockdep_mutex);
+	mutex_unlock(&dev->mutex);
+}
+
+static inline void device_set_lock_class(struct device *dev, int lock_class)
+{
+	if (dev->lock_class < 0 && lock_class > 0) {
+		if (mutex_is_locked(&dev->mutex)) {
+			/*
+			 * device_unlock() will unlock lockdep_mutex now that
+			 * lock_class is set, so take the paired lock now
+			 */
+			mutex_lock_nested(&dev->lockdep_mutex, lock_class);
+		}
+	} else if (dev->lock_class >= 0 && lock_class < 0) {
+		if (mutex_is_locked(&dev->mutex)) {
+			/*
+			 * device_unlock() will no longer drop lockdep_mutex now
+			 * that lock_class is disabled, so drop the paired lock
+			 * now.
+			 */
+			mutex_unlock(&dev->lockdep_mutex);
+		}
+	}
+	dev->lock_class = lock_class;
+}
+#endif
 
 static inline struct device_node *dev_of_node(struct device *dev)
 {

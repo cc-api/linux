@@ -2866,6 +2866,7 @@ void device_initialize(struct device *dev)
 	mutex_init(&dev->mutex);
 #ifdef CONFIG_PROVE_LOCKING
 	mutex_init(&dev->lockdep_mutex);
+	dev->lock_class = -1;
 #endif
 	lockdep_set_novalidate_class(&dev->mutex);
 	spin_lock_init(&dev->devres_lock);
