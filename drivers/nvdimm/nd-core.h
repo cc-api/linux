@@ -214,5 +214,14 @@ static inline int nvdimm_lock_class(struct device *dev)
 	else
 		return -1;
 }
+
+static inline void nvdimm_set_lock_class(struct device *dev)
+{
+	device_set_lock_class(dev, nvdimm_lock_class(dev));
+}
+#else
+static inline void nvdimm_set_lock_class(struct device *dev)
+{
+}
 #endif
 #endif /* __ND_CORE_H__ */

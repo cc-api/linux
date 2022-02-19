@@ -363,6 +363,7 @@ struct nvdimm_bus *nvdimm_bus_register(struct device *parent,
 	if (rc)
 		goto err;
 
+	nvdimm_set_lock_class(&nvdimm_bus->dev);
 	rc = device_add(&nvdimm_bus->dev);
 	if (rc) {
 		dev_dbg(&nvdimm_bus->dev, "registration failed: %d\n", rc);
@@ -488,6 +489,7 @@ static void nd_async_device_register(void *d, async_cookie_t cookie)
 {
 	struct device *dev = d;
 
+	nvdimm_set_lock_class(dev);
 	if (device_add(dev) != 0) {
 		dev_err(dev, "%s: failed\n", __func__);
 		put_device(dev);
@@ -741,6 +743,7 @@ int nvdimm_bus_create_ndctl(struct nvdimm_bus *nvdimm_bus)
 	if (rc)
 		goto err;
 
+	nvdimm_set_lock_class(dev);
 	rc = device_add(dev);
 	if (rc) {
 		dev_dbg(&nvdimm_bus->dev, "failed to register ndctl%d: %d\n",
