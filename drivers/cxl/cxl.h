@@ -509,13 +509,12 @@ enum cxl_lock_class {
 	 */
 };
 
-static inline void cxl_nested_lock(struct device *dev)
+static inline int cxl_lock_class(struct device *dev)
 {
 	if (is_cxl_port(dev)) {
 		struct cxl_port *port = to_cxl_port(dev);
 
-		mutex_lock_nested(&dev->lockdep_mutex,
-				  CXL_PORT_LOCK + port->depth);
+		return CXL_PORT_LOCK + port->depth;
 	} else if (is_cxl_decoder(dev)) {
 		struct cxl_port *port = to_cxl_port(dev->parent);
 
@@ -523,14 +522,18 @@ static inline void cxl_nested_lock(struct device *dev)
 		 * A decoder is the immediate child of a port, so set
 		 * its lock class equal to other child device siblings.
 		 */
-		mutex_lock_nested(&dev->lockdep_mutex,
-				  CXL_PORT_LOCK + port->depth + 1);
+		return CXL_PORT_LOCK + port->depth + 1;
 	} else if (is_cxl_nvdimm_bridge(dev))
-		mutex_lock_nested(&dev->lockdep_mutex, CXL_NVDIMM_BRIDGE_LOCK);
+		return CXL_NVDIMM_BRIDGE_LOCK;
 	else if (is_cxl_nvdimm(dev))
-		mutex_lock_nested(&dev->lockdep_mutex, CXL_NVDIMM_LOCK);
+		return CXL_NVDIMM_LOCK;
 	else
-		mutex_lock_nested(&dev->lockdep_mutex, CXL_ANON_LOCK);
+		return CXL_ANON_LOCK;
+}
+
+static inline void cxl_nested_lock(struct device *dev)
+{
+	mutex_lock_nested(&dev->lockdep_mutex, cxl_lock_class(dev));
 }
 
 static inline void cxl_nested_unlock(struct device *dev)
