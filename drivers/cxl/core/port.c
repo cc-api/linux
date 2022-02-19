@@ -507,6 +507,7 @@ struct cxl_port *devm_cxl_add_port(struct device *host, struct device *uport,
 	if (rc)
 		goto err;
 
+	cxl_set_lock_class(dev);
 	rc = device_add(dev);
 	if (rc)
 		goto err;
@@ -1389,6 +1390,7 @@ int cxl_decoder_add_locked(struct cxl_decoder *cxld, int *target_map)
 	if (is_root_decoder(dev))
 		cxld->platform_res.name = dev_name(dev);
 
+	cxl_set_lock_class(dev);
 	return device_add(dev);
 }
 EXPORT_SYMBOL_NS_GPL(cxl_decoder_add_locked, CXL);

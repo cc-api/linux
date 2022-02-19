@@ -343,6 +343,7 @@ struct cxl_memdev *devm_cxl_add_memdev(struct cxl_dev_state *cxlds)
 	cxlmd->cxlds = cxlds;
 
 	cdev = &cxlmd->cdev;
+	cxl_set_lock_class(dev);
 	rc = cdev_device_add(cdev, dev);
 	if (rc)
 		goto err;

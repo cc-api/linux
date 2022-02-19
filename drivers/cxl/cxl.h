@@ -543,5 +543,14 @@ static inline int cxl_lock_class(struct device *dev)
 	else
 		return CXL_ANON_LOCK;
 }
+
+static inline void cxl_set_lock_class(struct device *dev)
+{
+	device_set_lock_class(dev, cxl_lock_class(dev));
+}
+#else
+static inline void cxl_set_lock_class(struct device *dev)
+{
+}
 #endif
 #endif /* __CXL_H__ */
