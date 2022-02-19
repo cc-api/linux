@@ -214,45 +214,5 @@ static inline int nvdimm_lock_class(struct device *dev)
 	else
 		return -1;
 }
-
-static inline void debug_nvdimm_lock(struct device *dev)
-{
-	mutex_lock_nested(&dev->lockdep_mutex, nvdimm_lock_class(dev));
-}
-
-static inline void debug_nvdimm_unlock(struct device *dev)
-{
-	mutex_unlock(&dev->lockdep_mutex);
-}
-
-static inline void nd_device_lock(struct device *dev)
-{
-	device_lock(dev);
-	debug_nvdimm_lock(dev);
-}
-
-static inline void nd_device_unlock(struct device *dev)
-{
-	debug_nvdimm_unlock(dev);
-	device_unlock(dev);
-}
-#else
-static inline void nd_device_lock(struct device *dev)
-{
-	device_lock(dev);
-}
-
-static inline void nd_device_unlock(struct device *dev)
-{
-	device_unlock(dev);
-}
-
-static inline void debug_nvdimm_lock(struct device *dev)
-{
-}
-
-static inline void debug_nvdimm_unlock(struct device *dev)
-{
-}
 #endif
 #endif /* __ND_CORE_H__ */

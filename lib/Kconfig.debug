@@ -1529,7 +1529,8 @@ config PROVE_NVDIMM_LOCKING
 	bool "NVDIMM"
 	depends on LIBNVDIMM
 	help
-	  Enable lockdep to validate nd_device_lock() usage.
+	  Enable lockdep to validate libnvdimm subsystem usage of the
+	  device lock.
 
 config PROVE_CXL_LOCKING
 	bool "CXL"
