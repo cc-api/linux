@@ -9,6 +9,7 @@ menu "Intel PnP excursion monitor"
 config INTEL_TPMI_PEM
 	tristate "Intel TPMI PEM"
 	depends on INTEL_TPMI
+	depends on INTEL_PMT_TELEMETRY
 	help
 	  The Intel TPMI PEM (Power and Performance Excursion Monitor)
 	  feature provides a configurable interface to get events for
