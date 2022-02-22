@@ -496,9 +496,9 @@ struct cxl_nvdimm *cxl_find_nvdimm(struct cxl_memdev *cxlmd);
 #define __mock static
 #endif
 
-#ifdef CONFIG_PROVE_CXL_LOCKING
 enum cxl_lock_class {
 	CXL_ANON_LOCK,
+	CXL_ROOT_LOCK,
 	CXL_NVDIMM_LOCK,
 	CXL_NVDIMM_BRIDGE_LOCK,
 	CXL_PORT_LOCK = 2,
@@ -510,6 +510,7 @@ enum cxl_lock_class {
 	 */
 };
 
+#ifdef CONFIG_PROVE_CXL_LOCKING
 static inline int clamp_lock_class(struct device *dev, int lock_class)
 {
 	if (lock_class >= MAX_LOCKDEP_SUBCLASSES) {
