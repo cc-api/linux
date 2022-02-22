@@ -483,7 +483,7 @@ static struct attribute_group pkg_events_attr_group = {
 	.attrs = attrs_empty,
 };
 
-DEFINE_PEM_FORMAT_ATTR(pkg_event, event, "config:0-63");
+DEFINE_PEM_FORMAT_ATTR(pkg_event, event, "config:0-16");
 static struct attribute *pkg_format_attrs[] = {
 	&format_attr_pkg_event.attr,
 	NULL,
