@@ -510,7 +510,7 @@ enum cxl_lock_class {
 	 */
 };
 
-#ifdef CONFIG_PROVE_CXL_LOCKING
+#ifdef CONFIG_PROVE_LOCKING
 static inline int clamp_lock_class(struct device *dev, int lock_class)
 {
 	if (lock_class >= MAX_LOCKDEP_SUBCLASSES) {
@@ -547,7 +547,7 @@ static inline int cxl_lock_class(struct device *dev)
 
 static inline void cxl_set_lock_class(struct device *dev)
 {
-	device_set_lock_class(dev, cxl_lock_class(dev));
+	device_set_lock_class(dev, DEVICE_LOCK_CXL, cxl_lock_class(dev));
 }
 #else
 static inline void cxl_set_lock_class(struct device *dev)

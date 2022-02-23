@@ -185,7 +185,7 @@ static inline void devm_nsio_disable(struct device *dev,
 }
 #endif
 
-#ifdef CONFIG_PROVE_NVDIMM_LOCKING
+#ifdef CONFIG_PROVE_LOCKING
 extern struct class *nd_class;
 
 enum {
@@ -217,7 +217,8 @@ static inline int nvdimm_lock_class(struct device *dev)
 
 static inline void nvdimm_set_lock_class(struct device *dev)
 {
-	device_set_lock_class(dev, nvdimm_lock_class(dev));
+	device_set_lock_class(dev, DEVICE_LOCK_NVDIMM,
+			      nvdimm_lock_class(dev));
 }
 #else
 static inline void nvdimm_set_lock_class(struct device *dev)
