@@ -8,7 +8,6 @@
  */
 
 #define DEBUG
-
 #include <linux/auxiliary_bus.h>
 #include <linux/intel_tpmi.h>
 #include <linux/bits.h>
@@ -34,30 +33,52 @@ struct tpmi_pem_instance_info {
 	int pkg_id;
 	int die_id;
 	void __iomem *pem_base;
-	int pem_header_ver;
 	int pmt_info_offset;
 	struct intel_tpmi_plat_info *plat_info;
 	struct auxiliary_device *auxdev;
 };
 
+/* Each socket will have multiple die instances */
 struct tpmi_pem_struct {
 	int pkg_id;
 	int number_of_instances;
 	struct tpmi_pem_instance_info *instance_info;
 };
 
+/* Max number of possible sockets, one instance per socket */
 #define	PEM_MAX_INSTANCES	16
+
 struct tpmi_pem_common_struct {
-	struct tpmi_pem_struct *pem_inst[PEM_MAX_INSTANCES];
+	int max_instance_id;
+	struct tpmi_pem_struct __rcu *pem_inst[PEM_MAX_INSTANCES];
 };
 
+/*
+ * Lock to prevent registration with the pem_core from the
+ * client drivers. Also prevents read/write to parameters set
+ * via sysfs attributes.
+ */
 static DEFINE_MUTEX(pem_tpmi_dev_lock);
-static int pem_core_usage_count;
-struct tpmi_pem_common_struct pem_common;
 
+/* Usage counters to client registered with pem_core */
+static int pem_core_usage_count;
+
+/* Store all PEM instances */
+static struct tpmi_pem_common_struct pem_common;
+
+/* For CPU online/offline */
 int pem_online_id;
-static cpumask_t pem_pkg_cpu_mask;
-static struct pmu pem_die_pmu;
+
+/* Mask of CPUs representing a die */
+static cpumask_t pem_die_cpu_mask;
+
+/* PMU struct for PEM */
+static struct pmu pem_pmu;
+
+/* Usage counters track active perf session in progress */
+static int pem_perf_active;
+
+/* Similar macros are used in the other PMU drivers to create attributes */
 
 #define EVENT_VAR(_id)		event_attr_##_id
 #define EVENT_PTR(_id)		&event_attr_##_id.attr.attr
@@ -100,12 +121,7 @@ static ssize_t __pem_##_var##_show(struct device *dev,	\
 static struct device_attribute format_attr_##_var =		\
 	__ATTR(_name, 0444, __pem_##_var##_show, NULL)
 
-struct perf_mmio {
-        u32			mmio;
-        struct attribute_group  *grp;
-};
-
-enum perf_pem_pkg_events {
+enum pem_perf_events {
 	PERF_PEM_PEM_ANY = 0,
 	PERF_PEM_THERMAL,
 	PERF_PEM_EXT_PROCHOT,
@@ -163,22 +179,34 @@ PMU_EVENT_GROUP(events, pem_ppl2_cfg);
 PMU_EVENT_GROUP(events, pem_pmax);
 
 #define for_each_pem_pkg(start, pkg_instance)\
-	for (pkg_instance = pem_common.pem_inst[start];\
-		start < PEM_MAX_INSTANCES; ++start)\
+	for (pkg_instance = rcu_dereference(pem_common.pem_inst[start]);\
+		start <= pem_common.max_instance_id; ++start)\
 
 #define for_each_pem_die(start, pkg_instance, instance)\
 	for (; start < pkg_instance->number_of_instances &&\
 		(instance = &pkg_instance->instance_info[start]); ++start)
-
 
 static ssize_t pem_fet_attr_show(struct device *dev, struct device_attribute *attr,
 				 char *buf)
 {
 	struct tpmi_pem_instance_info *instance;
 	struct tpmi_pem_struct *pkg_instance;
-	int i = 0, j = 0;
+	int i = 0, j = 0, ret = -EIO;
+
+	mutex_lock(&pem_tpmi_dev_lock);
+
+	/* Once an active perf call is in progress, can't change attributes */
+	if (pem_perf_active) {
+		ret = -EBUSY;
+		goto unlock_fet_show;
+	}
+
+	rcu_read_lock();
 
 	for_each_pem_pkg(i, pkg_instance) {
+		if (!pkg_instance)
+			continue;
+
 		for_each_pem_die(j, pkg_instance, instance) {
 			u32 val;
 
@@ -188,11 +216,16 @@ static ssize_t pem_fet_attr_show(struct device *dev, struct device_attribute *at
 			val = intel_tpmi_readq(instance->auxdev,
 					       (u8 __iomem *)instance->pem_base +
 					       PEM_CONTROL_INDEX);
-			return sprintf(buf, "%u\n", (val & 0xff) * 100);
+			ret = sprintf(buf, "%u\n", (val & 0xff) * 100);
+			goto unlock_fet_show;
 		}
 	}
 
-	return -EIO;
+unlock_fet_show:
+	rcu_read_unlock();
+	mutex_unlock(&pem_tpmi_dev_lock);
+
+	return ret;
 }
 
 static ssize_t pem_fet_attr_store(struct device *dev, struct device_attribute *attr,
@@ -208,7 +241,18 @@ static ssize_t pem_fet_attr_store(struct device *dev, struct device_attribute *a
 
 	input /= 100; /* convert to ratio from MHz */
 
+	mutex_lock(&pem_tpmi_dev_lock);
+
+	if (pem_perf_active) {
+		ret = -EBUSY;
+		goto unlock_fet_store;
+	}
+
+	rcu_read_lock();
+
 	for_each_pem_pkg(i, pkg_instance) {
+		if (!pkg_instance)
+			continue;
 		for_each_pem_die(j, pkg_instance, instance) {
 			u32 val;
 
@@ -226,6 +270,10 @@ static ssize_t pem_fet_attr_store(struct device *dev, struct device_attribute *a
 		}
 	}
 
+unlock_fet_store:
+	rcu_read_unlock();
+	mutex_unlock(&pem_tpmi_dev_lock);
+
 	return ret;
 }
 
@@ -234,9 +282,20 @@ static ssize_t pem_time_window_attr_show(struct device *dev, struct device_attri
 {
 	struct tpmi_pem_instance_info *instance;
 	struct tpmi_pem_struct *pkg_instance;
-	int i = 0, j = 0;
+	int i = 0, j = 0, ret = -EIO;
+
+	mutex_lock(&pem_tpmi_dev_lock);
+
+	if (pem_perf_active) {
+		ret = -EBUSY;
+		goto unlock_tw_show;
+	}
+
+	rcu_read_lock();
 
 	for_each_pem_pkg(i, pkg_instance) {
+		if (!pkg_instance)
+			continue;
 		for_each_pem_die(j, pkg_instance, instance) {
 			u32 val;
 
@@ -248,17 +307,23 @@ static ssize_t pem_time_window_attr_show(struct device *dev, struct device_attri
 					       PEM_CONTROL_INDEX);
 			val = (val >> 8) & 0xff;
 			/* Valid TW range is 0 to 17 */
-			if (val > 17)
-				return -EIO;
-
+			if (val > 17) {
+				ret = -EINVAL;
+				continue;
+			}
 			/* tw is specified as 2.3*(2^TW) ms */
 			val =  DIV_ROUND_UP(23 * int_pow(2, val),  10);
 
-			return sprintf(buf, "%u\n", val);
+			ret = sprintf(buf, "%u\n", val);
+			goto unlock_tw_show;
 		}
 	}
 
-	return -EIO;
+unlock_tw_show:
+	rcu_read_unlock();
+	mutex_unlock(&pem_tpmi_dev_lock);
+
+	return ret;
 }
 
 static ssize_t	pem_time_window_attr_store(struct device *dev, struct device_attribute *attr,
@@ -277,7 +342,18 @@ static ssize_t	pem_time_window_attr_store(struct device *dev, struct device_attr
 	if (input > 17)
 		return -EINVAL;
 
+	mutex_lock(&pem_tpmi_dev_lock);
+
+	if (pem_perf_active) {
+		ret = -EBUSY;
+		goto unlock_tw_store;
+	}
+
+	rcu_read_lock();
+
 	for_each_pem_pkg(i, pkg_instance) {
+		if (!pkg_instance)
+			continue;
 		for_each_pem_die(j, pkg_instance, instance) {
 			u32 val;
 
@@ -295,6 +371,10 @@ static ssize_t	pem_time_window_attr_store(struct device *dev, struct device_attr
 		}
 	}
 
+unlock_tw_store:
+	rcu_read_unlock();
+	mutex_unlock(&pem_tpmi_dev_lock);
+
 	return ret;
 }
 
@@ -305,7 +385,18 @@ static ssize_t pem_status_attr_show(struct device *dev, struct device_attribute 
 	struct tpmi_pem_struct *pkg_instance;
 	int i = 0, j = 0, index = 0;
 
+	mutex_lock(&pem_tpmi_dev_lock);
+
+	if (pem_perf_active) {
+		index = -EBUSY;
+		goto unlock_status_show;
+	}
+
+	rcu_read_lock();
+
 	for_each_pem_pkg(i, pkg_instance) {
+		if (!pkg_instance)
+			continue;
 		for_each_pem_die(j, pkg_instance, instance) {
 			u32 val;
 
@@ -319,6 +410,10 @@ static ssize_t pem_status_attr_show(struct device *dev, struct device_attribute 
 					  "pkg%02d-die%02d:%u\n", i, j, val & 0xff);
 		}
 	}
+
+unlock_status_show:
+	rcu_read_unlock();
+	mutex_unlock(&pem_tpmi_dev_lock);
 
 	if (!index)
 		return -EIO;
@@ -337,7 +432,18 @@ static ssize_t pem_status_attr_store(struct device *dev, struct device_attribute
 	if (kstrtouint(buf, 10, &input))
 		return -EINVAL;
 
+	mutex_lock(&pem_tpmi_dev_lock);
+
+	if (pem_perf_active) {
+		ret = -EBUSY;
+		goto unlock_status_store;
+	}
+
+	rcu_read_lock();
+
 	for_each_pem_pkg(i, pkg_instance) {
+		if (!pkg_instance)
+			continue;
 		for_each_pem_die(j, pkg_instance, instance) {
 			if (!instance->pem_base)
 				continue;
@@ -347,6 +453,10 @@ static ssize_t pem_status_attr_store(struct device *dev, struct device_attribute
 			ret = count;
 		}
 	}
+
+unlock_status_store:
+	rcu_read_unlock();
+	mutex_unlock(&pem_tpmi_dev_lock);
 
 	return ret;
 }
@@ -358,7 +468,18 @@ static ssize_t pem_enable_attr_show(struct device *dev, struct device_attribute 
 	struct tpmi_pem_struct *pkg_instance;
 	int i = 0, j = 0, index = 0;
 
+	mutex_lock(&pem_tpmi_dev_lock);
+
+	if (pem_perf_active) {
+		index = -EBUSY;
+		goto unlock_enable_show;
+	}
+
+	rcu_read_lock();
+
 	for_each_pem_pkg(i, pkg_instance) {
+		if (!pkg_instance)
+			continue;
 		for_each_pem_die(j, pkg_instance, instance) {
 			u32 val;
 
@@ -373,6 +494,10 @@ static ssize_t pem_enable_attr_show(struct device *dev, struct device_attribute 
 		}
 	}
 
+unlock_enable_show:
+	rcu_read_unlock();
+	mutex_unlock(&pem_tpmi_dev_lock);
+
 	if (!index)
 		return -EIO;
 
@@ -385,7 +510,12 @@ static int pem_feature_enable(unsigned int enable)
 	struct tpmi_pem_struct *pkg_instance;
 	int i = 0, j = 0, ret = -EIO;
 
+	/* called from non preemptive context also */
+	rcu_read_lock();
 	for_each_pem_pkg(i, pkg_instance) {
+		if (!pkg_instance)
+			continue;
+
 		for_each_pem_die(j, pkg_instance, instance) {
 			u32 val;
 
@@ -404,10 +534,12 @@ static int pem_feature_enable(unsigned int enable)
 			ret = 0;
 		}
 	}
+	rcu_read_unlock();
 
 	return ret;
 }
 
+/* This attribute will not be upstreamed, but useful during tests */
 static ssize_t pem_enable_attr_store(struct device *dev, struct device_attribute *attr,
 				     const char *buf, size_t count)
 {
@@ -417,7 +549,15 @@ static ssize_t pem_enable_attr_store(struct device *dev, struct device_attribute
 	if (kstrtouint(buf, 10, &input))
 		return -EINVAL;
 
-	ret = pem_feature_enable(input);
+	mutex_lock(&pem_tpmi_dev_lock);
+
+	if (pem_perf_active)
+		ret = -EBUSY;
+	else
+		ret = pem_feature_enable(input);
+
+	mutex_unlock(&pem_tpmi_dev_lock);
+
 	if (ret)
 		return ret;
 
@@ -452,26 +592,6 @@ static struct attribute *pem_threshold_attr[] = {
 
 static struct attribute_group pem_threshold_group = {
         .attrs  = pem_threshold_attr,
-};
-
-static struct perf_mmio pkg_mmio[] = {
-	[PERF_PEM_PEM_ANY]  = { 0, &group_pem_any},
-	[PERF_PEM_THERMAL]  = { 1, &group_pem_thermal},
-	[PERF_PEM_EXT_PROCHOT]  = { 2, &group_pem_ext_prochot},
-	[PERF_PEM_PBM]  = { 3, &group_pem_pbm},
-	[PERF_PEM_PL1]  = { 4, &group_pem_pl1},
-	[PERF_PEM_PL1_PECI]  = { 5, &group_pem_pl1_peci},
-	[PERF_PEM_PL1_CFG]  = { 6, &group_pem_pl1_cfg},
-	[PERF_PEM_PL2]  = { 7, &group_pem_pl2},
-	[PERF_PEM_PEM_PL2_PECI]  = { 8, &group_pem_pl2_peci},
-	[PERF_PEM_PEM_PL2_CFG]  = { 9, &group_pem_pl2_cfg},
-	[PERF_PEM_PPL1]  = { 10, &group_pem_ppl1},
-	[PERF_PEM_PPL1_PECI]  = { 11, &group_pem_ppl1_peci},
-	[PERF_PEM_PPL1_CFG]  = { 12, &group_pem_ppl1_cfg},
-	[PERF_PEM_PPL2]  = { 13, &group_pem_ppl2},
-	[PERF_PEM_PPL2_PECI]  = { 14, &group_pem_ppl2_peci},
-	[PERF_PEM_PPL2_CFG]  = { 15, &group_pem_ppl2_cfg},
-	[PERF_PEM_PMAX]  = { 16, &group_pem_pmax},
 };
 
 static struct attribute *attrs_empty[] = {
@@ -520,10 +640,26 @@ static ssize_t pem_get_attr_cpumask(struct device *dev, struct device_attribute 
 {
 	struct pmu *pmu = dev_get_drvdata(dev);
 
-	if (pmu == &pem_die_pmu)
-		return cpumap_print_to_pagebuf(true, buf, &pem_pkg_cpu_mask);
+	if (pmu == &pem_pmu)
+		return cpumap_print_to_pagebuf(true, buf, &pem_die_cpu_mask);
 	else
 		return 0;
+}
+
+static void pem_pmu_active(void)
+{
+	mutex_lock(&pem_tpmi_dev_lock);
+	++pem_perf_active;
+	mutex_unlock(&pem_tpmi_dev_lock);
+	pr_debug("%s pem_perf_active:%d\n", __func__, pem_perf_active);
+}
+
+static void pem_pmu_deactive(struct perf_event *event)
+{
+	mutex_lock(&pem_tpmi_dev_lock);
+	--pem_perf_active;
+	mutex_unlock(&pem_tpmi_dev_lock);
+	pr_debug("%s pem_perf_active:%d\n", __func__, pem_perf_active);
 }
 
 static int pem_pmu_event_init(struct perf_event *event)
@@ -531,51 +667,53 @@ static int pem_pmu_event_init(struct perf_event *event)
 	u64 cfg = event->attr.config;
 	int cpu;
 
-	pr_info("%s cpu:%d sample period:%llx event->attr.type:%d event->pmu->type:%d\n", __func__, raw_smp_processor_id(),
-		event->attr.sample_period, event->attr.type, event->pmu->type);
+	pr_debug("%s cpu:%d sample period:%llx event->attr.type:%d event->pmu->type:%d\n", __func__, raw_smp_processor_id(),
+		 event->attr.sample_period, event->attr.type, event->pmu->type);
 
 	/* Only process of the type matches what we got from perf_pmu_register() */
-	if (event->attr.type != pem_die_pmu.type) {
-		pr_info("%s cpu%d fail attr type != pmu type\n", __func__,
+	if (event->attr.type != pem_pmu.type) {
+		pr_debug("%s cpu%d fail attr type != pmu type\n", __func__,
 			raw_smp_processor_id());
 		return -ENOENT;
 	}
 
 	/* unsupported modes and filters */
 	if (event->attr.sample_period) /* no sampling */ {
-		pr_info("%s cpu%d no smaple period\n", __func__, raw_smp_processor_id());
+		pr_debug("%s cpu%d no smaple period\n", __func__, raw_smp_processor_id());
 		return -EINVAL;
 	}
 
 	if (event->cpu < 0)
 		return -EINVAL;
 
-	if (event->pmu == &pem_die_pmu) {
+	if (event->pmu == &pem_pmu) {
 		if (cfg >= PERF_PEM_PKG_EVENT_MAX) {
-			pr_info("%s cpu%d pkg event mask\n", __func__, raw_smp_processor_id());
+			pr_debug("%s cpu%d pkg event mask\n", __func__, raw_smp_processor_id());
 			return -EINVAL;
 		}
 		if (cfg >= PERF_PEM_PKG_EVENT_MAX) {
-			pr_info("%s cpu%d mmio mask\n", __func__, raw_smp_processor_id());
+			pr_debug("%s cpu%d mmio mask\n", __func__, raw_smp_processor_id());
 			return -EINVAL;
 		}
-		event->hw.event_base = pkg_mmio[cfg].mmio;
-		cpu = cpumask_any_and(&pem_pkg_cpu_mask,
+		event->hw.event_base = cfg;
+		cpu = cpumask_any_and(&pem_die_cpu_mask,
 				      hpm_get_die_mask(event->cpu));
 	} else {
-		pr_info("%s cpu%d pkg no entry\n", __func__, raw_smp_processor_id());
+		pr_debug("%s cpu%d pkg no entry\n", __func__, raw_smp_processor_id());
 		return -ENOENT;
 	}
 
 	if (cpu >= nr_cpu_ids) {
-		pr_info("%s cpu%d pkg nr cpuid\n", __func__, raw_smp_processor_id());
+		pr_debug("%s cpu%d pkg nr cpuid\n", __func__, raw_smp_processor_id());
 		return -ENODEV;
 	}
 
 	event->cpu = cpu;
 	event->hw.config = cfg;
 	event->hw.idx = -1;
-	pr_info("%s cpu%d success \n", __func__, raw_smp_processor_id());
+	event->destroy = pem_pmu_deactive;
+	pem_pmu_active();
+	pr_debug("%s cpu%d success \n", __func__, raw_smp_processor_id());
 
 	return 0;
 }
@@ -584,7 +722,7 @@ static int pmt_telem_read_counters(struct pci_dev *pci_dev, int instance, u32 gu
 				   u16 sample_id, u16 sample_count, u64 *samples)
 {
 	/* This function will call PMT interface function */
-	pr_info("guid:%x sample_id:%x sample_count:%x\n", guid, sample_id, sample_count);
+	pr_debug("guid:%x sample_id:%x sample_count:%x\n", guid, sample_id, sample_count);
 	return pmt_telem_read64(pci_dev, guid, 0, sample_id, sample_count, samples);
 }
 
@@ -597,7 +735,7 @@ static u32 pem_read_pmt_counter(struct tpmi_pem_instance_info *instance, int ind
 	u32 guid;
 	u64 val;
 
-	if (!instance || index >= 16)
+	if (!instance || index > 16)
 		return 0;
 
 	if (!instance->pmt_info_offset)
@@ -612,8 +750,8 @@ static u32 pem_read_pmt_counter(struct tpmi_pem_instance_info *instance, int ind
 	dev = instance->plat_info->device_number;
 	fn = instance->plat_info->function_number;
 
-	pr_info("Read from PMT device with B:%x D:%x F:%x\n", bus, dev, fn);
-	pr_info("Read GUID :%x sample id:%x sample_count:%x\n", guid, sample_id, sample_count);
+	pr_debug("Read from PMT device with B:%x D:%x F:%x\n", bus, dev, fn);
+	pr_debug("Read GUID :%x sample id:%x sample_count:%x\n", guid, sample_id, sample_count);
 	pci_dev = pci_get_domain_bus_and_slot(0, bus, PCI_DEVFN(dev, fn));
 	if (!pci_dev) {
 		pr_err("No PCI device instance for B:%x D:%x F:%x\n", bus, dev, fn);
@@ -621,9 +759,12 @@ static u32 pem_read_pmt_counter(struct tpmi_pem_instance_info *instance, int ind
 	}
 
 	ret = pmt_telem_read_counters(pci_dev, 0, guid, sample_id, sample_count, counters);
-	if (ret)
+	if (ret) {
+		pr_debug("Read Failed GUID :%x sample id:%x sample_count:%x\n", guid, sample_id, sample_count);
 		return 0;
+	}
 
+	pr_debug("Returning PMT counter at index:%d\n", index);
 	return counters[index];
 }
 
@@ -635,18 +776,25 @@ static inline u64 pem_pmu_read_counter(struct perf_event *event)
 	u64 counter = 0;
 	int i = 0, pkg, die;
 
-	pr_info("%s cpu%d\n", __func__, raw_smp_processor_id());
+	pr_debug("%s cpu%d\n", __func__, raw_smp_processor_id());
 	die = hpm_get_die_id(cpu);
 	pkg = topology_physical_package_id(cpu);
 
+	rcu_read_lock();
 	for_each_pem_pkg(pkg, pkg_instance) {
+		if (!pkg_instance)
+			continue;
+
 		for_each_pem_die(i, pkg_instance, instance) {
 			u32 val;
 
 			if (!instance->pem_base)
 				continue;
 
-			pr_info("%s cpu%d base:%lx \n", __func__, raw_smp_processor_id(), event->hw.event_base);
+			if (instance->pkg_id != pkg || instance->die_id != die)
+				continue;
+
+			pr_debug("%s cpu%d base:%lx \n", __func__, raw_smp_processor_id(), event->hw.event_base);
 			val = intel_tpmi_readq(instance->auxdev,
 					       (u8 __iomem *)instance->pem_base + PEM_STATUS_INDEX);
 
@@ -654,6 +802,7 @@ static inline u64 pem_pmu_read_counter(struct perf_event *event)
 				counter += pem_read_pmt_counter(instance, event->hw.event_base);
 		}
 	}
+	rcu_read_unlock();
 
 	return counter;
 }
@@ -663,7 +812,7 @@ static void pem_pmu_event_update(struct perf_event *event)
 	struct hw_perf_event *hwc = &event->hw;
 	u64 prev_raw_count, new_raw_count;
 
-	pr_info("%s cpu%d\n", __func__, raw_smp_processor_id());
+	pr_debug("%s cpu%d\n", __func__, raw_smp_processor_id());
 again:
 	prev_raw_count = local64_read(&hwc->prev_count);
 	new_raw_count = pem_pmu_read_counter(event);
@@ -677,34 +826,33 @@ again:
 
 static int pem_monitor_enable(int enable)
 {
-	pr_info("%s cpu%d\n", __func__, raw_smp_processor_id());
+	pr_debug("%s cpu%d\n", __func__, raw_smp_processor_id());
 	return pem_feature_enable(enable);
 }
 
 static void pem_pmu_event_start(struct perf_event *event, int mode)
 {
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	pem_monitor_enable(1);
 	local64_set(&event->hw.prev_count, pem_pmu_read_counter(event));
 }
 
 static void pem_pmu_event_stop(struct perf_event *event, int mode)
 {
-	pr_info("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	pem_monitor_enable(0);
 	pem_pmu_event_update(event);
 }
 
 static void pem_pmu_event_del(struct perf_event *event, int mode)
 {
-	pr_info("%s\n", __func__);
 	pem_pmu_event_stop(event, PERF_EF_UPDATE);
+	pr_debug("%s pem_perf_active:%d\n", __func__, pem_perf_active);
 }
 
 static int pem_pmu_event_add(struct perf_event *event, int mode)
 {
-	pr_info("%s\n", __func__);
-
+	pr_debug("%s pem_perf_active:%d\n", __func__, pem_perf_active);
 	if (mode & PERF_EF_START)
 		pem_pmu_event_start(event, mode);
 
@@ -732,7 +880,7 @@ static const struct attribute_group *pkg_attr_update[] = {
 	NULL,
 };
 
-static struct pmu pem_die_pmu = {
+static struct pmu pem_pmu = {
 	.attr_groups	= pkg_attr_groups,
 	.attr_update	= pkg_attr_update,
 	.name		= "pnp_excursion_monitor",
@@ -755,15 +903,13 @@ static int pem_cpu_exit(unsigned int cpu)
 {
 	unsigned int target;
 
-	pr_info("%s cpu:%d\n", __func__, cpu);
-
-	if (cpumask_test_and_clear_cpu(cpu, &pem_pkg_cpu_mask)) {
+	if (cpumask_test_and_clear_cpu(cpu, &pem_die_cpu_mask)) {
 
 		target = cpumask_any_but(hpm_get_die_mask(cpu), cpu);
 		/* Migrate events if there is a valid target */
 		if (target < nr_cpu_ids) {
-			cpumask_set_cpu(target, &pem_pkg_cpu_mask);
-			perf_pmu_migrate_context(&pem_die_pmu, cpu, target);
+			cpumask_set_cpu(target, &pem_die_cpu_mask);
+			perf_pmu_migrate_context(&pem_pmu, cpu, target);
 		}
 	}
 	return 0;
@@ -773,19 +919,14 @@ static int pem_cpu_init(unsigned int cpu)
 {
 	unsigned int target;
 
-	pr_info("%s :%d\n", __func__, cpu);
-
 	/*
 	 * If this is the first online thread of that package/die, set it
 	 * in the package cpu mask as the designated reader.
 	 */
-	target = cpumask_any_and(&pem_pkg_cpu_mask,
+	target = cpumask_any_and(&pem_die_cpu_mask,
 				 hpm_get_die_mask(cpu));
-	if (target >= nr_cpu_ids) {
-		pr_info("%s Adding CPU:%d to mask\n", __func__, cpu);
-
-		cpumask_set_cpu(cpu, &pem_pkg_cpu_mask);
-	}
+	if (target >= nr_cpu_ids)
+		cpumask_set_cpu(cpu, &pem_die_cpu_mask);
 
 	return 0;
 }
@@ -837,6 +978,7 @@ int tpmi_pem_dev_add(struct auxiliary_device *auxdev)
 
 	for (i = 0; i < num_resources; ++i) {
 		struct resource *res;
+		int pem_header_ver;
 		u32 val;
 
 		res = tpmi_get_resource_at_index(auxdev, i);
@@ -849,9 +991,9 @@ int tpmi_pem_dev_add(struct auxiliary_device *auxdev)
 
 		val = readl(tpmi_pem->instance_info[i].pem_base);
 
-		tpmi_pem->instance_info[i].pem_header_ver = val & 0xff;
-		if (tpmi_pem->instance_info[i].pem_header_ver != PEM_HEADER_VERSION) {
-			dev_err(&auxdev->dev, "PEM: Unsupported version:%d\n", tpmi_pem->instance_info[i].pem_header_ver);
+		pem_header_ver = val & 0xff;
+		if (pem_header_ver != PEM_HEADER_VERSION) {
+			dev_err(&auxdev->dev, "PEM: Unsupported version:%d\n", pem_header_ver);
 			devm_iounmap(&auxdev->dev, tpmi_pem->instance_info[i].pem_base);
 			tpmi_pem->instance_info[i].pem_base = NULL;
 			continue;
@@ -872,7 +1014,10 @@ int tpmi_pem_dev_add(struct auxiliary_device *auxdev)
 	auxiliary_set_drvdata(auxdev, tpmi_pem);
 
 	mutex_lock(&pem_tpmi_dev_lock);
-	pem_common.pem_inst[pkg] = tpmi_pem;
+	rcu_assign_pointer(pem_common.pem_inst[pkg], tpmi_pem);
+
+	if (pem_common.max_instance_id < pkg)
+		pem_common.max_instance_id = pkg;
 	mutex_unlock(&pem_tpmi_dev_lock);
 
 	pm_runtime_enable(&auxdev->dev);
@@ -889,20 +1034,20 @@ void tpmi_pem_dev_remove(struct auxiliary_device *auxdev)
 	struct tpmi_pem_struct *tpmi_pem = auxiliary_get_drvdata(auxdev);
 
 	mutex_lock(&pem_tpmi_dev_lock);
-	pem_common.pem_inst[tpmi_pem->pkg_id] = NULL;
+	RCU_INIT_POINTER(pem_common.pem_inst[tpmi_pem->pkg_id], NULL);
+	synchronize_rcu();
 	mutex_unlock(&pem_tpmi_dev_lock);
 
 	pm_runtime_get_sync(&auxdev->dev);
 	pm_runtime_put_noidle(&auxdev->dev);
 	pm_runtime_disable(&auxdev->dev);
-
 }
 EXPORT_SYMBOL_GPL(tpmi_pem_dev_remove);
 
 static inline void pem_cleanup(void)
 {
 	cpuhp_remove_state(pem_online_id);
-	perf_pmu_unregister(&pem_die_pmu);
+	perf_pmu_unregister(&pem_pmu);
 }
 
 int tpmi_pem_init(void)
@@ -917,9 +1062,9 @@ int tpmi_pem_init(void)
 	}
 
 	pem_online_id = cpuhp_setup_state(CPUHP_AP_ONLINE_DYN, "perf/x86/pem:online", pem_cpu_init, pem_cpu_exit);
-	ret = perf_pmu_register(&pem_die_pmu, pem_die_pmu.name, -1);
+	ret = perf_pmu_register(&pem_pmu, pem_pmu.name, -1);
 	if (ret) {
-		pr_info("Failed to register pem pkg pmu\n");
+		pr_debug("Failed to register pem pkg pmu\n");
 		pem_cleanup();
 		return ret;
 	}
@@ -945,7 +1090,7 @@ void tpmi_pem_exit(void)
 
 	if (!pem_core_usage_count) {
 		cpuhp_remove_state(pem_online_id);
-		perf_pmu_unregister(&pem_die_pmu);
+		perf_pmu_unregister(&pem_pmu);
 	}
 
 	mutex_unlock(&pem_tpmi_dev_lock);
