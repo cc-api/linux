@@ -19,8 +19,6 @@
 
 #include "hpm_die_map.h"
 
-#define MSR_THREAD_ID_INFO	0x53
-
 struct hpm_cpu_info {
 	u8 punit_thread_id;
 	u8 punit_core_id;
@@ -40,6 +38,7 @@ static DEFINE_MUTEX(hpm_lock);
 
 static const struct x86_cpu_id hpm_cpu_ids[] = {
 	X86_MATCH_INTEL_FAM6_MODEL(GRANITERAPIDS_X,	NULL),
+	X86_MATCH_INTEL_FAM6_MODEL(SIERRAFOREST_X,	NULL),
 	{}
 };
 
@@ -98,17 +97,57 @@ cpumask_t *hpm_get_die_mask(int cpu_no)
 }
 EXPORT_SYMBOL_GPL(hpm_get_die_mask);
 
+#define MSR_THREAD_ID_INFO	0x53
+#define MSR_PM_LOGICAL_ID	0x54
+
+/*
+ * Struct of MSR 0x54
+ * [15:11] PM_DOMAIN_ID
+ * [10:3] MODULE_ID (aka IDI_AGENT_ID)
+ * [2:0] LP_ID
+ * For Atom:
+ *   [2] Always 0
+ *   [1:0] core ID within module
+ * For Core
+ *   [2:1] Always 0
+ *   [0] thread ID
+ */
+static int hpm_get_logical_id(unsigned int cpu, struct hpm_cpu_info *info)
+{
+	u64 data;
+	int ret;
+
+	ret = rdmsrl_safe_on_cpu(cpu, MSR_PM_LOGICAL_ID, &data);
+	if (ret) {
+		pr_info("MSR MSR_PM_LOGICAL_ID:0x54 is not supported\n");
+		return ret;
+	}
+
+	/* We don't have use case to differentiate Atom/Core thread id */
+	info->punit_thread_id = data & 0x07;
+	info->punit_core_id = (data >> 3) & 0xff;
+	info->punit_die_id = (data >> 11) & 0x1f;
+	info->pkg_id = topology_physical_package_id(cpu);
+	pr_debug("using MSR 0x54 cpu:%d core_id:%d die_id:%d pkg_id:%d\n", cpu, info->punit_core_id, info->punit_die_id, info->pkg_id);
+
+	return 0;
+}
+
 static int hpm_cpu_online(unsigned int cpu)
 {
 	struct hpm_cpu_info *info = &per_cpu(hpm_cpu_info, cpu);
 	u64 data;
 	int ret;
 
-	ret = rdmsrl_safe(MSR_THREAD_ID_INFO, &data);
+	if (!hpm_get_logical_id(cpu, info))
+		goto update_mask;
+
+	ret = rdmsrl_safe_on_cpu(cpu, MSR_THREAD_ID_INFO, &data);
 	if (ret) {
 		info->punit_core_id = -1;
-		return ret;
+		return 0;
 	}
+
 	/*
 	 * Format
 	 *	Bit 0 – thread ID
@@ -120,9 +159,9 @@ static int hpm_cpu_online(unsigned int cpu)
 	info->punit_core_id = (data >> 1) & 0xff;
 	info->punit_die_id = (data >> 9) & 0x1f;
 	info->pkg_id = topology_physical_package_id(cpu);
-
 	pr_debug("cpu:%d core_id:%d die_id:%d pkg_id:%d\n", cpu, info->punit_core_id, info->punit_die_id, info->pkg_id);
 
+update_mask:
 	mutex_lock(&hpm_lock);
 	if (info->pkg_id < MAX_PACKAGES && info->punit_die_id < MAX_DIES)
 		cpumask_set_cpu(cpu, &hpm_die_mask[info->pkg_id][info->punit_die_id]);
