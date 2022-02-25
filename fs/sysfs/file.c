@@ -170,11 +170,24 @@ static int sysfs_kf_bin_mmap(struct kernfs_open_file *of,
 static int sysfs_kf_bin_open(struct kernfs_open_file *of)
 {
 	struct bin_attribute *battr = of->kn->priv;
+	struct kobject *kobj = of->kn->parent->priv;
 
 	if (battr->f_mapping)
 		of->file->f_mapping = battr->f_mapping();
 
+	if (battr->open)
+		return battr->open(of->file, kobj, battr);
+
 	return 0;
+}
+
+static void sysfs_kf_bin_release(struct kernfs_open_file *of)
+{
+	struct bin_attribute *battr = of->kn->priv;
+	struct kobject *kobj = of->kn->parent->priv;
+
+	if (battr->release)
+		battr->release(of->file, kobj, battr);
 }
 
 void sysfs_notify(struct kobject *kobj, const char *dir, const char *attr)
@@ -233,15 +246,21 @@ static const struct kernfs_ops sysfs_prealloc_kfops_rw = {
 
 static const struct kernfs_ops sysfs_bin_kfops_ro = {
 	.read		= sysfs_kf_bin_read,
+	.open		= sysfs_kf_bin_open,
+	.release	= sysfs_kf_bin_release,
 };
 
 static const struct kernfs_ops sysfs_bin_kfops_wo = {
 	.write		= sysfs_kf_bin_write,
+	.open		= sysfs_kf_bin_open,
+	.release	= sysfs_kf_bin_release,
 };
 
 static const struct kernfs_ops sysfs_bin_kfops_rw = {
 	.read		= sysfs_kf_bin_read,
 	.write		= sysfs_kf_bin_write,
+	.open		= sysfs_kf_bin_open,
+	.release	= sysfs_kf_bin_release,
 };
 
 static const struct kernfs_ops sysfs_bin_kfops_mmap = {
@@ -249,6 +268,7 @@ static const struct kernfs_ops sysfs_bin_kfops_mmap = {
 	.write		= sysfs_kf_bin_write,
 	.mmap		= sysfs_kf_bin_mmap,
 	.open		= sysfs_kf_bin_open,
+	.release	= sysfs_kf_bin_release,
 };
 
 int sysfs_add_file_mode_ns(struct kernfs_node *parent,
