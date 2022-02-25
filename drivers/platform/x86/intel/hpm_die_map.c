@@ -117,7 +117,7 @@ static int hpm_get_logical_id(unsigned int cpu, struct hpm_cpu_info *info)
 	u64 data;
 	int ret;
 
-	ret = rdmsrl_safe_on_cpu(cpu, MSR_PM_LOGICAL_ID, &data);
+	ret = rdmsrl_safe(MSR_PM_LOGICAL_ID, &data);
 	if (ret) {
 		pr_info("MSR MSR_PM_LOGICAL_ID:0x54 is not supported\n");
 		return ret;
@@ -142,7 +142,7 @@ static int hpm_cpu_online(unsigned int cpu)
 	if (!hpm_get_logical_id(cpu, info))
 		goto update_mask;
 
-	ret = rdmsrl_safe_on_cpu(cpu, MSR_THREAD_ID_INFO, &data);
+	ret = rdmsrl_safe(MSR_THREAD_ID_INFO, &data);
 	if (ret) {
 		info->punit_core_id = -1;
 		return 0;
