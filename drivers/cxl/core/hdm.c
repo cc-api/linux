@@ -359,8 +359,8 @@ int cxl_commit_decoder(struct cxl_decoder *cxld)
 	base_lo = GENMASK(31, 28) & lower_32_bits(cxld->decoder_range.start);
 	base_hi = upper_32_bits(cxld->decoder_range.start);
 
-	size_lo = GENMASK(31, 28) & (u32)(range_len(&cxld->decoder_range));
-	size_hi = upper_32_bits(range_len(&cxld->decoder_range) >> 32);
+	size_lo = GENMASK(31, 28) & lower_32_bits(range_len(&cxld->decoder_range));
+	size_hi = upper_32_bits(range_len(&cxld->decoder_range));
 
 	if (cxld->nr_targets > 0) {
 		tl_hi = 0;
