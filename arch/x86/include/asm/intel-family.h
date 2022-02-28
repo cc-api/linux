@@ -114,6 +114,7 @@
 #define INTEL_FAM6_ALDERLAKE_N		0xBE
 
 #define INTEL_FAM6_RAPTORLAKE		0xB7
+#define INTEL_FAM6_RAPTORLAKE_P		0xBA
 
 /* "Small Core" Processors (Atom) */
 
