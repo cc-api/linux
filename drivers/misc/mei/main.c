@@ -1121,6 +1121,7 @@ void mei_set_devstate(struct mei_device *dev, enum mei_dev_state state)
 		put_device(clsdev);
 	}
 }
+EXPORT_SYMBOL_GPL(mei_set_devstate);
 
 /**
  * kind_show - display device kind
