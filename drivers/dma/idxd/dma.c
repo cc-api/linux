@@ -112,7 +112,8 @@ static inline void idxd_prep_desc_common(struct idxd_wq *wq,
 	 * For dedicated WQ, this field is ignored and HW will use the WQCFG.priv
 	 * field instead. This field should be set to 1 for kernel descriptors.
 	 */
-	hw->priv = 1;
+	hw->priv = need_passthrough_wa() ? 0 : 1;
+
 	hw->completion_addr = compl;
 }
 

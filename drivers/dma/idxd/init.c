@@ -578,6 +578,14 @@ static int idxd_probe(struct idxd_device *idxd)
 			goto err_config;
 	}
 
+	if (need_passthrough_wa()) {
+		union gencfg_reg gencfg;
+		dev_alert(dev, "HACK SPR D0-, allow user interrupt for kernel desc\n");
+		gencfg.bits = ioread32(idxd->reg_base + IDXD_GENCFG_OFFSET);
+		gencfg.user_int_en = 1;
+		iowrite32(gencfg.bits, idxd->reg_base + IDXD_GENCFG_OFFSET);
+	}
+
 	rc = idxd_setup_interrupts(idxd);
 	if (rc)
 		goto err_config;

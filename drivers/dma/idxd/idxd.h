@@ -570,6 +570,20 @@ static inline int idxd_wq_driver_name_match(struct idxd_wq *wq, struct device *d
 #define MODULE_ALIAS_IDXD_DEVICE(type) MODULE_ALIAS("idxd:t" __stringify(type) "*")
 #define IDXD_DEVICES_MODALIAS_FMT "idxd:t%d"
 
+static inline bool need_passthrough_wa(void)
+{
+	struct cpuinfo_x86 *c = &cpu_data(0);
+
+	if (c->x86_model == 0x8f && c->x86_stepping <= 3) {
+		pr_alert_ratelimited("SPR D or older, Use PASID PT WA %x : %x",
+			 c->x86_model, c->x86_stepping);
+		return true;
+	} else {
+		pr_alert_ratelimited("SPR E0+, No PASID PT WQ needed!");
+		return false;
+	}
+}
+
 int __must_check __idxd_driver_register(struct idxd_device_driver *idxd_drv,
 					struct module *module, const char *mod_name);
 #define idxd_driver_register(driver) \

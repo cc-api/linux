@@ -901,7 +901,11 @@ static int idxd_wq_config_write(struct idxd_wq *wq)
 	 * In the case of a dedicated kernel WQ that is not able to support
 	 * the PASID cap, then the configuration will be rejected.
 	 */
-	wq->wqcfg->priv = !!(wq->type == IDXD_WQT_KERNEL);
+	if (need_passthrough_wa())
+		wq->wqcfg->priv = 0;
+	else
+		wq->wqcfg->priv = !!(wq->type == IDXD_WQT_KERNEL);
+
 	if (wq_dedicated(wq) && wq->wqcfg->pasid_en &&
 	    !idxd_device_pasid_priv_enabled(idxd) &&
 	    wq->type == IDXD_WQT_KERNEL) {
