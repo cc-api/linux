@@ -1035,8 +1035,9 @@ void tpmi_pem_dev_remove(struct auxiliary_device *auxdev)
 
 	mutex_lock(&pem_tpmi_dev_lock);
 	RCU_INIT_POINTER(pem_common.pem_inst[tpmi_pem->pkg_id], NULL);
-	synchronize_rcu();
 	mutex_unlock(&pem_tpmi_dev_lock);
+
+	synchronize_rcu();
 
 	pm_runtime_get_sync(&auxdev->dev);
 	pm_runtime_put_noidle(&auxdev->dev);
