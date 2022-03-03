@@ -29,23 +29,16 @@
 #include <linux/ptrace.h>
 #include <linux/list.h>
 
-#ifdef CONFIG_SVOS_RAS_ERRORCORRECT
-#define SVOS_ANNOUNCE_MESSAGE                                                                    \
-"********************************************************************************************\n" \
-"*                                     SVOS-NEXT                                            *\n" \
-"*                                                                                          *\n" \
-"*      NOTE: SVOS contains Intel Top Secret information.  For Intel internal use only.     *\n" \
-"********************************************************************************************\n" \
-"*    NOTE: This kernel enables error correction and is ONLY to be used for RAS testing.    *\n" \
-"********************************************************************************************\n"
-#else
 #define SVOS_ANNOUNCE_MESSAGE                                                                    \
 "********************************************************************************************\n" \
 "*                                     SVOS-NEXT                                            *\n" \
 "*                                                                                          *\n" \
 "*      NOTE: SVOS contains Intel Top Secret information.  For Intel internal use only.     *\n" \
 "********************************************************************************************\n"
-#endif
+
+#define SVOS_RAS_ANNOUNCE_MESSAGE                                                                \
+"*  NOTE: Error correction is enabled (svos_enable_ras) - ONLY to be used for RAS testing!  *\n" \
+"********************************************************************************************\n"
 
 /*
  * Indices of miscellaneous automatically registered interrupt resources
@@ -125,6 +118,7 @@ extern unsigned long svos_adjgap(unsigned long);
 extern void svos_parse_mem(char *);
 extern void svos_mem_init(void);
 extern int svos_trap_hook(int, struct pt_regs *);
+extern int svos_enable_ras_errorcorrect;
 
 #endif // __KERNEL__
 #endif // _LINUX_SVOS_H

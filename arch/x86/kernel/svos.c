@@ -21,6 +21,7 @@
  * files to just hook calls or minor changes.
  */
 
+int svos_enable_ras_errorcorrect = 0;
 unsigned long svos1stTargetPage;
 static int svos_memory_split = 0;
 unsigned long long svos_split_after = 0x4000000; /* Default is 64MB */
@@ -31,6 +32,16 @@ struct	svos_node_memory svos_node_memory[MAX_NUMNODES];
 nodemask_t svos_nodes_parsed;
 EXPORT_SYMBOL(svos_node_memory);
 EXPORT_SYMBOL(svos_nodes_parsed);
+
+/*
+ * Enable error correction if indicated on kernel command line.
+ */
+static int __init svos_enable_ras(char *str)
+{
+	svos_enable_ras_errorcorrect = 1;
+	return 1;
+}
+early_param("svos_enable_ras", svos_enable_ras);
 
 __init unsigned long
 svos_adjgap( unsigned long gapsize )

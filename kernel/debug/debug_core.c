@@ -830,7 +830,7 @@ kgdb_handle_exception(int evector, int signo, int ecode, struct pt_regs *regs)
 	if (arch_kgdb_ops.enable_nmi)
 		arch_kgdb_ops.enable_nmi(0);
 
-#if !defined(CONFIG_SVOS) || defined(CONFIG_SVOS_RAS_ERRORCORRECT)
+#ifndef CONFIG_SVOS
 	/*
 	 * Avoid entering the debugger if we were triggered due to an oops
 	 * but panic_timeout indicates the system should automatically
@@ -989,7 +989,7 @@ void kgdb_panic(const char *msg)
 	if (!kgdb_io_module_registered)
 		return;
 
-#if !defined(CONFIG_SVOS) || defined(CONFIG_SVOS_RAS_ERRORCORRECT)
+#ifndef CONFIG_SVOS
 	/*
 	 * We don't want to get stuck waiting for input from user if
 	 * "panic_timeout" indicates the system should automatically

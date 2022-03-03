@@ -4,13 +4,6 @@ config SVOS
 	help
 		Enable Intel internal-only SVOS kernel modifications for silicon validation
 
-config SVOS_RAS_ERRORCORRECT
-	depends on SVOS
-	bool "Enable SVOS autocorrection of errors - RAS only!"
-	default n
-	help
-		Enable automatic error correction - RAS only!
-
 config SVFS_ACPI
 	depends on SVOS && ACPI
 	bool "Enable SVOS SVFS ACPI driver support"

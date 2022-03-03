@@ -968,6 +968,11 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 	/* parameters may set static keys */
 	jump_label_init();
 	parse_early_param();
+#ifdef CONFIG_SVOS
+	if (svos_enable_ras_errorcorrect) {
+		pr_notice("%s", SVOS_RAS_ANNOUNCE_MESSAGE);
+	}
+#endif
 	after_dashes = parse_args("Booting kernel",
 				  static_command_line, __start___param,
 				  __stop___param - __start___param,
