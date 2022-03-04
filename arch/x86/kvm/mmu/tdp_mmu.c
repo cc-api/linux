@@ -477,6 +477,10 @@ static void __handle_changed_spte(struct kvm *kvm, int as_id, gfn_t gfn,
 	 * thread before replacement.
 	 */
 	if (was_leaf && is_leaf && pfn_changed) {
+		/* For now TDX doesn't support page migration. Just ignore it. */
+		if (private_spte)
+			return;
+
 		pr_err("Invalid SPTE change: cannot replace a present leaf\n"
 		       "SPTE with another present leaf SPTE mapping a\n"
 		       "different PFN!\n"
@@ -541,7 +545,10 @@ static void __handle_changed_spte(struct kvm *kvm, int as_id, gfn_t gfn,
 	 * setting up new mapping at middle level page table, or leaf,
 	 * or tearing down existing mapping.
 	 */
-	if (private_spte) {
+	if (private_spte &&
+		/* Ignore change of software only bits. e.g. host_writable */
+		(was_leaf != is_leaf || was_present != is_present || pfn_changed ||
+			was_private_zapped != is_private_zapped)) {
 		void *sept_page = NULL;
 
 		if (is_present && !is_leaf) {
