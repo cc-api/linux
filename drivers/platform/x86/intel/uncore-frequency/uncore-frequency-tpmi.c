@@ -114,15 +114,23 @@ static int tpmi_ufs_init(struct auxiliary_device *auxdev)
 	if (!num_resources)
 		return -EINVAL;
 
+	ret = uncore_freq_common_init(uncore_read_control_freq, uncore_write_control_freq, uncore_read_freq);
+	if (ret)
+		return ret;
+
 	tpmi_ufs = devm_kzalloc(&auxdev->dev, sizeof(*tpmi_ufs), GFP_KERNEL);
-	if (!tpmi_ufs)
-		return -ENOMEM;
+	if (!tpmi_ufs) {
+		ret = -ENOMEM;
+		goto err_rem_common;
+	}
 
 	tpmi_ufs->punit_info = devm_kcalloc(&auxdev->dev, num_resources,
 					    sizeof(*tpmi_ufs->punit_info),
 					    GFP_KERNEL);
-	if (!tpmi_ufs->punit_info)
-		return -ENOMEM;
+	if (!tpmi_ufs->punit_info) {
+		ret = -ENOMEM;
+		goto err_rem_common;
+	}
 
 	tpmi_ufs->number_of_punits = num_resources;
 
@@ -144,8 +152,11 @@ static int tpmi_ufs_init(struct auxiliary_device *auxdev)
 			continue;
 
 		tpmi_ufs->punit_info[i].ufs_base = devm_ioremap_resource(&auxdev->dev, res);
-		if (IS_ERR(tpmi_ufs->punit_info[i].ufs_base))
-			return PTR_ERR(tpmi_ufs->punit_info[i].ufs_base);
+		if (IS_ERR(tpmi_ufs->punit_info[i].ufs_base)) {
+			ret = PTR_ERR(tpmi_ufs->punit_info[i].ufs_base);
+			tpmi_ufs->punit_info[i].ufs_base = NULL;
+			goto err_rem_common;
+		}
 
 		header = readq(tpmi_ufs->punit_info[i].ufs_base);
 		tpmi_ufs->punit_info[i].ufs_header_ver = header & 0xff;
@@ -171,9 +182,6 @@ static int tpmi_ufs_init(struct auxiliary_device *auxdev)
 									GFP_KERNEL);
 		cluster_offset = UFS_FABRIC_CLUSTER_OFFSET;
 
-		ret = uncore_freq_common_init(uncore_read_control_freq, uncore_write_control_freq, uncore_read_freq);
-		if (!ret)
-			return ret;
 
 		cluster_offset = readq((u8 __iomem *)tpmi_ufs->punit_info[i].ufs_base + UFS_FABRIC_CLUSTER_OFFSET);
 		cluster_offset *= 8;
@@ -189,14 +197,19 @@ static int tpmi_ufs_init(struct auxiliary_device *auxdev)
 			cluster_info->uncore_data.die_id = i;
 			cluster_info->uncore_data.cluster_id = j;
 			cluster_info->auxdev = auxdev;
-			uncore_freq_add_entry(&cluster_info->uncore_data, 0);
+			ret = uncore_freq_add_entry(&cluster_info->uncore_data, 0);
+			if (ret)
+				goto err_rem_common;
+
 			cluster_offset >>= 8;
 		}
 		++inst;
 	}
 
-	if (!inst)
-		return -ENODEV;
+	if (!inst) {
+		ret = -ENODEV;
+		goto err_rem_common;
+	}
 
 	auxiliary_set_drvdata(auxdev, tpmi_ufs);
 
@@ -206,15 +219,25 @@ static int tpmi_ufs_init(struct auxiliary_device *auxdev)
 	pm_runtime_put(&auxdev->dev);
 
 	return 0;
+
+err_rem_common:
+	uncore_freq_common_exit();
+
+	return ret;
 }
 
 static int tpmi_ufs_remove(struct auxiliary_device *auxdev)
 {
 	struct tpmi_ufs_struct *tpmi_ufs = auxiliary_get_drvdata(auxdev);
-	int i, j;
+	int i;
 
 	for (i = 0; i < tpmi_ufs->number_of_punits; ++i) {
-		for (j = 0; j < tpmi_ufs->punit_info[i].cluster_count; ++j) {
+		int j;
+
+		if (!tpmi_ufs->punit_info[i].ufs_base)
+			continue;
+
+		for (j = 0; j < tpmi_ufs->punit_info[i].cluster_count && j < 8; ++j) {
 			struct tpmi_ufs_cluster_info *cluster_info;
 
 			cluster_info = &tpmi_ufs->punit_info[i].cluster_infos[j];
