@@ -330,7 +330,7 @@ static long isst_if_clos_assoc(void __user *argp)
 	_mask = GENMASK((shift + bits - 1), shift);\
 	val &= ~_mask;\
 	val |= (name / div_factor) << shift;\
-	intel_tpmi_writeq(punit_info->auxdev, val, punit_info->sst_base + punit_info->sst_header.cp_offset + (offset));\
+	intel_tpmi_writeq(punit_info->auxdev, val, punit_info->sst_base + punit_info->sst_header.pp_offset + (offset));\
 	pr_debug("wr_pp_info %s var:%s wr:%x cp_offset:%x offset:%x shift:%x mask:%x div_factor:%x res:%llx\n",\
 		__func__, name_str, name, punit_info->sst_header.pp_offset, offset, shift, mask, div_factor, val);\
 }
