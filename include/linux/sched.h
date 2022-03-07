@@ -1545,6 +1545,10 @@ struct task_struct {
 	 * scheduler should not use this value directly.
 	 */
 	unsigned int			ipcc;
+	/*
+	 * Type of task as read when entering kernel mode.
+	 */
+	unsigned int			ipcc_raw;
 #endif
 
 	/*
