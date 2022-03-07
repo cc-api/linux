@@ -84,7 +84,6 @@ struct cpuidle_state {
 #define CPUIDLE_FLAG_OFF		BIT(4) /* disable this state by default */
 #define CPUIDLE_FLAG_TLB_FLUSHED	BIT(5) /* idle-state flushes TLBs */
 #define CPUIDLE_FLAG_RCU_IDLE		BIT(6) /* idle-state takes care of RCU */
-#define CPUIDLE_FLAG_INIT_FPSTATE	BIT(7) /* idle-state needs INIT FP state */
 
 struct cpuidle_device_kobj;
 struct cpuidle_state_kobj;
