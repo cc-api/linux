@@ -225,6 +225,42 @@ static int hfi_features_show(struct seq_file *s, void *unused)
 }
 DEFINE_SHOW_ATTRIBUTE(hfi_features);
 
+static int hfi_class_score_show(struct seq_file *s, void *unused)
+{
+	struct hfi_instance *hfi_instance = s->private;
+	int cpu, j;
+
+	if (!cpu_feature_enabled(X86_FEATURE_ITD)) {
+		seq_puts(s, "IPC classes not supported.\n");
+		return 0;
+	}
+
+	seq_puts(s, "CPU\tUnclass\t");
+	/* See comment below on valid class numbers. */
+	for (j = IPC_CLASS_UNCLASSIFIED; j < hfi_features.nr_classes; j++)
+		seq_printf(s, "IPCC%d\t", j + 1);
+	seq_puts(s, "\n");
+
+	for_each_cpu(cpu, hfi_instance->cpus) {
+		seq_printf(s, "%4d", cpu);
+		/*
+		 * IPCC classes have a range of [1, hfi_features.nr_classes + 1].
+		 * HFI classes have a range of [0,  hfi_features.nr_classes].
+		 *
+		 * Start the loop in 0 (IPC_CLASS_UNCLASSIFIED) to also dump the
+		 * score used for unclassified tasks.
+		 */
+		for (j = IPC_CLASS_UNCLASSIFIED; j <= hfi_features.nr_classes; j++)
+			seq_printf(s, "\t%3lu",
+				   intel_hfi_get_ipcc_score(j, cpu));
+
+		seq_puts(s, "\n");
+	}
+
+	return 0;
+}
+DEFINE_SHOW_ATTRIBUTE(hfi_class_score);
+
 static int hfi_state_show(struct seq_file *s, void *unused)
 {
 	struct hfi_instance *hfi_instance = s->private;
@@ -328,6 +364,9 @@ static int hfi_state_show(struct seq_file *s, void *unused)
 		seq_puts(s, "\n");
 	}
 
+	seq_puts(s, "\nIPCC scores:\n");
+	hfi_class_score_show(s, NULL);
+
 	return 0;
 }
 DEFINE_SHOW_ATTRIBUTE(hfi_state);
@@ -368,6 +407,10 @@ static void hfi_debugfs_populate_instance(struct hfi_instance *hfi_instance,
 	snprintf(name, 64, "hw_state%u", die_id);
 	debugfs_create_file(name, 0444, hfi_debugfs_dir, hfi_instance,
 			    &hfi_state_fops);
+
+	snprintf(name, 64, "class_score%d", die_id);
+	debugfs_create_file(name, 0444, hfi_debugfs_dir, hfi_instance,
+			    &hfi_class_score_fops);
 }
 
 #else
