@@ -1378,7 +1378,6 @@ static char *get_metric_pmus(char *ostr, struct strbuf *metrc_pmus,
 		/* Remove last ',' */
 		new_str[strlen(new_str) - 1] = 0;
 	}
-
 	free(nlist);
 	strbuf_release(&new_events);
 	return new_str;
@@ -1662,6 +1661,9 @@ static int parse_groups(struct evlist *perf_evlist, const char *str,
 					continue;
 
 				if (expr__subset_of_ids(n->pctx, m->pctx)) {
+					if (m->pmu_name && n->pmu_name
+					    && strcmp(m->pmu_name, n->pmu_name))
+						continue;
 					pr_debug("Events in '%s' fully contained within '%s'\n",
 						 m->metric_name, n->metric_name);
 					metric_evlist = n->evlist;
