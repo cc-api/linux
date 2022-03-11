@@ -734,6 +734,8 @@ static inline u64 acpi_arch_get_root_pointer(void)
 
 int acpi_get_local_address(acpi_handle handle, u32 *addr);
 
+void acpi_init_properties(struct acpi_device *adev);
+
 #else	/* !CONFIG_ACPI */
 
 #define acpi_disabled 1
@@ -1002,6 +1004,10 @@ static inline int acpi_register_wakeup_handler(int wake_irq,
 
 static inline void acpi_unregister_wakeup_handler(
 	bool (*wakeup)(void *context), void *context) { }
+
+static inline void acpi_init_properties(struct acpi_device *adev)
+{
+}
 
 #endif	/* !CONFIG_ACPI */
 
