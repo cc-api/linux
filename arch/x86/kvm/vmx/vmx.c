@@ -640,6 +640,7 @@ static bool is_valid_passthrough_msr(u32 msr)
 		return true;
 	case MSR_IA32_U_CET:
 	case MSR_IA32_PL3_SSP:
+	case MSR_IA32_S_CET:
 		return true;
 	}
 
@@ -1845,7 +1846,8 @@ static int vmx_get_msr_feature(struct kvm_msr_entry *msr)
 static bool cet_is_msr_accessible(struct kvm_vcpu *vcpu,
 				  struct msr_data *msr)
 {
-	if (!kvm_cet_user_supported())
+	if (!kvm_cet_user_supported() &&
+	    !cet_kernel_ibt_supported())
 		return false;
 
 	if (msr->host_initiated)
@@ -1854,6 +1856,10 @@ static bool cet_is_msr_accessible(struct kvm_vcpu *vcpu,
 	if (!guest_cpuid_has(vcpu, X86_FEATURE_SHSTK) &&
 	    !guest_cpuid_has(vcpu, X86_FEATURE_IBT))
 		return false;
+
+	if (msr->index == MSR_IA32_S_CET &&
+	    guest_cpuid_has(vcpu, X86_FEATURE_IBT))
+		return true;
 
 	if ((msr->index == MSR_IA32_PL3_SSP ||
 	     msr->index == MSR_KVM_GUEST_SSP) &&
@@ -2005,10 +2011,13 @@ static int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	case MSR_IA32_U_CET:
 	case MSR_IA32_PL3_SSP:
 	case MSR_KVM_GUEST_SSP:
+	case MSR_IA32_S_CET:
 		if (!cet_is_msr_accessible(vcpu, msr_info))
 			return 1;
 		if (msr_info->index == MSR_KVM_GUEST_SSP)
 			msr_info->data = vmcs_readl(GUEST_SSP);
+		else if (msr_info->index == MSR_IA32_S_CET)
+			msr_info->data = vmcs_readl(GUEST_S_CET);
 		else
 			kvm_get_xsave_msr(msr_info);
 		break;
@@ -2352,12 +2361,16 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 			vmx->pt_desc.guest.addr_a[index / 2] = data;
 		break;
 	case MSR_IA32_U_CET:
+	case MSR_IA32_S_CET:
 		if (!cet_is_msr_accessible(vcpu, msr_info))
 			return 1;
 		if ((data & GENMASK(9, 6)) ||
 		    is_noncanonical_address(data, vcpu))
 			return 1;
-		kvm_set_xsave_msr(msr_info);
+		if (msr_index == MSR_IA32_S_CET)
+			vmcs_writel(GUEST_S_CET, data);
+		else
+			kvm_set_xsave_msr(msr_info);
 		break;
 	case MSR_IA32_PL3_SSP:
 	case MSR_KVM_GUEST_SSP:
@@ -7664,6 +7677,9 @@ static void vmx_update_intercept_for_cet_msr(struct kvm_vcpu *vcpu)
 
 	incpt |= !guest_cpuid_has(vcpu, X86_FEATURE_SHSTK);
 	vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL3_SSP, MSR_TYPE_RW, incpt);
+
+	incpt |= !guest_cpuid_has(vcpu, X86_FEATURE_IBT);
+	vmx_set_intercept_for_msr(vcpu, MSR_IA32_S_CET, MSR_TYPE_RW, incpt);
 }
 
 static void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
@@ -7729,7 +7745,7 @@ static void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
 	/* Refresh #PF interception to account for MAXPHYADDR changes. */
 	vmx_update_exception_bitmap(vcpu);
 
-	if (kvm_cet_user_supported())
+	if (kvm_cet_user_supported() || cet_kernel_ibt_supported())
 		vmx_update_intercept_for_cet_msr(vcpu);
 }
 
@@ -7787,6 +7803,11 @@ static __init void vmx_set_cpu_caps(void)
 #ifndef CONFIG_X86_SHADOW_STACK
 	if (boot_cpu_has(X86_FEATURE_SHSTK))
 		kvm_cpu_cap_clear(X86_FEATURE_SHSTK);
+#endif
+
+#ifndef CONFIG_X86_KERNEL_IBT
+	if (boot_cpu_has(X86_FEATURE_IBT))
+		kvm_cpu_cap_clear(X86_FEATURE_IBT);
 #endif
 
 }
