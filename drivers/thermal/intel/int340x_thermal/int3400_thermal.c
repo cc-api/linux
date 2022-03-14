@@ -640,6 +640,42 @@ static int int3400_thermal_remove(struct platform_device *pdev)
 	return 0;
 }
 
+
+#ifdef CONFIG_PM_SLEEP
+static int int3400_thermal_resume(struct device *dev)
+{
+	struct int3400_thermal_priv *priv = dev_get_drvdata(dev);
+
+	if (!priv)
+		return 0;
+
+	if (priv->current_uuid_index >= 0 &&
+	    priv->current_uuid_index < INT3400_THERMAL_MAXIMUM_UUID) {
+		int enabled = 1;
+
+		int3400_thermal_run_osc(priv->adev->handle,
+					int3400_thermal_uuids[priv->current_uuid_index],
+					&enabled);
+	}
+
+	if (priv->os_uuid_mask) {
+		int cap;
+
+		cap = ((priv->os_uuid_mask << 1) | 0x01);
+		int3400_thermal_run_osc(priv->adev->handle,
+					"b23ba85d-c8b7-3542-88de-8de2ffcfd698", &cap);
+	}
+
+	evaluate_odvp(priv);
+
+	return 0;
+}
+#else
+#define int3400_thermal_resume NULL
+#endif
+
+static SIMPLE_DEV_PM_OPS(int3400_thermal_pm, NULL, int3400_thermal_resume);
+
 static const struct acpi_device_id int3400_thermal_match[] = {
 	{"INT3400", 0},
 	{"INTC1040", 0},
@@ -654,8 +690,9 @@ static struct platform_driver int3400_thermal_driver = {
 	.probe = int3400_thermal_probe,
 	.remove = int3400_thermal_remove,
 	.driver = {
-		   .name = "int3400 thermal",
-		   .acpi_match_table = ACPI_PTR(int3400_thermal_match),
+			.name = "int3400 thermal",
+			.acpi_match_table = ACPI_PTR(int3400_thermal_match),
+			.pm = &int3400_thermal_pm,
 		   },
 };
 
