@@ -1304,10 +1304,6 @@ static void sld_state_show(void)
 
 void __init sld_setup(struct cpuinfo_x86 *c)
 {
-#ifdef	CONFIG_SVOS
-	pr_info("split_lock detector force-disabled\n");
-	return;
-#endif
 	split_lock_setup(c);
 	sld_state_setup();
 	sld_state_show();

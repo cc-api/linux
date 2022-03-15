@@ -318,6 +318,17 @@ static __init int setup_disable_smap(char *arg)
 }
 __setup("nosmap", setup_disable_smap);
 
+#ifdef CONFIG_SVOS
+static int svos_setup_sld = 0;
+static int __init svos_enable_sld(char *str)
+{
+	svos_setup_sld = 1;
+	pr_info("split_lock detector enabled\n");
+	return 1;
+}
+early_param("svos_enable_sld", svos_enable_sld);
+#endif
+
 static __always_inline void setup_smap(struct cpuinfo_x86 *c)
 {
 	unsigned long eflags = native_save_fl();
@@ -1339,6 +1350,9 @@ static void __init early_identify_cpu(struct cpuinfo_x86 *c)
 
 	cpu_set_bug_bits(c);
 
+#ifdef CONFIG_SVOS
+	if (svos_setup_sld)
+#endif
 	sld_setup(c);
 
 	fpu__init_system(c);
