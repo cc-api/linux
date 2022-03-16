@@ -13624,15 +13624,6 @@
         "Unit": "IRP"
     },
     {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x1C",
-        "EventName": "UNC_I_TxR2_AD01_STALL_CREDIT_CYCLES",
-        "PerPkg": "1",
-        "Unit": "IRP"
-    },
-    {
         "BriefDescription": "No AD0 Egress Credits Stalls",
         "Counter": "0,1",
         "CounterType": "PGMABLE",
@@ -15509,36 +15500,6 @@
         "EventName": "UNC_M2M_PREFCAM_RESP_MISS.CH1",
         "PerPkg": "1",
         "UMask": "0x02",
-        "Unit": "M2M"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x7A",
-        "EventName": "UNC_M2M_PREFCAM_RxC_DEALLOCS.SQUASHED",
-        "PerPkg": "1",
-        "UMask": "0x01",
-        "Unit": "M2M"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x7A",
-        "EventName": "UNC_M2M_PREFCAM_RxC_DEALLOCS.1LM_POSTED",
-        "PerPkg": "1",
-        "UMask": "0x02",
-        "Unit": "M2M"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x7A",
-        "EventName": "UNC_M2M_PREFCAM_RxC_DEALLOCS.CIS",
-        "PerPkg": "1",
-        "UMask": "0x08",
         "Unit": "M2M"
     },
     {
@@ -19362,15 +19323,6 @@
         "Unit": "M2M"
     },
     {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x60",
-        "EventName": "UNC_M2M_DIRECT2CORE_NOT_TAKEN_NOTFORKED",
-        "PerPkg": "1",
-        "Unit": "M2M"
-    },
-    {
         "BriefDescription": "Write Tracker Inserts",
         "Counter": "0,1,2,3",
         "CounterType": "PGMABLE",
@@ -19385,42 +19337,6 @@
         "CounterType": "PGMABLE",
         "EventCode": "0x65",
         "EventName": "UNC_M2M_MIRR_WRQ_OCCUPANCY",
-        "PerPkg": "1",
-        "Unit": "M2M"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x73",
-        "EventName": "UNC_M2M_PREFCAM_CIS_DROPS",
-        "PerPkg": "1",
-        "Unit": "M2M"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x79",
-        "EventName": "UNC_M2M_PREFCAM_RxC_CYCLES_NE",
-        "PerPkg": "1",
-        "Unit": "M2M"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x78",
-        "EventName": "UNC_M2M_PREFCAM_RxC_INSERTS",
-        "PerPkg": "1",
-        "Unit": "M2M"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x77",
-        "EventName": "UNC_M2M_PREFCAM_RxC_OCCUPANCY",
         "PerPkg": "1",
         "Unit": "M2M"
     },
@@ -21029,16 +20945,6 @@
         "EventName": "UNC_M2P_RxC_INSERTS.CHA_NCS",
         "PerPkg": "1",
         "UMask": "0x04",
-        "Unit": "M2PCIe"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x2d",
-        "EventName": "UNC_M2P_TxC_CREDITS.PRQ",
-        "PerPkg": "1",
-        "UMask": "0x01",
         "Unit": "M2PCIe"
     },
     {
@@ -24897,176 +24803,6 @@
         "EventName": "UNC_U_PHOLD_CYCLES.ASSERT_TO_ACK",
         "PerPkg": "1",
         "UMask": "0x01",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4C",
-        "EventName": "UNC_U_RACU_DRNG.RDRAND",
-        "PerPkg": "1",
-        "UMask": "0x01",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4C",
-        "EventName": "UNC_U_RACU_DRNG.RDSEED",
-        "PerPkg": "1",
-        "UMask": "0x02",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4C",
-        "EventName": "UNC_U_RACU_DRNG.PFTCH_BUF_EMPTY",
-        "PerPkg": "1",
-        "UMask": "0x04",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4D",
-        "EventName": "UNC_U_M2U_MISC1.RxC_CYCLES_NE_CBO_NCB",
-        "PerPkg": "1",
-        "UMask": "0x01",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4D",
-        "EventName": "UNC_U_M2U_MISC1.RxC_CYCLES_NE_CBO_NCS",
-        "PerPkg": "1",
-        "UMask": "0x02",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4D",
-        "EventName": "UNC_U_M2U_MISC1.TxC_CYCLES_CRD_OVF_CBO_NCB",
-        "PerPkg": "1",
-        "UMask": "0x10",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4D",
-        "EventName": "UNC_U_M2U_MISC1.TxC_CYCLES_CRD_OVF_CBO_NCS",
-        "PerPkg": "1",
-        "UMask": "0x20",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4E",
-        "EventName": "UNC_U_M2U_MISC2.RxC_CYCLES_FULL_BL",
-        "PerPkg": "1",
-        "UMask": "0x01",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4E",
-        "EventName": "UNC_U_M2U_MISC2.RxC_CYCLES_EMPTY_BL",
-        "PerPkg": "1",
-        "UMask": "0x02",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4E",
-        "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_CRD_OVF_VN0_NCB",
-        "PerPkg": "1",
-        "UMask": "0x04",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4E",
-        "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_CRD_OVF_VN0_NCS",
-        "PerPkg": "1",
-        "UMask": "0x08",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4E",
-        "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_EMPTY_BL",
-        "PerPkg": "1",
-        "UMask": "0x10",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4E",
-        "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_EMPTY_AK",
-        "PerPkg": "1",
-        "UMask": "0x20",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4E",
-        "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_EMPTY_AKC",
-        "PerPkg": "1",
-        "UMask": "0x40",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4E",
-        "EventName": "UNC_U_M2U_MISC2.TxC_CYCLES_FULL_BL",
-        "PerPkg": "1",
-        "UMask": "0x80",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4F",
-        "EventName": "UNC_U_M2U_MISC3.TxC_CYCLES_FULL_AK",
-        "PerPkg": "1",
-        "UMask": "0x01",
-        "Unit": "UBOX"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x4F",
-        "EventName": "UNC_U_M2U_MISC3.TxC_CYCLES_FULL_AKC",
-        "PerPkg": "1",
-        "UMask": "0x02",
         "Unit": "UBOX"
     },
     {

@@ -8,24 +8,6 @@
         "Unit": "PCU"
     },
     {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x60",
-        "EventName": "UNC_P_CORE_TRANSITION_CYCLES",
-        "PerPkg": "1",
-        "Unit": "PCU"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x30",
-        "EventName": "UNC_P_DEMOTIONS",
-        "PerPkg": "1",
-        "Unit": "PCU"
-    },
-    {
         "BriefDescription": "Phase Shed 0 Cycles",
         "Counter": "0,1,2,3",
         "CounterType": "PGMABLE",
@@ -157,15 +139,6 @@
         "CounterType": "PGMABLE",
         "EventCode": "0x2D",
         "EventName": "UNC_P_PKG_RESIDENCY_C6_CYCLES",
-        "PerPkg": "1",
-        "Unit": "PCU"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x06",
-        "EventName": "UNC_P_PMAX_THROTTLED_CYCLES",
         "PerPkg": "1",
         "Unit": "PCU"
     },

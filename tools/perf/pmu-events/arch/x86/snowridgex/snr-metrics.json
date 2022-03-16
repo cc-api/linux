@@ -25,7 +25,7 @@
     },
     {
         "BriefDescription": "Counts the total number of issue slots  that were not consumed by the backend due to backend stalls",
-        "MetricExpr": "Backend_Bound",
+        "MetricExpr": "TOPDOWN_BE_BOUND.ALL / (4 * CPU_CLK_UNHALTED.CORE)",
         "MetricGroup": "TopdownL1",
         "MetricName": "Backend_Bound_Aux",
         "PublicDescription": "Counts the total number of issue slots  that were not consumed by the backend due to backend stalls.  Note that UOPS must be available for consumption in order for this event to count.  If a uop is not available (IQ is empty), this event will not count.  All of these subevents count backend stalls, in slots, due to a resource limitation.   These are not cycle based events and therefore can not be precisely added or subtracted from the Backend_Bound subevents which are cycle based.  These subevents are supplementary to Backend_Bound and can be used to analyze results from a resource perspective at allocation.  ",

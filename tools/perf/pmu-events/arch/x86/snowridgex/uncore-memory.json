@@ -432,50 +432,11 @@
         "Unit": "iMC"
     },
     {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0xA0",
-        "EventName": "UNC_M_PCLS.RD",
-        "PerPkg": "1",
-        "UMask": "0x01",
-        "Unit": "iMC"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0xA0",
-        "EventName": "UNC_M_PCLS.WR",
-        "PerPkg": "1",
-        "UMask": "0x02",
-        "Unit": "iMC"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0xA0",
-        "EventName": "UNC_M_PCLS.TOTAL",
-        "PerPkg": "1",
-        "UMask": "0x04",
-        "Unit": "iMC"
-    },
-    {
         "BriefDescription": "DRAM Precharge All Commands",
         "Counter": "0,1,2,3",
         "CounterType": "PGMABLE",
         "EventCode": "0x44",
         "EventName": "UNC_M_DRAM_PRE_ALL",
-        "PerPkg": "1",
-        "Unit": "iMC"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x2c",
-        "EventName": "UNC_M_PARITY_ERRORS",
         "PerPkg": "1",
         "Unit": "iMC"
     },
