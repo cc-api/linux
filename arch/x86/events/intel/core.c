@@ -6681,6 +6681,10 @@ __init int intel_pmu_init(void)
 		x86_pmu.num_topdown_events = 8;
 		x86_pmu.update_topdown_event = icl_update_topdown_event;
 		x86_pmu.set_topdown_event_period = icl_set_topdown_event_period;
+#ifdef CONFIG_X86_SHADOW_STACK
+		if (boot_cpu_has(X86_FEATURE_SHSTK))
+			x86_pmu.store_shadow_stack_user = intel_pmu_store_shadow_stack_user;
+#endif
 		pr_cont("Sapphire Rapids events, ");
 		name = "sapphire_rapids";
 		break;
@@ -6727,6 +6731,10 @@ __init int intel_pmu_init(void)
 		 * x86_pmu.rtm_abort_event.
 		 */
 		x86_pmu.rtm_abort_event = X86_CONFIG(.event=0xc9, .umask=0x04);
+#ifdef CONFIG_X86_SHADOW_STACK
+		if (boot_cpu_has(X86_FEATURE_SHSTK))
+			x86_pmu.store_shadow_stack_user = intel_pmu_store_shadow_stack_user;
+#endif
 
 		td_attr = adl_hybrid_events_attrs;
 		mem_attr = adl_hybrid_mem_attrs;
@@ -6833,6 +6841,10 @@ __init int intel_pmu_init(void)
 		 * x86_pmu.rtm_abort_event.
 		 */
 		x86_pmu.rtm_abort_event = X86_CONFIG(.event=0xc9, .umask=0x04);
+#ifdef CONFIG_X86_SHADOW_STACK
+		if (boot_cpu_has(X86_FEATURE_SHSTK))
+			x86_pmu.store_shadow_stack_user = intel_pmu_store_shadow_stack_user;
+#endif
 
 		td_attr = adl_hybrid_events_attrs;
 		mem_attr = adl_hybrid_mem_attrs;
