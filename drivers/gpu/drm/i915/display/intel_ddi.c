@@ -3603,7 +3603,10 @@ static bool intel_ddi_is_audio_enabled(struct drm_i915_private *dev_priv,
 void intel_ddi_compute_min_voltage_level(struct drm_i915_private *dev_priv,
 					 struct intel_crtc_state *crtc_state)
 {
-	if (DISPLAY_VER(dev_priv) >= 12 && crtc_state->port_clock > 594000)
+	/* FIXME: Check what is the minimum voltage level for MTL */
+	if (DISPLAY_VER(dev_priv) >= 14 && IS_SIMULATOR(dev_priv))
+		crtc_state->min_voltage_level = 0;
+	else if (DISPLAY_VER(dev_priv) >= 12 && crtc_state->port_clock > 594000)
 		crtc_state->min_voltage_level = 2;
 	else if ((IS_JASPERLAKE(dev_priv) || IS_ELKHARTLAKE(dev_priv)) &&
 		 crtc_state->port_clock > 594000)
