@@ -107,7 +107,7 @@ int cat_perf_miss_val(int cpu_no, int n, char *cache_type)
 
 	cache_size = 0;
 
-	ret = remount_resctrlfs(true);
+	ret = remount_resctrlfs(true, NULL);
 	if (ret)
 		return ret;
 

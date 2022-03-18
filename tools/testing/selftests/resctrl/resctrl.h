@@ -23,6 +23,7 @@
 #include <sys/eventfd.h>
 #include <asm/unistd.h>
 #include <linux/perf_event.h>
+#include <sys/sysinfo.h>
 #include "../kselftest.h"
 
 #define MB			(1024 * 1024)
@@ -33,6 +34,13 @@
 #define MB_PATH			"/sys/fs/resctrl/info/MB"
 #define L3_MON_PATH		"/sys/fs/resctrl/info/L3_MON"
 #define L3_MON_FEATURES_PATH	"/sys/fs/resctrl/info/L3_MON/mon_features"
+#define MBA4_MODE_PATH		"/sys/fs/resctrl/info/MB/mba4_mode"
+#define MSR_IA32_CORE_CAPS	0x000000CF
+#define MSR_IA32_MBA4_EXTENSION_ADDR	0x00000C84
+#define BIT(nr)			(1UL << (nr))
+#define CORE_CAPABILITIES		BIT(30)
+#define MSR_IA32_CORE_CAPS_MBA4	BIT(10)
+#define MSR_IA32_MBA4_EXTENSION	BIT(2)
 
 #define PARENT_EXIT(err_msg)			\
 	do {					\
@@ -71,6 +79,8 @@ struct resctrl_val_param {
 #define MBA_STR			"mba"
 #define CMT_STR			"cmt"
 #define CAT_STR			"cat"
+#define ENABLED_STR			"enabled"
+#define DISABLED_STR			"disabled"
 
 extern pid_t bm_pid, ppid;
 
@@ -79,7 +89,7 @@ extern bool is_amd;
 
 bool check_resctrlfs_support(void);
 int filter_dmesg(void);
-int remount_resctrlfs(bool mum_resctrlfs);
+int remount_resctrlfs(bool mum_resctrlfs, const char *mount_param);
 int get_resource_id(int cpu_no, int *resource_id);
 int umount_resctrlfs(void);
 int validate_bw_report_request(char *bw_report);
@@ -117,4 +127,8 @@ int show_cache_info(unsigned long sum_llc_val, int no_of_bits,
 		    unsigned long max_diff_percent, unsigned long num_of_runs,
 		    bool platform, bool cmt);
 
+int detect_cpu_num(void);
+int cpuid(unsigned int op, unsigned int count,
+	  uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx);
+int rdmsr(unsigned int msr, int cpu, uint64_t *msr_value);
 #endif /* RESCTRL_H */

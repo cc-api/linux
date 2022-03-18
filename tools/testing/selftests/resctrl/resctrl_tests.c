@@ -73,10 +73,147 @@ static void run_mbm_test(bool has_ben, char **benchmark_cmd, int span,
 	mbm_test_cleanup();
 }
 
+static int check_mba4_mode(bool is_mba4)
+{
+	int ret = -1;
+	char *re_str;
+	char mba4_status[32];
+
+	FILE *inf = fopen(MBA4_MODE_PATH, "r");
+
+	if (!inf)
+		return errno;
+
+	if (is_mba4)
+		sprintf(mba4_status, "%s", ENABLED_STR);
+	else
+		sprintf(mba4_status, "%s", DISABLED_STR);
+
+	re_str = fgrep(inf, mba4_status);
+	if (re_str) {
+		free(re_str);
+		ret = 0;
+	}
+
+	fclose(inf);
+	return ret;
+}
+
+static int check_mba4_msr(bool is_mba4)
+{
+	int ret = -1;
+	int cpu_num;
+	uint64_t mba4_extension;
+
+	cpu_num = detect_cpu_num();
+
+	for (int index = 0; index < cpu_num; index++) {
+		ret = rdmsr(MSR_IA32_MBA4_EXTENSION_ADDR, index, &mba4_extension);
+		if (ret)
+			return ret;
+
+		if (!is_mba4 && (mba4_extension & MSR_IA32_MBA4_EXTENSION))
+			return ret;
+		if (is_mba4 && !(mba4_extension & MSR_IA32_MBA4_EXTENSION))
+			return ret;
+	}
+
+	return 0;
+}
+
+/*
+ * detect_mba4:
+ * 1. check the file of mba4_mode
+ * 2. check MSR(0xC84).
+ * @enable: parameters passed to detect_mba4()
+ *
+ * Return: =0 on success, non-zero on failure.
+ */
+static int detect_mba4(bool is_mba4)
+{
+	int ret = -1;
+
+	ret = check_mba4_mode(is_mba4);
+	if (ret) {
+		perror("the file mba4_mode is not match current mba4 mode!");
+		return ret;
+	}
+
+	ret = check_mba4_msr(is_mba4);
+	if (ret) {
+		perror("the value of msr 0xC84 is not match current mba4 mode!");
+		return ret;
+	}
+
+	return ret;
+}
+
+/*
+ * @mount_param: parameters of mount
+ *
+ * Return: =0 on success, non-zero on failure.
+ *
+ * For mount_param == "mba4",
+ * 1. check whether the current kernel supports mba4 option.
+ * 2. mount resctrl filesystem with mba4 option.
+ * 3. check MSR related to mba4.
+ * For mount_param == NULL,
+ * 1. mount resctrl filesystem without mba4 option.
+ * 2. check MSR related to mba4.
+ */
+static int mba4_support_test_case(const char *mount_param)
+{
+	int res = -1, cpu_num;
+	bool is_mba4;
+	uint64_t  ia32_core_caps;
+	int mum_resctrlfs = 1;
+	unsigned int op = 0x7, count = 0x0;
+	uint32_t eax = 0x0, ebx = 0x0, ecx = 0x0, edx = 0x0;
+
+	if (mount_param && !strncmp(mount_param, "mba4", sizeof("mba4"))) {
+		is_mba4 = true;
+		res = cpuid(op, count, &eax, &ebx, &ecx, &edx);
+		if (res)
+			return res;
+
+		if (!(edx & CORE_CAPABILITIES)) {
+			ksft_print_msg("CORE_CAPABILITIES is not support!\n");
+			return res;
+		}
+
+		cpu_num = detect_cpu_num();
+
+		for (int index = 0; index < cpu_num; index++) {
+			res = rdmsr(MSR_IA32_CORE_CAPS, index, &ia32_core_caps);
+			if (res)
+				return res;
+
+			if (!(ia32_core_caps & MSR_IA32_CORE_CAPS_MBA4)) {
+				ksft_print_msg("MBA4.0 feature is not support on CPU%d!\n", index);
+				return res;
+			}
+		}
+	} else if (!mount_param) {
+		is_mba4 = false;
+	} else {
+		perror("error mount param!");
+		return res;
+	}
+
+	res = remount_resctrlfs(mum_resctrlfs, mount_param);
+	if (res)
+		return res;
+
+	res = detect_mba4(is_mba4);
+
+	return res;
+}
+
 static void run_mba_test(bool has_ben, char **benchmark_cmd, int span,
 			 int cpu_no, char *bw_report)
 {
 	int res;
+	bool is_failed = false;
 
 	ksft_print_msg("Starting MBA Schemata change ...\n");
 
@@ -88,8 +225,25 @@ static void run_mba_test(bool has_ben, char **benchmark_cmd, int span,
 	if (!has_ben)
 		sprintf(benchmark_cmd[1], "%d", span);
 	res = mba_schemata_change(cpu_no, bw_report, benchmark_cmd);
-	ksft_test_result(!res, "MBA: schemata change\n");
+	is_failed |= res;
 	mba_test_cleanup();
+	ksft_print_msg("ending mba_schemata_change: %s\n", res ? "failed" : "success");
+
+	/*mount resctrl filesystem with "mba4"*/
+	ksft_print_msg("starting mount resctrl filesystem with mba4 ...\n");
+	res = mba4_support_test_case("mba4");
+	is_failed |= res;
+	ksft_print_msg("ending mount resctrl filesystem with mba4: %s\n",
+		       res ? "failed" : "success");
+
+	/*mount resctrl filesystem without "mba4"*/
+	ksft_print_msg("starting mount resctrl filesystem without mba4 ...\n");
+	res = mba4_support_test_case(NULL);
+	is_failed |= res;
+	ksft_print_msg("ending mount resctrl filesystem without mba4: %s\n",
+		       res ? "failed" : "success");
+
+	ksft_test_result(!is_failed, "MBA: test cases.\n");
 }
 
 static void run_cmt_test(bool has_ben, char **benchmark_cmd, int cpu_no)

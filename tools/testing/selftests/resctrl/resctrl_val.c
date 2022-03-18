@@ -609,7 +609,7 @@ int resctrl_val(char **benchmark_cmd, struct resctrl_val_param *param)
 			return ret;
 	}
 
-	ret = remount_resctrlfs(param->mum_resctrlfs);
+	ret = remount_resctrlfs(param->mum_resctrlfs, NULL);
 	if (ret)
 		return ret;
 

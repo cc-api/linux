@@ -87,7 +87,7 @@ int cmt_resctrl_val(int cpu_no, int n, char **benchmark_cmd)
 	cache_size = 0;
 	mum_resctrlfs = 1;
 
-	ret = remount_resctrlfs(mum_resctrlfs);
+	ret = remount_resctrlfs(mum_resctrlfs, NULL);
 	if (ret)
 		return ret;
 
