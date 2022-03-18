@@ -582,6 +582,235 @@ measure_vals(struct resctrl_val_param *param, unsigned long *bw_resc_start)
 	return 0;
 }
 
+int record_mba4_result(struct resctrl_val_param *param, time_t time_diff)
+{
+	int fp;
+	char msg[512];
+
+	fp = open(param->filename, O_CREAT | O_APPEND | O_RDWR, 0700);
+	if (fp == -1) {
+		perror("Cannot open results file");
+		goto out;
+	}
+
+	if (flock(fp, LOCK_EX) < 0) {
+		perror("fp lock failed!");
+		goto out;
+	}
+
+	sprintf(msg, "allocation: %d \t Difference: %ld\n", param->allocation, time_diff);
+	if (write(fp, msg, sizeof(msg)) < 0)
+		perror("Could not log results.");
+
+	close(fp);
+
+out:
+	return 0;
+}
+
+int show_mba4_info(int run_num, long time_unbd,
+		   long *time_bd, bool is_competition)
+{
+	int index, success_num = 0;
+
+	ksft_print_msg("Results are displayed in (Microseconds)\n");
+	for (index = 0; index < run_num; index++) {
+		ksft_print_msg("unlimit_bandwidth_time: %ld \t limit_bandwidth_time: %ld\n",
+			       time_unbd, time_bd[index]);
+		if ((is_competition && time_unbd <= time_bd[index]) ||
+		    (!is_competition && labs(time_unbd - time_bd[index]) < floor(time_unbd * 0.1)))
+			success_num++;
+	}
+
+	ksft_print_msg("%s MBA4 functional feature under %s competition\n",
+		       success_num < floor(run_num * 0.6) ? "Fail:" : "Pass:",
+		       is_competition ? "with" : "without");
+
+	return (success_num < floor(run_num * 0.6));
+}
+
+int check_mba4_results(char *result_file_name, bool is_competition)
+{
+	char *token_array[8], temp[512];
+	long time_unbd = 0, time_bd[1024] = {0};
+	int runs, allocation;
+	int fp;
+
+	fp = open(result_file_name, O_RDONLY);
+	if (fp == -1) {
+		perror(result_file_name);
+		return errno;
+	}
+
+	runs = 0;
+	while (read(fp, temp, sizeof(temp)) > 0) {
+		char *token = strtok(temp, ":\t");
+		int fields = 0;
+
+		while (token) {
+			token_array[fields++] = token;
+			token = strtok(NULL, ":\t");
+		}
+		/* Field 1 is bandwidth allocation value*/
+		allocation = strtoul(token_array[1], NULL, 0);
+		/* Field 3 is resctrl value */
+		if (allocation == 100)
+			time_unbd = strtoul(token_array[3], NULL, 0);
+		else
+			time_bd[runs++] = strtoul(token_array[3], NULL, 0);
+	}
+	close(fp);
+
+	return show_mba4_info(runs, time_unbd, time_bd, is_competition);
+}
+
+/*
+ * do_run_workload: run a workload to occupy bandwidth based on the benchmark
+ * @benchmark_cmd:	benchmark command and its arguments
+ * @param:		parameters passed to run_workload()
+ *
+ */
+void do_run_workload(struct resctrl_val_param *param, char **benchmark_cmd)
+{
+	struct timeval start, end;
+	unsigned long span, time_diff;
+	char resctrl_val[64];
+	int operation, malloc_and_init_memory, memflush;
+
+	span = strtoul(benchmark_cmd[1], NULL, 10);
+	malloc_and_init_memory = atoi(benchmark_cmd[2]);
+	memflush =  atoi(benchmark_cmd[3]);
+	operation = atoi(benchmark_cmd[4]);
+	sprintf(resctrl_val, "%s", benchmark_cmd[5]);
+
+	gettimeofday(&start, NULL);
+	if (run_fill_buf(span * MB, malloc_and_init_memory, memflush,
+			 operation, resctrl_val))
+		perror("Error in running fill buffer\n");
+	gettimeofday(&end, NULL);
+
+	time_diff = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+	record_mba4_result(param, time_diff);
+}
+
+/*
+ * run_mba4:		execute workload and measure time-consuming
+ * @benchmark_cmd:	benchmark command and its arguments
+ * @param:		a pointer to struct resctrl_val_param
+ * @run_nums:		number of iterations
+ * @is_parallel:	multi-process or not
+ *
+ * Return:		0 on success. non-zero on failure.
+ *
+ * under competition
+ * IN MBA3.0 or MBA4.0, A process with a higher percentage bandwidth,
+ * it will take higher priority to finish,and vice versa;
+ * In this case, we create some processes with the same workload running on different cores
+ * correspondingly, and set processes different bandwidth, then measure the time-consuming
+ * among these processes.
+ *
+ * under non-competition
+ * The bandwidth of MBA4 is actually a threshold other than a limitation.
+ * i.e. if a task running without memory competition.
+ * it would run with unlimited bandwidth, we compare the diff between unlimit_bandwidth_time
+ * and limit_bandwidth_time, The case is successful, if the diff is small. Or the case is failed.
+ */
+int run_mba4(char **benchmark_cmd, struct resctrl_val_param *param,
+	     int run_nums, bool is_parallel)
+{
+	char *resctrl_val = param->resctrl_val;
+	int ret = -1, i, status;
+	int iter_num = 0, process_num = 0;
+	struct sigaction sigact;
+
+	ret = remount_resctrlfs(param->mum_resctrlfs, param->mount_param);
+	if (ret)
+		goto out;
+
+	/*
+	 * Register CTRL-C handler for parent, as it has to kill benchmark
+	 * before exiting
+	 */
+	sigact.sa_sigaction = ctrlc_handler;
+	sigemptyset(&sigact.sa_mask);
+	sigact.sa_flags = SA_SIGINFO;
+	if (sigaction(SIGINT, &sigact, NULL) ||
+	    sigaction(SIGHUP, &sigact, NULL)) {
+		perror("# sigaction");
+		ret = errno;
+		goto out;
+	}
+	/*
+	 * If benchmark wasn't successfully started by child, then child should
+	 * kill parent, so save parent's pid
+	 */
+	ppid = getpid();
+	process_num = is_parallel ? run_nums : 1;
+
+	do {
+		for (i = 0; i < process_num; i++) {
+			sprintf(param->ctrlgrp, "c%d", i);
+			sprintf(param->mongrp, "m%d", i);
+			param->cpu_no = i;
+			if (is_parallel)
+				param->allocation = (i == 0 ? 100 : 10);
+			else
+				param->allocation = (iter_num == 0 ? 100 : 10);
+
+			bm_pid = fork();
+			if (bm_pid == 0 || bm_pid == -1)
+				break;
+		}
+		iter_num++;
+		if (bm_pid == 0) {
+			prctl(PR_SET_PDEATHSIG, SIGHUP);
+			/* Taskset benchmark to specified cpu */
+			ret = taskset_benchmark(getpid(), param->cpu_no);
+			if (ret)
+				exit(0);
+			/* Write benchmark to specified control&monitoring grp in resctrl FS */
+			ret = write_bm_pid_to_resctrl(getpid(), param->ctrlgrp,
+						      param->mongrp, resctrl_val);
+			if (ret)
+				exit(0);
+
+			ret = param->setup(1, param);
+			if (ret)
+				exit(0);
+
+			do_run_workload(param, benchmark_cmd);
+			exit(0);
+		}
+
+		while (waitpid(-1, &status, 0)) {
+			if (errno == ECHILD)
+				break;
+		}
+	} while (!is_parallel && iter_num < run_nums);
+
+out:
+	umount_resctrlfs();
+	return ret;
+}
+
+/*
+ * Write schemata to specified con_mon grp in resctrl FS
+ */
+int mba4_setup(int num, ...)
+{
+	struct resctrl_val_param *p;
+	char allocation_str[64];
+	va_list param;
+
+	va_start(param, num);
+	p = va_arg(param, struct resctrl_val_param *);
+	va_end(param);
+
+	sprintf(allocation_str, "%d", p->allocation);
+	write_schemata(p->ctrlgrp, allocation_str, p->cpu_no, p->resctrl_val);
+
+	return 0;
+}
 /*
  * resctrl_val:	execute benchmark and measure memory bandwidth on
  *			the benchmark

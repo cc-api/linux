@@ -52,6 +52,7 @@ void tests_cleanup(void)
 	mba_test_cleanup();
 	cmt_test_cleanup();
 	cat_test_cleanup();
+	mba4_test_cleanup();
 }
 
 static void run_mbm_test(bool has_ben, char **benchmark_cmd, int span,
@@ -241,6 +242,28 @@ static void run_mba_test(bool has_ben, char **benchmark_cmd, int span,
 	res = mba4_support_test_case(NULL);
 	is_failed |= res;
 	ksft_print_msg("ending mount resctrl filesystem without mba4: %s\n",
+		       res ? "failed" : "success");
+
+	if (mba4_support_test_case("mba4")) {
+		ksft_test_result_skip("Hardware does not support MBA4 or MBA4 is disabled\n");
+		return;
+	}
+
+	sprintf(benchmark_cmd[5], "%s", MBA4_STR);
+	ksft_print_msg("Starting MBA4 nocompetition function test ...\n");
+
+	res = mba_nocompetition_test(cpu_no, benchmark_cmd);
+
+	is_failed |= res;
+	ksft_print_msg("Ending MBA4 nocompetition function test: %s\n",
+		       res ? "failed" : "success");
+
+	ksft_print_msg("Starting MBA4 competition function test ...\n");
+
+	res = mba_competition_test(benchmark_cmd);
+
+	is_failed |= res;
+	ksft_print_msg("Ending MBA4 competition function test: %s\n",
 		       res ? "failed" : "success");
 
 	ksft_test_result(!is_failed, "MBA: test cases.\n");
