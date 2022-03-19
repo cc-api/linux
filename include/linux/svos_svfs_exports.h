@@ -39,6 +39,10 @@
 #include <linux/syscalls.h>
 #include <linux/kdb.h>
 #include <linux/svos.h>
+
+// svos_svfs_exports requires headers from arch/x86 that are only available in
+// x86 builds.
+#ifdef CONFIG_X86
 #include <asm/e820/types.h>
 #include <asm/mtrr.h>
 #include <asm/special_insns.h>
@@ -49,7 +53,12 @@
 #include <asm/hw_irq.h>
 #include <asm/io_apic.h>
 
+// Including this table in the CONFIG_X86 guard. It's referenced
+// in arch/x86/kernel/svos.c so should only show up in x86 builds
+// anyways.
 extern struct e820_table e820_svos;
+#endif
+
 extern struct svos_node_memory svos_node_memory[MAX_NUMNODES];
 extern nodemask_t svos_nodes_parsed;
 
