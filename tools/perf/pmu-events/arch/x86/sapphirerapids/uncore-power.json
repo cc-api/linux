@@ -10,16 +10,6 @@
         "Unit": "PCU"
     },
     {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x60",
-        "EventName": "UNC_P_CORE_TRANSITION_CYCLES",
-        "PerPkg": "1",
-        "UMaskExt": "0x00000000",
-        "Unit": "PCU"
-    },
-    {
         "BriefDescription": "Hammer Cross Throttling Engaged",
         "Counter": "0,1,2,3",
         "CounterType": "PGMABLE",
@@ -35,16 +25,6 @@
         "CounterType": "PGMABLE",
         "EventCode": "0x11",
         "EventName": "UNC_P_CROSSTHROT_LIGHT",
-        "PerPkg": "1",
-        "UMaskExt": "0x00000000",
-        "Unit": "PCU"
-    },
-    {
-        "BriefDescription": "tbd",
-        "Counter": "0,1,2,3",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x30",
-        "EventName": "UNC_P_DEMOTIONS",
         "PerPkg": "1",
         "UMaskExt": "0x00000000",
         "Unit": "PCU"
@@ -235,15 +215,6 @@
         "CounterType": "PGMABLE",
         "EventCode": "0x2d",
         "EventName": "UNC_P_PKG_RESIDENCY_C6_CYCLES",
-        "PerPkg": "1",
-        "UMaskExt": "0x00000000",
-        "Unit": "PCU"
-    },
-    {
-        "BriefDescription": "tbd",
-        "CounterType": "PGMABLE",
-        "EventCode": "0x06",
-        "EventName": "UNC_P_PMAX_THROTTLED_CYCLES",
         "PerPkg": "1",
         "UMaskExt": "0x00000000",
         "Unit": "PCU"

@@ -90,39 +90,6 @@
         "UMask": "0x2"
     },
     {
-        "BriefDescription": "Cycles while L1 cache miss demand load is outstanding.",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3",
-        "CounterMask": "2",
-        "EventCode": "0x47",
-        "EventName": "MEMORY_ACTIVITY.CYCLES_L1D_MISS",
-        "PEBScounters": "0,1,2,3",
-        "SampleAfterValue": "1000003",
-        "UMask": "0x2"
-    },
-    {
-        "BriefDescription": "Execution stalls while L1 cache miss demand load is outstanding.",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3",
-        "CounterMask": "3",
-        "EventCode": "0x47",
-        "EventName": "MEMORY_ACTIVITY.STALLS_L1D_MISS",
-        "PEBScounters": "0,1,2,3",
-        "SampleAfterValue": "1000003",
-        "UMask": "0x3"
-    },
-    {
-        "BriefDescription": "TBD",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3",
-        "CounterMask": "5",
-        "EventCode": "0x47",
-        "EventName": "MEMORY_ACTIVITY.STALLS_L2_MISS",
-        "PEBScounters": "0,1,2,3",
-        "SampleAfterValue": "1000003",
-        "UMask": "0x5"
-    },
-    {
         "BriefDescription": "Counts demand instruction fetches and L1 instruction cache prefetches that  were supplied by DRAM on a distant memory controller of this socket when the system is in SNC (sub-NUMA cluster) mode.",
         "Counter": "0,1,2,3",
         "EventCode": "0x2A,0x2B",
@@ -130,7 +97,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x708000004",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -142,43 +108,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x10001",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
-        "SampleAfterValue": "100003",
-        "UMask": "0x1"
-    },
-    {
-        "BriefDescription": "Counts demand data reads that resulted in a snoop hit a modified line in another core's caches which forwarded the data.",
-        "Counter": "0,1,2,3",
-        "EventCode": "0x2A,0x2B",
-        "EventName": "OCR.DEMAND_DATA_RD.L3_HIT.SNOOP_HITM",
-        "MSRIndex": "0x1a6,0x1a7",
-        "MSRValue": "0x10003C0001",
-        "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
-        "SampleAfterValue": "100003",
-        "UMask": "0x1"
-    },
-    {
-        "BriefDescription": "Counts demand data reads that resulted in a snoop that hit in another core, which did not forward the data.",
-        "Counter": "0,1,2,3",
-        "EventCode": "0x2A,0x2B",
-        "EventName": "OCR.DEMAND_DATA_RD.L3_HIT.SNOOP_HIT_NO_FWD",
-        "MSRIndex": "0x1a6,0x1a7",
-        "MSRValue": "0x4003C0001",
-        "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
-        "SampleAfterValue": "100003",
-        "UMask": "0x1"
-    },
-    {
-        "BriefDescription": "Counts demand data reads that resulted in a snoop hit in another core's caches which forwarded the unmodified data to the requesting core.",
-        "Counter": "0,1,2,3",
-        "EventCode": "0x2A,0x2B",
-        "EventName": "OCR.DEMAND_DATA_RD.L3_HIT.SNOOP_HIT_WITH_FWD",
-        "MSRIndex": "0x1a6,0x1a7",
-        "MSRValue": "0x8003C0001",
-        "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -190,7 +119,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x104000001",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -202,7 +130,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x708000001",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -214,19 +141,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x3F3FFC0002",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
-        "SampleAfterValue": "100003",
-        "UMask": "0x1"
-    },
-    {
-        "BriefDescription": "Counts demand reads for ownership (RFO) requests and software prefetches for exclusive ownership (PREFETCHW) that resulted in a snoop hit a modified line in another core's caches which forwarded the data.",
-        "Counter": "0,1,2,3",
-        "EventCode": "0x2A,0x2B",
-        "EventName": "OCR.DEMAND_RFO.L3_HIT.SNOOP_HITM",
-        "MSRIndex": "0x1a6,0x1a7",
-        "MSRValue": "0x10003C0002",
-        "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -238,7 +152,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x708000002",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -250,7 +163,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x90002380",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -262,7 +174,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x104004477",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -274,7 +185,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x70C004477",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -286,7 +196,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x700C04477",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -298,7 +207,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x3F33004477",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -310,7 +218,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x730004477",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -322,7 +229,6 @@
         "MSRIndex": "0x1a6,0x1a7",
         "MSRValue": "0x10800",
         "Offcore": "1",
-        "PublicDescription": "Offcore response can be programmed only with a specific pair of event select and counter MSR, and with specific event codes and predefine mask bit value in a dedicated MSR to specify attributes of the offcore transaction.",
         "SampleAfterValue": "100003",
         "UMask": "0x1"
     },
@@ -336,110 +242,6 @@
         "PublicDescription": "Counts cycles during which the reservation station (RS) is empty for this logical processor.",
         "SampleAfterValue": "1000003",
         "UMask": "0x7"
-    },
-    {
-        "BriefDescription": "Number of PREFETCHNTA instructions executed.",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3",
-        "EventCode": "0x40",
-        "EventName": "SW_PREFETCH_ACCESS.NTA",
-        "PEBScounters": "0,1,2,3",
-        "PublicDescription": "Counts the number of PREFETCHNTA instructions executed.",
-        "SampleAfterValue": "100003",
-        "UMask": "0x1"
-    },
-    {
-        "BriefDescription": "Number of PREFETCHW instructions executed.",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3",
-        "EventCode": "0x40",
-        "EventName": "SW_PREFETCH_ACCESS.PREFETCHW",
-        "PEBScounters": "0,1,2,3",
-        "PublicDescription": "Counts the number of PREFETCHW instructions executed.",
-        "SampleAfterValue": "100003",
-        "UMask": "0x8"
-    },
-    {
-        "BriefDescription": "Number of PREFETCHT0 instructions executed.",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3",
-        "EventCode": "0x40",
-        "EventName": "SW_PREFETCH_ACCESS.T0",
-        "PEBScounters": "0,1,2,3",
-        "PublicDescription": "Counts the number of PREFETCHT0 instructions executed.",
-        "SampleAfterValue": "100003",
-        "UMask": "0x2"
-    },
-    {
-        "BriefDescription": "Number of PREFETCHT1 or PREFETCHT2 instructions executed.",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3",
-        "EventCode": "0x40",
-        "EventName": "SW_PREFETCH_ACCESS.T1_T2",
-        "PEBScounters": "0,1,2,3",
-        "PublicDescription": "Counts the number of PREFETCHT1 or PREFETCHT2 instructions executed.",
-        "SampleAfterValue": "100003",
-        "UMask": "0x4"
-    },
-    {
-        "BriefDescription": "TMA slots where no uops were being issued due to lack of back-end resources.",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3,4,5,6,7",
-        "EventCode": "0xa4",
-        "EventName": "TOPDOWN.BACKEND_BOUND_SLOTS",
-        "PEBScounters": "0,1,2,3,4,5,6,7",
-        "PublicDescription": "Number of slots in TMA method where no micro-operations were being issued from front-end to back-end of the machine due to lack of back-end resources.",
-        "SampleAfterValue": "10000003",
-        "UMask": "0x2"
-    },
-    {
-        "BriefDescription": "TMA slots wasted due to incorrect speculations.",
-        "CollectPEBSRecord": "2",
-        "EventCode": "0xa4",
-        "EventName": "TOPDOWN.BAD_SPEC_SLOTS",
-        "PublicDescription": "Number of slots of TMA method that were wasted due to incorrect speculation. It covers all types of control-flow or data-related mis-speculations.",
-        "SampleAfterValue": "10000003",
-        "UMask": "0x4"
-    },
-    {
-        "BriefDescription": "TMA slots wasted due to incorrect speculation by branch mispredictions",
-        "CollectPEBSRecord": "2",
-        "EventCode": "0xa4",
-        "EventName": "TOPDOWN.BR_MISPREDICT_SLOTS",
-        "PublicDescription": "Number of TMA slots that were wasted due to incorrect speculation by (any type of) branch mispredictions. This event estimates number of specualtive operations that were issued but not retired as well as the out-of-order engine recovery past a branch misprediction.",
-        "SampleAfterValue": "10000003",
-        "UMask": "0x8"
-    },
-    {
-        "BriefDescription": "TBD",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3,4,5,6,7",
-        "EventCode": "0xa4",
-        "EventName": "TOPDOWN.MEMORY_BOUND_SLOTS",
-        "PEBScounters": "0,1,2,3,4,5,6,7",
-        "SampleAfterValue": "10000003",
-        "UMask": "0x10"
-    },
-    {
-        "BriefDescription": "TMA slots available for an unhalted logical processor. Fixed counter - architectural event",
-        "CollectPEBSRecord": "2",
-        "Counter": "Fixed counter 3",
-        "EventName": "TOPDOWN.SLOTS",
-        "PEBScounters": "35",
-        "PublicDescription": "Number of available slots for an unhalted logical processor. The event increments by machine-width of the narrowest pipeline as employed by the Top-down Microarchitecture Analysis method (TMA). The count is distributed among unhalted logical processors (hyper-threads) who share the same physical core. Software can use this event as the denominator for the top-level metrics of the TMA method. This architectural event is counted on a designated fixed counter (Fixed Counter 3).",
-        "SampleAfterValue": "10000003",
-        "UMask": "0x4"
-    },
-    {
-        "BriefDescription": "TMA slots available for an unhalted logical processor. General counter - architectural event",
-        "CollectPEBSRecord": "2",
-        "Counter": "0,1,2,3,4,5,6,7",
-        "EventCode": "0xa4",
-        "EventName": "TOPDOWN.SLOTS_P",
-        "PEBScounters": "0,1,2,3,4,5,6,7",
-        "PublicDescription": "Counts the number of available slots for an unhalted logical processor. The event increments by machine-width of the narrowest pipeline as employed by the Top-down Microarchitecture Analysis method. The count is distributed among unhalted logical processors (hyper-threads) who share the same physical core.",
-        "SampleAfterValue": "10000003",
-        "UMask": "0x1"
     },
     {
         "BriefDescription": "TBD",
