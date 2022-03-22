@@ -61,4 +61,10 @@ static inline int detect_tdx(void) { return -ENODEV; }
 static inline int init_tdx(struct tdsysinfo_struct *r) { return -ENODEV; }
 #endif /* CONFIG_INTEL_TDX_HOST */
 
+#ifdef CONFIG_INTEL_TDX_HOST_OLD
+void tdx_early_init(void);
+#else
+static inline void tdx_early_init(void) { }
+#endif
+
 #endif /* _ASM_X86_TDX_HOST_H */

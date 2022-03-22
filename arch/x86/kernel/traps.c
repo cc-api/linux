@@ -61,6 +61,7 @@
 #include <asm/insn.h>
 #include <asm/insn-eval.h>
 #include <asm/vdso.h>
+#include <asm/tdx_host.h>
 
 #ifdef CONFIG_X86_64
 #include <asm/x86_init.h>
@@ -1238,4 +1239,6 @@ void __init trap_init(void)
 	/* Setup traps as cpu_init() might #GP */
 	idt_setup_traps();
 	cpu_init();
+
+	tdx_early_init();
 }
