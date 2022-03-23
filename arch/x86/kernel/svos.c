@@ -42,6 +42,7 @@ static int __init svos_enable_ras(char *str)
 	return 1;
 }
 early_param("svos_enable_ras", svos_enable_ras);
+EXPORT_SYMBOL(svos_enable_ras_errorcorrect);
 
 __init unsigned long
 svos_adjgap( unsigned long gapsize )

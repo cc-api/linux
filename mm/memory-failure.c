@@ -61,6 +61,9 @@
 #include <linux/shmem_fs.h>
 #include "internal.h"
 #include "ras/ras_event.h"
+#ifdef CONFIG_SVOS
+#include <linux/svos.h>
+#endif
 
 int sysctl_memory_failure_early_kill __read_mostly = 0;
 
@@ -1972,6 +1975,11 @@ static int __init memory_failure_init(void)
 	struct memory_failure_cpu *mf_cpu;
 	int cpu;
 
+#ifdef CONFIG_SVOS
+	if (!svos_enable_ras_errorcorrect) {
+		return 0;
+	}
+#endif
 	for_each_possible_cpu(cpu) {
 		mf_cpu = &per_cpu(memory_failure_cpu, cpu);
 		spin_lock_init(&mf_cpu->lock);

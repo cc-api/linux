@@ -41,6 +41,9 @@
 #include <linux/uuid.h>
 #include <linux/ras.h>
 #include <linux/task_work.h>
+#ifdef CONFIG_SVOS
+#include <linux/svos.h>
+#endif
 
 #include <acpi/actbl1.h>
 #include <acpi/ghes.h>
@@ -1461,6 +1464,11 @@ static int __init ghes_init(void)
 {
 	int rc;
 
+	if (!svos_enable_ras_errorcorrect) {
+		printk_once(KERN_CRIT
+			"SVOS RAS not enabled - shutting down ghes\n");
+		return -ENODEV;
+	}
 	if (acpi_disabled)
 		return -ENODEV;
 
