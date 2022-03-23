@@ -984,6 +984,8 @@ svos_entryhook( int reason, struct pt_regs *regs )
 
 int PCFLAG=0;
 
+void svos_cmds_init(void);
+
 void
 svos_cmds_init(void)
 {
