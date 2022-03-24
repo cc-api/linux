@@ -38,7 +38,7 @@ void __kernel_poison_pages(struct page *page, int n)
 {
 	int i;
 
-#ifdef CONFIG_SVOS
+#if defined(CONFIG_SVOS) && defined(CONFIG_X86)
 	if (!svos_enable_ras_errorcorrect) {
 		return;
 	}
@@ -102,7 +102,7 @@ void __kernel_unpoison_pages(struct page *page, int n)
 {
 	int i;
 
-#ifdef CONFIG_SVOS
+#if defined(CONFIG_SVOS) && defined(CONFIG_X86)
 	if (!svos_enable_ras_errorcorrect) {
 		return;
 	}

@@ -1464,7 +1464,7 @@ static int __init ghes_init(void)
 {
 	int rc;
 
-#ifdef CONFIG_SVOS
+#if defined(CONFIG_SVOS) && defined(CONFIG_X86)
 	if (!svos_enable_ras_errorcorrect) {
 		printk_once(KERN_CRIT
 			"SVOS RAS not enabled - shutting down ghes\n");

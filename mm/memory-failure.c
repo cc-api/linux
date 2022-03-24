@@ -1975,7 +1975,7 @@ static int __init memory_failure_init(void)
 	struct memory_failure_cpu *mf_cpu;
 	int cpu;
 
-#ifdef CONFIG_SVOS
+#if defined(CONFIG_SVOS) && defined(CONFIG_X86)
 	if (!svos_enable_ras_errorcorrect) {
 		return 0;
 	}
