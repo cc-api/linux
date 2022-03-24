@@ -224,11 +224,14 @@ static int __init extlog_init(void)
 	struct resource *r;
 	u64 cap;
 	int rc;
+
+#ifdef CONFIG_SVOS
 	if (!svos_enable_ras_errorcorrect) {
 		printk_once(KERN_CRIT
 			"SVOS RAS not enabled - shutting down extlog\n");
 		return -ENODEV;
 	}
+#endif
 
 	if (rdmsrl_safe(MSR_IA32_MCG_CAP, &cap) ||
 	    !(cap & MCG_ELOG_P) ||
