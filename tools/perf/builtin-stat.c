@@ -1658,6 +1658,7 @@ const char * get_topdown_pmu_name(void)
 static int add_default_attributes(void)
 {
 	int err;
+	const char *pmu_name = "cpu";
 	struct perf_event_attr default_attrs0[] = {
 
   { .type = PERF_TYPE_SOFTWARE, .config = PERF_COUNT_SW_TASK_CLOCK		},
@@ -1848,13 +1849,12 @@ static int add_default_attributes(void)
 		parse_events_error__exit(&errinfo);
 		return err ? -1 : 0;
 	}
-
 	if (topdown_run) {
 		const char **metric_attrs = topdown_metric_attrs;
 		unsigned int max_level = 1;
 		char *str = NULL;
 		bool warn = false;
-		const char *pmu_name = get_topdown_pmu_name();
+		pmu_name = get_topdown_pmu_name();
 
 		if (!force_metric_only)
 			stat_config.metric_only = true;
@@ -1932,6 +1932,7 @@ setup_metrics:
 		if (perf_pmu__has_hybrid()) {
 			struct parse_events_error errinfo;
 			const char *hybrid_str = "cycles,instructions,branches,branch-misses";
+			pmu_name = get_topdown_pmu_name();
 			target.system_wide = true;
 			if (target__has_cpu(&target))
 				default_sw_attrs[0].config = PERF_COUNT_SW_CPU_CLOCK;
@@ -1973,7 +1974,7 @@ setup_metrics:
 			return -1;
 default_topdown:
 		stat_config.topdown_level = TOPDOWN_MAX_LEVEL;
-		if (arch_evlist__add_default_attrs(evsel_list) < 0)
+		if (arch_evlist__add_default_attrs(evsel_list, pmu_name) < 0)
 			return -1;
 	}
 
