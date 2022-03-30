@@ -164,7 +164,10 @@ static inline u64 tddebugconfig(u64 subleaf, u64 param1, u64 param2)
 	in.rdx = param1;
 	in.r8 = param2;
 	ret = tdx_seamcall(SEAMCALL_TDDEBUGCONFIG, &in, NULL, NULL);
+#ifndef CONFIG_SVOS
 	WARN_ON_ONCE(ret);
+#endif
+
 
 	return  ret;
 }
@@ -177,7 +180,9 @@ static inline void tdx_trace_seamcalls(u64 level)
 	in.rcx = DEBUGCONFIG_SET_TRACE_LEVEL;
 	in.rdx = level;
 	ret = tdx_seamcall(SEAMCALL_TDDEBUGCONFIG, &in, NULL, NULL);
+#ifndef CONFIG_SVOS
 	WARN_ON(ret);
+#endif
 }
 
 #endif /* _X86_TDX_SEAMCALL_H */
