@@ -54,5 +54,8 @@ void intel_dmc_ucode_fini(struct drm_i915_private *i915);
 void intel_dmc_ucode_suspend(struct drm_i915_private *i915);
 void intel_dmc_ucode_resume(struct drm_i915_private *i915);
 bool intel_dmc_has_payload(struct drm_i915_private *i915);
+void intel_dmc_debugfs_register(struct drm_i915_private *i915);
+
+void assert_dmc_loaded(struct drm_i915_private *i915);
 
 #endif /* __INTEL_DMC_H__ */
