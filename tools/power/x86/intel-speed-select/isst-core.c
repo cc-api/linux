@@ -933,6 +933,10 @@ int isst_get_process_ctdp(int cpu, int pkg, int die, int tdp_level, struct isst_
 		if (ret)
 			return ret;
 
+		isst_get_uncore_p0_p1_info(cpu, pkg, die, i, ctdp_level);
+		isst_get_p1_info(cpu, pkg, die, i, ctdp_level);
+		isst_get_uncore_mem_freq(cpu, pkg, die, i, ctdp_level);
+
 		ctdp_level->core_cpumask_size =
 			alloc_cpu_set(&ctdp_level->core_cpumask);
 		ret = isst_get_coremask_info(cpu, pkg, die, i, ctdp_level);
@@ -941,10 +945,12 @@ int isst_get_process_ctdp(int cpu, int pkg, int die, int tdp_level, struct isst_
 
 		ret = isst_get_trl_bucket_info(cpu, pkg, die, i, &ctdp_level->buckets_info);
 		if (ret)
-			return ret;
+			continue;
 
-		if (is_tpmi_if())
-			return tpmi_isst_get_get_trl(cpu, pkg, die, i, ctdp_level);
+		if (is_tpmi_if()) {
+			ret = tpmi_isst_get_get_trl(cpu, pkg, die, i, ctdp_level);
+			continue;
+		}
 
 		ret = isst_get_get_trl(cpu, pkg, die, i, 0,
 				       ctdp_level->trl_sse_active_cores);
@@ -960,10 +966,6 @@ int isst_get_process_ctdp(int cpu, int pkg, int die, int tdp_level, struct isst_
 				       ctdp_level->trl_avx_512_active_cores);
 		if (ret)
 			return ret;
-
-		isst_get_uncore_p0_p1_info(cpu, pkg, die, i, ctdp_level);
-		isst_get_p1_info(cpu, pkg, die, i, ctdp_level);
-		isst_get_uncore_mem_freq(cpu, pkg, die, i, ctdp_level);
 	}
 
 	if (!valid)
