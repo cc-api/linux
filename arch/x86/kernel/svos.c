@@ -45,7 +45,7 @@ early_param("svos_enable_ras", svos_enable_ras);
 EXPORT_SYMBOL(svos_enable_ras_errorcorrect);
 
 __init unsigned long
-svos_adjgap( unsigned long gapsize )
+svos_adjgap(unsigned long gapsize)
 {
 	unsigned long round;
 	unsigned long start;
@@ -66,24 +66,23 @@ static __init int memory_setup(char *opt)
 	if (!opt)
 		return -EINVAL;
 
-	if(!strncmp(opt, "split_above=", 12)){
-		opt+=12;
+	if (!strncmp(opt, "split_above=", 12)) {
+		opt += 12;
 		svos_split_above = memparse(opt, &opt);
 	}
 
-	if(!strncmp(opt, "split=", 6)){
-		opt+=6;
+	if (!strncmp(opt, "split=", 6)) {
+		opt += 6;
 		svos_memory_split = memparse(opt, &opt);
 	}
-	if(!strncmp(opt, "split_after=", 12)) {
-		opt+=12;
+	if (!strncmp(opt, "split_after=", 12)) {
+		opt += 12;
 		svos_split_after = memparse(opt, &opt);
 	}
 	return 0;
 }
 early_param("svos_memory", memory_setup);
 
-#define GAP_SIZE	0x40000000LL /* 1GB */
 void __init svos_mem_init(void)
 {
 	unsigned long long target_space = svos1stTargetPage << PAGE_SHIFT;
@@ -95,13 +94,13 @@ void __init svos_mem_init(void)
 	/* Disable user address space randomization */
 	randomize_va_space = 0;
 
-	memset(&e820_svos,0,sizeof(e820_svos));
-	memcpy(&e820_svos,e820_table,sizeof(struct e820_table));
+	memset(&e820_svos, 0, sizeof(e820_svos));
+	memcpy(&e820_svos, e820_table, sizeof(struct e820_table));
 	//
 	// if no svos memory is specified or svos@ is zero
 	// act as if svos@ is set to max mem.
 	//
-	if( target_space == 0ULL )
+	if (target_space == 0ULL)
 		return;
 
 	//
@@ -114,14 +113,14 @@ void __init svos_mem_init(void)
 	// us the requested kernel memory and remove the rest for SVOS.
 	//
 	accum_size = 0;
-	if( svos_memory_split == 0 ){
+	if (svos_memory_split == 0) {
 		for (i = 0; i < e820_table->nr_entries; i++) {
-			ep =  &e820_table->entries[i];
-			if( ep->type != E820_TYPE_RAM )
+			ep = &e820_table->entries[i];
+			if (ep->type != E820_TYPE_RAM)
 				continue;
 
-			if( (accum_size + ep->size) >= target_space ){
-				e820__range_remove( ep->addr + (target_space - accum_size), ULLONG_MAX, E820_TYPE_RAM,1);
+			if ((accum_size + ep->size) >= target_space) {
+				e820__range_remove(ep->addr + (target_space - accum_size), ULLONG_MAX, E820_TYPE_RAM, 1);
 				return;
 			}
 
@@ -144,38 +143,36 @@ void __init svos_mem_init(void)
 
 	else {
 		above_addr = 0;
-		for(i = 0; i < e820_table->nr_entries; i++){
+		for (i = 0; i < e820_table->nr_entries; i++) {
 			ep = &e820_table->entries[i];
-			if( ep->type != E820_TYPE_RAM )
+			if (ep->type != E820_TYPE_RAM)
 				continue;
 
-			if( (ep->addr + ep->size) <= svos_split_above )
+			if ((ep->addr + ep->size) <= svos_split_above)
 				continue;
 
-			if( above_addr == 0 ){		// first segment to look at
+			if (above_addr == 0) {          // first segment to look at
 				accum_size = svos_split_after;
 				//
 				// set the above address to be either the boot param value
 				// or the first memory address above the boot param value.
 				//
-				if( ep->addr < svos_split_above ) {
+				if (ep->addr < svos_split_above) {
 					above_addr = svos_split_above;
 					accum_size += ep->size - (svos_split_above - ep->addr);
-				}
-				else{
+				} else {
 					above_addr = ep->addr;
 					accum_size += ep->size;
 				}
-			}
-			else
+			} else
 				accum_size += ep->size;
 			//
 			// Once we have accumulated enough space
 			// remove the svos areas from the e820 map.
 			//
-			if( accum_size >= target_space ){
-				e820__range_remove( svos_split_after, (svos_split_above - svos_split_after), E820_TYPE_RAM,1);
-				e820__range_remove( above_addr + (target_space - svos_split_after), ULLONG_MAX, E820_TYPE_RAM,1);
+			if (accum_size >= target_space) {
+				e820__range_remove(svos_split_after, (svos_split_above - svos_split_after), E820_TYPE_RAM, 1);
+				e820__range_remove(above_addr + (target_space - svos_split_after), ULLONG_MAX, E820_TYPE_RAM, 1);
 				return;
 			}
 		}
@@ -183,7 +180,7 @@ void __init svos_mem_init(void)
 	//
 	// common error return
 	//
-	printk( KERN_ERR "%s : not enough memory to satisfy svos@ mem parameter\n", __FUNCTION__);
+	printk(KERN_ERR "%s : not enough memory to satisfy svos@ mem parameter\n", __FUNCTION__);
 	return;
 }
 
@@ -192,11 +189,11 @@ void __init svos_mem_init(void)
  * parameter.
  */
 void
-svos_parse_mem( char *p )
+svos_parse_mem(char *p)
 {
-	u64	mem_size = memparse( p+5, &p );
+	u64	mem_size = memparse(p + 5, &p);
 
-	svos1stTargetPage = mem_size >>PAGE_SHIFT;
+	svos1stTargetPage = mem_size >> PAGE_SHIFT;
 	return;
 }
 
@@ -211,7 +208,7 @@ int
 svos_trap_hook(int trapnr, struct pt_regs *regs)
 {
 	int	trapResult = 0;
-	if( svTrapHandlerKernelP != NULL) {
+	if (svTrapHandlerKernelP != NULL) {
 		trapResult = svTrapHandlerKernelP(trapnr, regs);
 	}
 	return trapResult;
@@ -222,7 +219,7 @@ EXPORT_SYMBOL(init_mm);
 struct mm_struct *svoskern_init_mm = &init_mm;
 EXPORT_SYMBOL(svoskern_init_mm);
 
-struct task_struct *svoskern_find_task_by_pid_ns(pid_t nr, struct pid_namespace *ns)
+struct task_struct* svoskern_find_task_by_pid_ns(pid_t nr, struct pid_namespace *ns)
 {
 	return find_task_by_pid_ns(nr, ns);
 }
@@ -250,8 +247,8 @@ EXPORT_SYMBOL(svoskern_pci_mmcfg_list);
 
 unsigned long
 svoskern_ksys_mmap_pgoff(unsigned long addr, unsigned long len,
-			      unsigned long prot, unsigned long flags,
-			      unsigned long fd, unsigned long pgoff)
+	unsigned long prot, unsigned long flags,
+	unsigned long fd, unsigned long pgoff)
 {
 	return ksys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
 }
@@ -416,12 +413,12 @@ u8 svoskern_mtrr_type_lookup(u64 start, u64 end, u8 *uniform)
 EXPORT_SYMBOL(svoskern_mtrr_type_lookup);
 
 int svoskern__irq_domain_alloc_irqs(struct irq_domain *domain, int irq_base,
-				     unsigned int nr_irqs, int node, void *arg,
-				     bool realloc)
+	unsigned int nr_irqs, int node, void *arg,
+	bool realloc)
 {
 #ifdef	CONFIG_IRQ_DOMAIN_HIERARCHY
 	return __irq_domain_alloc_irqs(domain, irq_base, nr_irqs, node,
-				       arg, realloc, NULL);
+		arg, realloc, NULL);
 #else
 	return -1;
 #endif
@@ -436,13 +433,13 @@ EXPORT_SYMBOL(svoskern_flush_tlb_page);
 
 void svoskern_flush_tlb_local(void)
 {
-        flush_tlb_local();
+	flush_tlb_local();
 }
 EXPORT_SYMBOL(svoskern_flush_tlb_local);
 
 void svoskern_flush_tlb_all(void)
 {
-        flush_tlb_all();
+	flush_tlb_all();
 }
 EXPORT_SYMBOL(svoskern_flush_tlb_all);
 
