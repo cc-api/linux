@@ -7,6 +7,7 @@
 #include "lapic.h"
 #include "irq.h"
 #include "posted_intr.h"
+#include "tdx.h"
 #include "trace.h"
 #include "vmx.h"
 
@@ -31,6 +32,11 @@ static DEFINE_PER_CPU(raw_spinlock_t, wakeup_vcpus_on_cpu_lock);
 
 static inline struct pi_desc *vcpu_to_pi_desc(struct kvm_vcpu *vcpu)
 {
+#ifdef CONFIG_INTEL_TDX_HOST
+	if (is_td_vcpu(vcpu))
+		return &(to_tdx(vcpu)->pi_desc);
+#endif
+
 	return &(to_vmx(vcpu)->pi_desc);
 }
 
@@ -177,11 +183,21 @@ static void pi_enable_wakeup_handler(struct kvm_vcpu *vcpu)
 	local_irq_restore(flags);
 }
 
+static bool vmx_can_use_ipiv_pi(struct kvm *kvm)
+{
+	return irqchip_in_kernel(kvm) && enable_ipiv;
+}
+
+static bool vmx_can_use_posted_interrupts(struct kvm *kvm)
+{
+	return vmx_can_use_ipiv_pi(kvm) || vmx_can_use_vtd_pi(kvm);
+}
+
 void vmx_vcpu_pi_put(struct kvm_vcpu *vcpu)
 {
 	struct pi_desc *pi_desc = vcpu_to_pi_desc(vcpu);
 
-	if (!vmx_can_use_vtd_pi(vcpu->kvm))
+	if (!vmx_can_use_posted_interrupts(vcpu->kvm))
 		return;
 
 	if (kvm_vcpu_is_blocking(vcpu) && !vmx_interrupt_blocked(vcpu))
@@ -311,7 +327,7 @@ int pi_update_irte(struct kvm *kvm, unsigned int host_irq, uint32_t guest_irq,
 			continue;
 		}
 
-		vcpu_info.pi_desc_addr = __pa(&to_vmx(vcpu)->pi_desc);
+		vcpu_info.pi_desc_addr = __pa(vcpu_to_pi_desc(vcpu));
 		vcpu_info.vector = irq.vector;
 
 		trace_kvm_pi_irte_update(host_irq, vcpu->vcpu_id, e->gsi,

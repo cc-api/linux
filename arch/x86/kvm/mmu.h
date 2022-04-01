@@ -64,8 +64,11 @@ static __always_inline u64 rsvd_bits(int s, int e)
 	return ((2ULL << (e - s)) - 1) << s;
 }
 
-void kvm_mmu_set_mmio_spte_mask(u64 mmio_value, u64 mmio_mask, u64 access_mask);
-void kvm_mmu_set_ept_masks(bool has_ad_bits, bool has_exec_only);
+void kvm_mmu_set_mmio_spte_mask(struct kvm *kvm, u64 mmio_value, u64 mmio_mask,
+				u64 access_mask);
+void kvm_mmu_set_default_mmio_spte_mask(u64 mask);
+void kvm_mmu_set_ept_masks(bool has_ad_bits, bool has_exec_only, u64 init_value);
+void kvm_mmu_set_spte_init_value(u64 init_value);
 
 void kvm_init_mmu(struct kvm_vcpu *vcpu);
 void kvm_init_shadow_npt_mmu(struct kvm_vcpu *vcpu, unsigned long cr0,
@@ -191,7 +194,7 @@ static inline int kvm_mmu_do_page_fault(struct kvm_vcpu *vcpu, gpa_t cr2_or_gpa,
 		.is_tdp = likely(vcpu->arch.mmu->page_fault == kvm_tdp_page_fault),
 		.nx_huge_page_workaround_enabled = is_nx_huge_page_enabled(),
 
-		.max_level = KVM_MAX_HUGEPAGE_LEVEL,
+		.max_level = vcpu->kvm->arch.tdp_max_page_level,
 		.req_level = PG_LEVEL_4K,
 		.goal_level = PG_LEVEL_4K,
 	};
@@ -201,6 +204,9 @@ static inline int kvm_mmu_do_page_fault(struct kvm_vcpu *vcpu, gpa_t cr2_or_gpa,
 #endif
 	return vcpu->arch.mmu->page_fault(vcpu, &fault);
 }
+
+kvm_pfn_t kvm_mmu_map_tdp_page(struct kvm_vcpu *vcpu, gpa_t gpa,
+			       u32 error_code, int max_level);
 
 /*
  * Currently, we have two sorts of write-protection, a) the first one
@@ -299,8 +305,11 @@ static inline u8 permission_fault(struct kvm_vcpu *vcpu, struct kvm_mmu *mmu,
 }
 
 void kvm_zap_gfn_range(struct kvm *kvm, gfn_t gfn_start, gfn_t gfn_end);
+void kvm_tdp_mmu_drop_private_zapped_gfn(struct kvm *kvm, gfn_t start, gfn_t end);
 
 int kvm_arch_write_log_dirty(struct kvm_vcpu *vcpu);
+
+int kvm_mmu_map_gpa(struct kvm_vcpu *vcpu, gfn_t *startp, gfn_t end);
 
 int kvm_mmu_post_init_vm(struct kvm *kvm);
 void kvm_mmu_pre_destroy_vm(struct kvm *kvm);
@@ -364,5 +373,46 @@ static inline gpa_t kvm_translate_gpa(struct kvm_vcpu *vcpu,
 	if (mmu != &vcpu->arch.nested_mmu)
 		return gpa;
 	return translate_nested_gpa(vcpu, gpa, access, exception);
+}
+
+static inline gfn_t kvm_gfn_stolen_mask(struct kvm *kvm)
+{
+#ifdef CONFIG_KVM_MMU_PRIVATE
+	return kvm->arch.gfn_shared_mask;
+#else
+	return 0;
+#endif
+}
+
+static inline gpa_t kvm_gpa_stolen_mask(struct kvm *kvm)
+{
+	return gfn_to_gpa(kvm_gfn_stolen_mask(kvm));
+}
+
+static inline gpa_t kvm_gpa_unalias(struct kvm *kvm, gpa_t gpa)
+{
+	return gpa & ~kvm_gpa_stolen_mask(kvm);
+}
+
+static inline gfn_t kvm_gfn_unalias(struct kvm *kvm, gfn_t gfn)
+{
+	return gfn & ~kvm_gfn_stolen_mask(kvm);
+}
+
+static inline gfn_t kvm_gfn_shared(struct kvm *kvm, gfn_t gfn)
+{
+	return gfn | kvm_gfn_stolen_mask(kvm);
+}
+
+static inline bool kvm_is_private_gfn(struct kvm *kvm, gfn_t gfn)
+{
+	gfn_t mask = kvm_gfn_stolen_mask(kvm);
+
+	return mask && !(gfn & mask);
+}
+
+static inline bool kvm_is_private_gpa(struct kvm *kvm, gpa_t gpa)
+{
+	return kvm_is_private_gfn(kvm, gpa_to_gfn(gpa));
 }
 #endif

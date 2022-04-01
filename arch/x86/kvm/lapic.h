@@ -158,6 +158,11 @@ static inline u32 kvm_lapic_get_reg(struct kvm_lapic *apic, int reg_off)
 	return *((u32 *) (apic->regs + reg_off));
 }
 
+static inline u64 kvm_lapic_get_reg64(struct kvm_lapic *apic, int reg_off)
+{
+	return *((u64 *) (apic->regs + reg_off));
+}
+
 static inline void __kvm_lapic_set_reg(char *regs, int reg_off, u32 val)
 {
 	*((u32 *) (regs + reg_off)) = val;
@@ -233,7 +238,7 @@ static inline int kvm_lapic_latched_init(struct kvm_vcpu *vcpu)
 
 bool kvm_apic_pending_eoi(struct kvm_vcpu *vcpu, int vector);
 
-void kvm_wait_lapic_expire(struct kvm_vcpu *vcpu);
+void kvm_wait_lapic_expire(struct kvm_vcpu *vcpu, bool force_wait);
 
 void kvm_bitmap_or_dest_vcpus(struct kvm *kvm, struct kvm_lapic_irq *irq,
 			      unsigned long *vcpu_bitmap);
