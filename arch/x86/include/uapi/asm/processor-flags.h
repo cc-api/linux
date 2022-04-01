@@ -130,6 +130,8 @@
 #define X86_CR4_SMAP		_BITUL(X86_CR4_SMAP_BIT)
 #define X86_CR4_PKE_BIT		22 /* enable Protection Keys support */
 #define X86_CR4_PKE		_BITUL(X86_CR4_PKE_BIT)
+#define X86_CR4_PKS_BIT         24 /* enable Protection Keys for Supervisor */
+#define X86_CR4_PKS             _BITUL(X86_CR4_PKS_BIT)
 #define X86_CR4_UINTR_BIT	25 /* enable User Interrupts support */
 #define X86_CR4_UINTR		_BITUL(X86_CR4_UINTR_BIT)
 #define X86_CR4_LASS_BIT	27 /* enable LASS support */

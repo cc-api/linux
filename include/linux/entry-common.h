@@ -99,6 +99,13 @@ static inline __must_check int arch_syscall_enter_tracehook(struct pt_regs *regs
 }
 #endif
 
+#ifndef CONFIG_ARCH_HAS_PTREGS_AUXILIARY
+
+static inline void arch_save_aux_pt_regs(struct pt_regs *regs) { }
+static inline void arch_restore_aux_pt_regs(struct pt_regs *regs) { }
+
+#endif
+
 /**
  * enter_from_user_mode - Establish state when coming from user mode
  *
@@ -451,13 +458,17 @@ irqentry_state_t noinstr irqentry_enter(struct pt_regs *regs);
 
 /**
  * irqentry_exit_cond_resched - Conditionally reschedule on return from interrupt
+ * @regs:	Pointer to pt_regs of interrupted context
  *
  * Conditional reschedule with additional sanity checks.
  */
-void irqentry_exit_cond_resched(void);
+void irqentry_exit_cond_resched(struct pt_regs *regs);
+
+void __irqentry_exit_cond_resched(void);
 #ifdef CONFIG_PREEMPT_DYNAMIC
-DECLARE_STATIC_CALL(irqentry_exit_cond_resched, irqentry_exit_cond_resched);
+DECLARE_STATIC_CALL(__irqentry_exit_cond_resched, __irqentry_exit_cond_resched);
 #endif
+
 
 /**
  * irqentry_exit - Handle return from exception that used irqentry_enter()

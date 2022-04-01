@@ -33,6 +33,7 @@
 #include <asm/kvm_para.h>		/* kvm_handle_async_pf		*/
 #include <asm/vdso.h>			/* fixup_vdso_exception()	*/
 #include <asm/irq_stack.h>
+#include <asm/pks.h>
 
 #define CREATE_TRACE_POINTS
 #include <asm/trace/exceptions.h>
@@ -547,6 +548,9 @@ show_fault_oops(struct pt_regs *regs, unsigned long error_code, unsigned long ad
 		 (error_code & X86_PF_RSVD)  ? "reserved bit violation" :
 		 (error_code & X86_PF_PK)    ? "protection keys violation" :
 					       "permissions violation");
+
+	if (error_code & X86_PF_PK)
+		pks_dump_fault_info(regs);
 
 	if (!(error_code & X86_PF_USER) && user_mode(regs)) {
 		struct desc_ptr idt, gdt;
@@ -1147,12 +1151,28 @@ static void
 do_kern_addr_fault(struct pt_regs *regs, unsigned long hw_error_code,
 		   unsigned long address)
 {
-	/*
-	 * Protection keys exceptions only happen on user pages.  We
-	 * have no user pages in the kernel portion of the address
-	 * space, so do not expect them here.
-	 */
-	WARN_ON_ONCE(hw_error_code & X86_PF_PK);
+	if (hw_error_code & X86_PF_PK) {
+		/*
+		 * X86_PF_PK (Protection key exceptions) may occur on kernel
+		 * addresses when PKS (PKeys Supervisor) is enabled.
+		 *
+		 * However, if PKS is not enabled WARN if this exception is
+		 * seen because there are no user pages in the kernel portion
+		 * of the address space.
+		 */
+		WARN_ON_ONCE(!cpu_feature_enabled(X86_FEATURE_PKS));
+
+		if (pks_handle_key_fault(regs, hw_error_code, address))
+			return;
+
+		/*
+		 * If a protection key exception occurs it could be because a PKS test
+		 * is running.  If so, pks_test_callback() will clear the protection
+		 * mechanism and return true to indicate the fault was handled.
+		 */
+		if (pks_test_callback(regs))
+			return;
+	}
 
 #ifdef CONFIG_X86_32
 	/*

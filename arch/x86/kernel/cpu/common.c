@@ -60,6 +60,7 @@
 #include <asm/cpu_device_id.h>
 #include <asm/uv/uv.h>
 #include <asm/sigframe.h>
+#include <asm/pks.h>
 
 #include "cpu.h"
 
@@ -1837,6 +1838,7 @@ static void identify_cpu(struct cpuinfo_x86 *c)
 
 	x86_init_rdrand(c);
 	setup_pku(c);
+	pks_setup();
 
 	/*
 	 * Clear/Set all flags overridden by options, need do it
