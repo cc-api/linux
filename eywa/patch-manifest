@@ -1,0 +1,52 @@
+Merging eywa https://github.com/intel-innersource/os.linux.intelnext.kernel.git eywa 8cff6b96404506df176cac12e14a75bbe71e0357
+Merging configs https://github.com/intel-innersource/os.linux.intelnext.kernel.git configs 0144dec66b1e53bf8ed7054987b80c1ba1a6812e
+Merging packaging https://github.com/intel-innersource/os.linux.intelnext.kernel.git packaging a738e0e8bb003b56dc13258c375f00ac3ace59fa
+Merging branding ssh://git@gitlab.devtools.intel.com:29418/otc-power-management-enabling-team/otc-power-kernel.git intel_next_branding 442a3e9582869271887ab30e343d56c6d6bced12
+Merging pm-testing https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git testing 4560f59dc55401a9b00f450ae7d97f9dfa916d74
+Merging tpm https://git.kernel.org/pub/scm/linux/kernel/git/jarkko/linux-tpmdd.git next fb5abce6b2bb5cb3d628aaa63fa821da8c4600f9
+Merging drm https://github.com/intel-innersource/drivers.gpu.i915.drm-intel.git for-intel-next 1e82984ec3ee7f11e8404958825f35379b96c4aa
+Merging nvme ssh://git-gar-1.devtools.intel.com:29418/otc_nvme_linux-kernel for-intel-next a7b9f2ad8f445036fbd1bb7557f747caaed51518
+Merging mmc https://github.com/intel-sandbox/ahunter6.next.git scs-v5.17 7b13c16f8e10444e7aef5dc43db3b7df164a61d2
+Merging fixup_tdx_kvm_ipiv_kvm_fixup ssh://git@gitlab.devtools.intel.com:29418/otc-power-management-enabling-team/otc-power-kernel.git tdx_kvm_kvm_ipiv_fixup c2595604637c0b13944ed5bb152937232f24eb8d
+Merging mei https://github.com/intel-innersource/drivers.security.cse.drivers.linux-mei-pk.git cse-5.17 2ce32fda4c961d0551e1883ca0f0a92d6e481174
+Merging usb-xhci ssh://git-amr-4.devtools.intel.com:29418/otc_usb-xhci.git for-eywa 1869695eb9ab3348e26d86a257b96c687cec6af0
+Merging lpss_gpio https://github.com/intel-sandbox/ashevche.linux.kernel for-eywa 678eb6d86f38425dd708e5adbb8fff5c524b1125
+Merging perf https://github.com/intel-innersource/os.linux.perf.intel-next.git perf-intel-next 85eb7312d0260b3f9b6e3607e279f8765d18c729
+Merging edac https://github.com/intel-sandbox/qzhuo-linux.git edac-for-intel-next 0cd294886fc78e142f6874609ba7c556c9a28dae
+Merging pmc_core ssh://git@gitlab.devtools.intel.com:29418/gkammela/pmc_core-intel-next.git pmc_core 4d9534460256b3ac83a01f468f14c4a58674ac2d
+Merging tracehub https://github.com/intel-sandbox/linux-stm.git intel_th-for-intel-next c4af52810289c166bf0bac684667b50168c5d09d
+Merging rapl/idle https://github.com/intel-sandbox/rzhang1.git for-intel-next bfeef82a732104152dcf900211fc7e29d3ef743d
+Merging Intel User interrupt ssh://git@gitlab.devtools.intel.com:29418/sohilmeh/uintr-linux-kernel.git intel-next 4bce03ed869e88c169f068341b1f61a96246b949
+Merging amx ssh://git-amr-4.devtools.intel.com:29418/linux_cbae1_share-kl amx cf40d52d44ec40a720da00d02d2ae4efb18f010c
+Merging perf-tools https://github.com/intel-sandbox/ahunter6.next.git intel-pt-perf-tools-v5.17 552c14619213e477705295fd7ac443408a4a7aea
+Merging SVOS Kernel ssh://git@gitlab.devtools.intel.com:29418/svos/sv/kernel/svos_next svos-next-pull-5.17 65bbaa33731aa9255bc889b66ffefac3d8b4c508
+Merging hybrid ssh://git@gitlab.devtools.intel.com:29418/ranerica/linux-dev.git rneri/hybrid-for-intel-next 5a1972771da2733e2eccdf2a018fd551c7f23630
+Merging LASS ssh://git@gitlab.devtools.intel.com:29418/chenyian/kernel-works.git lass-5.17-rc3 481c07a92ccbb3f59052caf39de6f040b7b663b5
+Merging dlb2 ssh://git@gitlab.devtools.intel.com:29418/cwa/linux-kernel.git dlb2-for-intel-next-v5.17-rc6 3dd914f0f0f90704412f881d2b236d44647d83f1
+Merging SPI-NOR/PCI/Thunderbolt/USB4 ssh://git@gitlab.devtools.intel.com:29418/mwesterb/linux.git for-eywa fe4def147e0931f781ef427ed707f85b329bb2f5
+Merging tdx_kvm_support ssh://git@gitlab.devtools.intel.com:29418/tdx/linux.git intel-next 97d6148494b214b357bc3ce85d0b147316ee467a
+Merging interrupt_message ssh://git@gitlab.devtools.intel.com:29418/meghadey/linux.git ims_for_intel_next 3a7b9e7c311e43ba3852b059786638ccfe40fd45
+Merging In Field Scan  ssh://git@gitlab.devtools.intel.com:29418/kyungmin/iommu.git intel_nxt_v517 b20c9d3b9e1d98e88dd5216d68fd27cb543c86ec
+Merging tpmi https://github.com/intel-sandbox/spandruv.linux.git tpmi_intel_next 34e0c44911b180d6e0cd13fa0fa0ca224734e486
+Merging idxd https://github.com/intel-sandbox/idxd.git idxd-intel-next c2d74dab03f936a6c4707ba98a53b5f026d431aa
+Merging oobmsm ssh://git@gitlab.devtools.intel.com:29418/debox1/linux-kernel-dev.git oobmsm_for_intel_next ca3730bce0c9dc8534d45575fe69a65bde587cb6
+Merging cxl https://github.com/intel-sandbox/cxl.git for-intel-next/cxl db7f4b513ac6e913f4806fda9fc572453c07d173
+Merging WWAN https://github.com/intel-innersource/drivers.wireless.wwan.drivers.mtk-5g-wwan.git t7xx_intel_next 806130c6e4d7d0c965101b3bcd62d5568561a65a
+Merging DMWr ssh://git@gitlab.devtools.intel.com:29418/chenyian/kernel-works.git dmwr-5.17-rc3 3305f53232b7f0d36e1b0355cd90a564106a9611
+Merging microcode_rollback ssh://git@gitlab.devtools.intel.com:29418/otc-power-management-enabling-team/otc-power-kernel.git microcode_rollback 2ef0460941a11100afd251f86657ac7c7cbf8a3d
+Merging rdt_mba https://github.com/intel-sandbox/agluck-linux.git next-5.17-mba4.0 ab3a0ff5a15c89520b4d0ce87fd6fbbeb574e1a2
+Merging ppin https://github.com/intel-sandbox/agluck-linux.git next-5.17-ppin 44bcaeb25648a2f6c8c12d212310b14f27e1f107
+Merging LPSS/SMBus ssh://git@gitlab.devtools.intel.com:29418/jarkkoni/linux.git for-intel-next d7a52201b616c42553bafcb307bf7f3142038139
+Merging sgx2 https://github.com/intel-sandbox/rchatre.linux.git sgx/for-intel-next 281485a0dba74dec929826b5e949fd166da10038
+Merging GNR_ADL-N https://github.com/intel-sandbox/agluck-linux.git next-5.17-cpuid 9063bc194184ba6dbea10a2aeeb73cf59e78504d
+Merging pks https://github.com/intel-sandbox/iweiny-0day-linux-kernel.git pks-pmem-intel-next-2022-01-26 b2290ea4202fdc45c505ad45e6f0c32f06a97b01
+Merging shadow_stacks ssh://git@gitlab.devtools.intel.com:29418/rpedgeco/linux.git intel_next ff46b720a6b9c4a9666644aceec2677f192dc830
+Merging kvm_ipiv ssh://git@gitlab.devtools.intel.com:29418/kvm-next/kvm-linux.git kvm_ipiv f814560bbdf47f4eda9e14e07e8579d843b79e3d
+Merging thermal_management https://github.com/intel-sandbox/spandruv.linux.git thermal_intel_next 273f7da1c9840273a0a43b6b41118cd993a37990
+Merging sep_socwatch https://github.com/mchinth/linux.git sep_socwatch_linux_5_17 279a0843e522ec88123ebc978d37ddb6bf7bb2b8
+Merging splitlock https://github.com/intel-sandbox/agluck-linux.git next-5.17-splitlock 189b28235dd92a36bd85af207b63489157091123
+Merging pson_counter https://github.com/intel-sandbox/linux-kernel-rjingar.git pson_counter 33f35de266b300960315a4ab5af3baec8bd6a550
+Merging DIDs8086 https://github.com/franciscomunoz/os.linux.intelnext.kernel.git mtl_dids_linus_rc 3325d6f176ebe3d28cc7f2951c91fd5bd968a399
+Merging SOF_audio https://github.com/bardliao/os.linux.intelnext.kernel.git sof-for-next-5.17 3e9a7d5c0fd42ff0072d91b6ad9a57829e87cfd4
+Merging KVM LASS https://github.com/intel-plai/kvm_lass.git kvm_lass 39f5fd9e11522cfb259186aac1fc82e3fdc5b972
+Merging SVOS_TDX ssh://git@gitlab.devtools.intel.com:29418/svos/sv/kernel/svos_next svos-next-tdx-pull-5.17 addf395e8e531178361246934d797f0eeb843e58
