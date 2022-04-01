@@ -115,7 +115,8 @@ static int fill_cache_read(unsigned char *start_ptr, unsigned char *end_ptr,
 
 	while (1) {
 		ret = fill_one_span_read(start_ptr, end_ptr);
-		if (!strncmp(resctrl_val, CAT_STR, sizeof(CAT_STR)))
+		if (!strncmp(resctrl_val, CAT_STR, sizeof(CAT_STR)) ||
+		    !strncmp(resctrl_val, MBA4_STR, sizeof(MBA4_STR)))
 			break;
 	}
 

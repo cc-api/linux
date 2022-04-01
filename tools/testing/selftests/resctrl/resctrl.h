@@ -23,6 +23,9 @@
 #include <sys/eventfd.h>
 #include <asm/unistd.h>
 #include <linux/perf_event.h>
+#include <sys/sysinfo.h>
+#include <sys/prctl.h>
+#include <sys/file.h>
 #include "../kselftest.h"
 
 #define MB			(1024 * 1024)
@@ -33,7 +36,15 @@
 #define MB_PATH			"/sys/fs/resctrl/info/MB"
 #define L3_MON_PATH		"/sys/fs/resctrl/info/L3_MON"
 #define L3_MON_FEATURES_PATH	"/sys/fs/resctrl/info/L3_MON/mon_features"
+#define MBA4_MODE_PATH		"/sys/fs/resctrl/info/MB/mba4_mode"
+#define MSR_IA32_CORE_CAPS	0x000000CF
+#define MSR_IA32_MBA4_EXTENSION_ADDR	0x00000C84
+#define BIT(nr)			(1UL << (nr))
+#define CORE_CAPABILITIES		BIT(30)
+#define MSR_IA32_CORE_CAPS_MBA4	BIT(10)
+#define MSR_IA32_MBA4_EXTENSION	BIT(2)
 
+#define MBA4_NUM_OF_RUNS		10
 #define PARENT_EXIT(err_msg)			\
 	do {					\
 		perror(err_msg);		\
@@ -52,6 +63,8 @@
  * @filename:		Name of file to which the o/p should be written
  * @bw_report:		Bandwidth report type (reads vs writes)
  * @setup:		Call back function to setup test environment
+ * @allocation:		bandwidth allocation
+ * @mount_param:	the param of mount
  */
 struct resctrl_val_param {
 	char		*resctrl_val;
@@ -65,12 +78,17 @@ struct resctrl_val_param {
 	unsigned long	mask;
 	int		num_of_runs;
 	int		(*setup)(int num, ...);
+	int		allocation;
+	char		mount_param[32];
 };
 
 #define MBM_STR			"mbm"
 #define MBA_STR			"mba"
+#define MBA4_STR		"mba4"
 #define CMT_STR			"cmt"
 #define CAT_STR			"cat"
+#define ENABLED_STR		"enabled"
+#define DISABLED_STR		"disabled"
 
 extern pid_t bm_pid, ppid;
 
@@ -79,7 +97,7 @@ extern bool is_amd;
 
 bool check_resctrlfs_support(void);
 int filter_dmesg(void);
-int remount_resctrlfs(bool mum_resctrlfs);
+int remount_resctrlfs(bool mum_resctrlfs, const char *mount_param);
 int get_resource_id(int cpu_no, int *resource_id);
 int umount_resctrlfs(void);
 int validate_bw_report_request(char *bw_report);
@@ -117,4 +135,21 @@ int show_cache_info(unsigned long sum_llc_val, int no_of_bits,
 		    unsigned long max_diff_percent, unsigned long num_of_runs,
 		    bool platform, bool cmt);
 
+int detect_cpu_num(void);
+int cpuid(unsigned int op, unsigned int count,
+	  uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx);
+int rdmsr(unsigned int msr, int cpu, uint64_t *msr_value);
+int mba_nocompetition_test(int cpu_no, char **benchmark_cmd);
+int mba_competition_test(char **benchmark_cmd);
+int record_mba4_result(struct resctrl_val_param *param, time_t time_diff);
+void do_run_workload(struct resctrl_val_param *param, char **benchmark_cmd);
+void mba4_test_cleanup(void);
+int mba4_setup(int num, ...);
+int check_mba4_results(char *result_file_name, bool is_competition);
+int run_mba4(char **benchmark_cmd, struct resctrl_val_param *param,
+	     int process_num, bool is_competition);
+int show_mba4_info(int run_num,
+		   long unlimit_bandwidth_time,
+		   long *limit_bandwidth_time,
+		   bool is_competition);
 #endif /* RESCTRL_H */

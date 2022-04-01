@@ -10,6 +10,7 @@
  */
 #include "resctrl.h"
 
+#include <fcntl.h>
 static int find_resctrl_mount(char *buffer)
 {
 	FILE *mounts;
@@ -50,6 +51,7 @@ static int find_resctrl_mount(char *buffer)
 /*
  * remount_resctrlfs - Remount resctrl FS at /sys/fs/resctrl
  * @mum_resctrlfs:	Should the resctrl FS be remounted?
+ * @mount_param:	the parameter of remount
  *
  * If not mounted, mount it.
  * If mounted and mum_resctrlfs then remount resctrl FS.
@@ -57,7 +59,7 @@ static int find_resctrl_mount(char *buffer)
  *
  * Return: 0 on success, non-zero on failure
  */
-int remount_resctrlfs(bool mum_resctrlfs)
+int remount_resctrlfs(bool mum_resctrlfs, const char *mount_param)
 {
 	char mountpoint[256];
 	int ret;
@@ -73,7 +75,7 @@ int remount_resctrlfs(bool mum_resctrlfs)
 		return 0;
 
 	ksft_print_msg("Mounting resctrl to \"%s\"\n", RESCTRL_PATH);
-	ret = mount("resctrl", RESCTRL_PATH, "resctrl", 0, NULL);
+	ret = mount("resctrl", RESCTRL_PATH, "resctrl", 0, mount_param);
 	if (ret)
 		perror("# mount");
 
@@ -498,6 +500,7 @@ int write_schemata(char *ctrlgrp, char *schemata, int cpu_no, char *resctrl_val)
 	FILE *fp;
 
 	if (strncmp(resctrl_val, MBA_STR, sizeof(MBA_STR)) &&
+	    strncmp(resctrl_val, MBA4_STR, sizeof(MBA4_STR)) &&
 	    strncmp(resctrl_val, CAT_STR, sizeof(CAT_STR)) &&
 	    strncmp(resctrl_val, CMT_STR, sizeof(CMT_STR)))
 		return -ENOENT;
@@ -523,7 +526,8 @@ int write_schemata(char *ctrlgrp, char *schemata, int cpu_no, char *resctrl_val)
 	if (!strncmp(resctrl_val, CAT_STR, sizeof(CAT_STR)) ||
 	    !strncmp(resctrl_val, CMT_STR, sizeof(CMT_STR)))
 		sprintf(schema, "%s%d%c%s", "L3:", resource_id, '=', schemata);
-	if (!strncmp(resctrl_val, MBA_STR, sizeof(MBA_STR)))
+	if (!strncmp(resctrl_val, MBA_STR, sizeof(MBA_STR)) ||
+	    !strncmp(resctrl_val, MBA4_STR, sizeof(MBA4_STR)))
 		sprintf(schema, "%s%d%c%s", "MB:", resource_id, '=', schemata);
 
 	fp = fopen(controlgroup, "w");
@@ -621,7 +625,7 @@ bool validate_resctrl_feature_request(const char *resctrl_val)
 	if (!resctrl_val)
 		return false;
 
-	if (remount_resctrlfs(false))
+	if (remount_resctrlfs(false, NULL))
 		return false;
 
 	if (!strncmp(resctrl_val, CAT_STR, sizeof(CAT_STR))) {
@@ -743,4 +747,47 @@ unsigned int count_bits(unsigned long n)
 	}
 
 	return count;
+}
+
+int detect_cpu_num(void)
+{
+	return get_nprocs();
+}
+
+int cpuid(unsigned int op, unsigned int count,
+	  uint32_t *eax, uint32_t *ebx,
+	  uint32_t *ecx, uint32_t *edx)
+{
+	if (is_amd)
+		return -1;
+
+	asm volatile("cpuid"
+		     : "=a" (*eax), "=b" (*ebx), "=c" (*ecx), "=d" (*edx)
+		     : "0" (op), "2" (count)
+		     : "memory");
+	return 0;
+}
+
+int rdmsr(unsigned int msr, int cpu, uint64_t *msr_value)
+{
+	int fd, ret;
+	char msr_file_name[64];
+
+	if (is_amd)
+		return -1;
+
+	sprintf(msr_file_name, "/dev/cpu/%d/msr", cpu);
+	fd = open(msr_file_name, O_RDONLY);
+	if (fd == -1) {
+		ksft_print_msg("Failed to open %s", msr_file_name);
+		return -1;
+	}
+
+	ret = pread(fd, msr_value,  sizeof(*msr_value), msr);
+	if (ret == -1) {
+		perror("Failed to read msr");
+		return -1;
+	}
+
+	return 0;
 }
