@@ -75,6 +75,7 @@ obj-y			+= pci-iommu_table.o
 obj-y			+= resource.o
 obj-y			+= irqflags.o
 obj-y			+= static_call.o
+obj-$(CONFIG_SVOS)	+= svos.o
 
 obj-y				+= process.o
 obj-y				+= fpu/
