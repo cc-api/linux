@@ -31,6 +31,7 @@ struct uintr_sender;
 #include <asm/unwind_hints.h>
 #include <asm/vmxfeatures.h>
 #include <asm/vdso/processor.h>
+#include <asm/cet.h>
 
 #include <linux/personality.h>
 #include <linux/cache.h>
@@ -544,6 +545,11 @@ struct thread_struct {
 	/* User Interrupt state*/
 	struct uintr_receiver	*ui_recv;
 	struct uintr_sender	*ui_send;
+#endif
+
+#ifdef CONFIG_X86_SHADOW_STACK
+	struct thread_shstk	shstk;
+	u64			feat_prctl_locked;
 #endif
 
 	/* Floating point and extended processor state */

@@ -50,6 +50,8 @@ static const char *xfeature_names[] =
 	"Processor Trace (unused)"	,
 	"Protection Keys User registers",
 	"PASID state",
+	"Control-flow User registers"	,
+	"Control-flow Kernel registers"	,
 	"unknown xstate feature"	,
 	"unknown xstate feature"	,
 	"unknown xstate feature"	,
@@ -73,6 +75,8 @@ static unsigned short xsave_cpuid_features[] __initdata = {
 	[XFEATURE_PT_UNIMPLEMENTED_SO_FAR]	= X86_FEATURE_INTEL_PT,
 	[XFEATURE_PKRU]				= X86_FEATURE_PKU,
 	[XFEATURE_PASID]			= X86_FEATURE_ENQCMD,
+	[XFEATURE_CET_USER]			= X86_FEATURE_SHSTK,
+	[XFEATURE_CET_KERNEL]			= X86_FEATURE_SHSTK,
 	[XFEATURE_XTILE_CFG]			= X86_FEATURE_AMX_TILE,
 	[XFEATURE_XTILE_DATA]			= X86_FEATURE_AMX_TILE,
 	[XFEATURE_UINTR]			= X86_FEATURE_UINTR,
@@ -251,6 +255,8 @@ static void __init print_xstate_features(void)
 	print_xstate_feature(XFEATURE_MASK_Hi16_ZMM);
 	print_xstate_feature(XFEATURE_MASK_PKRU);
 	print_xstate_feature(XFEATURE_MASK_PASID);
+	print_xstate_feature(XFEATURE_MASK_CET_USER);
+	print_xstate_feature(XFEATURE_MASK_CET_KERNEL);
 	print_xstate_feature(XFEATURE_MASK_XTILE_CFG);
 	print_xstate_feature(XFEATURE_MASK_XTILE_DATA);
 	print_xstate_feature(XFEATURE_MASK_UINTR);
@@ -408,7 +414,8 @@ static __init void os_xrstor_booting(struct xregs_state *xstate)
 	 XFEATURE_MASK_BNDCSR |			\
 	 XFEATURE_MASK_PASID |			\
 	 XFEATURE_MASK_XTILE |			\
-	 XFEATURE_MASK_UINTR)
+	 XFEATURE_MASK_UINTR | 			\
+	 XFEATURE_MASK_CET_USER)
 
 /*
  * setup the xstate image representing the init state
@@ -624,6 +631,8 @@ static bool __init check_xstate_against_struct(int nr)
 	XCHECK_SZ(sz, nr, XFEATURE_PKRU,      struct pkru_state);
 	XCHECK_SZ(sz, nr, XFEATURE_PASID,     struct ia32_pasid_state);
 	XCHECK_SZ(sz, nr, XFEATURE_XTILE_CFG, struct xtile_cfg);
+	XCHECK_SZ(sz, nr, XFEATURE_CET_USER,   struct cet_user_state);
+	XCHECK_SZ(sz, nr, XFEATURE_CET_KERNEL, struct cet_kernel_state);
 	XCHECK_SZ(sz, nr, XFEATURE_UINTR,     struct uintr_state);
 
 	/* The tile data size varies between implementations. */
@@ -638,10 +647,9 @@ static bool __init check_xstate_against_struct(int nr)
 	if ((nr < XFEATURE_YMM) ||
 	    (nr >= XFEATURE_MAX) ||
 	    (nr == XFEATURE_PT_UNIMPLEMENTED_SO_FAR) ||
-	    (nr == XFEATURE_RSRVD_COMP_11) ||
-	    (nr == XFEATURE_RSRVD_COMP_12) ||
 	    (nr == XFEATURE_RSRVD_COMP_13) ||
 	    (nr == XFEATURE_LBR) ||
+	    (nr == XFEATURE_RSRVD_COMP_13) ||
 	    (nr == XFEATURE_RSRVD_COMP_16)) {
 		WARN_ONCE(1, "no structure for xstate: %d\n", nr);
 		XSTATE_WARN_ON(1);
@@ -1869,10 +1877,25 @@ static u64 *__get_xsave_member(void *xstate, u32 msr)
 		return &((struct uintr_state *)xstate)->upid_addr;
 	case MSR_IA32_UINTR_TT:
 		return &((struct uintr_state *)xstate)->uitt_addr;
+	case MSR_IA32_PL3_SSP:
+		return &((struct cet_user_state *)xstate)->user_ssp;
+	case MSR_IA32_U_CET:
+		return &((struct cet_user_state *)xstate)->user_cet;
 	default:
 		WARN_ONCE(1, "x86/fpu: unsupported xstate msr (%u)\n", msr);
 		return NULL;
 	}
+}
+
+/*
+ * Operate on the xsave buffer directly. It makes no gaurantees that the
+ * buffer will stay valid now or in the futre. This function is pretty
+ * much only useful when the caller knows the fpu's thread can't be
+ * scheduled or otherwise operated on concurrently.
+ */
+void *get_xsave_buffer_unsafe(struct fpu *fpu, int xfeature_nr)
+{
+	return get_xsave_addr(&fpu->fpstate->regs.xsave, xfeature_nr);
 }
 
 /*
@@ -1965,13 +1988,10 @@ int xsave_rdmsrl(void *xstate, unsigned int msr, unsigned long long *p)
 	return 0;
 }
 
-int xsave_wrmsrl(void *xstate, u32 msr, u64 val)
+
+int xsave_wrmsrl_unsafe(void *xstate, u32 msr, u64 val)
 {
 	u64 *member_ptr;
-
-	__xsave_msrl_prepare_write();
-	if (!xstate)
-		return wrmsrl_safe(msr, val);
 
 	member_ptr = __get_xsave_member(xstate, msr);
 	if (!member_ptr)
@@ -1980,6 +2000,15 @@ int xsave_wrmsrl(void *xstate, u32 msr, u64 val)
 	*member_ptr = val;
 
 	return 0;
+}
+
+int xsave_wrmsrl(void *xstate, u32 msr, u64 val)
+{
+	__xsave_msrl_prepare_write();
+	if (!xstate)
+		return wrmsrl_safe(msr, val);
+
+	return xsave_wrmsrl_unsafe(xstate, msr, val);
 }
 
 int xsave_set_clear_bits_msrl(void *xstate, u32 msr, u64 set, u64 clear)

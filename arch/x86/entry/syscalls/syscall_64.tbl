@@ -372,6 +372,8 @@
 448	common	process_mrelease	sys_process_mrelease
 449	common	futex_waitv		sys_futex_waitv
 450	common	set_mempolicy_home_node	sys_set_mempolicy_home_node
+451	common	map_shadow_stack	sys_map_shadow_stack
+
 # Start UINTR syscalls at 471 to avoid upstream merge conflicts during development
 471	common	uintr_register_handler	sys_uintr_register_handler
 472	common	uintr_unregister_handler sys_uintr_unregister_handler
