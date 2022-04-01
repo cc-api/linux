@@ -9,6 +9,8 @@
 #include <asm/current.h>
 #include <asm/errno.h>
 #include <asm/ia32_unistd.h>
+#include <asm/ehfi.h>
+#include <asm/hreset.h>
 #include <asm/thread_info.h>
 #include <asm/segment.h>
 #include <asm/irqflags.h>
@@ -54,6 +56,8 @@ SYM_CODE_START(entry_SYSENTER_compat)
 	pushq	%rax
 	SWITCH_TO_KERNEL_CR3 scratch_reg=%rax
 	popq	%rax
+
+	EHFI_SAVE_CLASSID
 
 	movq	PER_CPU_VAR(cpu_current_top_of_stack), %rsp
 
@@ -211,6 +215,7 @@ SYM_CODE_START(entry_SYSCALL_compat)
 	movq	PER_CPU_VAR(cpu_current_top_of_stack), %rsp
 
 SYM_INNER_LABEL(entry_SYSCALL_compat_safe_stack, SYM_L_GLOBAL)
+	EHFI_SAVE_CLASSID
 
 	/* Construct struct pt_regs on stack */
 	pushq	$__USER32_DS		/* pt_regs->ss */
@@ -260,6 +265,12 @@ SYM_INNER_LABEL(entry_SYSCALL_compat_after_hwframe, SYM_L_GLOBAL)
 
 	/* Opportunistic SYSRET */
 sysret32_from_system_call:
+	/*
+	 * We don't want to leak or pollute thread classification with kernel activity.
+	 * clobber classification history before returning to user space.
+	 */
+	HRESET
+
 	/*
 	 * We are not going to return to userspace from the trampoline
 	 * stack. So let's erase the thread stack right now.
@@ -367,6 +378,8 @@ SYM_CODE_START(entry_INT80_compat)
 
 	movq	%rsp, %rdi
 	movq	PER_CPU_VAR(cpu_current_top_of_stack), %rsp
+
+	EHFI_SAVE_CLASSID
 
 	pushq	6*8(%rdi)		/* regs->ss */
 	pushq	5*8(%rdi)		/* regs->rsp */

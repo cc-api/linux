@@ -237,4 +237,6 @@ static inline bool amd_set_max_freq_ratio(u64 *ratio)
 }
 #endif
 
+#define CPUTYPES_MAX_NR 2
+
 #endif /* _ASM_X86_TOPOLOGY_H */

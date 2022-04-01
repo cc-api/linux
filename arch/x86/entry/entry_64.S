@@ -26,7 +26,9 @@
 #include <asm/msr.h>
 #include <asm/unistd.h>
 #include <asm/thread_info.h>
+#include <asm/hreset.h>
 #include <asm/hw_irq.h>
+#include <asm/ehfi.h>
 #include <asm/page_types.h>
 #include <asm/irqflags.h>
 #include <asm/paravirt.h>
@@ -92,6 +94,8 @@ SYM_CODE_START(entry_SYSCALL_64)
 	movq	%rsp, PER_CPU_VAR(cpu_tss_rw + TSS_sp2)
 	SWITCH_TO_KERNEL_CR3 scratch_reg=%rsp
 	movq	PER_CPU_VAR(cpu_current_top_of_stack), %rsp
+
+	EHFI_SAVE_CLASSID
 
 SYM_INNER_LABEL(entry_SYSCALL_64_safe_stack, SYM_L_GLOBAL)
 
@@ -202,6 +206,12 @@ syscall_return_via_sysret:
 
 	pushq	RSP-RDI(%rdi)	/* RSP */
 	pushq	(%rdi)		/* RDI */
+
+	/*
+	 * We don't want to leak or pollute thread classification with kernel activity.
+	 * clobber classification history before returning to user space.
+	 */
+	HRESET
 
 	/*
 	 * We are on the trampoline stack.  All regs except RDI are live.
@@ -599,6 +609,12 @@ SYM_INNER_LABEL(swapgs_restore_regs_and_return_to_usermode, SYM_L_GLOBAL)
 	pushq	(%rdi)
 
 	/*
+	 * We don't want to leak or pollute thread classification with kernel activity.
+	 * clobber classification history before returning to user space.
+	 */
+	HRESET
+
+	/*
 	 * We are on the trampoline stack.  All regs except RDI are live.
 	 * We can do future final exit work right here.
 	 */
@@ -980,6 +996,11 @@ SYM_CODE_START_LOCAL(error_entry)
 	/* We have user CR3.  Change to kernel CR3. */
 	SWITCH_TO_KERNEL_CR3 scratch_reg=%rax
 
+	/*
+	 * We may not get the correct classification if we entered here from
+	 * IRET fault but that is OK as it should be a rare case.
+	 */
+	EHFI_SAVE_CLASSID
 .Lerror_entry_from_usermode_after_swapgs:
 	/* Put us onto the real thread stack. */
 	popq	%r12				/* save return addr in %12 */

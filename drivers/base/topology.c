@@ -58,6 +58,16 @@ static DEVICE_ATTR_RO(cluster_id);
 define_id_show_func(core_id);
 static DEVICE_ATTR_RO(core_id);
 
+#ifdef CONFIG_SMP
+static ssize_t priority_show(struct device *dev,
+			     struct device_attribute *attr,
+			     char *buf)
+{
+	return sprintf(buf, "%u\n", arch_asym_cpu_priority(dev->id));
+}
+static DEVICE_ATTR_RO(priority);
+#endif
+
 define_siblings_read_func(thread_siblings, sibling_cpumask);
 static BIN_ATTR_RO(thread_siblings, 0);
 static BIN_ATTR_RO(thread_siblings_list, 0);
@@ -144,6 +154,9 @@ static struct attribute *default_attrs[] = {
 #endif
 #ifdef TOPOLOGY_DRAWER_SYSFS
 	&dev_attr_drawer_id.attr,
+#endif
+#ifdef CONFIG_SMP
+	&dev_attr_priority.attr,
 #endif
 	NULL
 };

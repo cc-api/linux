@@ -58,8 +58,11 @@ extern void __init tsx_init(void);
 extern void tsx_enable(void);
 extern void tsx_disable(void);
 extern void tsx_clear_cpuid(void);
+extern const char *intel_get_hybrid_cpu_type_name(u32 cpu_type);
 #else
 static inline void tsx_init(void) { }
+static inline const char *intel_get_hybrid_cpu_type_name(u32 cpu_type)
+{ return NULL; }
 #endif /* CONFIG_CPU_SUP_INTEL */
 
 extern void get_cpu_cap(struct cpuinfo_x86 *c);

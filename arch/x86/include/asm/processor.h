@@ -871,4 +871,6 @@ bool arch_is_platform_page(u64 paddr);
 #define arch_is_platform_page arch_is_platform_page
 #endif
 
+extern u32 hreset_features;
+
 #endif /* _ASM_X86_PROCESSOR_H */
