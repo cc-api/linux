@@ -12,6 +12,7 @@
 #include <drm/drm_plane_helper.h>
 #include <drm/drm_vblank_work.h>
 
+#include "i915_irq.h"
 #include "i915_vgpu.h"
 #include "i9xx_plane.h"
 #include "icl_dsi.h"
@@ -23,6 +24,7 @@
 #include "intel_display_debugfs.h"
 #include "intel_display_trace.h"
 #include "intel_display_types.h"
+#include "intel_drrs.h"
 #include "intel_dsi.h"
 #include "intel_pipe_crc.h"
 #include "intel_psr.h"
@@ -366,6 +368,7 @@ int intel_crtc_init(struct drm_i915_private *dev_priv, enum pipe pipe)
 
 	intel_color_init(crtc);
 
+	intel_crtc_drrs_init(crtc);
 	intel_crtc_crc_init(crtc);
 
 	cpu_latency_qos_add_request(&crtc->vblank_pm_qos, PM_QOS_DEFAULT_VALUE);
@@ -484,7 +487,7 @@ void intel_pipe_update_start(struct intel_crtc_state *new_crtc_state)
 		intel_crtc_has_type(new_crtc_state, INTEL_OUTPUT_DSI);
 	DEFINE_WAIT(wait);
 
-	if (new_crtc_state->uapi.async_flip)
+	if (new_crtc_state->do_async_flip)
 		return;
 
 	if (intel_crtc_needs_vblank_work(new_crtc_state))
@@ -629,7 +632,7 @@ void intel_pipe_update_end(struct intel_crtc_state *new_crtc_state)
 	ktime_t end_vbl_time = ktime_get();
 	struct drm_i915_private *dev_priv = to_i915(crtc->base.dev);
 
-	if (new_crtc_state->uapi.async_flip)
+	if (new_crtc_state->do_async_flip)
 		return;
 
 	trace_intel_pipe_update_end(crtc, end_vbl_count, scanline_end);

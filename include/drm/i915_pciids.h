@@ -666,6 +666,12 @@
 	INTEL_VGA_DEVICE(0x46C2, info), \
 	INTEL_VGA_DEVICE(0x46C3, info)
 
+/* ADL-N */
+#define INTEL_ADLN_IDS(info) \
+	INTEL_VGA_DEVICE(0x46D0, info), \
+	INTEL_VGA_DEVICE(0x46D1, info), \
+	INTEL_VGA_DEVICE(0x46D2, info)
+
 /* RPL-S */
 #define INTEL_RPLS_IDS(info) \
 	INTEL_VGA_DEVICE(0xA780, info), \
@@ -673,6 +679,8 @@
 	INTEL_VGA_DEVICE(0xA782, info), \
 	INTEL_VGA_DEVICE(0xA783, info), \
 	INTEL_VGA_DEVICE(0xA788, info), \
-	INTEL_VGA_DEVICE(0xA789, info)
+	INTEL_VGA_DEVICE(0xA789, info), \
+	INTEL_VGA_DEVICE(0xA78A, info), \
+	INTEL_VGA_DEVICE(0xA78B, info)
 
 #endif /* _I915_PCIIDS_H */

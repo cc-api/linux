@@ -3,6 +3,8 @@
  * Copyright © 2019 Intel Corporation
  */
 
+#include <uapi/drm/i915_drm.h>
+
 #include "intel_memory_region.h"
 #include "gem/i915_gem_region.h"
 #include "gem/i915_gem_lmem.h"
@@ -100,7 +102,7 @@ __i915_gem_object_create_lmem_with_ps(struct drm_i915_private *i915,
 				      resource_size_t page_size,
 				      unsigned int flags)
 {
-	return i915_gem_object_create_region(i915->mm.regions[INTEL_REGION_LMEM],
+	return i915_gem_object_create_region(i915->mm.regions[INTEL_REGION_LMEM_0],
 					     size, page_size, flags);
 }
 
@@ -135,6 +137,6 @@ i915_gem_object_create_lmem(struct drm_i915_private *i915,
 			    resource_size_t size,
 			    unsigned int flags)
 {
-	return i915_gem_object_create_region(i915->mm.regions[INTEL_REGION_LMEM],
+	return i915_gem_object_create_region(i915->mm.regions[INTEL_REGION_LMEM_0],
 					     size, 0, flags);
 }

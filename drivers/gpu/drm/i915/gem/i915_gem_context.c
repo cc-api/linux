@@ -64,9 +64,11 @@
  *
  */
 
+#include <linux/highmem.h>
 #include <linux/log2.h>
 #include <linux/nospec.h>
 
+#include <drm/drm_cache.h>
 #include <drm/drm_syncobj.h>
 
 #include "gt/gen6_ppgtt.h"
@@ -79,6 +81,7 @@
 
 #include "pxp/intel_pxp.h"
 
+#include "i915_file_private.h"
 #include "i915_gem_context.h"
 #include "i915_trace.h"
 #include "i915_user_extensions.h"
@@ -343,6 +346,20 @@ static int proto_context_register(struct drm_i915_file_private *fpriv,
 	return ret;
 }
 
+static struct i915_address_space *
+i915_gem_vm_lookup(struct drm_i915_file_private *file_priv, u32 id)
+{
+	struct i915_address_space *vm;
+
+	xa_lock(&file_priv->vm_xa);
+	vm = xa_load(&file_priv->vm_xa, id);
+	if (vm)
+		kref_get(&vm->ref);
+	xa_unlock(&file_priv->vm_xa);
+
+	return vm;
+}
+
 static int set_proto_ctx_vm(struct drm_i915_file_private *fpriv,
 			    struct i915_gem_proto_context *pc,
 			    const struct drm_i915_gem_context_param *args)
@@ -571,10 +588,6 @@ set_proto_ctx_engines_parallel_submit(struct i915_user_extension __user *base,
 	struct intel_engine_cs **siblings = NULL;
 	intel_engine_mask_t prev_mask;
 
-	/* FIXME: This is NIY for execlists */
-	if (!(intel_uc_uses_guc_submission(&to_gt(i915)->uc)))
-		return -ENODEV;
-
 	if (get_user(slot, &ext->engine_index))
 		return -EFAULT;
 
@@ -583,6 +596,13 @@ set_proto_ctx_engines_parallel_submit(struct i915_user_extension __user *base,
 
 	if (get_user(num_siblings, &ext->num_siblings))
 		return -EFAULT;
+
+	if (!intel_uc_uses_guc_submission(&to_gt(i915)->uc) &&
+	    num_siblings != 1) {
+		drm_dbg(&i915->drm, "Only 1 sibling (%d) supported in non-GuC mode\n",
+			num_siblings);
+		return -EINVAL;
+	}
 
 	if (slot >= set->num_engines) {
 		drm_dbg(&i915->drm, "Invalid placement value, %d >= %d\n",
@@ -647,6 +667,16 @@ set_proto_ctx_engines_parallel_submit(struct i915_user_extension __user *base,
 				drm_dbg(&i915->drm,
 					"Invalid sibling[%d]: { class:%d, inst:%d }\n",
 					n, ci.engine_class, ci.engine_instance);
+				err = -EINVAL;
+				goto out_err;
+			}
+
+			/*
+			 * We don't support breadcrumb handshake on these
+			 * classes
+			 */
+			if (siblings[n]->class == RENDER_CLASS ||
+			    siblings[n]->class == COMPUTE_CLASS) {
 				err = -EINVAL;
 				goto out_err;
 			}
@@ -1437,8 +1467,6 @@ static void set_closed_name(struct i915_gem_context *ctx)
 
 static void context_close(struct i915_gem_context *ctx)
 {
-	struct i915_address_space *vm;
-
 	/* Flush any concurrent set_engines() */
 	mutex_lock(&ctx->engines_mutex);
 	unpin_engines(__context_engines_static(ctx));
@@ -1450,25 +1478,14 @@ static void context_close(struct i915_gem_context *ctx)
 
 	set_closed_name(ctx);
 
-	vm = ctx->vm;
-	if (vm) {
-		/* i915_vm_close drops the final reference, which is a bit too
-		 * early and could result in surprises with concurrent
-		 * operations racing with thist ctx close. Keep a full reference
-		 * until the end.
-		 */
-		i915_vm_get(vm);
-		i915_vm_close(vm);
-	}
-
-	ctx->file_priv = ERR_PTR(-EBADF);
-
 	/*
 	 * The LUT uses the VMA as a backpointer to unref the object,
 	 * so we need to clear the LUT before we close all the VMA (inside
 	 * the ppgtt).
 	 */
 	lut_close(ctx);
+
+	ctx->file_priv = ERR_PTR(-EBADF);
 
 	spin_lock(&ctx->i915->gem.contexts.lock);
 	list_del(&ctx->link);
@@ -1568,12 +1585,8 @@ i915_gem_create_context(struct drm_i915_private *i915,
 		}
 		vm = &ppgtt->vm;
 	}
-	if (vm) {
-		ctx->vm = i915_vm_open(vm);
-
-		/* i915_vm_open() takes a reference */
-		i915_vm_put(vm);
-	}
+	if (vm)
+		ctx->vm = vm;
 
 	mutex_init(&ctx->engines_mutex);
 	if (pc->num_user_engines >= 0) {
@@ -1623,7 +1636,7 @@ err_engines:
 	free_engines(e);
 err_vm:
 	if (ctx->vm)
-		i915_vm_close(ctx->vm);
+		i915_vm_put(ctx->vm);
 err_ctx:
 	kfree(ctx);
 	return ERR_PTR(err);
@@ -1807,7 +1820,7 @@ static int get_ppgtt(struct drm_i915_file_private *file_priv,
 	if (err)
 		return err;
 
-	i915_vm_open(vm);
+	i915_vm_get(vm);
 
 	GEM_BUG_ON(id == 0); /* reserved for invalid/unassigned ppgtt */
 	args->value = id;
