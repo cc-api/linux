@@ -39,6 +39,60 @@ void idxd_mask_error_interrupts(struct idxd_device *idxd)
 	iowrite32(genctrl.bits, idxd->reg_base + IDXD_GENCTRL_OFFSET);
 }
 
+static int alloc_desc_batch(struct idxd_wq *wq, struct idxd_desc *desc)
+{
+	struct idxd_device *idxd = wq->idxd;
+	struct device *dev = &idxd->pdev->dev;
+	struct idxd_batch *batch;
+	unsigned int size, cr_size, num;
+
+	batch = kzalloc_node(sizeof(*batch), GFP_KERNEL, dev_to_node(dev));
+	if (!batch)
+		return -ENOMEM;
+
+	num = wq->max_batch_size;
+	size = num * sizeof(struct dsa_hw_desc);
+	batch->descs = dma_alloc_coherent(dev, size, &batch->dma_descs, GFP_KERNEL);
+	if (!batch->descs)
+		goto descs_err;
+
+	cr_size = num * idxd->data->compl_size;
+	batch->crs = dma_alloc_coherent(dev, cr_size, &batch->dma_crs, GFP_KERNEL);
+	if (!batch->crs)
+		goto crs_err;
+
+	batch->max = num;
+	desc->batch = batch;
+
+	return 0;
+
+crs_err:
+	dma_free_coherent(dev, size, batch->descs, batch->dma_descs);
+descs_err:
+	kfree(batch);
+	dev_warn(dev, "Unable to allocate memory, consider lowering max batch size.\n");
+	return -ENOMEM;
+}
+
+static void free_desc_batch(struct idxd_wq *wq, struct idxd_desc *desc)
+{
+	struct idxd_device *idxd = wq->idxd;
+	struct device *dev = &idxd->pdev->dev;
+	unsigned int size, cr_size, num;
+	struct idxd_batch *batch;
+
+	batch = desc->batch;
+	if (!batch)
+		return;
+
+	num = wq->max_batch_size;
+	size = num * sizeof(struct dsa_hw_desc);
+	cr_size = num * idxd->data->compl_size;
+	dma_free_coherent(dev, size, batch->descs, batch->dma_descs);
+	dma_free_coherent(dev, cr_size, batch->crs, batch->dma_crs);
+	kfree(batch);
+}
+
 static void free_hw_descs(struct idxd_wq *wq)
 {
 	int i;
@@ -76,8 +130,10 @@ static void free_descs(struct idxd_wq *wq)
 {
 	int i;
 
-	for (i = 0; i < wq->num_descs; i++)
+	for (i = 0; i < wq->num_descs; i++) {
+		free_desc_batch(wq, wq->descs[i]);
 		kfree(wq->descs[i]);
+	}
 
 	kfree(wq->descs);
 }
@@ -142,12 +198,16 @@ int idxd_wq_alloc_resources(struct idxd_wq *wq)
 		struct idxd_desc *desc = wq->descs[i];
 
 		desc->hw = wq->hw_descs[i];
-		if (idxd->data->type == IDXD_TYPE_DSA)
+		if (idxd->data->type == IDXD_TYPE_DSA) {
 			desc->completion = &wq->compls[i];
-		else if (idxd->data->type == IDXD_TYPE_IAX)
+			/* pre-allocate batch for descriptor */
+			if (alloc_desc_batch(wq, desc))
+				goto fail_sbitmap_init;
+		} else if (idxd->data->type == IDXD_TYPE_IAX)
 			desc->iax_completion = &wq->iax_compls[i];
 		desc->compl_dma = wq->compls_addr + idxd->data->compl_size * i;
 		desc->id = i;
+		desc->gen = 1;
 		desc->wq = wq;
 		desc->cpu = -1;
 	}
@@ -162,6 +222,7 @@ int idxd_wq_alloc_resources(struct idxd_wq *wq)
 	free_hw_descs(wq);
 	return rc;
 }
+EXPORT_SYMBOL_GPL(idxd_wq_alloc_resources);
 
 void idxd_wq_free_resources(struct idxd_wq *wq)
 {
@@ -175,6 +236,7 @@ void idxd_wq_free_resources(struct idxd_wq *wq)
 	dma_free_coherent(dev, wq->compls_size, wq->compls, wq->compls_addr);
 	sbitmap_queue_free(&wq->sbq);
 }
+EXPORT_SYMBOL_GPL(idxd_wq_free_resources);
 
 int idxd_wq_enable(struct idxd_wq *wq)
 {
@@ -365,8 +427,12 @@ static void idxd_wq_disable_cleanup(struct idxd_wq *wq)
 	clear_bit(WQ_FLAG_DEDICATED, &wq->flags);
 	clear_bit(WQ_FLAG_BLOCK_ON_FAULT, &wq->flags);
 	memset(wq->name, 0, WQ_NAME_SIZE);
+	memset(wq->driver_name, 0, WQ_NAME_SIZE);
 	wq->max_xfer_bytes = WQ_DEFAULT_MAX_XFER;
 	wq->max_batch_size = WQ_DEFAULT_MAX_BATCH;
+	wq->chan_count = IDXD_DMA_CHANS;
+	if (wq->opcap_bmap)
+		bitmap_copy(wq->opcap_bmap, idxd->opcap_bmap, IDXD_MAX_OPCAP_BITS);
 }
 
 static void idxd_wq_device_reset_cleanup(struct idxd_wq *wq)
@@ -398,6 +464,7 @@ int idxd_wq_init_percpu_ref(struct idxd_wq *wq)
 	reinit_completion(&wq->wq_resurrect);
 	return 0;
 }
+EXPORT_SYMBOL_GPL(idxd_wq_init_percpu_ref);
 
 void __idxd_wq_quiesce(struct idxd_wq *wq)
 {
@@ -407,6 +474,7 @@ void __idxd_wq_quiesce(struct idxd_wq *wq)
 	complete_all(&wq->wq_resurrect);
 	wait_for_completion(&wq->wq_dead);
 }
+EXPORT_SYMBOL_GPL(__idxd_wq_quiesce);
 
 void idxd_wq_quiesce(struct idxd_wq *wq)
 {
@@ -414,6 +482,7 @@ void idxd_wq_quiesce(struct idxd_wq *wq)
 	__idxd_wq_quiesce(wq);
 	mutex_unlock(&wq->wq_lock);
 }
+EXPORT_SYMBOL_GPL(idxd_wq_quiesce);
 
 /* Device control bits */
 static inline bool idxd_is_enabled(struct idxd_device *idxd)
@@ -681,8 +750,15 @@ static void idxd_groups_clear_state(struct idxd_device *idxd)
 		group->use_rdbuf_limit = false;
 		group->rdbufs_allowed = 0;
 		group->rdbufs_reserved = 0;
-		group->tc_a = -1;
-		group->tc_b = -1;
+		if (idxd->hw.version < DEVICE_VERSION_2 && !tc_override) {
+			group->tc_a = 1;
+			group->tc_b = 1;
+		} else {
+			group->tc_a = -1;
+			group->tc_b = -1;
+		}
+		group->desc_progress_limit = 0;
+		group->batch_progress_limit = 0;
 	}
 }
 
@@ -735,10 +811,10 @@ static void idxd_group_config_write(struct idxd_group *group)
 
 	/* setup GRPFLAGS */
 	grpcfg_offset = GRPFLGCFG_OFFSET(idxd, group->id);
-	iowrite32(group->grpcfg.flags.bits, idxd->reg_base + grpcfg_offset);
-	dev_dbg(dev, "GRPFLAGS flags[%d: %#x]: %#x\n",
+	iowrite64(group->grpcfg.flags.bits, idxd->reg_base + grpcfg_offset);
+	dev_dbg(dev, "GRPFLAGS flags[%d: %#x]: %#llx\n",
 		group->id, grpcfg_offset,
-		ioread32(idxd->reg_base + grpcfg_offset));
+		ioread64(idxd->reg_base + grpcfg_offset));
 }
 
 static int idxd_groups_config_write(struct idxd_device *idxd)
@@ -781,7 +857,7 @@ static int idxd_wq_config_write(struct idxd_wq *wq)
 	struct idxd_device *idxd = wq->idxd;
 	struct device *dev = &idxd->pdev->dev;
 	u32 wq_offset;
-	int i;
+	int i, n;
 
 	if (!wq->group)
 		return 0;
@@ -825,7 +901,11 @@ static int idxd_wq_config_write(struct idxd_wq *wq)
 	 * In the case of a dedicated kernel WQ that is not able to support
 	 * the PASID cap, then the configuration will be rejected.
 	 */
-	wq->wqcfg->priv = !!(wq->type == IDXD_WQT_KERNEL);
+	if (need_passthrough_wa())
+		wq->wqcfg->priv = 0;
+	else
+		wq->wqcfg->priv = !!(wq->type == IDXD_WQT_KERNEL);
+
 	if (wq_dedicated(wq) && wq->wqcfg->pasid_en &&
 	    !idxd_device_pasid_priv_enabled(idxd) &&
 	    wq->type == IDXD_WQT_KERNEL) {
@@ -845,6 +925,17 @@ static int idxd_wq_config_write(struct idxd_wq *wq)
 	/* bytes 12-15 */
 	wq->wqcfg->max_xfer_shift = ilog2(wq->max_xfer_bytes);
 	wq->wqcfg->max_batch_shift = ilog2(wq->max_batch_size);
+
+	/* bytes 32-63 */
+	if (idxd->hw.wq_cap.op_config && wq->opcap_bmap) {
+		memset(wq->wqcfg->op_config, 0, IDXD_MAX_OPCAP_BITS / 8);
+		for_each_set_bit(n, wq->opcap_bmap, IDXD_MAX_OPCAP_BITS) {
+			int pos = n % BITS_PER_LONG_LONG;
+			int idx = n / BITS_PER_LONG_LONG;
+
+			wq->wqcfg->op_config[idx] |= BIT(pos);
+		}
+	}
 
 	dev_dbg(dev, "WQ %d CFGs\n", wq->id);
 	for (i = 0; i < WQCFG_STRIDES(idxd); i++) {
@@ -895,6 +986,8 @@ static void idxd_group_flags_setup(struct idxd_device *idxd)
 			group->grpcfg.flags.rdbufs_allowed = group->rdbufs_allowed;
 		else
 			group->grpcfg.flags.rdbufs_allowed = idxd->max_rdbufs;
+
+		group->grpcfg.flags.desc_progress_limit = group->desc_progress_limit;
 	}
 }
 
@@ -1074,8 +1167,8 @@ static void idxd_group_load_config(struct idxd_group *group)
 	}
 
 	grpcfg_offset = GRPFLGCFG_OFFSET(idxd, group->id);
-	group->grpcfg.flags.bits = ioread32(idxd->reg_base + grpcfg_offset);
-	dev_dbg(dev, "GRPFLAGS flags[%d: %#x]: %#x\n",
+	group->grpcfg.flags.bits = ioread64(idxd->reg_base + grpcfg_offset);
+	dev_dbg(dev, "GRPFLAGS flags[%d: %#x]: %#llx\n",
 		group->id, grpcfg_offset, group->grpcfg.flags.bits);
 }
 
@@ -1291,6 +1384,7 @@ err_map_portal:
 err:
 	return rc;
 }
+EXPORT_SYMBOL_GPL(__drv_enable_wq);
 
 int drv_enable_wq(struct idxd_wq *wq)
 {
@@ -1301,6 +1395,7 @@ int drv_enable_wq(struct idxd_wq *wq)
 	mutex_unlock(&wq->wq_lock);
 	return rc;
 }
+EXPORT_SYMBOL_GPL(drv_enable_wq);
 
 void __drv_disable_wq(struct idxd_wq *wq)
 {
@@ -1320,6 +1415,7 @@ void __drv_disable_wq(struct idxd_wq *wq)
 
 	wq->client_count = 0;
 }
+EXPORT_SYMBOL_GPL(__drv_disable_wq);
 
 void drv_disable_wq(struct idxd_wq *wq)
 {
@@ -1327,6 +1423,7 @@ void drv_disable_wq(struct idxd_wq *wq)
 	__drv_disable_wq(wq);
 	mutex_unlock(&wq->wq_lock);
 }
+EXPORT_SYMBOL_GPL(drv_disable_wq);
 
 int idxd_device_drv_probe(struct idxd_dev *idxd_dev)
 {

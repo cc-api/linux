@@ -54,7 +54,8 @@ union wq_cap_reg {
 		u64 priority:1;
 		u64 occupancy:1;
 		u64 occupancy_int:1;
-		u64 rsvd3:10;
+		u64 op_config:1;
+		u64 rsvd3:9;
 	};
 	u64 bits;
 } __packed;
@@ -86,9 +87,12 @@ union engine_cap_reg {
 #define IDXD_OPCAP_NOOP			0x0001
 #define IDXD_OPCAP_BATCH			0x0002
 #define IDXD_OPCAP_MEMMOVE		0x0008
+#define IDXD_OPCAP_MEMFILL		BIT(DSA_OPCODE_MEMFILL)
 struct opcap {
 	u64 bits[4];
 };
+
+#define IDXD_MAX_OPCAP_BITS		256U
 
 #define IDXD_OPCAP_OFFSET		0x40
 
@@ -272,6 +276,27 @@ union sw_err_reg {
 	u64 bits[4];
 } __packed;
 
+union iaa_cap_reg {
+	struct {
+		u64 dec_aecs_format_ver:1;
+		u64 drop_init_bits:1;
+		u64 chaining:1;
+		u64 force_array_output_mod:1;
+		u64 load_part_aecs:1;
+		u64 comp_early_abort:1;
+		u64 nested_comp:1;
+		u64 diction_comp:1;
+		u64 header_gen:1;
+		u64 crypto_gcm:1;
+		u64 crypto_cfb:1;
+		u64 crypto_xts:1;
+		u64 rsvd:52;
+	};
+	u64 bits;
+} __packed;
+
+#define IDXD_IAACAP_OFFSET	0x180
+
 union msix_perm {
 	struct {
 		u32 rsvd:2;
@@ -285,16 +310,20 @@ union msix_perm {
 
 union group_flags {
 	struct {
-		u32 tc_a:3;
-		u32 tc_b:3;
-		u32 rsvd:1;
-		u32 use_rdbuf_limit:1;
-		u32 rdbufs_reserved:8;
-		u32 rsvd2:4;
-		u32 rdbufs_allowed:8;
-		u32 rsvd3:4;
+		u64 tc_a:3;
+		u64 tc_b:3;
+		u64 rsvd:1;
+		u64 use_rdbuf_limit:1;
+		u64 rdbufs_reserved:8;
+		u64 rsvd2:4;
+		u64 rdbufs_allowed:8;
+		u64 rsvd3:4;
+		u64 desc_progress_limit:2;
+		u64 rsvd4:2;
+		u64 batch_progress_limit:2;
+		u64 rsvd5:26;
 	};
-	u32 bits;
+	u64 bits;
 } __packed;
 
 struct grpcfg {
@@ -348,8 +377,11 @@ union wqcfg {
 
 		/* bytes 28-31 */
 		u32 rsvd8;
+
+		/* bytes 32-63 */
+		u64 op_config[4];
 	};
-	u32 bits[8];
+	u32 bits[16];
 } __packed;
 
 #define WQCFG_PASID_IDX                2

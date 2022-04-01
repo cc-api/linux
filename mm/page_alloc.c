@@ -163,6 +163,13 @@ volatile unsigned long latent_entropy __latent_entropy;
 EXPORT_SYMBOL(latent_entropy);
 #endif
 
+#ifdef CONFIG_HAVE_PAGE_CLEAR_ENGINE
+static void *(*alloc_zone_private)(int node);
+static int (*get_zero_pages)(void *private, int want, struct list_head *l, int *countp);
+static void (*provide_page)(void *v, struct page *page);
+static int (*engine_cleanup)(void *v);
+#endif /* CONFIG_HAVE_PAGE_CLEAR_ENGINE */
+
 /*
  * Array of node states.
  */
@@ -3646,16 +3653,71 @@ struct page *__rmqueue_pcplist(struct zone *zone, unsigned int order,
 	return page;
 }
 
+#ifdef CONFIG_HAVE_PAGE_CLEAR_ENGINE
+/* Like __rmqueue_pcplist() above, but remove page from prezeroed list */
+static inline
+struct page *__rmqueue_pcp_zero_list(struct zone *zone, int migratetype,
+				     unsigned int alloc_flags,
+				     struct per_cpu_pages *pcp)
+{
+	struct list_head *list = &pcp->lists[MIGRATE_PREZEROED];
+	struct page *page;
+	int order;
+
+	do {
+		if (list_empty(list)) {
+			spin_lock(&zone->lock);
+			/*
+			 * Page clear driver may have been unloaded, give
+			 * up here if the driver has gone.
+			 */
+			if (!zone->private)
+				goto unlock;
+			order = get_zero_pages(zone->private, pcp->batch, list, &pcp->count);
+			if (order > 0) {
+				page = __rmqueue(zone, order, migratetype, alloc_flags);
+				if (page) {
+					if (is_migrate_cma(get_pcppage_migratetype(page)))
+						__mod_zone_page_state(zone, NR_FREE_CMA_PAGES,
+								      -(1 << order));
+					__mod_zone_page_state(zone, NR_FREE_PAGES, -(1 << order));
+					provide_page(zone->private, page);
+				}
+			}
+unlock:
+			spin_unlock(&zone->lock);
+			if (list_empty(list))
+				return NULL;
+		}
+
+		page = list_first_entry(list, struct page, lru);
+		list_del(&page->lru);
+		pcp->count--;
+	} while (check_new_pcp(page));
+
+	return page;
+}
+#else /* CONFIG_HAVE_PAGE_CLEAR_ENGINE */
+static inline
+struct page *__rmqueue_pcp_zero_list(struct zone *zone, int migratetype,
+				     unsigned int alloc_flags,
+				     struct per_cpu_pages *pcp)
+{
+	return NULL;
+}
+#endif /* CONFIG_HAVE_PAGE_CLEAR_ENGINE */
+
 /* Lock and remove page from the per-cpu list */
 static struct page *rmqueue_pcplist(struct zone *preferred_zone,
 			struct zone *zone, unsigned int order,
-			gfp_t gfp_flags, int migratetype,
+			gfp_t *gfp_flags, int migratetype,
 			unsigned int alloc_flags)
 {
 	struct per_cpu_pages *pcp;
 	struct list_head *list;
 	struct page *page;
 	unsigned long flags;
+	gfp_t orig_gfp_flags = *gfp_flags;
 
 	local_lock_irqsave(&pagesets.lock, flags);
 
@@ -3666,11 +3728,24 @@ static struct page *rmqueue_pcplist(struct zone *preferred_zone,
 	 */
 	pcp = this_cpu_ptr(zone->per_cpu_pageset);
 	pcp->free_factor >>= 1;
+	if (order == 0 && zone->private && (*gfp_flags & __GFP_ZERO)) {
+		page = __rmqueue_pcp_zero_list(zone, migratetype, alloc_flags, pcp);
+		if (page) {
+			__count_zid_vm_events(PGALLOC_FASTZERO, page_zonenum(page), 1);
+			*gfp_flags &= ~__GFP_ZERO;
+			goto gotpage;
+		}
+	}
 	list = &pcp->lists[order_to_pindex(migratetype, order)];
 	page = __rmqueue_pcplist(zone, order, migratetype, alloc_flags, pcp, list);
+gotpage:
 	local_unlock_irqrestore(&pagesets.lock, flags);
 	if (page) {
 		__count_zid_vm_events(PGALLOC, page_zonenum(page), 1);
+		if (orig_gfp_flags & __GFP_ZERO)
+			__count_zid_vm_events(PGALLOC_ZERO, page_zonenum(page), 1);
+		if (*gfp_flags & __GFP_ZERO)
+			__count_zid_vm_events(PGALLOC_MEMSET, page_zonenum(page), 1);
 		zone_statistics(preferred_zone, zone, 1);
 	}
 	return page;
@@ -3682,7 +3757,7 @@ static struct page *rmqueue_pcplist(struct zone *preferred_zone,
 static inline
 struct page *rmqueue(struct zone *preferred_zone,
 			struct zone *zone, unsigned int order,
-			gfp_t gfp_flags, unsigned int alloc_flags,
+			gfp_t *gfp_flags, unsigned int alloc_flags,
 			int migratetype)
 {
 	unsigned long flags;
@@ -3705,7 +3780,7 @@ struct page *rmqueue(struct zone *preferred_zone,
 	 * We most definitely don't want callers attempting to
 	 * allocate greater than order-1 page units with __GFP_NOFAIL.
 	 */
-	WARN_ON_ONCE((gfp_flags & __GFP_NOFAIL) && (order > 1));
+	WARN_ON_ONCE((*gfp_flags & __GFP_NOFAIL) && (order > 1));
 	spin_lock_irqsave(&zone->lock, flags);
 
 	do {
@@ -4160,7 +4235,7 @@ retry:
 
 try_this_zone:
 		page = rmqueue(ac->preferred_zoneref->zone, zone, order,
-				gfp_mask, alloc_flags, ac->migratetype);
+				&gfp_mask, alloc_flags, ac->migratetype);
 		if (page) {
 			prep_new_page(page, order, gfp_mask, alloc_flags);
 
@@ -9565,3 +9640,87 @@ bool has_managed_dma(void)
 	return false;
 }
 #endif /* CONFIG_ZONE_DMA */
+
+#ifdef CONFIG_HAVE_PAGE_CLEAR_ENGINE
+static int walk_all_nodes(int (*fn)(struct zone *zone))
+{
+	pg_data_t *node;
+	struct zone *zone;
+	int n, ret = 0;
+
+	for_each_node_state(n, N_MEMORY) {
+		node = NODE_DATA(n);
+
+		zone = &node->node_zones[ZONE_NORMAL];
+		if (atomic_long_read(&zone->managed_pages)) {
+			ret = fn(zone);
+			if (ret)
+				goto done;
+		}
+	}
+done:
+	return ret;
+}
+
+static int do_alloc(struct zone *zone)
+{
+	void *ptr = alloc_zone_private(zone->node);
+
+	if (ptr) {
+		mb();
+		zone->private = ptr;
+	}
+
+	return ptr ? 0 : -ENOMEM;
+}
+
+static int do_clean(struct zone *zone)
+{
+	void *private;
+
+	spin_lock(&zone->lock);
+	private = zone->private;
+	zone->private = NULL;
+	spin_unlock(&zone->lock);
+
+	engine_cleanup(private);
+
+	return 0;
+}
+
+int register_page_clear_engine(const struct page_clear_engine_ops *engine_ops)
+{
+	int	ret;
+
+	if (alloc_zone_private)
+		return -EBUSY;
+
+	alloc_zone_private = engine_ops->create;
+
+	ret = walk_all_nodes(do_alloc);
+	if (ret) {
+		walk_all_nodes(do_clean);
+		return ret;
+	}
+
+	get_zero_pages = engine_ops->getpages;
+	provide_page = engine_ops->provide;
+	engine_cleanup = engine_ops->clean;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(register_page_clear_engine);
+
+int unregister_page_clear_engine(const struct page_clear_engine_ops *engine_ops)
+{
+	if (engine_ops->clean != engine_cleanup)
+		return -EINVAL;
+
+	walk_all_nodes(do_clean);
+
+	alloc_zone_private = NULL;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(unregister_page_clear_engine);
+#endif /* CONFIG_HAVE_PAGE_CLEAR_ENGINE */

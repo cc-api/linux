@@ -12,6 +12,23 @@
 #include "registers.h"
 #include "idxd.h"
 
+
+#define DMA_COOKIE_BITS (sizeof(dma_cookie_t) * 8)
+/*
+ * The descriptor id takes the lower 16 bits of the cookie.
+ */
+#define DESC_ID_BITS 16
+#define DESC_ID_MASK ((1 << DESC_ID_BITS) - 1)
+/*
+ * The 'generation' is in the upper half of the cookie. But dma_cookie_t
+ * is signed, so we leave the upper-most bit for the sign. Further, we
+ * need to flag whether a cookie corresponds to an operation that is
+ * being completed via interrupt to avoid polling it, which takes
+ * the second most upper bit. So we subtract two bits from the upper half.
+ */
+#define DESC_GEN_MAX ((1 << (DMA_COOKIE_BITS - DESC_ID_BITS - 2)) - 1)
+#define DESC_INTERRUPT_FLAG (1 << (DMA_COOKIE_BITS - 2))
+
 static inline struct idxd_wq *to_idxd_wq(struct dma_chan *c)
 {
 	struct idxd_dma_chan *idxd_chan;
@@ -56,11 +73,23 @@ void idxd_dma_complete_txd(struct idxd_desc *desc,
 		idxd_free_desc(desc->wq, desc);
 }
 
-static void op_flag_setup(unsigned long flags, u32 *desc_flags)
+static inline void op_control_flag_setup(unsigned long flags, u32 *desc_flags)
 {
 	*desc_flags = IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_RCR;
 	if (flags & DMA_PREP_INTERRUPT)
 		*desc_flags |= IDXD_OP_FLAG_RCI;
+}
+
+static inline void op_mem_flag_setup(unsigned long flags, u32 *desc_flags)
+{
+	if (!(flags & DMA_PREP_NONTEMPORAL))
+		*desc_flags |= IDXD_OP_FLAG_CC;
+}
+
+static inline void op_flag_setup(unsigned long flags, u32 *desc_flags)
+{
+	op_control_flag_setup(flags, desc_flags);
+	op_mem_flag_setup(flags, desc_flags);
 }
 
 static inline void set_completion_address(struct idxd_desc *desc,
@@ -83,9 +112,24 @@ static inline void idxd_prep_desc_common(struct idxd_wq *wq,
 	 * For dedicated WQ, this field is ignored and HW will use the WQCFG.priv
 	 * field instead. This field should be set to 1 for kernel descriptors.
 	 */
-	hw->priv = 1;
+	hw->priv = need_passthrough_wa() ? 0 : 1;
+
 	hw->completion_addr = compl;
 }
+
+static inline struct idxd_desc *
+dmachan_alloc_desc(struct dma_chan *chan, enum idxd_op_type optype)
+{
+	struct idxd_wq *wq = to_idxd_wq(chan);
+	struct idxd_desc *desc;
+
+	desc = idxd_alloc_desc(wq, optype);
+	if (!desc)
+		return NULL;
+	dma_async_tx_descriptor_init(&desc->txd, chan);
+	return desc;
+}
+
 
 static struct dma_async_tx_descriptor *
 idxd_dma_submit_memcpy(struct dma_chan *c, dma_addr_t dma_dest,
@@ -103,12 +147,54 @@ idxd_dma_submit_memcpy(struct dma_chan *c, dma_addr_t dma_dest,
 		return NULL;
 
 	op_flag_setup(flags, &desc_flags);
-	desc = idxd_alloc_desc(wq, IDXD_OP_BLOCK);
+	desc = dmachan_alloc_desc(c, IDXD_OP_BLOCK);
 	if (IS_ERR(desc))
 		return NULL;
 
 	idxd_prep_desc_common(wq, desc->hw, DSA_OPCODE_MEMMOVE,
 			      dma_src, dma_dest, len, desc->compl_dma,
+			      desc_flags);
+
+	desc->txd.flags = flags;
+
+	return &desc->txd;
+}
+
+static struct dma_async_tx_descriptor *
+idxd_dma_prep_memset(struct dma_chan *c, dma_addr_t dma_dest, int value,
+		     size_t len, unsigned long flags)
+{
+	struct idxd_wq *wq = to_idxd_wq(c);
+	u32 desc_flags;
+	struct idxd_desc *desc;
+	u64 pattern = 0;
+	u8 val_u8;
+	int i;
+
+	if (wq->state != IDXD_WQ_ENABLED)
+		return NULL;
+
+	if (len > wq->max_xfer_bytes)
+		return NULL;
+
+	op_flag_setup(flags, &desc_flags);
+	desc = dmachan_alloc_desc(c, IDXD_OP_BLOCK);
+	if (IS_ERR(desc))
+		return NULL;
+
+	/*
+	 * The dmaengine API provides an int 'value', but it is really an 8bit
+	 * pattern. DSA supports a 64bit pattern, and therefore the 8bit pattern
+	 * will be replicated to 64bits.
+	 */
+	if (value) {
+		val_u8 = (u8)value;
+		for (i = 0; i < 8; i++)
+			pattern |= (u64)val_u8 << (i * 8);
+	}
+
+	idxd_prep_desc_common(wq, desc->hw, DSA_OPCODE_MEMFILL,
+			      pattern, dma_dest, len, desc->compl_dma,
 			      desc_flags);
 
 	desc->txd.flags = flags;
@@ -137,12 +223,66 @@ static void idxd_dma_free_chan_resources(struct dma_chan *chan)
 		idxd_wq_refcount(wq));
 }
 
+
 static enum dma_status idxd_dma_tx_status(struct dma_chan *dma_chan,
 					  dma_cookie_t cookie,
 					  struct dma_tx_state *txstate)
 {
-	return DMA_OUT_OF_ORDER;
+	u8 status;
+	struct idxd_wq *wq;
+	struct idxd_desc *desc;
+	u32 idx;
+
+	memset(txstate, 0, sizeof(*txstate));
+
+	if (dma_submit_error(cookie))
+		return DMA_ERROR;
+
+	wq = to_idxd_wq(dma_chan);
+
+	idx = cookie & DESC_ID_MASK;
+	if (idx >= wq->num_descs)
+		return DMA_ERROR;
+
+	desc = wq->descs[idx];
+
+	if (desc->txd.cookie != cookie) {
+		/*
+		 * The user asked about an old transaction
+		 */
+		return DMA_COMPLETE;
+	}
+
+	/*
+	 * For descriptors completed via interrupt, we can't go
+	 * look at the completion status directly because it races
+	 * with the IRQ handler recyling the descriptor. However,
+	 * since in this case we can rely on the interrupt handler
+	 * to invalidate the cookie when the command completes we
+	 * know that if we get here, the command is still in
+	 * progress.
+	 */
+	if ((cookie & DESC_INTERRUPT_FLAG) != 0)
+		return DMA_IN_PROGRESS;
+
+	status = desc->completion->status & DSA_COMP_STATUS_MASK;
+
+	if (status) {
+		/*
+		 * Check against the original status as ABORT is software defined
+		 * and 0xff, which DSA_COMP_STATUS_MASK can mask out.
+		 */
+		if (unlikely(desc->completion->status == IDXD_COMP_DESC_ABORT))
+			idxd_dma_complete_txd(desc, IDXD_COMPLETE_ABORT, true);
+		else
+			idxd_dma_complete_txd(desc, IDXD_COMPLETE_NORMAL, true);
+
+		return DMA_COMPLETE;
+	}
+
+	return DMA_IN_PROGRESS;
 }
+
 
 /*
  * issue_pending() does not need to do anything since tx_submit() does the job
@@ -160,7 +300,17 @@ static dma_cookie_t idxd_dma_tx_submit(struct dma_async_tx_descriptor *tx)
 	int rc;
 	struct idxd_desc *desc = container_of(tx, struct idxd_desc, txd);
 
-	cookie = dma_cookie_assign(tx);
+	cookie = (desc->gen << DESC_ID_BITS) | (desc->id & DESC_ID_MASK);
+
+	if ((desc->hw->flags & IDXD_OP_FLAG_RCI) != 0)
+		cookie |= DESC_INTERRUPT_FLAG;
+
+	if (desc->gen == DESC_GEN_MAX)
+		desc->gen = 1;
+	else
+		desc->gen++;
+
+	tx->cookie = cookie;
 
 	rc = idxd_submit_desc(wq, desc);
 	if (rc < 0) {
@@ -194,12 +344,16 @@ int idxd_register_dma_device(struct idxd_device *idxd)
 	dma->dev = dev;
 
 	dma_cap_set(DMA_PRIVATE, dma->cap_mask);
-	dma_cap_set(DMA_COMPLETION_NO_ORDER, dma->cap_mask);
 	dma->device_release = idxd_dma_release;
 
 	if (idxd->hw.opcap.bits[0] & IDXD_OPCAP_MEMMOVE) {
 		dma_cap_set(DMA_MEMCPY, dma->cap_mask);
 		dma->device_prep_dma_memcpy = idxd_dma_submit_memcpy;
+	}
+
+	if (idxd->hw.opcap.bits[0] & IDXD_OPCAP_MEMFILL) {
+		dma_cap_set(DMA_MEMSET, dma->cap_mask);
+		dma->device_prep_dma_memset = idxd_dma_prep_memset;
 	}
 
 	dma->device_tx_status = idxd_dma_tx_status;
@@ -227,54 +381,88 @@ void idxd_unregister_dma_device(struct idxd_device *idxd)
 	dma_async_device_unregister(&idxd->idxd_dma->dma);
 }
 
-int idxd_register_dma_channel(struct idxd_wq *wq)
+int idxd_register_dma_channel(struct idxd_dma_chan *ichan)
 {
+	struct idxd_wq *wq = ichan->wq;
 	struct idxd_device *idxd = wq->idxd;
 	struct dma_device *dma = &idxd->idxd_dma->dma;
-	struct device *dev = &idxd->pdev->dev;
-	struct idxd_dma_chan *idxd_chan;
 	struct dma_chan *chan;
 	int rc, i;
 
-	idxd_chan = kzalloc_node(sizeof(*idxd_chan), GFP_KERNEL, dev_to_node(dev));
-	if (!idxd_chan)
-		return -ENOMEM;
-
-	chan = &idxd_chan->chan;
+	chan = &ichan->chan;
 	chan->device = dma;
 	list_add_tail(&chan->device_node, &dma->channels);
 
 	for (i = 0; i < wq->num_descs; i++) {
 		struct idxd_desc *desc = wq->descs[i];
 
-		dma_async_tx_descriptor_init(&desc->txd, chan);
 		desc->txd.tx_submit = idxd_dma_tx_submit;
 	}
 
 	rc = dma_async_device_channel_register(dma, chan);
 	if (rc < 0) {
-		kfree(idxd_chan);
+		list_del(&chan->device_node);
 		return rc;
 	}
 
-	wq->idxd_chan = idxd_chan;
-	idxd_chan->wq = wq;
 	get_device(wq_confdev(wq));
 
 	return 0;
 }
 
-void idxd_unregister_dma_channel(struct idxd_wq *wq)
+void idxd_unregister_dma_channel(struct idxd_dma_chan *ichan)
 {
-	struct idxd_dma_chan *idxd_chan = wq->idxd_chan;
-	struct dma_chan *chan = &idxd_chan->chan;
+	struct idxd_wq *wq = ichan->wq;
+	struct dma_chan *chan = &ichan->chan;
 	struct idxd_dma_dev *idxd_dma = wq->idxd->idxd_dma;
 
 	dma_async_device_channel_unregister(&idxd_dma->dma, chan);
 	list_del(&chan->device_node);
-	kfree(wq->idxd_chan);
-	wq->idxd_chan = NULL;
 	put_device(wq_confdev(wq));
+}
+
+static int idxd_setup_dma_channels(struct idxd_wq *wq)
+{
+	struct device *dev = &wq->idxd->pdev->dev;
+	struct idxd_dma_chan *ichans;
+	int i, rc;
+
+	ichans = kcalloc_node(wq->chan_count, sizeof(struct idxd_dma_chan), GFP_KERNEL,
+			      dev_to_node(dev));
+	if (!ichans)
+		return -ENOMEM;
+
+	for (i = 0; i < wq->chan_count; i++) {
+		ichans[i].wq = wq;
+		rc = idxd_register_dma_channel(&ichans[i]);
+		if (rc < 0)
+			goto err;
+	}
+
+	wq->ichans = ichans;
+
+	return 0;
+
+err:
+	while (--i >= 0)
+		idxd_unregister_dma_channel(&ichans[i]);
+	kfree(ichans);
+	return rc;
+}
+
+static void idxd_release_dma_channels(struct idxd_wq *wq)
+{
+	struct idxd_dma_chan *ichan;
+	int i;
+
+	for (i = 0; i < wq->chan_count; i++) {
+		ichan = &wq->ichans[i];
+
+		idxd_unregister_dma_channel(ichan);
+	}
+
+	kfree(wq->ichans);
+	wq->ichans = NULL;
 }
 
 static int idxd_dmaengine_drv_probe(struct idxd_dev *idxd_dev)
@@ -288,6 +476,12 @@ static int idxd_dmaengine_drv_probe(struct idxd_dev *idxd_dev)
 		return -ENXIO;
 
 	mutex_lock(&wq->wq_lock);
+	if (!idxd_wq_driver_name_match(wq, dev)) {
+		idxd->cmd_status = IDXD_SCMD_WQ_NO_DRV_NAME;
+		rc = -ENODEV;
+		goto err_drv_name;
+	}
+
 	wq->type = IDXD_WQT_KERNEL;
 
 	rc = idxd_wq_request_irq(wq);
@@ -318,7 +512,7 @@ static int idxd_dmaengine_drv_probe(struct idxd_dev *idxd_dev)
 		goto err_ref;
 	}
 
-	rc = idxd_register_dma_channel(wq);
+	rc = idxd_setup_dma_channels(wq);
 	if (rc < 0) {
 		idxd->cmd_status = IDXD_SCMD_DMA_CHAN_ERR;
 		dev_dbg(dev, "Failed to register dma channel\n");
@@ -339,6 +533,7 @@ err_res_alloc:
 err:
 	idxd_wq_free_irq(wq);
 err_irq:
+err_drv_name:
 	wq->type = IDXD_WQT_NONE;
 	mutex_unlock(&wq->wq_lock);
 	return rc;
@@ -350,7 +545,7 @@ static void idxd_dmaengine_drv_remove(struct idxd_dev *idxd_dev)
 
 	mutex_lock(&wq->wq_lock);
 	__idxd_wq_quiesce(wq);
-	idxd_unregister_dma_channel(wq);
+	idxd_release_dma_channels(wq);
 	idxd_wq_free_resources(wq);
 	__drv_disable_wq(wq);
 	percpu_ref_exit(&wq->wq_active);

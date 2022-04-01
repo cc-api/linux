@@ -179,11 +179,22 @@ static int idxd_setup_wqs(struct idxd_device *idxd)
 		wq->max_xfer_bytes = WQ_DEFAULT_MAX_XFER;
 		wq->max_batch_size = WQ_DEFAULT_MAX_BATCH;
 		wq->enqcmds_retries = IDXD_ENQCMDS_RETRIES;
+		wq->chan_count = IDXD_DMA_CHANS;
 		wq->wqcfg = kzalloc_node(idxd->wqcfg_size, GFP_KERNEL, dev_to_node(dev));
 		if (!wq->wqcfg) {
 			put_device(conf_dev);
 			rc = -ENOMEM;
 			goto err;
+		}
+
+		if (idxd->hw.wq_cap.op_config) {
+			wq->opcap_bmap = bitmap_zalloc(IDXD_MAX_OPCAP_BITS, GFP_KERNEL);
+			if (!wq->opcap_bmap) {
+				put_device(conf_dev);
+				rc = -ENOMEM;
+				goto err;
+			}
+			bitmap_copy(wq->opcap_bmap, idxd->opcap_bmap, IDXD_MAX_OPCAP_BITS);
 		}
 		idxd->wqs[i] = wq;
 	}
@@ -369,6 +380,19 @@ static void idxd_read_table_offsets(struct idxd_device *idxd)
 	dev_dbg(dev, "IDXD Perfmon Offset: %#x\n", idxd->perfmon_offset);
 }
 
+void multi_u64_to_bmap(unsigned long *bmap, u64 *val, int count)
+{
+	int i, j, nr;
+
+	for (i = 0, nr = 0; i < count; i++) {
+		for (j = 0; j < BITS_PER_LONG_LONG; j++) {
+			if (val[i] & BIT(j))
+				set_bit(nr, bmap);
+			nr++;
+		}
+	}
+}
+
 static void idxd_read_caps(struct idxd_device *idxd)
 {
 	struct device *dev = &idxd->pdev->dev;
@@ -427,6 +451,11 @@ static void idxd_read_caps(struct idxd_device *idxd)
 				IDXD_OPCAP_OFFSET + i * sizeof(u64));
 		dev_dbg(dev, "opcap[%d]: %#llx\n", i, idxd->hw.opcap.bits[i]);
 	}
+	multi_u64_to_bmap(idxd->opcap_bmap, &idxd->hw.opcap.bits[0], 4);
+
+	/* read iaa cap */
+	if (idxd->data->type == IDXD_TYPE_IAX && idxd->hw.version >= DEVICE_VERSION_2)
+		idxd->hw.iaa_cap.bits = ioread64(idxd->reg_base + IDXD_IAACAP_OFFSET);
 }
 
 static struct idxd_device *idxd_alloc(struct pci_dev *pdev, struct idxd_driver_data *data)
@@ -447,6 +476,12 @@ static struct idxd_device *idxd_alloc(struct pci_dev *pdev, struct idxd_driver_d
 	idxd->id = ida_alloc(&idxd_ida, GFP_KERNEL);
 	if (idxd->id < 0)
 		return NULL;
+
+	idxd->opcap_bmap = bitmap_zalloc_node(IDXD_MAX_OPCAP_BITS, GFP_KERNEL, dev_to_node(dev));
+	if (!idxd->opcap_bmap) {
+		ida_free(&idxd_ida, idxd->id);
+		return NULL;
+	}
 
 	device_initialize(conf_dev);
 	conf_dev->parent = dev;
@@ -541,6 +576,14 @@ static int idxd_probe(struct idxd_device *idxd)
 		rc = idxd_device_load_config(idxd);
 		if (rc < 0)
 			goto err_config;
+	}
+
+	if (need_passthrough_wa()) {
+		union gencfg_reg gencfg;
+		dev_alert(dev, "HACK SPR D0-, allow user interrupt for kernel desc\n");
+		gencfg.bits = ioread32(idxd->reg_base + IDXD_GENCFG_OFFSET);
+		gencfg.user_int_en = 1;
+		iowrite32(gencfg.bits, idxd->reg_base + IDXD_GENCFG_OFFSET);
 	}
 
 	rc = idxd_setup_interrupts(idxd);

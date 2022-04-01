@@ -3382,5 +3382,16 @@ madvise_set_anon_name(struct mm_struct *mm, unsigned long start,
 }
 #endif
 
+/* page clear engine */
+struct page_clear_engine_ops {
+	void *(*create)(int node);
+	int (*getpages)(void *private, int want, struct list_head *l, int *countp);
+	void (*provide)(void *v, struct page *page);
+	int (*clean)(void *v);
+};
+
+int register_page_clear_engine(const struct page_clear_engine_ops *ops);
+int unregister_page_clear_engine(const struct page_clear_engine_ops *ops);
+
 #endif /* __KERNEL__ */
 #endif /* _LINUX_MM_H */

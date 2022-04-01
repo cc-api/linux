@@ -55,6 +55,8 @@ enum idxd_type {
 #define IDXD_ENQCMDS_RETRIES		32
 #define IDXD_ENQCMDS_MAX_RETRIES	64
 
+#define IDXD_DMA_CHANS			1
+
 struct idxd_device_driver {
 	const char *name;
 	enum idxd_dev_type *type;
@@ -95,6 +97,8 @@ struct idxd_group {
 	u8 rdbufs_reserved;
 	int tc_a;
 	int tc_b;
+	int desc_progress_limit;
+	int batch_progress_limit;
 };
 
 struct idxd_pmu {
@@ -194,6 +198,8 @@ struct idxd_wq {
 	enum idxd_wq_state state;
 	unsigned long flags;
 	union wqcfg *wqcfg;
+	unsigned long *opcap_bmap;
+
 	struct dsa_hw_desc **hw_descs;
 	int num_descs;
 	union {
@@ -204,11 +210,15 @@ struct idxd_wq {
 	int compls_size;
 	struct idxd_desc **descs;
 	struct sbitmap_queue sbq;
-	struct idxd_dma_chan *idxd_chan;
+	int chan_count;
+	struct idxd_dma_chan *ichans;
 	char name[WQ_NAME_SIZE + 1];
 	u64 max_xfer_bytes;
 	u32 max_batch_size;
 	bool ats_dis;
+	char driver_name[WQ_NAME_SIZE + 1];
+
+	void *private_data;
 };
 
 struct idxd_engine {
@@ -227,6 +237,7 @@ struct idxd_hw {
 	union engine_cap_reg engine_cap;
 	struct opcap opcap;
 	u32 cmd_cap;
+	union iaa_cap_reg iaa_cap;
 };
 
 enum idxd_device_state {
@@ -307,6 +318,25 @@ struct idxd_device {
 	struct work_struct work;
 
 	struct idxd_pmu *idxd_pmu;
+
+	unsigned long *opcap_bmap;
+};
+
+/*
+ * IDXD batch field for SW Batch descriptor
+ * @descs: Descriptor list address
+ * @dma_descs: DMA address for descs
+ * @cr: completion record list address
+ * @dma_cr: DMA address for completion records
+ * @num: Number of descs in batch
+ */
+struct idxd_batch {
+	struct dsa_hw_desc *descs;
+	dma_addr_t dma_descs;
+	struct dsa_completion_record *crs;
+	dma_addr_t dma_crs;
+	u32 num;
+	u32 max;
 };
 
 /* IDXD software descriptor */
@@ -324,9 +354,12 @@ struct idxd_desc {
 	struct dma_async_tx_descriptor txd;
 	struct llist_node llnode;
 	struct list_head list;
-	int id;
+	u16 id;
+	u16 gen;
 	int cpu;
 	struct idxd_wq *wq;
+
+	struct idxd_batch *batch;
 };
 
 /*
@@ -528,6 +561,29 @@ static inline int idxd_wq_refcount(struct idxd_wq *wq)
 	return wq->client_count;
 };
 
+
+static inline int idxd_wq_driver_name_match(struct idxd_wq *wq, struct device *dev)
+{
+	return (strncmp(wq->driver_name, dev->driver->name, strlen(dev->driver->name)) == 0);
+}
+
+#define MODULE_ALIAS_IDXD_DEVICE(type) MODULE_ALIAS("idxd:t" __stringify(type) "*")
+#define IDXD_DEVICES_MODALIAS_FMT "idxd:t%d"
+
+static inline bool need_passthrough_wa(void)
+{
+	struct cpuinfo_x86 *c = &cpu_data(0);
+
+	if (c->x86_model == 0x8f && c->x86_stepping <= 3) {
+		pr_alert_ratelimited("SPR D or older, Use PASID PT WA %x : %x",
+			 c->x86_model, c->x86_stepping);
+		return true;
+	} else {
+		pr_alert_ratelimited("SPR E0+, No PASID PT WQ needed!");
+		return false;
+	}
+}
+
 int __must_check __idxd_driver_register(struct idxd_device_driver *idxd_drv,
 					struct module *module, const char *mod_name);
 #define idxd_driver_register(driver) \
@@ -546,6 +602,7 @@ int idxd_register_driver(void);
 void idxd_unregister_driver(void);
 void idxd_wqs_quiesce(struct idxd_device *idxd);
 bool idxd_queue_int_handle_resubmit(struct idxd_desc *desc);
+void multi_u64_to_bmap(unsigned long *bmap, u64 *val, int count);
 
 /* device interrupt control */
 irqreturn_t idxd_misc_thread(int vec, void *data);
@@ -602,8 +659,6 @@ int idxd_enqcmds(struct idxd_wq *wq, void __iomem *portal, const void *desc);
 /* dmaengine */
 int idxd_register_dma_device(struct idxd_device *idxd);
 void idxd_unregister_dma_device(struct idxd_device *idxd);
-int idxd_register_dma_channel(struct idxd_wq *wq);
-void idxd_unregister_dma_channel(struct idxd_wq *wq);
 void idxd_parse_completion_status(u8 status, enum dmaengine_tx_result *res);
 void idxd_dma_complete_txd(struct idxd_desc *desc,
 			   enum idxd_complete_type comp_type, bool free_desc);
