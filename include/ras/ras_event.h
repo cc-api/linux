@@ -293,7 +293,8 @@ TRACE_EVENT(non_standard_event,
 	{PCI_ERR_UNC_INTN,	"Uncorrectable Internal Error"},\
 	{PCI_ERR_UNC_MCBTLP,	"MC Blocked TLP"},		\
 	{PCI_ERR_UNC_ATOMEG,	"AtomicOp Egress Blocked"},	\
-	{PCI_ERR_UNC_TLPPRE,	"TLP Prefix Blocked Error"}
+	{PCI_ERR_UNC_TLPPRE,	"TLP Prefix Blocked Error"},	\
+	{PCI_ERR_UNC_DMWR_EG,	"DMWr Egress Blocked"}
 
 TRACE_EVENT(aer_event,
 	TP_PROTO(const char *dev_name,

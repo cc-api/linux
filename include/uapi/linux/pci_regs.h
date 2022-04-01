@@ -658,6 +658,10 @@
 #define  PCI_EXP_DEVCAP2_OBFF_MSG	0x00040000 /* New message signaling */
 #define  PCI_EXP_DEVCAP2_OBFF_WAKE	0x00080000 /* Re-use WAKE# for OBFF */
 #define  PCI_EXP_DEVCAP2_EE_PREFIX	0x00200000 /* End-End TLP Prefix */
+#define  PCI_EXP_DEVCAP2_DMWR_COMP	0x10000000 /* DMRr Completer */
+#define  PCI_EXP_DEVCAP2_DMWR_MASK	0x60000000 /* DMWr Length Mask */
+#define  PCI_EXP_DEVCAP2_DMWR_COMP64	0x00	   /* 64b DMWR routing */
+#define  PCI_EXP_DEVCAP2_DMWR_COMP128	0x20000000 /* 128b DMWR routing */
 #define PCI_EXP_DEVCTL2		0x28	/* Device Control 2 */
 #define  PCI_EXP_DEVCTL2_COMP_TIMEOUT	0x000f	/* Completion Timeout Value */
 #define  PCI_EXP_DEVCTL2_COMP_TMOUT_DIS	0x0010	/* Completion Timeout Disable */
@@ -736,7 +740,8 @@
 #define PCI_EXT_CAP_ID_DVSEC	0x23	/* Designated Vendor-Specific */
 #define PCI_EXT_CAP_ID_DLF	0x25	/* Data Link Feature */
 #define PCI_EXT_CAP_ID_PL_16GT	0x26	/* Physical Layer 16.0 GT/s */
-#define PCI_EXT_CAP_ID_MAX	PCI_EXT_CAP_ID_PL_16GT
+#define PCI_EXT_CAP_ID_DEV3	0x2F    /* Device 3 Extended Cap Header */
+#define PCI_EXT_CAP_ID_MAX	PCI_EXT_CAP_ID_DEV3
 
 #define PCI_EXT_CAP_DSN_SIZEOF	12
 #define PCI_EXT_CAP_MCAST_ENDPOINT_SIZEOF 40
@@ -760,6 +765,8 @@
 #define  PCI_ERR_UNC_MCBTLP	0x00800000	/* MC blocked TLP */
 #define  PCI_ERR_UNC_ATOMEG	0x01000000	/* Atomic egress blocked */
 #define  PCI_ERR_UNC_TLPPRE	0x02000000	/* TLP prefix blocked */
+#define  PCI_ERR_UNC_POISON	0x04000000	/* Poisoned Egress Blocked */
+#define  PCI_ERR_UNC_DMWR_EG	0x08000000	/* DMWr Egress Blocked */
 #define PCI_ERR_UNCOR_MASK	0x08	/* Uncorrectable Error Mask */
 	/* Same bits as above */
 #define PCI_ERR_UNCOR_SEVER	0x0c	/* Uncorrectable Error Severity */
@@ -1101,5 +1108,13 @@
 #define  PCI_PL_16GT_LE_CTRL_DSP_TX_PRESET_MASK		0x0000000F
 #define  PCI_PL_16GT_LE_CTRL_USP_TX_PRESET_MASK		0x000000F0
 #define  PCI_PL_16GT_LE_CTRL_USP_TX_PRESET_SHIFT	4
+
+/* Device 3 Extended Capability */
+#define PCI_EXP_DEVCAP3		0x04	/* Device Capabilities 3 */
+#define  PCI_EXP_DEVCAP3_DMWR		0x00000001 /* DMWr Routing */
+
+#define PCI_EXP_DEVCTL3	0x08	/* Device Control 3 */
+#define  PCI_EXP_DEVCTL3_DMWRREQ	   0x00000001 /* DMWr Requester */
+#define  PCI_EXP_DEVCTL3_DMWR_EGRESS_BLOCK 0x00000002 /* DMWr Egress Block */
 
 #endif /* LINUX_PCI_REGS_H */

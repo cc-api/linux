@@ -1592,6 +1592,50 @@ static void pci_restore_ltr_state(struct pci_dev *dev)
 	pci_write_config_dword(dev, ltr + PCI_LTR_MAX_SNOOP_LAT, *cap);
 }
 
+static void pci_save_devctl3_state(struct pci_dev *dev)
+{
+	int devcap3;
+	struct pci_cap_saved_state *save_state;
+	u32 *cap;
+
+	if (!pci_is_pcie(dev))
+		return;
+
+	devcap3 = pci_find_ext_capability(dev, PCI_EXT_CAP_ID_DEV3);
+	if (!devcap3)
+		return;
+
+	save_state = pci_find_saved_ext_cap(dev, PCI_EXT_CAP_ID_DEV3);
+	if (!save_state) {
+		pci_err(dev, "no suspend buffer for DMWr; DMWr issues possible after resume\n");
+		return;
+	}
+
+	cap = (u32 *)&save_state->cap.data[0];
+	pci_read_config_dword(dev, devcap3 + PCI_EXP_DEVCTL3, cap);
+}
+
+static void pci_restore_devctl3_state(struct pci_dev *dev)
+{
+	struct pci_cap_saved_state *save_state;
+	int devcap3;
+	u32 *cap;
+
+	if (!pci_is_pcie(dev))
+		return;
+
+	devcap3 = pci_find_ext_capability(dev, PCI_EXT_CAP_ID_DEV3);
+	if (!devcap3)
+		return;
+
+	save_state = pci_find_saved_ext_cap(dev, PCI_EXT_CAP_ID_DEV3);
+	if (!save_state)
+		return;
+
+	cap = (u32 *)&save_state->cap.data[0];
+	pci_write_config_dword(dev, devcap3 + PCI_EXP_DEVCTL3, *cap);
+}
+
 /**
  * pci_save_state - save the PCI configuration space of a device before
  *		    suspending
@@ -1617,6 +1661,7 @@ int pci_save_state(struct pci_dev *dev)
 		return i;
 
 	pci_save_ltr_state(dev);
+	pci_save_devctl3_state(dev);
 	pci_save_dpc_state(dev);
 	pci_save_aer_state(dev);
 	pci_save_ptm_state(dev);
@@ -1723,7 +1768,7 @@ void pci_restore_state(struct pci_dev *dev)
 	 * LTR itself (in the PCIe capability).
 	 */
 	pci_restore_ltr_state(dev);
-
+	pci_restore_devctl3_state(dev);
 	pci_restore_pcie_state(dev);
 	pci_restore_pasid_state(dev);
 	pci_restore_pri_state(dev);
@@ -3430,6 +3475,11 @@ void pci_allocate_cap_save_buffers(struct pci_dev *dev)
 	if (error)
 		pci_err(dev, "unable to allocate suspend buffer for LTR\n");
 
+	error = pci_add_ext_cap_save_buffer(dev, PCI_EXT_CAP_ID_DEV3,
+					    sizeof(u32));
+	if (error)
+		pci_err(dev, "unable to allocate suspend buffer for DMWr\n");
+
 	pci_allocate_vc_save_buffers(dev);
 }
 
@@ -3814,6 +3864,126 @@ int pci_enable_atomic_ops_to_root(struct pci_dev *dev, u32 cap_mask)
 	return 0;
 }
 EXPORT_SYMBOL(pci_enable_atomic_ops_to_root);
+
+/**
+ * pci_enable_dmwr_ops_to_root - enable DMWr requests to root port
+ * @dev: the PCI device
+ * @req_size: desired DMWr sizes, including one or more of:
+ *	PCI_EXP_DEVCAP2_DMWR_MASK
+ *
+ * Return 0 if all upstream bridges support DMWr routing, egress
+ * blocking is disabled on all upstream ports, and the root port supports
+ * the requested routing capabilities (64-bit and/or 128-bit
+ * DMWr completion), negative otherwise.
+ * At this time, we do not enable the root port being a completer
+ * and there is no support for devices to be initiators of DMWr.
+ * Hence No support for p2p as well.
+ */
+int pci_enable_dmwr_ops_to_root(struct pci_dev *dev, u32 req_size)
+{
+	struct pci_bus *bus = dev->bus;
+	struct pci_dev *bridge;
+	u32 cap2, cap3, ctl3;
+	int pos3;
+
+	if (!pci_is_pcie(dev))
+		return -EINVAL;
+
+	/*
+	 * Per PCIe r5.x, sec 6.XX, endpoints and root ports may be
+	 * DMWr requesters.  For now, we only support endpoints as
+	 * completer and root ports as requesters.  No endpoints as
+	 * requesters, and no peer-to-peer.
+	 */
+
+	switch (pci_pcie_type(dev)) {
+	case PCI_EXP_TYPE_RC_END:
+		/*
+		 * Relaxing checks on RCiEP devices. Driver owns
+		 * responsibility to make sure that they are a completer.
+		 * For RCiEP's we don't need to enforce the check.
+		 */
+		return 0;
+	case PCI_EXP_TYPE_ENDPOINT:
+		/*
+		 * Check if the PCIe endpoint supports completer
+		 * capability. Only Root ports and PCIe endpoints
+		 * can have completer capability.
+		 */
+		pcie_capability_read_dword(dev, PCI_EXP_DEVCAP2, &cap2);
+		if (!(cap2 & PCI_EXP_DEVCAP2_DMWR_COMP))
+			return -EINVAL;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	while (bus->parent) {
+		/*
+		 * Scan from the device all the way up to the root ports.
+		 * For any downstream ports, ensure that the appropriate
+		 * routing capability is present, and that egress blocking
+		 * is not set. Once we reach the top of the hierarchy, the
+		 * root port, enable requester capability.
+		 */
+		bridge = bus->self;
+
+		pos3 = pci_find_ext_capability(bridge, PCI_EXT_CAP_ID_DEV3);
+		if (!pos3)
+			return -EINVAL;
+		pci_read_config_dword(bridge, pos3 + PCI_EXP_DEVCAP3,
+				      &cap3);
+		switch (pci_pcie_type(bridge)) {
+		case PCI_EXP_TYPE_ROOT_PORT:
+			/*
+			 * Enable Requester Capability for root ports
+			 * Since we don't enable p2p, we do not need to
+			 * check routing capability check as we do for
+			 * switch ports below. The size only applies to
+			 * requesters and routing elements.
+			 */
+			pci_read_config_dword(bridge, pos3 + PCI_EXP_DEVCTL3,
+					      &ctl3);
+
+			ctl3 |= PCI_EXP_DEVCTL3_DMWRREQ;
+			pci_write_config_dword(bridge,
+					       pos3 + PCI_EXP_DEVCTL3,
+					       ctl3);
+			pci_read_config_dword(bridge, pos3 + PCI_EXP_DEVCTL3,
+					      &ctl3);
+			/*
+			 * Readback to check if the root port
+			 * allowed the write
+			 */
+			if (!(ctl3 & PCI_EXP_DEVCTL3_DMWRREQ))
+				return -EINVAL;
+			return 0;
+		/*
+		 * Ensure switch ports support DMWr routing
+		 * We only allow root ports to be initiators
+		 * And make sure all downstream ports to support the
+		 * appropriate routing capability.
+		 */
+		case PCI_EXP_TYPE_UPSTREAM:
+			break;
+		case PCI_EXP_TYPE_DOWNSTREAM:
+			if (!(cap3 & PCI_EXP_DEVCAP3_DMWR))
+				return -EINVAL;
+			if ((cap2 & PCI_EXP_DEVCAP2_DMWR_MASK) < req_size)
+				return -EINVAL;
+
+			/* Ensure downstream ports don't block DMWr on egress */
+			pci_read_config_dword(bridge, pos3 + PCI_EXP_DEVCTL3,
+					      &ctl3);
+			if (ctl3 & PCI_EXP_DEVCTL3_DMWR_EGRESS_BLOCK)
+				return -EINVAL;
+		}
+		bus = bus->parent;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(pci_enable_dmwr_ops_to_root);
 
 /**
  * pci_swizzle_interrupt_pin - swizzle INTx for device behind bridge
