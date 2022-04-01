@@ -12,11 +12,12 @@
 #include <linux/module.h>
 #include <linux/mm.h>
 #include <linux/pci.h>
+#include <linux/pm_runtime.h>
 
 #include "../vsec.h"
 #include "class.h"
 
-#define PMT_XA_START		0
+#define PMT_XA_START		1
 #define PMT_XA_MAX		INT_MAX
 #define PMT_XA_LIMIT		XA_LIMIT(PMT_XA_START, PMT_XA_MAX)
 
@@ -29,7 +30,12 @@
  */
 static const struct pci_device_id pmt_telem_early_client_pci_ids[] = {
 	{ PCI_VDEVICE(INTEL, 0x467d) }, /* ADL */
+	{ PCI_VDEVICE(INTEL, 0x56C0) }, /* ATS_M150 */
+	{ PCI_VDEVICE(INTEL, 0x56C1) }, /* ATS_M75 */
 	{ PCI_VDEVICE(INTEL, 0x490e) }, /* DG1 */
+	{ PCI_VDEVICE(INTEL, 0x4f93) }, /* DG2_G10 */
+	{ PCI_VDEVICE(INTEL, 0x4f95) }, /* DG2_G11 */
+	{ PCI_VDEVICE(INTEL, 0xa77d) }, /* RPL */
 	{ PCI_VDEVICE(INTEL, 0x9a0d) }, /* TGL */
 	{ }
 };
@@ -45,6 +51,29 @@ EXPORT_SYMBOL_GPL(intel_pmt_is_early_client_hw);
 /*
  * sysfs
  */
+static int
+intel_pmt_open(struct file *filp, struct kobject *kobj, struct bin_attribute *attr)
+{
+	struct intel_pmt_entry *entry = container_of(attr,
+						     struct intel_pmt_entry,
+						     pmt_bin_attr);
+
+	pm_runtime_get_sync(&entry->pdev->dev);
+
+	return 0;
+}
+
+static void
+intel_pmt_release(struct file *filp, struct kobject *kobj, struct bin_attribute *attr)
+{
+	struct intel_pmt_entry *entry = container_of(attr,
+						     struct intel_pmt_entry,
+						     pmt_bin_attr);
+
+	pm_runtime_mark_last_busy(&entry->pdev->dev);
+	pm_runtime_put_autosuspend(&entry->pdev->dev);
+}
+
 static ssize_t
 intel_pmt_read(struct file *filp, struct kobject *kobj,
 	       struct bin_attribute *attr, char *buf, loff_t off,
@@ -139,10 +168,9 @@ static struct class intel_pmt_class = {
 	.dev_groups = intel_pmt_groups,
 };
 
-static int intel_pmt_populate_entry(struct intel_pmt_entry *entry,
-				    struct intel_pmt_header *header,
-				    struct device *dev,
-				    struct resource *disc_res)
+int intel_pmt_populate_entry(struct intel_pmt_entry *entry,
+			     struct intel_pmt_header *header,
+			     struct device *dev, struct resource *disc_res)
 {
 	struct pci_dev *pci_dev = to_pci_dev(dev->parent);
 	u8 bir;
@@ -194,6 +222,7 @@ static int intel_pmt_populate_entry(struct intel_pmt_entry *entry,
 				return -EINVAL;
 		}
 
+		dev_dbg(dev, "LOCAL base address 0x%lx\b", entry->base_addr);
 		break;
 	case ACCESS_BARID:
 		/*
@@ -203,6 +232,8 @@ static int intel_pmt_populate_entry(struct intel_pmt_entry *entry,
 		 */
 		entry->base_addr = pci_resource_start(pci_dev, bir) +
 				   GET_ADDRESS(header->base_offset);
+
+		dev_dbg(dev, "BARID base address 0x%lx\b", entry->base_addr);
 		break;
 	default:
 		dev_err(dev, "Unsupported access type %d\n",
@@ -215,6 +246,7 @@ static int intel_pmt_populate_entry(struct intel_pmt_entry *entry,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(intel_pmt_populate_entry);
 
 static int intel_pmt_dev_register(struct intel_pmt_entry *entry,
 				  struct intel_pmt_namespace *ns,
@@ -228,6 +260,8 @@ static int intel_pmt_dev_register(struct intel_pmt_entry *entry,
 	if (ret)
 		return ret;
 
+	dev_dbg(parent, "%s: Create %s%d\n", __func__, ns->name, entry->devid);
+
 	dev = device_create(&intel_pmt_class, parent, MKDEV(0, 0), entry,
 			    "%s%d", ns->name, entry->devid);
 
@@ -239,6 +273,7 @@ static int intel_pmt_dev_register(struct intel_pmt_entry *entry,
 	}
 
 	entry->kobj = &dev->kobj;
+	entry->pdev = to_pci_dev(parent->parent);
 
 	if (ns->attr_grp) {
 		ret = sysfs_create_group(entry->kobj, ns->attr_grp);
@@ -253,6 +288,9 @@ static int intel_pmt_dev_register(struct intel_pmt_entry *entry,
 	res.start = entry->base_addr;
 	res.end = res.start + entry->size - 1;
 	res.flags = IORESOURCE_MEM;
+	res.name = NULL;
+
+	dev_dbg(parent, "%s: Mapping resource %pr\n", __func__, &res);
 
 	entry->base = devm_ioremap_resource(dev, &res);
 	if (IS_ERR(entry->base)) {
@@ -260,11 +298,14 @@ static int intel_pmt_dev_register(struct intel_pmt_entry *entry,
 		goto fail_ioremap;
 	}
 
+	dev_dbg(parent, "%s: Base mapped to %px\n", __func__, entry->base);
 	sysfs_bin_attr_init(&entry->pmt_bin_attr);
 	entry->pmt_bin_attr.attr.name = ns->name;
 	entry->pmt_bin_attr.attr.mode = 0440;
 	entry->pmt_bin_attr.mmap = intel_pmt_mmap;
 	entry->pmt_bin_attr.read = intel_pmt_read;
+	entry->pmt_bin_attr.open = intel_pmt_open;
+	entry->pmt_bin_attr.release = intel_pmt_release;
 	entry->pmt_bin_attr.size = entry->size;
 
 	ret = sysfs_create_bin_file(&dev->kobj, &entry->pmt_bin_attr);
@@ -296,7 +337,7 @@ int intel_pmt_dev_create(struct intel_pmt_entry *entry, struct intel_pmt_namespa
 	if (IS_ERR(entry->disc_table))
 		return PTR_ERR(entry->disc_table);
 
-	ret = ns->pmt_header_decode(entry, &header, dev);
+	ret = ns->pmt_header_decode(entry, &header, dev, disc_res);
 	if (ret)
 		return ret;
 

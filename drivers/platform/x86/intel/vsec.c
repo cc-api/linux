@@ -19,6 +19,7 @@
 #include <linux/idr.h>
 #include <linux/module.h>
 #include <linux/pci.h>
+#include <linux/pm_runtime.h>
 #include <linux/types.h>
 
 #include "vsec.h"
@@ -32,6 +33,7 @@
 #define TABLE_OFFSET_SHIFT		3
 
 static DEFINE_IDA(intel_vsec_ida);
+static DEFINE_IDA(intel_vsec_sdsi_ida);
 
 /**
  * struct intel_vsec_header - Common fields of Intel VSEC and DVSEC registers.
@@ -63,6 +65,7 @@ enum intel_vsec_id {
 	VSEC_ID_TELEMETRY	= 2,
 	VSEC_ID_WATCHER		= 3,
 	VSEC_ID_CRASHLOG	= 4,
+	VSEC_ID_SDSI		= 65,
 	VSEC_ID_TPMI		= 66,
 };
 
@@ -70,6 +73,7 @@ static enum intel_vsec_id intel_vsec_allow_list[] = {
 	VSEC_ID_TELEMETRY,
 	VSEC_ID_WATCHER,
 	VSEC_ID_CRASHLOG,
+	VSEC_ID_SDSI,
 	VSEC_ID_TPMI,
 };
 
@@ -84,6 +88,9 @@ static const char *intel_vsec_name(enum intel_vsec_id id)
 
 	case VSEC_ID_CRASHLOG:
 		return "crashlog";
+
+	case VSEC_ID_SDSI:
+		return "sdsi";
 
 	case VSEC_ID_TPMI:
 		return "tpmi";
@@ -221,7 +228,11 @@ static int intel_vsec_add_dev(struct pci_dev *pdev, struct intel_vsec_header *he
 	intel_vsec_dev->resource = res;
 	intel_vsec_dev->num_resources = header->num_entries;
 	intel_vsec_dev->quirks = quirks;
-	intel_vsec_dev->ida = &intel_vsec_ida;
+
+	if (header->id == VSEC_ID_SDSI)
+		intel_vsec_dev->ida = &intel_vsec_sdsi_ida;
+	else
+		intel_vsec_dev->ida = &intel_vsec_ida;
 
 	return intel_vsec_add_aux(pdev, NULL, intel_vsec_dev, intel_vsec_name(header->id));
 }
@@ -365,7 +376,19 @@ static int intel_vsec_pci_probe(struct pci_dev *pdev, const struct pci_device_id
 	if (!have_devices)
 		return -ENODEV;
 
+	pm_runtime_put(&pdev->dev);
+	pm_runtime_use_autosuspend(&pdev->dev);
+	pm_runtime_set_autosuspend_delay(&pdev->dev, 1000);
+	pm_runtime_allow(&pdev->dev);
+
 	return 0;
+}
+
+static void intel_vsec_pci_remove(struct pci_dev *pdev)
+{
+	pm_runtime_forbid(&pdev->dev);
+	pm_runtime_dont_use_autosuspend(&pdev->dev);
+	pm_runtime_get(&pdev->dev);
 }
 
 /* TGL info */
@@ -393,14 +416,37 @@ static const struct intel_vsec_platform_info dg1_info = {
 	.quirks = VSEC_QUIRK_NO_DVSEC,
 };
 
+/* DG2 info */
+static const struct intel_vsec_platform_info dg2_info = {
+	.quirks = VSEC_QUIRK_TABLE_SHIFT
+};
+
+#ifdef CONFIG_PM_SLEEP
+static const struct dev_pm_ops intel_vsec_pm_ops = {};
+#endif
+
 #define PCI_DEVICE_ID_INTEL_VSEC_ADL		0x467d
+#define PCI_DEVICE_ID_INTEL_VSEC_ATS_M150	0x56C0
+#define PCI_DEVICE_ID_INTEL_VSEC_ATS_M75	0x56C1
 #define PCI_DEVICE_ID_INTEL_VSEC_DG1		0x490e
+#define PCI_DEVICE_ID_INTEL_VSEC_DG2_G10	0x4f93
+#define PCI_DEVICE_ID_INTEL_VSEC_DG2_G11	0x4f95
+#define PCI_DEVICE_ID_INTEL_VSEC_MTL_M		0x7d0d
+#define PCI_DEVICE_ID_INTEL_VSEC_MTL_S		0xad0d
 #define PCI_DEVICE_ID_INTEL_VSEC_OOBMSM		0x09a7
+#define PCI_DEVICE_ID_INTEL_VSEC_RPL		0xa77d
 #define PCI_DEVICE_ID_INTEL_VSEC_TGL		0x9a0d
 static const struct pci_device_id intel_vsec_pci_ids[] = {
 	{ PCI_DEVICE_DATA(INTEL, VSEC_ADL, &tgl_info) },
+	{ PCI_DEVICE_DATA(INTEL, VSEC_ATS_M150, &dg2_info) },
+	{ PCI_DEVICE_DATA(INTEL, VSEC_ATS_M75, &dg2_info) },
 	{ PCI_DEVICE_DATA(INTEL, VSEC_DG1, &dg1_info) },
+	{ PCI_DEVICE_DATA(INTEL, VSEC_DG2_G10, &dg2_info) },
+	{ PCI_DEVICE_DATA(INTEL, VSEC_DG2_G11, &dg2_info) },
+	{ PCI_DEVICE_DATA(INTEL, VSEC_MTL_M, NULL) },
+	{ PCI_DEVICE_DATA(INTEL, VSEC_MTL_S, NULL) },
 	{ PCI_DEVICE_DATA(INTEL, VSEC_OOBMSM, NULL) },
+	{ PCI_DEVICE_DATA(INTEL, VSEC_RPL, &tgl_info) },
 	{ PCI_DEVICE_DATA(INTEL, VSEC_TGL, &tgl_info) },
 	{ }
 };
@@ -410,6 +456,12 @@ static struct pci_driver intel_vsec_pci_driver = {
 	.name = "intel_vsec",
 	.id_table = intel_vsec_pci_ids,
 	.probe = intel_vsec_pci_probe,
+	.remove = intel_vsec_pci_remove,
+	.driver = {
+#ifdef CONFIG_PM_SLEEP
+		.pm = &intel_vsec_pm_ops,
+#endif
+	},
 };
 module_pci_driver(intel_vsec_pci_driver);
 
