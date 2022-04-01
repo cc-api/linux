@@ -432,6 +432,7 @@ void acpi_init_properties(struct acpi_device *adev)
 	if (!adev->data.pointer)
 		acpi_extract_apple_properties(adev);
 }
+EXPORT_SYMBOL(acpi_init_properties);
 
 static void acpi_destroy_nondev_subnodes(struct list_head *list)
 {
