@@ -109,13 +109,15 @@
 
 #define INTEL_FAM6_ALDERLAKE		0x97	/* Golden Cove / Gracemont */
 #define INTEL_FAM6_ALDERLAKE_L		0x9A	/* Golden Cove / Gracemont */
+#define INTEL_FAM6_ALDERLAKE_N		0xBE    /* Golden Cove / Gracemont */
 
 #define INTEL_FAM6_RAPTORLAKE		0xB7
 
+#define INTEL_FAM6_METEORLAKE_X		0xAC
 #define INTEL_FAM6_METEORLAKE_L		0xAA
 #define INTEL_FAM6_METEORLAKE		0xAB
 
-#define INTEL_FAM6_LUNARLAKE_M		0xBD	/* Lion Cove / Skymont */
+#define INTEL_FAM6_LUNARLAKE_M          0xBD    /* Lion Cove / Skymont */
 
 /* "Small Core" Processors (Atom) */
 
