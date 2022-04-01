@@ -19,6 +19,18 @@
 #include <asm/tdx_host.h>
 #include "tdmr.h"
 
+#ifdef CONFIG_SVOS
+/* Include reserved RAM (by mem=xxx) in TDMR */
+static bool tdx_init_rsvd_mem;
+static int __init parse_tdx_init_rsvd_mem(char *arg)
+{
+	tdx_init_rsvd_mem = true;
+
+	return 0;
+}
+early_param("tdx_init_rsvd_mem", parse_tdx_init_rsvd_mem);
+#endif
+
 /*
  * Only E820_TYPE_RAM and E820_TYPE_PRAM are considered as candidate for
  * TDX usable memory.  The latter is treated as RAM because it is created
@@ -88,6 +100,13 @@ static bool range_covered_by_cmrs(struct cmr_info *cmr_array,
 	return false;
 }
 
+#ifdef CONFIG_SVOS
+static struct e820_table *get_e820_table(void)
+{
+	return tdx_init_rsvd_mem ? e820_table_firmware : e820_table;
+}
+#endif
+
 /* Sanity check whether all e820 RAM entries are fully covered by CMRs. */
 static int check_e820_against_cmrs(void)
 {
@@ -101,7 +120,16 @@ static int check_e820_against_cmrs(void)
 	 * instead of e820_table_firmware or e820_table_kexec to honor
 	 * possible 'mem' and 'memmap' kernel command lines.
 	 */
+#ifdef CONFIG_SVOS
+	/*
+	 * use e820_table_firmware if tdx_init_rsvd_mem is set.
+	 */
+#endif
+#ifdef CONFIG_SVOS
+	e820_for_each_ram_entry(get_e820_table(), i, entry, start, end) {
+#else
 	e820_for_each_ram_entry(e820_table, i, entry, start, end) {
+#endif
 		if (!range_covered_by_cmrs(tdx_cmr_array, tdx_cmr_num,
 					start, end)) {
 			pr_err("[0x%llx, 0x%llx) not fully convertible memory\n",
@@ -186,7 +214,11 @@ static int create_tdmrs(struct tdmr_info **tdmr_array, int *tdmr_num)
 	 * entry.  For the latter case, create a new TDMR to cover the
 	 * remaining part of this entry.
 	 */
+#ifdef CONFIG_SVOS
+	e820_for_each_ram_entry(get_e820_table(), i, entry, start, end) {
+#else
 	e820_for_each_ram_entry(e820_table, i, entry, start, end) {
+#endif
 		start = TDMR_ALIGN_DOWN(start);
 		end = TDMR_ALIGN_UP(end);
 
@@ -261,7 +293,11 @@ static int tdmr_get_nid(struct tdmr_info *tdmr)
 	int i;
 
 	/* Find the first RAM entry covered by the TDMR */
+#ifdef CONFIG_SVOS
+	e820_for_each_ram_entry(get_e820_table(), i, entry, start, end)
+#else
 	e820_for_each_ram_entry(e820_table, i, entry, start, end)
+#endif
 		if (end > TDMR_START(tdmr))
 			break;
 
@@ -419,7 +455,11 @@ static int tdmr_setup_rsvd_areas(struct tdmr_info *tdmr,
 	 */
 	rsvd_idx = 0;
 	prev_end = TDMR_START(tdmr);
+#ifdef CONFIG_SVOS
+	e820_for_each_ram_entry(get_e820_table(), i, entry, start, end) {
+#else
 	e820_for_each_ram_entry(e820_table, i, entry, start, end) {
+#endif
 		/* Break if this entry is after the TDMR */
 		if (start >= TDMR_END(tdmr))
 			break;

@@ -304,7 +304,18 @@ static int __init tdx_arch_init(void)
 		goto out;
 	}
 	pr_info("Loaded TDX module via P-SEAMLDR.\n");
+#ifdef CONFIG_SVOS
+	ret = detect_tdx();
+	if (ret) {
+		pr_err("No TDX module found %d\n", ret);
+		goto out;
+	}
+	ret = init_tdx(NULL);
+	if (ret)
+		pr_err("Failed to initialize TDX module %d\n", ret);
+#else
 
+#endif
 out:
 	/*
 	 * Other codes (especially kvm_intel) expect that they're the first to
