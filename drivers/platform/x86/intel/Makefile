@@ -14,6 +14,8 @@ obj-$(CONFIG_INTEL_PMT_CLASS)		+= pmt/
 obj-$(CONFIG_INTEL_SPEED_SELECT_INTERFACE) += speed_select_if/
 obj-$(CONFIG_INTEL_TELEMETRY)		+= telemetry/
 obj-$(CONFIG_INTEL_WMI)			+= wmi/
+obj-$(CONFIG_INTEL_UNCORE_FREQ_CONTROL)	+= uncore-frequency/
+obj-$(CONFIG_INTEL_TPMI_PEM)		+= pnp_excursion_monitor/
 
 # Intel input drivers
 intel-hid-y				:= hid.o
@@ -42,6 +44,13 @@ obj-$(CONFIG_INTEL_MRFLD_PWRBTN)	+= intel_mrfld_pwrbtn.o
 intel_punit_ipc-y			:= punit_ipc.o
 obj-$(CONFIG_INTEL_PUNIT_IPC)		+= intel_punit_ipc.o
 
+# TPMI drivers
+intel_vsec_tpmi-y			:= tpmi.o
+obj-$(CONFIG_INTEL_TPMI)		+= intel_vsec_tpmi.o
+
+intel_hpm_die_map-y			:= hpm_die_map.o
+obj-$(CONFIG_INTEL_HPM_DIE_MAP)		+= intel_hpm_die_map.o
+
 # Intel Uncore drivers
 intel-rst-y				:= rst.o
 obj-$(CONFIG_INTEL_RST)			+= intel-rst.o
@@ -49,5 +58,3 @@ intel-smartconnect-y			:= smartconnect.o
 obj-$(CONFIG_INTEL_SMARTCONNECT)	+= intel-smartconnect.o
 intel_turbo_max_3-y			:= turbo_max_3.o
 obj-$(CONFIG_INTEL_TURBO_MAX_3)		+= intel_turbo_max_3.o
-intel-uncore-frequency-y		:= uncore-frequency.o
-obj-$(CONFIG_INTEL_UNCORE_FREQ_CONTROL)	+= intel-uncore-frequency.o

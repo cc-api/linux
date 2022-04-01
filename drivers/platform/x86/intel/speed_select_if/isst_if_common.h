@@ -30,7 +30,8 @@
 
 #define ISST_IF_DEV_MBOX	0
 #define ISST_IF_DEV_MMIO	1
-#define ISST_IF_DEV_MAX		2
+#define ISST_IF_DEV_TPMI	2
+#define ISST_IF_DEV_MAX		3
 
 /**
  * struct isst_if_cmd_cb - Used to register a IOCTL handler
@@ -58,6 +59,7 @@ struct isst_if_cmd_cb {
 	int offset;
 	struct module *owner;
 	long (*cmd_callback)(u8 *ptr, int *write_only, int resume);
+	long (*def_ioctl)(struct file *file, unsigned int cmd, unsigned long arg);
 };
 
 /* Internal interface functions */
