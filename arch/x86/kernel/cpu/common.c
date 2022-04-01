@@ -388,6 +388,17 @@ static int __init svos_enable_sld(char *str)
 early_param("svos_enable_sld", svos_enable_sld);
 #endif
 
+static int lass_cap_disabled __ro_after_init;
+int __init setup_disable_lass(char *arg)
+{
+	lass_cap_disabled = cpu_feature_enabled(X86_FEATURE_LASS);
+	setup_clear_cpu_cap(X86_FEATURE_LASS);
+	return 0;
+}
+
+/* apply nolass before kernel maps vsyscall which is done ahead __setup() */
+early_param("nolass", setup_disable_lass);
+
 static __always_inline void setup_smap(struct cpuinfo_x86 *c)
 {
 	unsigned long eflags = native_save_fl();
@@ -447,9 +458,27 @@ void hreset_reload(void)
 		wrmsrl(MSR_IA32_HW_HRESET_ENABLE, hreset_features);
 }
 
+static __always_inline void setup_lass(struct cpuinfo_x86 *c)
+{
+	if (cpu_feature_enabled(X86_FEATURE_LASS)) {
+		cr4_set_bits(X86_CR4_LASS);
+	} else {
+		/*
+		 * Only clear the cr4 bit when hardware supports LASS
+		 * but the feature is disabled in the command line
+		 * or not selected in compile time,
+		 * in case it was enabled in a previous boot (e.g.,
+		 * via kexec)
+		 */
+		if (lass_cap_disabled || cpu_has(c, X86_FEATURE_LASS))
+			cr4_clear_bits(X86_CR4_LASS);
+	}
+}
+
 /* These bits should not change their value after CPU init is finished. */
 static const unsigned long cr4_pinned_mask =
-	X86_CR4_SMEP | X86_CR4_SMAP | X86_CR4_UMIP | X86_CR4_FSGSBASE;
+	X86_CR4_SMEP | X86_CR4_SMAP | X86_CR4_UMIP | X86_CR4_FSGSBASE |
+	X86_CR4_LASS;
 static DEFINE_STATIC_KEY_FALSE_RO(cr_pinning);
 static unsigned long cr4_pinned_bits __ro_after_init;
 
@@ -1697,6 +1726,7 @@ static void identify_cpu(struct cpuinfo_x86 *c)
 
 	/* Set up User Interrupts */
 	setup_uintr(c);
+	setup_lass(c);
 
 	/* Enable FSGSBASE instructions if available. */
 	if (cpu_has(c, X86_FEATURE_FSGSBASE)) {
