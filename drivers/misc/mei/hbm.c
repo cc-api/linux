@@ -340,8 +340,12 @@ static int mei_hbm_capabilities_req(struct mei_device *dev)
 	req.hbm_cmd = MEI_HBM_CAPABILITIES_REQ_CMD;
 	if (dev->hbm_f_vt_supported)
 		req.capability_requested[0] |= HBM_CAP_VT;
+
 	if (dev->hbm_f_cd_supported)
 		req.capability_requested[0] |= HBM_CAP_CD;
+
+	if (dev->hbm_f_gsc_supported)
+		req.capability_requested[0] |= HBM_CAP_GSC;
 
 	ret = mei_hbm_write_message(dev, &mei_hdr, &req);
 	if (ret) {
@@ -1034,6 +1038,10 @@ static void mei_hbm_cl_res(struct mei_device *dev,
 		return;
 	}
 
+	if (dev->stall_timer_cl) {
+		dev->stall_timer_cl = 0;
+		return;
+	}
 	cl->timer_count = 0;
 	wake_up(&cl->wait);
 }
@@ -1200,6 +1208,12 @@ static void mei_hbm_config_features(struct mei_device *dev)
 	     dev->version.minor_version >= HBM_MINOR_VERSION_VT))
 		dev->hbm_f_vt_supported = 1;
 
+	/* GSC support */
+	if (dev->version.major_version > HBM_MAJOR_VERSION_GSC ||
+	    (dev->version.major_version == HBM_MAJOR_VERSION_GSC &&
+	     dev->version.minor_version >= HBM_MINOR_VERSION_GSC))
+		dev->hbm_f_gsc_supported = 1;
+
 	/* Capability message Support */
 	dev->hbm_f_cap_supported = 0;
 	if (dev->version.major_version > HBM_MAJOR_VERSION_CAP ||
@@ -1272,6 +1286,10 @@ int mei_hbm_dispatch(struct mei_device *dev, struct mei_msg_hdr *hdr)
 	case HOST_START_RES_CMD:
 		dev_dbg(dev->dev, "hbm: start: response message received.\n");
 
+		if (dev->stall_timer_init) {
+			dev->stall_timer_init = 0;
+			return 0;
+		}
 		dev->init_clients_timer = 0;
 
 		version_res = (struct hbm_host_version_response *)mei_msg;
@@ -1366,6 +1384,9 @@ int mei_hbm_dispatch(struct mei_device *dev, struct mei_msg_hdr *hdr)
 		if (!(capability_res->capability_granted[0] & HBM_CAP_CD))
 			dev->hbm_f_cd_supported = 0;
 
+		if (!(capability_res->capability_granted[0] & HBM_CAP_GSC))
+			dev->hbm_f_gsc_supported = 0;
+
 		if (dev->hbm_f_dr_supported) {
 			if (mei_dmam_ring_alloc(dev))
 				dev_info(dev->dev, "running w/o dma ring\n");
@@ -1454,6 +1475,10 @@ int mei_hbm_dispatch(struct mei_device *dev, struct mei_msg_hdr *hdr)
 	case HOST_CLIENT_PROPERTIES_RES_CMD:
 		dev_dbg(dev->dev, "hbm: properties response: message received.\n");
 
+		if (dev->stall_timer_init) {
+			dev->stall_timer_init = 0;
+			return 0;
+		}
 		dev->init_clients_timer = 0;
 
 		if (dev->dev_state != MEI_DEV_INIT_CLIENTS ||
@@ -1491,6 +1516,10 @@ int mei_hbm_dispatch(struct mei_device *dev, struct mei_msg_hdr *hdr)
 	case HOST_ENUM_RES_CMD:
 		dev_dbg(dev->dev, "hbm: enumeration response: message received\n");
 
+		if (dev->stall_timer_init) {
+			dev->stall_timer_init = 0;
+			return 0;
+		}
 		dev->init_clients_timer = 0;
 
 		enum_res = (struct hbm_host_enum_response *) mei_msg;

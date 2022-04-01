@@ -62,6 +62,14 @@ enum mei_dev_state {
 	MEI_DEV_POWER_UP
 };
 
+/* MEI extended operational memory */
+enum mei_dev_ext_om {
+	MEI_DEV_EXT_OM_DISABLED = 0,
+	MEI_DEV_EXT_OM_INIT     = 1,
+	MEI_DEV_EXT_OM_SETUP    = 2,
+	MEI_DEV_EXT_OM_READY    = 3,
+};
+
 const char *mei_dev_state_str(int state);
 
 enum mei_file_transaction_states {
@@ -101,12 +109,16 @@ enum mei_cb_file_ops {
  * @MEI_CL_IO_TX_INTERNAL: internal communication between driver and FW
  *
  * @MEI_CL_IO_RX_NONBLOCK: recv is non-blocking
+ *
+ * @MEI_CL_IO_SGL: send command with sgl list.
  */
 enum mei_cl_io_mode {
 	MEI_CL_IO_TX_BLOCKING = BIT(0),
 	MEI_CL_IO_TX_INTERNAL = BIT(1),
 
 	MEI_CL_IO_RX_NONBLOCK = BIT(2),
+
+	MEI_CL_IO_SGL         = BIT(3),
 };
 
 /*
@@ -203,6 +215,7 @@ struct mei_cl_cb {
 	int status;
 	u32 internal:1;
 	u32 blocking:1;
+	struct mei_ext_hdr *ext_hdr;
 };
 
 /**
@@ -351,6 +364,9 @@ struct mei_hw_ops {
 	u32 (*read_hdr)(const struct mei_device *dev);
 	int (*read)(struct mei_device *dev,
 		     unsigned char *buf, unsigned long len);
+
+	int (*pg_enter_sync)(struct mei_device *dev);
+	int (*pg_exit_sync)(struct mei_device *dev);
 };
 
 /* MEI bus API*/
@@ -467,6 +483,7 @@ struct mei_fw_version {
  * @hbm_f_vt_supported  : hbm feature vtag supported
  * @hbm_f_cap_supported : hbm feature capabilities message supported
  * @hbm_f_cd_supported  : hbm feature client dma supported
+ * @hbm_f_gsc_supported : hbm feature gsc supported
  *
  * @fw_ver : FW versions
  *
@@ -524,6 +541,7 @@ struct mei_device {
 	unsigned long reset_count;
 	enum mei_dev_state dev_state;
 	enum mei_hbm_state hbm_state;
+	enum mei_dev_ext_om ext_om;
 	u16 init_clients_timer;
 
 	/*
@@ -555,6 +573,7 @@ struct mei_device {
 	unsigned int hbm_f_vt_supported:1;
 	unsigned int hbm_f_cap_supported:1;
 	unsigned int hbm_f_cd_supported:1;
+	unsigned int hbm_f_gsc_supported:1;
 
 	struct mei_fw_version fw_ver[MEI_MAX_FW_VER_BLOCKS];
 
@@ -580,6 +599,9 @@ struct mei_device {
 #if IS_ENABLED(CONFIG_DEBUG_FS)
 	struct dentry *dbgfs_dir;
 #endif /* CONFIG_DEBUG_FS */
+
+	unsigned int stall_timer_cl:1;
+	unsigned int stall_timer_init:1;
 
 	const struct mei_hw_ops *ops;
 	char hw[] __aligned(sizeof(void *));
@@ -774,6 +796,16 @@ static inline int mei_fw_status(struct mei_device *dev,
 				struct mei_fw_status *fw_status)
 {
 	return dev->ops->fw_status(dev, fw_status);
+}
+
+static inline bool mei_pg_enter_sync(struct mei_device *dev)
+{
+	return dev->ops->pg_enter_sync(dev);
+}
+
+static inline bool mei_pg_exit_sync(struct mei_device *dev)
+{
+	return dev->ops->pg_exit_sync(dev);
 }
 
 bool mei_hbuf_acquire(struct mei_device *dev);
