@@ -167,6 +167,9 @@ void mce_setup(struct mce *m)
 	else if (this_cpu_has(X86_FEATURE_AMD_PPIN))
 		m->ppin = __rdmsr(MSR_AMD_PPIN);
 
+	else
+		m->ppin = cpu_data(m->extcpu).ppin;
+
 	m->microcode = boot_cpu_data.microcode;
 }
 
