@@ -1372,7 +1372,7 @@ static int intel_pinctrl_add_padgroups_by_gpps(struct intel_pinctrl *pctrl,
 	for (i = 0; i < ngpps; i++) {
 		gpps[i] = community->gpps[i];
 
-		if (gpps[i].size > 32)
+		if (gpps[i].size > INTEL_PINCTRL_MAX_GPP_SIZE)
 			return -EINVAL;
 
 		/* Special treatment for GPIO base */
@@ -1390,7 +1390,7 @@ static int intel_pinctrl_add_padgroups_by_gpps(struct intel_pinctrl *pctrl,
 		}
 
 		gpps[i].padown_num = padown_num;
-		padown_num += DIV_ROUND_UP(gpps[i].size * 4, 32);
+		padown_num += DIV_ROUND_UP(gpps[i].size * 4, INTEL_PINCTRL_MAX_GPP_SIZE);
 	}
 
 	community->gpps = gpps;
@@ -1406,7 +1406,7 @@ static int intel_pinctrl_add_padgroups_by_size(struct intel_pinctrl *pctrl,
 	unsigned int padown_num = 0;
 	size_t i, ngpps = DIV_ROUND_UP(npins, community->gpp_size);
 
-	if (community->gpp_size > 32)
+	if (community->gpp_size > INTEL_PINCTRL_MAX_GPP_SIZE)
 		return -EINVAL;
 
 	gpps = devm_kcalloc(pctrl->dev, ngpps, sizeof(*gpps), GFP_KERNEL);
@@ -1431,7 +1431,7 @@ static int intel_pinctrl_add_padgroups_by_size(struct intel_pinctrl *pctrl,
 		if (community->gpp_num_padown_regs)
 			padown_num += community->gpp_num_padown_regs;
 		else
-			padown_num += DIV_ROUND_UP(gpps[i].size * 4, 32);
+			padown_num += DIV_ROUND_UP(gpps[i].size * 4, INTEL_PINCTRL_MAX_GPP_SIZE);
 	}
 
 	community->ngpps = ngpps;
@@ -1484,8 +1484,8 @@ static int intel_pinctrl_pm_init(struct intel_pinctrl *pctrl)
 	return 0;
 }
 
-static int intel_pinctrl_probe(struct platform_device *pdev,
-			       const struct intel_pinctrl_soc_data *soc_data)
+int intel_pinctrl_probe(struct platform_device *pdev,
+			const struct intel_pinctrl_soc_data *soc_data)
 {
 	struct intel_pinctrl *pctrl;
 	int i, ret, irq;
@@ -1599,6 +1599,7 @@ static int intel_pinctrl_probe(struct platform_device *pdev,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(intel_pinctrl_probe);
 
 int intel_pinctrl_probe_by_hid(struct platform_device *pdev)
 {
@@ -1634,6 +1635,14 @@ const struct intel_pinctrl_soc_data *intel_pinctrl_get_soc_data(struct platform_
 	adev = ACPI_COMPANION(&pdev->dev);
 	if (adev) {
 		const void *match = device_get_match_data(&pdev->dev);
+
+		if (!adev->pnp.unique_id) {
+			dev_WARN(&pdev->dev, FW_BUG
+				 "This firmware doesn't support new GPIO controller enumeration\n"
+				 "See HSD 1806454291 for the details\n"
+				 "Firmware has to be updated to make this driver work!\n");
+			return ERR_PTR(-ENODEV);
+		}
 
 		table = (const struct intel_pinctrl_soc_data **)match;
 		for (i = 0; table[i]; i++) {

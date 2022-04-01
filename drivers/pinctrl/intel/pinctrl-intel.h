@@ -51,11 +51,13 @@ struct intel_function {
 	size_t ngroups;
 };
 
+#define INTEL_PINCTRL_MAX_GPP_SIZE	32
+
 /**
  * struct intel_padgroup - Hardware pad group information
  * @reg_num: GPI_IS register number
  * @base: Starting pin of this group
- * @size: Size of this group (maximum is 32).
+ * @size: Size of this group (maximum is %INTEL_PINCTRL_MAX_GPP_SIZE).
  * @gpio_base: Starting GPIO base of this group
  * @padown_num: PAD_OWN register number (assigned by the core driver)
  *
@@ -243,6 +245,9 @@ struct intel_pinctrl {
 	struct intel_pinctrl_context context;
 	int irq;
 };
+
+int intel_pinctrl_probe(struct platform_device *pdev,
+			const struct intel_pinctrl_soc_data *soc_data);
 
 int intel_pinctrl_probe_by_hid(struct platform_device *pdev);
 int intel_pinctrl_probe_by_uid(struct platform_device *pdev);
