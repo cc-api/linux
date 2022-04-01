@@ -457,6 +457,11 @@ extern unsigned long perf_instruction_pointer(struct pt_regs *regs);
 extern unsigned long perf_misc_flags(struct pt_regs *regs);
 #define perf_misc_flags(regs)	perf_misc_flags(regs)
 
+extern u64 perf_hw_clock(void);
+#define perf_hw_clock		perf_hw_clock
+extern u64 perf_hw_clock_ns(void);
+#define perf_hw_clock_ns	perf_hw_clock_ns
+
 #include <asm/stacktrace.h>
 
 /*
