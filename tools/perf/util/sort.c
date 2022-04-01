@@ -1425,6 +1425,40 @@ struct sort_entry sort_global_p_stage_cyc = {
 	.se_width_idx   = HISTC_GLOBAL_P_STAGE_CYC,
 };
 
+static int64_t
+sort__retire_lat_cmp(struct hist_entry *left, struct hist_entry *right)
+{
+	return left->retire_lat - right->retire_lat;
+}
+
+static int hist_entry__local_retire_lat_snprintf(struct hist_entry *he, char *bf,
+						 size_t size, unsigned int width)
+{
+	return repsep_snprintf(bf, size, "%-*u", width, he->retire_lat);
+}
+
+struct sort_entry sort_local_retire_lat = {
+	.se_header	= "Local Retire Latency",
+	.se_cmp		= sort__retire_lat_cmp,
+	.se_snprintf	= hist_entry__local_retire_lat_snprintf,
+	.se_width_idx	= HISTC_LOCAL_RETIRE_LAT,
+};
+
+static int hist_entry__global_retire_lat_snprintf(struct hist_entry *he, char *bf,
+						  size_t size, unsigned int width)
+{
+	return repsep_snprintf(bf, size, "%-*u", width,
+			       he->retire_lat * he->stat.nr_events);
+}
+
+struct sort_entry sort_global_retire_lat = {
+	.se_header	= "Retire Latency",
+	.se_cmp		= sort__retire_lat_cmp,
+	.se_snprintf	= hist_entry__global_retire_lat_snprintf,
+	.se_width_idx	= HISTC_GLOBAL_RETIRE_LAT,
+};
+
+
 struct sort_entry sort_mem_daddr_sym = {
 	.se_header	= "Data Symbol",
 	.se_cmp		= sort__daddr_cmp,
@@ -1700,6 +1734,7 @@ static struct txbit {
 	{ PERF_TXN_CONFLICT,       "CON ",       0 },
 	{ PERF_TXN_CAPACITY_WRITE, "CAP-WRITE ", 1 },
 	{ PERF_TXN_CAPACITY_READ,  "CAP-READ ",  0 },
+	{ PERF_TXN_INSUSPEND,      "INSUSPEND ", 0 },
 	{ 0, NULL, 0 }
 };
 
@@ -1875,6 +1910,8 @@ static struct sort_dimension common_sort_dimensions[] = {
 	DIM(SORT_GLOBAL_INS_LAT, "ins_lat", sort_global_ins_lat),
 	DIM(SORT_LOCAL_PIPELINE_STAGE_CYC, "local_p_stage_cyc", sort_local_p_stage_cyc),
 	DIM(SORT_GLOBAL_PIPELINE_STAGE_CYC, "p_stage_cyc", sort_global_p_stage_cyc),
+	DIM(SORT_LOCAL_RETIRE_LAT, "local_retire_lat", sort_local_retire_lat),
+	DIM(SORT_GLOBAL_RETIRE_LAT, "retire_lat", sort_global_retire_lat),
 };
 
 #undef DIM

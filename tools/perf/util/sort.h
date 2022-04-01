@@ -109,6 +109,7 @@ struct hist_entry {
 	u64			weight;
 	u64			ins_lat;
 	u64			p_stage_cyc;
+	u64			retire_lat;
 	u8			cpumode;
 	u8			depth;
 
@@ -237,6 +238,8 @@ enum sort_type {
 	SORT_GLOBAL_INS_LAT,
 	SORT_LOCAL_PIPELINE_STAGE_CYC,
 	SORT_GLOBAL_PIPELINE_STAGE_CYC,
+	SORT_LOCAL_RETIRE_LAT,
+	SORT_GLOBAL_RETIRE_LAT,
 
 	/* branch stack specific sort keys */
 	__SORT_BRANCH_STACK,

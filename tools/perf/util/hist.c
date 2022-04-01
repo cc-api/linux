@@ -213,6 +213,8 @@ void hists__calc_col_len(struct hists *hists, struct hist_entry *h)
 	hists__new_col_len(hists, HISTC_GLOBAL_INS_LAT, 13);
 	hists__new_col_len(hists, HISTC_LOCAL_P_STAGE_CYC, 13);
 	hists__new_col_len(hists, HISTC_GLOBAL_P_STAGE_CYC, 13);
+	hists__new_col_len(hists, HISTC_LOCAL_RETIRE_LAT, 13);
+	hists__new_col_len(hists, HISTC_GLOBAL_RETIRE_LAT, 13);
 
 	if (symbol_conf.nanosecs)
 		hists__new_col_len(hists, HISTC_TIME, 16);
@@ -739,6 +741,7 @@ __hists__add_entry(struct hists *hists,
 		.weight = sample->weight,
 		.ins_lat = sample->ins_lat,
 		.p_stage_cyc = sample->p_stage_cyc,
+		.retire_lat = sample->retire_lat,
 	}, *he = hists__findnew_entry(hists, &entry, al, sample_self);
 
 	if (!hists->has_callchains && he && he->callchain_size != 0)
@@ -2656,7 +2659,7 @@ void hist__account_cycles(struct branch_stack *bs, struct addr_location *al,
 			for (i = bs->nr - 1; i >= 0; i--) {
 				addr_map_symbol__account_cycles(&bi[i].from,
 					nonany_branch_mode ? NULL : prev,
-					bi[i].flags.cycles);
+					&bi[i].flags);
 				prev = &bi[i].to;
 
 				if (total_cycles)

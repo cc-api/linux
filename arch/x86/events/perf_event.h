@@ -595,6 +595,7 @@ union perf_capabilities {
 		u64     pebs_baseline:1;
 		u64	perf_metrics:1;
 		u64	pebs_output_pt_available:1;
+		u64	pebs_timing_info:1;
 		u64	anythread_deprecated:1;
 	};
 	u64	capabilities;
@@ -635,6 +636,8 @@ enum {
 	x86_lbr_exclusive_max,
 };
 
+#define PERF_PEBS_DATA_SOURCE_MAX	0x15
+
 struct x86_hybrid_pmu {
 	struct pmu			pmu;
 	const char			*name;
@@ -662,6 +665,8 @@ struct x86_hybrid_pmu {
 	unsigned int			late_ack	:1,
 					mid_ack		:1,
 					enabled_ack	:1;
+
+	u64				pebs_data_source[PERF_PEBS_DATA_SOURCE_MAX];
 };
 
 static __always_inline struct x86_hybrid_pmu *hybrid_pmu(struct pmu *pmu)
@@ -779,6 +784,7 @@ struct x86_pmu {
 	 */
 	int		attr_rdpmc_broken;
 	int		attr_rdpmc;
+	int		attr_perf_metrics_clear;
 	struct attribute **format_attrs;
 
 	ssize_t		(*events_sysfs_show)(char *page, u64 config);
@@ -796,7 +802,7 @@ struct x86_pmu {
 
 	void		(*check_microcode)(void);
 	void		(*sched_task)(struct perf_event_context *ctx,
-				      bool sched_in);
+				      struct task_struct *task, bool sched_in);
 
 	/*
 	 * Intel Arch Perfmon v2+
@@ -804,6 +810,10 @@ struct x86_pmu {
 	u64			intel_ctrl;
 	union perf_capabilities intel_cap;
 
+	/*
+	 * RDPMC
+	 */
+	unsigned int	rdpmc_usr		:1;
 	/*
 	 * Intel DebugStore bits
 	 */
@@ -838,6 +848,7 @@ struct x86_pmu {
 		const int	*lbr_sel_map;	   /* lbr_select mappings */
 		int		*lbr_ctl_map;	   /* LBR_CTL mappings */
 	};
+	u64		lbr_callstack_users;	   /* lbr callstack system wide users */
 	bool		lbr_double_abort;	   /* duplicated lbr aborts */
 	bool		lbr_pt_coexist;		   /* (LBR|BTS) may coexist with PT */
 
@@ -858,6 +869,7 @@ struct x86_pmu {
 	unsigned int	lbr_mispred:1;
 	unsigned int	lbr_timed_lbr:1;
 	unsigned int	lbr_br_type:1;
+	unsigned int	lbr_events:4;
 
 	void		(*lbr_reset)(void);
 	void		(*lbr_read)(struct cpu_hw_events *cpuc);
@@ -877,12 +889,10 @@ struct x86_pmu {
 	int		(*set_topdown_event_period)(struct perf_event *event);
 
 	/*
-	 * perf task context (i.e. struct perf_event_context::task_ctx_data)
-	 * switch helper to bridge calls from perf/core to perf/x86.
-	 * See struct pmu::swap_task_ctx() usage for examples;
+	 * Intel Auto-reload
 	 */
-	void		(*swap_task_ctx)(struct perf_event_context *prev,
-					 struct perf_event_context *next);
+	int		num_auto_reload;
+	u64		mask_auto_reload;
 
 	/*
 	 * AMD bits
@@ -909,6 +919,11 @@ struct x86_pmu {
 	int (*aux_output_match) (struct perf_event *event);
 
 	int (*filter_match)(struct perf_event *event);
+	/*
+	 * Intel CET Shadow Stack
+	 */
+	 int (*store_shadow_stack_user) (struct perf_callchain_entry_ctx *entry);
+
 	/*
 	 * Hybrid support
 	 *
@@ -983,6 +998,7 @@ do {									\
 #define PMU_FL_PAIR		0x40 /* merge counters for large incr. events */
 #define PMU_FL_INSTR_LATENCY	0x80 /* Support Instruction Latency in PEBS Memory Info Record */
 #define PMU_FL_MEM_LOADS_AUX	0x100 /* Require an auxiliary event for the complete memory info */
+#define PMU_FL_RETIRE_LATENCY	0x200 /* Support Retire Latency in PEBS */
 
 #define EVENT_VAR(_id)  event_attr_##_id
 #define EVENT_PTR(_id) &event_attr_##_id.attr.attr
@@ -1351,10 +1367,8 @@ void intel_pmu_store_pebs_lbrs(struct lbr_entry *lbr);
 
 void intel_ds_init(void);
 
-void intel_pmu_lbr_swap_task_ctx(struct perf_event_context *prev,
-				 struct perf_event_context *next);
-
-void intel_pmu_lbr_sched_task(struct perf_event_context *ctx, bool sched_in);
+void intel_pmu_lbr_sched_task(struct perf_event_context *ctx,
+			      struct task_struct *task, bool sched_in);
 
 u64 lbr_from_signext_quirk_wr(u64 val);
 
@@ -1405,6 +1419,10 @@ void intel_pmu_arch_lbr_init(void);
 void intel_pmu_pebs_data_source_nhm(void);
 
 void intel_pmu_pebs_data_source_skl(bool pmem);
+
+void intel_pmu_pebs_data_source_cmt(void);
+
+void intel_pmu_pebs_data_source_mtl(void);
 
 int intel_pmu_setup_lbr_filter(struct perf_event *event);
 
