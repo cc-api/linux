@@ -614,7 +614,7 @@ static void hv_set_msi_entry_from_desc(union hv_msi_entry *msi_entry,
 static int hv_msi_prepare(struct irq_domain *domain, struct device *dev,
 			  int nvec, msi_alloc_info_t *info)
 {
-	return pci_msi_prepare(domain, dev, nvec, info);
+	return x86_msi_prepare(domain, dev, nvec, info);
 }
 #elif defined(CONFIG_ARM64)
 /*
