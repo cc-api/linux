@@ -113,7 +113,7 @@ static int hda_dsp_core_reset_leave(struct snd_sof_dev *sdev, unsigned int core_
 	return ret;
 }
 
-static int hda_dsp_core_stall_reset(struct snd_sof_dev *sdev, unsigned int core_mask)
+int hda_dsp_core_stall_reset(struct snd_sof_dev *sdev, unsigned int core_mask)
 {
 	/* stall core */
 	snd_sof_dsp_update_bits_unlocked(sdev, HDA_DSP_BAR,
@@ -125,7 +125,7 @@ static int hda_dsp_core_stall_reset(struct snd_sof_dev *sdev, unsigned int core_
 	return hda_dsp_core_reset_enter(sdev, core_mask);
 }
 
-static bool hda_dsp_core_is_enabled(struct snd_sof_dev *sdev, unsigned int core_mask)
+bool hda_dsp_core_is_enabled(struct snd_sof_dev *sdev, unsigned int core_mask)
 {
 	int val;
 	bool is_enable;
@@ -363,9 +363,8 @@ static int hda_dsp_send_pm_gate_ipc(struct snd_sof_dev *sdev, u32 flags)
 	pm_gate.flags = flags;
 
 	/* send pm_gate ipc to dsp */
-	return sof_ipc_tx_message_no_pm(sdev->ipc, pm_gate.hdr.cmd,
-					&pm_gate, sizeof(pm_gate), &reply,
-					sizeof(reply));
+	return sof_ipc_tx_message_no_pm(sdev->ipc, &pm_gate, sizeof(pm_gate),
+					&reply, sizeof(reply));
 }
 
 static int hda_dsp_update_d0i3c_register(struct snd_sof_dev *sdev, u8 value)
@@ -498,14 +497,8 @@ static void hda_dsp_state_log(struct snd_sof_dev *sdev)
 	case SOF_DSP_PM_D2:
 		dev_dbg(sdev->dev, "Current DSP power state: D2\n");
 		break;
-	case SOF_DSP_PM_D3_HOT:
-		dev_dbg(sdev->dev, "Current DSP power state: D3_HOT\n");
-		break;
 	case SOF_DSP_PM_D3:
 		dev_dbg(sdev->dev, "Current DSP power state: D3\n");
-		break;
-	case SOF_DSP_PM_D3_COLD:
-		dev_dbg(sdev->dev, "Current DSP power state: D3_COLD\n");
 		break;
 	default:
 		dev_dbg(sdev->dev, "Unknown DSP power state: %d\n",
@@ -893,6 +886,78 @@ int hda_dsp_suspend(struct snd_sof_dev *sdev, u32 target_state)
 	return snd_sof_dsp_set_power_state(sdev, &target_dsp_state);
 }
 
+static unsigned int hda_dsp_check_for_dma_streams(struct snd_sof_dev *sdev)
+{
+	struct hdac_bus *bus = sof_to_bus(sdev);
+	struct hdac_stream *s;
+	unsigned int active_streams = 0;
+	int sd_offset;
+	u32 val;
+
+	list_for_each_entry(s, &bus->stream_list, list) {
+		sd_offset = SOF_STREAM_SD_OFFSET(s);
+		val = snd_sof_dsp_read(sdev, HDA_DSP_HDA_BAR,
+				       sd_offset);
+		if (val & SOF_HDA_SD_CTL_DMA_START)
+			active_streams |= BIT(s->index);
+	}
+
+	return active_streams;
+}
+
+static int hda_dsp_s5_quirk(struct snd_sof_dev *sdev)
+{
+	int ret;
+
+	/*
+	 * Do not assume a certain timing between the prior
+	 * suspend flow, and running of this quirk function.
+	 * This is needed if the controller was just put
+	 * to reset before calling this function.
+	 */
+	usleep_range(500, 1000);
+
+	/*
+	 * Take controller out of reset to flush DMA
+	 * transactions.
+	 */
+	ret = hda_dsp_ctrl_link_reset(sdev, false);
+	if (ret < 0)
+		return ret;
+
+	usleep_range(500, 1000);
+
+	/* Restore state for shutdown, back to reset */
+	ret = hda_dsp_ctrl_link_reset(sdev, true);
+	if (ret < 0)
+		return ret;
+
+	return ret;
+}
+
+int hda_dsp_shutdown_dma_flush(struct snd_sof_dev *sdev)
+{
+	unsigned int active_streams;
+	int ret, ret2;
+
+	/* check if DMA cleanup has been successful */
+	active_streams = hda_dsp_check_for_dma_streams(sdev);
+
+	sdev->system_suspend_target = SOF_SUSPEND_S3;
+	ret = snd_sof_suspend(sdev->dev);
+
+	if (active_streams) {
+		dev_warn(sdev->dev,
+			 "There were active DSP streams (%#x) at shutdown, trying to recover\n",
+			 active_streams);
+		ret2 = hda_dsp_s5_quirk(sdev);
+		if (ret2 < 0)
+			dev_err(sdev->dev, "shutdown recovery failed (%d)\n", ret2);
+	}
+
+	return ret;
+}
+
 int hda_dsp_shutdown(struct snd_sof_dev *sdev)
 {
 	sdev->system_suspend_target = SOF_SUSPEND_S3;
@@ -904,7 +969,7 @@ int hda_dsp_set_hw_params_upon_resume(struct snd_sof_dev *sdev)
 #if IS_ENABLED(CONFIG_SND_SOC_SOF_HDA)
 	struct hdac_bus *bus = sof_to_bus(sdev);
 	struct snd_soc_pcm_runtime *rtd;
-	struct hdac_ext_stream *stream;
+	struct hdac_ext_stream *hext_stream;
 	struct hdac_ext_link *link;
 	struct hdac_stream *s;
 	const char *name;
@@ -912,7 +977,7 @@ int hda_dsp_set_hw_params_upon_resume(struct snd_sof_dev *sdev)
 
 	/* set internal flag for BE */
 	list_for_each_entry(s, &bus->stream_list, list) {
-		stream = stream_to_hdac_ext_stream(s);
+		hext_stream = stream_to_hdac_ext_stream(s);
 
 		/*
 		 * clear stream. This should already be taken care for running
@@ -920,20 +985,20 @@ int hda_dsp_set_hw_params_upon_resume(struct snd_sof_dev *sdev)
 		 * streams do not get suspended, so this needs to be done
 		 * explicitly during suspend.
 		 */
-		if (stream->link_substream) {
-			rtd = asoc_substream_to_rtd(stream->link_substream);
+		if (hext_stream->link_substream) {
+			rtd = asoc_substream_to_rtd(hext_stream->link_substream);
 			name = asoc_rtd_to_codec(rtd, 0)->component->name;
 			link = snd_hdac_ext_bus_get_link(bus, name);
 			if (!link)
 				return -EINVAL;
 
-			stream->link_prepared = 0;
+			hext_stream->link_prepared = 0;
 
-			if (hdac_stream(stream)->direction ==
+			if (hdac_stream(hext_stream)->direction ==
 				SNDRV_PCM_STREAM_CAPTURE)
 				continue;
 
-			stream_tag = hdac_stream(stream)->stream_tag;
+			stream_tag = hdac_stream(hext_stream)->stream_tag;
 			snd_hdac_ext_link_clear_stream_id(link, stream_tag);
 		}
 	}
@@ -991,8 +1056,7 @@ int hda_dsp_core_get(struct snd_sof_dev *sdev, int core)
 		return 0;
 
 	/* Now notify DSP for secondary cores */
-	ret = sof_ipc_tx_message(sdev->ipc, pm_core_config.hdr.cmd,
-				 &pm_core_config, sizeof(pm_core_config),
+	ret = sof_ipc_tx_message(sdev->ipc, &pm_core_config, sizeof(pm_core_config),
 				 &pm_core_config, sizeof(pm_core_config));
 	if (ret < 0) {
 		dev_err(sdev->dev, "failed to enable secondary core '%d' failed with %d\n",

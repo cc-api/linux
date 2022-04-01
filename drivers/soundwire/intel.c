@@ -1005,8 +1005,12 @@ static int intel_trigger(struct snd_pcm_substream *substream, int cmd, struct sn
 {
 	struct sdw_cdns *cdns = snd_soc_dai_get_drvdata(dai);
 	struct sdw_intel *sdw = cdns_to_intel(cdns);
+	struct sdw_intel_link_res *res = sdw->link_res;
 	struct sdw_cdns_dma_data *dma;
 	int ret = 0;
+
+	if (res->ops && res->ops->trigger)
+		res->ops->trigger(dai, cmd, substream->stream);
 
 	dma = snd_soc_dai_get_dma_data(dai, substream);
 	if (!dma) {
@@ -1292,6 +1296,9 @@ static int intel_link_probe(struct auxiliary_device *auxdev,
 
 	/* use generic bandwidth allocation algorithm */
 	sdw->cdns.bus.compute_params = sdw_compute_params;
+
+	/* avoid resuming from pm_runtime suspend if it's not required */
+	dev_pm_set_driver_flags(dev, DPM_FLAG_SMART_SUSPEND);
 
 	ret = sdw_bus_master_add(bus, dev, dev->fwnode);
 	if (ret) {
@@ -1827,6 +1834,9 @@ static int __maybe_unused intel_resume_runtime(struct device *dev)
 			bus->link_id);
 		return 0;
 	}
+
+	/* unconditionally disable WAKEEN interrupt */
+	intel_shim_wake(sdw, false);
 
 	link_flags = md_flags >> (bus->link_id * 8);
 	multi_link = !(link_flags & SDW_INTEL_MASTER_DISABLE_MULTI_LINK);

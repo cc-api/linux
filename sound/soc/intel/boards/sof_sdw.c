@@ -315,6 +315,15 @@ static const struct dmi_system_id sof_sdw_quirk_table[] = {
 					RT711_JD2 |
 					SOF_SDW_FOUR_SPK),
 	},
+	/* MeteorLake devices */
+	{
+		.callback = sof_sdw_quirk_cb,
+		.matches = {
+			DMI_MATCH(DMI_SYS_VENDOR, "Intel Corporation"),
+			DMI_MATCH(DMI_PRODUCT_NAME, "Meteorlake RVP"),
+		},
+		.driver_data = (void *)(RT711_JD1 | SOF_SDW_PCH_DMIC),
+	},
 	{}
 };
 
@@ -436,6 +445,12 @@ static struct sof_sdw_codec_info codec_info_list[] = {
 		.dai_name = "rt700-aif1",
 		.init = sof_sdw_rt700_init,
 		.codec_type = SOF_SDW_CODEC_TYPE_JACK,
+	},
+	{
+		.part_id = 0x701,
+		.direction = {true, true},
+		.dai_name = "rt700-aif1",
+		.init = sof_sdw_rt700_init,
 	},
 	{
 		.part_id = 0x711,
