@@ -168,16 +168,6 @@ static inline struct kvm_pmc *get_fw_gp_pmc(struct kvm_pmu *pmu, u32 msr)
 	return get_gp_pmc(pmu, msr, MSR_IA32_PMC0);
 }
 
-bool intel_pmu_lbr_is_compatible(struct kvm_vcpu *vcpu)
-{
-	/*
-	 * As a first step, a guest could only enable LBR feature if its
-	 * cpu model is the same as the host because the LBR registers
-	 * would be pass-through to the guest and they're model specific.
-	 */
-	return boot_cpu_data.x86_model == guest_cpuid_model(vcpu);
-}
-
 bool intel_pmu_lbr_is_enabled(struct kvm_vcpu *vcpu)
 {
 	struct x86_pmu_lbr *lbr = vcpu_to_lbr_records(vcpu);
@@ -598,32 +588,6 @@ static void setup_fixed_pmc_eventsel(struct kvm_pmu *pmu)
 	}
 }
 
-static bool cpuid_enable_lbr(struct kvm_vcpu *vcpu)
-{
-	struct kvm_pmu *pmu = vcpu_to_pmu(vcpu);
-	struct kvm_cpuid_entry2 *entry;
-	int depth_bit;
-
-	if (!kvm_cpu_cap_has(X86_FEATURE_ARCH_LBR))
-		return !static_cpu_has(X86_FEATURE_ARCH_LBR) &&
-			intel_pmu_lbr_is_compatible(vcpu);
-
-	pmu->kvm_arch_lbr_depth = 0;
-	if (!guest_cpuid_has(vcpu, X86_FEATURE_ARCH_LBR))
-		return false;
-
-	entry = kvm_find_cpuid_entry(vcpu, 0x1C, 0);
-	if (!entry)
-		return false;
-
-	depth_bit = fls(cpuid_eax(0x1C) & 0xff);
-	if ((entry->eax & 0xff) != (1 << (depth_bit - 1)))
-		return false;
-
-	pmu->kvm_arch_lbr_depth = depth_bit * 8;
-	return true;
-}
-
 static void intel_pmu_refresh(struct kvm_vcpu *vcpu)
 {
 	struct kvm_pmu *pmu = vcpu_to_pmu(vcpu);
@@ -708,7 +672,7 @@ static void intel_pmu_refresh(struct kvm_vcpu *vcpu)
 	nested_vmx_pmu_refresh(vcpu,
 			       intel_is_valid_msr(vcpu, MSR_CORE_PERF_GLOBAL_CTRL, false));
 
-	if (cpuid_enable_lbr(vcpu))
+	if (cpuid_model_is_consistent(vcpu))
 		x86_perf_get_lbr(&lbr_desc->records);
 	else
 		lbr_desc->records.nr = 0;
