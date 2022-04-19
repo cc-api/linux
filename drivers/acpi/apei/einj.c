@@ -547,6 +547,9 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
 				!= REGION_INTERSECTS)))
 		return -EINVAL;
 
+	if (is_zero_pfn(base_addr >> PAGE_SHIFT))
+		return -EADDRINUSE;
+
 inject:
 	mutex_lock(&einj_mutex);
 	rc = __einj_error_inject(type, flags, param1, param2, param3, param4);
@@ -695,7 +698,6 @@ static int __init einj_init(void)
 		goto err_put_table;
 	}
 
-	rc = -ENOMEM;
 	einj_debug_dir = debugfs_create_dir("einj", apei_get_debugfs_dir());
 
 	debugfs_create_file("available_error_type", S_IRUSR, einj_debug_dir,
