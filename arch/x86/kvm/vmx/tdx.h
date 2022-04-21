@@ -120,6 +120,8 @@ struct vcpu_tdx {
 
 	bool interrupt_disabled_hlt;
 	unsigned int buggy_hlt_workaround;
+
+	unsigned long dr6;
 };
 
 static inline bool is_td(struct kvm *kvm)
