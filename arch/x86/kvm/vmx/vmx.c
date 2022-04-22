@@ -8631,6 +8631,15 @@ static void vmx_exit(void)
 }
 module_exit(vmx_exit);
 
+/* initialize before kvm_init() so that hardware_enable/disable() can work. */
+static void __init vmx_init_early(void)
+{
+	int cpu;
+
+	for_each_possible_cpu(cpu)
+		INIT_LIST_HEAD(&per_cpu(loaded_vmcss_on_cpu, cpu));
+}
+
 static int __init vmx_init(void)
 {
 	int r, cpu;
@@ -8668,6 +8677,7 @@ static int __init vmx_init(void)
 	}
 #endif
 
+	vmx_init_early();
 	r = kvm_init(&vmx_init_ops, sizeof(struct vcpu_vmx),
 		     __alignof__(struct vcpu_vmx), THIS_MODULE);
 	if (r)
@@ -8687,12 +8697,8 @@ static int __init vmx_init(void)
 	}
 
 	vmx_setup_fb_clear_ctrl();
-
-	for_each_possible_cpu(cpu) {
-		INIT_LIST_HEAD(&per_cpu(loaded_vmcss_on_cpu, cpu));
-
+	for_each_possible_cpu(cpu)
 		pi_init_cpu(cpu);
-	}
 
 #ifdef CONFIG_KEXEC_CORE
 	rcu_assign_pointer(crash_vmclear_loaded_vmcss,
