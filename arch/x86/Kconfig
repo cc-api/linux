@@ -2010,6 +2010,13 @@ config INTEL_TDX_HOST_DEBUG
 	  TDX module debug support via debug fs.  The debug version of TDX
 	  module is required.
 
+config INTEL_TDX_MODULE_UPDATE
+	bool "TDX module loading support"
+	default y
+	depends on INTEL_TDX_HOST
+	help
+	  This enables kernel to load TDX module updates at runtime.
+
 config EFI
 	bool "EFI runtime service support"
 	depends on ACPI
