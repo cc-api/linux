@@ -15,6 +15,8 @@
 #include <linux/io.h>
 #include <linux/set_memory.h>
 #include <linux/mutex.h>
+#include <asm/irq_vectors.h>
+#include <asm/apic.h>
 #include <asm/tdx.h>
 #include <asm/coco.h>
 #include <uapi/asm/tdx.h>
@@ -111,6 +113,7 @@ out:
 	return ret;
 }
 
+#if 0
 /* tdx_get_quote_hypercall() - Request to get TD Quote using TDREPORT */
 static long tdx_get_quote_hypercall(struct quote_buf *buf)
 {
@@ -130,6 +133,23 @@ static long tdx_get_quote_hypercall(struct quote_buf *buf)
 	 * (GHCI), sec titled "TDG.VP.VMCALL<GetQuote>".
 	 */
 	return __tdx_hypercall(&args, 0);
+}
+#endif
+
+static void print_prot_flags(void *addr)
+{
+	unsigned int level;
+	pte_t *ptep, pte;
+	struct page *_page;
+
+	ptep = lookup_address((unsigned long)addr, &level);
+	pte = *ptep;
+	if (is_vmalloc_addr(addr))
+		_page = vmalloc_to_page(addr);
+	else
+		_page = virt_to_page(addr);
+	pr_info("page addr:%p pfn:%lx flags:%lx\n", addr, page_to_pfn(_page),
+			pgprot_val(pte_pgprot(pte)));
 }
 
 /*
@@ -163,6 +183,8 @@ static int init_quote_buf(struct quote_buf *buf, u64 req_size)
 	for (i = 0; i < count; i++)
 		pages[i] = virt_to_page(addr + i * PAGE_SIZE);
 
+	print_prot_flags(addr);
+
 	/*
 	 * Use VMAP to create a virtual mapping, which is used
 	 * to create shared mapping without affecting the
@@ -176,11 +198,16 @@ static int init_quote_buf(struct quote_buf *buf, u64 req_size)
 		return -EIO;
 	}
 
+	print_prot_flags(vmaddr);
 	/* Use noalias variant to not affect the direct mapping */
 	if (set_memory_decrypted_noalias((unsigned long)vmaddr, count)) {
 		vfree(vmaddr);
 		return -EIO;
 	}
+	print_prot_flags(vmaddr);
+	print_prot_flags(addr);
+
+	pr_info("Allocation done\n");
 
 	buf->vmaddr = vmaddr;
 	buf->count = count;
@@ -274,6 +301,8 @@ static long tdx_get_quote(void __user *argp)
 	struct quote_buf *buf;
 	long ret;
 
+	pr_info("%s:%d Start()\n", __func__, __LINE__);
+
 	/* Copy GetQuote request struct from user buffer */
 	if (copy_from_user(&req, argp, sizeof(struct tdx_quote_req)))
 		return -EFAULT;
@@ -296,6 +325,7 @@ static long tdx_get_quote(void __user *argp)
 
 	mutex_lock(&quote_lock);
 
+#if 0
 	/* Submit GetQuote Request */
 	ret = tdx_get_quote_hypercall(buf);
 	if (ret) {
@@ -304,7 +334,10 @@ static long tdx_get_quote(void __user *argp)
 		free_quote_entry(entry);
 		return -EIO;
 	}
+#endif
+	apic->send_IPI_all(TDX_GUEST_EVENT_NOTIFY_VECTOR);
 
+	pr_info("%s:%d Hypercall done, queueing request\n", __func__, __LINE__);
 	/* Add current quote entry to quote_list to track active requests */
 	list_add_tail(&entry->list, &quote_list);
 
@@ -313,9 +346,12 @@ static long tdx_get_quote(void __user *argp)
 	/* Wait for attestation completion */
 	ret = wait_for_completion_interruptible(&entry->compl);
 	if (ret < 0) {
+		pr_info("%s:%d GetQuote callback timedout\n", __func__, __LINE__);
 		terminate_quote_request(entry);
 		return -EINTR;
 	}
+
+	pr_info("%s:%d Copying the result back to user\n", __func__, __LINE__);
 
 	/*
 	 * If GetQuote request completed successfully, copy the result
@@ -328,6 +364,7 @@ static long tdx_get_quote(void __user *argp)
 	 * Reaching here means GetQuote request is processed
 	 * successfully. So do the cleanup and return 0.
 	 */
+	pr_info("%s:%d done(), status:%lx\n", __func__, __LINE__, ret);
 	del_quote_entry(entry);
 
 	return 0;
@@ -343,6 +380,8 @@ static void quote_callback_handler(struct work_struct *work)
 	struct tdx_quote_hdr *quote_hdr;
 	struct quote_entry *entry, *next;
 
+	pr_info("%s:%d start()\n", __func__, __LINE__);
+
 	/* Find processed quote request and mark it complete */
 	mutex_lock(&quote_lock);
 	list_for_each_entry_safe(entry, next, &quote_list, list) {
@@ -354,12 +393,15 @@ static void quote_callback_handler(struct work_struct *work)
 		 * entry from the quote list and free it. If the request
 		 * is still valid, mark it complete.
 		 */
+		pr_info("%s:%d Complete current request valid:%d\n",
+				__func__, __LINE__, entry->valid);
 		if (entry->valid)
 			complete(&entry->compl);
 		else
 			_del_quote_entry(entry);
 	}
 	mutex_unlock(&quote_lock);
+	pr_info("%s:%d done()\n", __func__, __LINE__);
 }
 
 static long tdx_attest_ioctl(struct file *file, unsigned int cmd,
