@@ -52,7 +52,7 @@ void ucall_init(struct kvm_vm *vm, void *arg)
 	 * lower and won't match physical addresses.
 	 */
 	bits = vm->va_bits - 1;
-	bits = vm->pa_bits < bits ? vm->pa_bits : bits;
+	bits = min(vm->pa_bits, bits);
 	end = 1ul << bits;
 	start = end * 5 / 8;
 	step = end / 16;
