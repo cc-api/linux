@@ -15,6 +15,7 @@
 #include <asm/idtentry.h>
 #include <asm/irq_regs.h>
 #include <asm/desc.h>
+#include <asm/io.h>
 
 /* TDX module Call Leaf IDs */
 #define TDX_GET_INFO			1
@@ -763,8 +764,14 @@ static bool try_accept_one(phys_addr_t *start, unsigned long len,
  */
 static bool tdx_enc_status_changed(unsigned long vaddr, int numpages, bool enc)
 {
-	phys_addr_t start = __pa(vaddr);
-	phys_addr_t end   = __pa(vaddr + numpages * PAGE_SIZE);
+	phys_addr_t start, end;
+
+	if (is_vmalloc_addr((void *)vaddr))
+		start = vmalloc_to_pfn((void *) vaddr) << PAGE_SHIFT;
+	else
+		start = __pa(vaddr);
+
+	end = start + numpages * PAGE_SIZE;
 
 	if (!enc) {
 		/* Set the shared (decrypted) bits: */
