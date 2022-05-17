@@ -1672,6 +1672,7 @@ enum pv_cmd_dmp_id {
 	KVM_PV_DUMP_INIT,
 	KVM_PV_DUMP_CONFIG_STOR_STATE,
 	KVM_PV_DUMP_COMPLETE,
+	KVM_PV_DUMP_CPU,
 };
 
 struct kvm_s390_pv_dmp {
@@ -2178,5 +2179,7 @@ struct kvm_stats_desc {
 
 #define KVM_X86_NOTIFY_VMEXIT_ENABLED		(1ULL << 0)
 #define KVM_X86_NOTIFY_VMEXIT_USER		(1ULL << 1)
+/* Available with KVM_CAP_S390_PROTECTED_DUMP */
+#define KVM_S390_PV_CPU_COMMAND	_IOWR(KVMIO, 0xd0, struct kvm_pv_cmd)
 
 #endif /* __LINUX_KVM_H */
