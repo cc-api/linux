@@ -1983,6 +1983,17 @@ config X86_SHADOW_STACK
 
 	  CPUs supporting shadow stacks were first released in 2020.
 
+config INTEL_TDX_HOST
+	bool "Intel Trust Domain Extensions (TDX) host support"
+	default n
+	depends on CPU_SUP_INTEL
+	depends on X86_64
+	depends on KVM_INTEL
+	help
+	  Intel Trust Domain Extensions (TDX) protects guest VMs from malicious
+	  host and certain physical attacks.  This option enables necessary TDX
+	  support in host kernel to run protected VMs.
+
 	  If unsure, say N.
 
 config EFI
