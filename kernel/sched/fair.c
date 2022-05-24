@@ -1266,7 +1266,14 @@ update_stats_curr_start(struct cfs_rq *cfs_rq, struct sched_entity *se)
  * Scheduling class queueing methods:
  */
 
-static inline bool is_core_idle(int cpu)
+/**
+ * sched_smt_siblings_idle - Check whether SMT siblings of a CPU are idle
+ * @cpu:	The CPU to check
+ *
+ * Returns true if all the SMT siblings of @cpu are idle or @cpu does not have
+ * SMT siblings. The idle state of @cpu is not considered.
+ */
+bool sched_smt_siblings_idle(int cpu)
 {
 #ifdef CONFIG_SCHED_SMT
 	int sibling;
@@ -1969,7 +1976,7 @@ static inline int numa_idle_core(int idle_core, int cpu)
 	 * Prefer cores instead of packing HT siblings
 	 * and triggering future load balancing.
 	 */
-	if (is_core_idle(cpu))
+	if (sched_smt_siblings_idle(cpu))
 		idle_core = cpu;
 
 	return idle_core;
@@ -9735,7 +9742,7 @@ static bool sched_use_asym_prio(struct sched_domain *sd, int cpu)
 	if (!sched_smt_active())
 		return true;
 
-	return sd->flags & SD_SHARE_CPUCAPACITY || is_core_idle(cpu);
+	return sd->flags & SD_SHARE_CPUCAPACITY || sched_smt_siblings_idle(cpu);
 }
 
 /**
@@ -11267,7 +11274,8 @@ static int should_we_balance(struct lb_env *env)
 		 * balancing cores, but remember the first idle SMT CPU for
 		 * later consideration.  Find CPU on an idle core first.
 		 */
-		if (!(env->sd->flags & SD_SHARE_CPUCAPACITY) && !is_core_idle(cpu)) {
+		if (!(env->sd->flags & SD_SHARE_CPUCAPACITY) &&
+		    !sched_smt_siblings_idle(cpu)) {
 			if (idle_smt == -1)
 				idle_smt = cpu;
 			/*
