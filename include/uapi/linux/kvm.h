@@ -2183,4 +2183,8 @@ struct kvm_stats_desc {
 /* Available with KVM_CAP_S390_PROTECTED_DUMP */
 #define KVM_S390_PV_CPU_COMMAND	_IOWR(KVMIO, 0xd0, struct kvm_pv_cmd)
 
+/* Available with KVM_CAP_X86_NOTIFY_VMEXIT */
+#define KVM_X86_NOTIFY_VMEXIT_ENABLED		(1ULL << 0)
+#define KVM_X86_NOTIFY_VMEXIT_USER		(1ULL << 1)
+
 #endif /* __LINUX_KVM_H */
