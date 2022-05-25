@@ -33,3 +33,8 @@ void intel_update_ipcc(struct task_struct *curr)
 	 */
 	curr->ipcc = hfi_class + 1;
 }
+
+long intel_get_ipcc_score(unsigned int ipcc, int cpu)
+{
+	return intel_hfi_get_ipcc_score(ipcc, cpu);
+}
