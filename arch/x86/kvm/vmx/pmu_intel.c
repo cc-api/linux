@@ -219,12 +219,18 @@ static bool intel_is_valid_msr(struct kvm_vcpu *vcpu, u32 msr, bool host_initiat
 		return pmu->version > 1;
 		break;
 	case MSR_IA32_PEBS_ENABLE:
+		if (host_initiated)
+			return true;
 		return perf_capabilities & PERF_CAP_PEBS_FORMAT;
 		break;
 	case MSR_IA32_DS_AREA:
+		if (host_initiated)
+			return true;
 		return guest_cpuid_has(vcpu, X86_FEATURE_DS);
 		break;
 	case MSR_PEBS_DATA_CFG:
+		if (host_initiated)
+			return true;
 		return (perf_capabilities & PERF_CAP_PEBS_BASELINE) &&
 			((perf_capabilities & PERF_CAP_PEBS_FORMAT) > 3);
 		break;
