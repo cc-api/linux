@@ -41,7 +41,7 @@ struct fpu_state_config fpu_user_cfg __ro_after_init;
  * Represents the initial FPU state. It's mostly (but not completely) zeroes,
  * depending on the FPU hardware format:
  */
-struct fpstate init_fpstate __ro_after_init;
+union fpstate_full init_fpstate_full __ro_after_init;
 
 /* Track in-kernel FPU usage */
 static DEFINE_PER_CPU(bool, in_kernel_fpu);
@@ -582,6 +582,12 @@ static void update_fpu_shstk(struct task_struct *dst, unsigned long shstk_addr)
 {
 }
 #endif
+static void fpu_reset_fpstate(struct fpstate *fpstate)
+{
+	memcpy(&fpstate->regs, &init_fpstate.regs, init_fpstate_copy_size());
+	if (use_xsave())
+		xstate_init_xcomp_bv(&fpstate->regs.xsave, fpstate->xfeatures);
+}
 
 /* Clone current's FPU state on fork */
 int fpu_clone(struct task_struct *dst, unsigned long clone_flags, bool minimal,
@@ -610,8 +616,7 @@ int fpu_clone(struct task_struct *dst, unsigned long clone_flags, bool minimal,
 	 */
 	if (minimal) {
 		/* Clear out the minimal state */
-		memcpy(&dst_fpu->fpstate->regs, &init_fpstate.regs,
-		       init_fpstate_copy_size());
+		fpu_reset_fpstate(dst_fpu->fpstate);
 		return 0;
 	}
 
@@ -730,7 +735,7 @@ static void fpu_reset_fpregs(void)
 	 * user space as PKRU is eagerly written in switch_to() and
 	 * flush_thread().
 	 */
-	memcpy(&fpu->fpstate->regs, &init_fpstate.regs, init_fpstate_copy_size());
+	fpu_reset_fpstate(fpu->fpstate);
 	set_thread_flag(TIF_NEED_FPU_LOAD);
 	fpregs_unlock();
 }
