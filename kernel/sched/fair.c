@@ -11392,6 +11392,9 @@ static int need_active_balance(struct lb_env *env)
 	if (env->migration_type == migrate_misfit)
 		return 1;
 
+	if (env->migration_type == migrate_misfit_ipcc)
+		return 1;
+
 	return 0;
 }
 
