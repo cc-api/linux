@@ -8505,7 +8505,8 @@ enum migration_type {
 	migrate_load = 0,
 	migrate_util,
 	migrate_task,
-	migrate_misfit
+	migrate_misfit,
+	migrate_misfit_ipcc
 };
 
 #define LBF_ALL_PINNED	0x01
@@ -8873,6 +8874,10 @@ static int detach_tasks(struct lb_env *env)
 
 		case migrate_task:
 			env->imbalance--;
+			break;
+
+		case migrate_misfit_ipcc:
+			env->imbalance = 0;
 			break;
 
 		case migrate_misfit:
@@ -10785,6 +10790,13 @@ static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *s
 		return;
 	}
 
+	if (busiest->group_type == group_misfit_ipc_class) {
+		/* Set imbalance to trigger a task swap of misfit classes */
+		env->migration_type = migrate_misfit_ipcc;
+		env->imbalance = 1;
+		return;
+	}
+
 	if (busiest->group_type == group_asym_packing) {
 		/*
 		 * In case of asym capacity, we will try to migrate all load to
@@ -11233,6 +11245,9 @@ static struct rq *find_busiest_queue(struct lb_env *env,
 				busiest = rq;
 			}
 			break;
+
+		case migrate_misfit_ipcc:
+			/* TODO: Add here logic to select a busiest rq. */
 
 		case migrate_task:
 			if (busiest_nr < nr_running) {
