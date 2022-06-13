@@ -8472,6 +8472,13 @@ enum group_type {
 	 */
 	group_misfit_task,
 	/*
+	 * The classes of tasks in the group can run with higher performance on
+	 * one of the local CPUs. Since the local group does not have tasks of
+	 * this classes, there is opportunity to swap tasks to increase
+	 * throughput.
+	 */
+	group_misfit_ipc_class,
+	/*
 	 * Balance SMT group that's fully busy. Can benefit from migration
 	 * a task on SMT with busy sibling to another CPU on idle core.
 	 */
@@ -9184,6 +9191,7 @@ struct sg_lb_stats {
 	enum group_type group_type;
 	unsigned int group_asym_packing; /* Tasks should be moved to preferred CPU */
 	unsigned int group_smt_balance;  /* Task on busy SMT be moved */
+	unsigned int group_misfit_ipc_classes;  /* Classes of tasks should be moved to dst_cpu */
 	unsigned long group_misfit_task_load; /* A CPU has a task too big for its capacity */
 #ifdef CONFIG_NUMA_BALANCING
 	unsigned int nr_numa_running;
@@ -9465,6 +9473,9 @@ group_type group_classify(unsigned int imbalance_pct,
 	if (sgs->group_smt_balance)
 		return group_smt_balance;
 
+	if (sgs->group_misfit_ipc_classes)
+		return group_misfit_ipc_class;
+
 	if (sgs->group_misfit_task_load)
 		return group_misfit_task;
 
@@ -9687,6 +9698,27 @@ static long ipcc_score_delta(struct rq *rq, struct lb_env *env)
 	return score_dst - score_src;
 }
 
+/*
+ * determine if @sgs has misfit tasks wrt @local_stats. That is, tasks that can
+ * run with higher priority on @local_stat
+ */
+static bool sched_group_has_misfit_ipcc(struct lb_env *env,
+					struct sg_lb_stats *sgs,
+					struct sg_lb_stats *local_stats)
+{
+	/*
+	 * We are here because @env::dst_cpu is not idle. Thus, if a busiest
+	 * group is identified, the resulting load balance will exchange tasks
+	 * between the busiest and the destination runqueue.
+	 *
+	 * If the destination runqueue has unclassified tasks, it is possible
+	 * that their class score is higher than those in busiest. In such
+	 * cases, the score delta will be zero (see
+	 * update_sg_lb_ipcc_stats())
+	 */
+	return sgs->ipcc_score_after > local_stats->ipcc_score_after;
+}
+
 #else /* CONFIG_IPC_CLASSES */
 static void update_sg_lb_ipcc_stats(int dst_cpu, struct sg_lb_stats *sgs,
 				    struct rq *rq)
@@ -9720,6 +9752,13 @@ static bool sched_asym_ipcc_pick(struct sched_group *a,
 static long ipcc_score_delta(struct rq *rq, struct lb_env *env)
 {
 	return LONG_MIN;
+}
+
+static bool sched_group_has_misfit_ipcc(struct lb_env *env,
+					struct sg_lb_stats *sgs,
+					struct sg_lb_stats *local)
+{
+	return false;
 }
 
 #endif /* CONFIG_IPC_CLASSES */
@@ -9948,6 +9987,16 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 	if (!local_group && smt_balance(env, sgs, group))
 		sgs->group_smt_balance = 1;
 
+	/*
+	 * If dst CPU is busy and it has classes of tasks that are
+	 * different from @sg, there may be opportunity to increase
+	 * throughput if they have higher priority than those on
+	 * already on the dst CPU.
+	 */
+	if (sched_ipcc_enabled() && !local_group && env->idle == CPU_NOT_IDLE &&
+	    sched_group_has_misfit_ipcc(env, sgs, &sds->local_stat))
+		sgs->group_misfit_ipc_classes = 1;
+
 	sgs->group_type = group_classify(env->sd->imbalance_pct, group, sgs);
 
 	if (!local_group)
@@ -10044,6 +10093,10 @@ static bool update_sd_pick_busiest(struct lb_env *env,
 		if (sgs->group_misfit_task_load < busiest->group_misfit_task_load)
 			return false;
 		break;
+
+	case group_misfit_ipc_class:
+		/* TODO: Add here logic to decide which group of this type select. */
+		return false;
 
 	case group_smt_balance:
 		/*
@@ -10304,6 +10357,7 @@ static bool update_pick_idlest(struct sched_group *idlest,
 	case group_imbalanced:
 	case group_asym_packing:
 	case group_smt_balance:
+	case group_misfit_ipc_class:
 		/* Those types are not used in the slow wakeup path */
 		return false;
 
@@ -10436,6 +10490,7 @@ find_idlest_group(struct sched_domain *sd, struct task_struct *p, int this_cpu)
 	case group_imbalanced:
 	case group_asym_packing:
 	case group_smt_balance:
+	case group_misfit_ipc_class:
 		/* Those type are not used in the slow wakeup path */
 		return NULL;
 
