@@ -340,7 +340,7 @@ static __always_inline u##bits td_##lclass##_read##bits(struct vcpu_tdx *tdx,	\
 	tdvps_##lclass##_check(field, bits);					\
 	err = tdh_vp_rd(tdx->tdvpr.pa, TDVPS_##uclass(field), &out);		\
 	if (unlikely(err)) {							\
-		pr_err("TDH_VP_RD["#uclass".0x%x] failed: 0x%llx\n",		\
+		pr_err_ratelimited("TDH_VP_RD["#uclass".0x%x] failed: 0x%llx\n", \
 		       field, err);						\
 		return 0;							\
 	}									\
@@ -356,7 +356,7 @@ static __always_inline void td_##lclass##_write##bits(struct vcpu_tdx *tdx,	\
 	err = tdh_vp_wr(tdx->tdvpr.pa, TDVPS_##uclass(field), val,		\
 		      GENMASK_ULL(bits - 1, 0), &out);				\
 	if (unlikely(err))							\
-		pr_err("TDH_VP_WR["#uclass".0x%x] = 0x%llx failed: 0x%llx\n",	\
+		pr_err_ratelimited("TDH_VP_WR["#uclass".0x%x] = 0x%llx failed: 0x%llx\n", \
 		       field, (u64)val, err);					\
 }										\
 static __always_inline void td_##lclass##_setbit##bits(struct vcpu_tdx *tdx,	\
@@ -369,7 +369,7 @@ static __always_inline void td_##lclass##_setbit##bits(struct vcpu_tdx *tdx,	\
 	err = tdh_vp_wr(tdx->tdvpr.pa, TDVPS_##uclass(field), bit, bit,		\
 			&out);							\
 	if (unlikely(err))							\
-		pr_err("TDH_VP_WR["#uclass".0x%x] |= 0x%llx failed: 0x%llx\n",	\
+		pr_err_ratelimited("TDH_VP_WR["#uclass".0x%x] |= 0x%llx failed: 0x%llx\n", \
 		       field, bit, err);					\
 }										\
 static __always_inline void td_##lclass##_clearbit##bits(struct vcpu_tdx *tdx,	\
@@ -382,7 +382,7 @@ static __always_inline void td_##lclass##_clearbit##bits(struct vcpu_tdx *tdx,	\
 	err = tdh_vp_wr(tdx->tdvpr.pa, TDVPS_##uclass(field), 0, bit,		\
 			&out);							\
 	if (unlikely(err))							\
-		pr_err("TDH_VP_WR["#uclass".0x%x] &= ~0x%llx failed: 0x%llx\n",	\
+		pr_err_ratelimited("TDH_VP_WR["#uclass".0x%x] &= ~0x%llx failed: 0x%llx\n", \
 		       field, bit,  err);					\
 }
 
