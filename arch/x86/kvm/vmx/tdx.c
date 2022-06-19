@@ -229,6 +229,33 @@ static inline void tdx_disassociate_vp(struct kvm_vcpu *vcpu)
 	vcpu->cpu = -1;
 }
 
+static void tdx_flush_vp(void *arg)
+{
+	struct kvm_vcpu *vcpu = arg;
+	u64 err;
+
+	lockdep_assert_irqs_disabled();
+
+	/* Task migration can race with CPU offlining. */
+	if (vcpu->cpu != raw_smp_processor_id())
+		return;
+
+	/*
+	 * No need to do TDH_VP_FLUSH if the vCPU hasn't been initialized.  The
+	 * list tracking still needs to be updated so that it's correct if/when
+	 * the vCPU does get initialized.
+	 */
+	if (is_td_vcpu_created(to_tdx(vcpu))) {
+		err = tdh_vp_flush(to_tdx(vcpu)->tdvpr.pa);
+		if (unlikely(err && err != TDX_VCPU_NOT_ASSOCIATED)) {
+			if (WARN_ON_ONCE(err))
+				pr_tdx_error(TDH_VP_FLUSH, err, NULL);
+		}
+	}
+
+	tdx_disassociate_vp(vcpu);
+}
+
 void tdx_hardware_enable(void)
 {
 	INIT_LIST_HEAD(&per_cpu(associated_tdvcpus, raw_smp_processor_id()));
@@ -239,10 +266,13 @@ void tdx_hardware_disable(void)
 	int cpu = raw_smp_processor_id();
 	struct list_head *tdvcpus = &per_cpu(associated_tdvcpus, cpu);
 	struct vcpu_tdx *tdx, *tmp;
+	unsigned long flags;
 
+	local_irq_save(flags);
 	/* Safe variant needed as tdx_disassociate_vp() deletes the entry. */
 	list_for_each_entry_safe(tdx, tmp, tdvcpus, cpu_list)
-		tdx_disassociate_vp(&tdx->vcpu);
+		tdx_flush_vp(&tdx->vcpu);
+	local_irq_restore(flags);
 }
 
 static void tdx_clear_page(unsigned long page, int size)
@@ -328,33 +358,6 @@ static void tdx_reclaim_td_page(struct tdx_td_page *page)
 		page->added = false;
 	}
 	free_page(page->va);
-}
-
-static void tdx_flush_vp(void *arg)
-{
-	struct kvm_vcpu *vcpu = arg;
-	u64 err;
-
-	lockdep_assert_irqs_disabled();
-
-	/* Task migration can race with CPU offlining. */
-	if (vcpu->cpu != raw_smp_processor_id())
-		return;
-
-	/*
-	 * No need to do TDH_VP_FLUSH if the vCPU hasn't been initialized.  The
-	 * list tracking still needs to be updated so that it's correct if/when
-	 * the vCPU does get initialized.
-	 */
-	if (is_td_vcpu_created(to_tdx(vcpu))) {
-		err = tdh_vp_flush(to_tdx(vcpu)->tdvpr.pa);
-		if (unlikely(err && err != TDX_VCPU_NOT_ASSOCIATED)) {
-			if (WARN_ON_ONCE(err))
-				pr_tdx_error(TDH_VP_FLUSH, err, NULL);
-		}
-	}
-
-	tdx_disassociate_vp(vcpu);
 }
 
 static void tdx_flush_vp_on_cpu(struct kvm_vcpu *vcpu)
