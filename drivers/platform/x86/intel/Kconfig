@@ -176,6 +176,7 @@ config INTEL_SDSI_SPDM
 
 config INTEL_SDSI
 	tristate "Intel On Demand (Software Defined Silicon) Driver"
+	select INTEL_SDSI_SPDM
 	depends on INTEL_VSEC
 	depends on X86_64
 	help
