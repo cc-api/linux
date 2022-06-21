@@ -776,6 +776,35 @@ static const struct file_operations hfi_fake_table_fops = {
 
 static struct dentry *hfi_debugfs_dir;
 
+#ifdef CONFIG_IPC_CLASSES
+extern unsigned long itd_class_debouncer_skips;
+
+static int itd_debouncer_skip_get(void *data, u64 *val)
+{
+	*val = itd_class_debouncer_skips;
+	return 0;
+}
+
+static int itd_debouncer_skip_set(void *data, u64 val)
+{
+	itd_class_debouncer_skips = val;
+	return 0;
+}
+#else
+static int itd_debouncer_skip_get(void *data, u64 *val)
+{
+	return -EPERM;
+}
+
+static int itd_debouncer_skip_set(void *data, u64 val)
+{
+	return -EPERM;
+}
+#endif
+
+DEFINE_DEBUGFS_ATTRIBUTE(itd_debouncer_skip_fops, itd_debouncer_skip_get,
+			 itd_debouncer_skip_set, "%llu\n");
+
 static void hfi_debugfs_unregister(void)
 {
 	struct hfi_instance *hfi;
@@ -804,6 +833,11 @@ static void hfi_debugfs_register(void)
 
 	f = debugfs_create_file("features", 0444, hfi_debugfs_dir,
 				NULL, &hfi_features_fops);
+	if (!f)
+		goto err;
+
+	f = debugfs_create_file("debounce_skips", 0444, hfi_debugfs_dir,
+				NULL, &itd_debouncer_skip_fops);
 	if (!f)
 		goto err;
 

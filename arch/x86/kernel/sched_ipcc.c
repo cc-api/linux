@@ -65,6 +65,9 @@ union itd_ipcc {
 };
 
 #define CLASS_DEBOUNCER_SKIPS 4
+#ifdef CONFIG_DEBUG_FS
+unsigned long itd_class_debouncer_skips = 4; /* CLASS_DEBOUNCER_SKIPS */
+#endif
 
 /**
  * debounce_and_update_class() - Process and update a task's classification
@@ -92,7 +95,11 @@ static void debounce_and_update_class(struct task_struct *p, u8 new_ipcc)
 	 * for CLASS_DEBOUNCER_SKIPS user ticks.
 	 */
 	debounce_skip = itd_ipcc->split.counter + 1;
+#ifdef CONFIG_DEBUG_FS
+	if (debounce_skip < itd_class_debouncer_skips)
+#else
 	if (debounce_skip < CLASS_DEBOUNCER_SKIPS)
+#endif
 		itd_ipcc->split.counter++;
 	else
 		itd_ipcc->split.class = new_ipcc;
