@@ -1223,6 +1223,7 @@ static void skl_cdclk_uninit_hw(struct drm_i915_private *dev_priv)
 
 struct intel_cdclk_vals {
 	u32 cdclk;
+	u32 mdclk;
 	u16 refclk;
 	u16 waveform;
 	u8 divider;	/* CD2X divider * 2 */
@@ -1512,6 +1513,8 @@ static void bxt_de_pll_readout(struct drm_i915_private *dev_priv,
 static void bxt_get_cdclk(struct drm_i915_private *dev_priv,
 			  struct intel_cdclk_config *cdclk_config)
 {
+	const struct intel_cdclk_vals *table = dev_priv->display.cdclk.table;
+	int i, ratio, tbl_waveform = 0;
 	u32 squash_ctl = 0;
 	u32 divider;
 	int div;
@@ -1562,8 +1565,34 @@ static void bxt_get_cdclk(struct drm_i915_private *dev_priv,
 
 		cdclk_config->cdclk = DIV_ROUND_CLOSEST(hweight16(waveform) *
 							cdclk_config->vco, size * div);
+		tbl_waveform = squash_ctl & CDCLK_SQUASH_WAVEFORM_MASK;
 	} else {
 		cdclk_config->cdclk = DIV_ROUND_CLOSEST(cdclk_config->vco, div);
+	}
+
+	ratio = cdclk_config->vco / cdclk_config->ref;
+
+	for (i = 0; table[i].refclk; i++) {
+		if (table[i].refclk != cdclk_config->ref)
+			continue;
+
+		if (table[i].divider != div)
+			continue;
+
+		if (table[i].waveform != tbl_waveform)
+			continue;
+
+		if (table[i].ratio != ratio)
+			continue;
+
+		/*
+		 * Supported from LunarLake HW onwards, however considering that
+		 * besides this the whole procedure is the same, we keep this
+		 * for all the platforms.
+		 */
+		cdclk_config->mdclk = table[i].mdclk;
+
+		break;
 	}
 
  out:
@@ -2179,6 +2208,7 @@ bool intel_cdclk_needs_modeset(const struct intel_cdclk_config *a,
 			       const struct intel_cdclk_config *b)
 {
 	return a->cdclk != b->cdclk ||
+		a->mdclk != b->mdclk ||
 		a->vco != b->vco ||
 		a->ref != b->ref;
 }
