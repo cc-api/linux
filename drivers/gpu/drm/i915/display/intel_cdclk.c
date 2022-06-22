@@ -37,6 +37,7 @@
 #include "intel_pci_config.h"
 #include "intel_pcode.h"
 #include "intel_psr.h"
+#include "skl_watermark.h"
 #include "vlv_sideband.h"
 
 /**
@@ -1816,6 +1817,15 @@ static bool cdclk_pll_is_unknown(unsigned int vco)
 	return vco == ~0;
 }
 
+static int get_mdclk_cdclk_ratio(struct drm_i915_private *i915,
+				 const struct intel_cdclk_config *cdclk_config)
+{
+	if (DISPLAY_VER(i915) >= 20)
+		return cdclk_config->mdclk / cdclk_config->cdclk - 1;
+	else
+		return 1;
+}
+
 static int cdclk_squash_divider(u16 waveform)
 {
 	return hweight16(waveform ?: 0xffff);
@@ -2594,6 +2604,7 @@ static int intel_compute_min_cdclk(struct intel_cdclk_state *cdclk_state)
 	struct intel_crtc_state *crtc_state;
 	int min_cdclk, i;
 	enum pipe pipe;
+	struct intel_dbuf_state *dbuf_state;
 
 	for_each_new_intel_crtc_in_state(state, crtc, crtc_state, i) {
 		int ret;
@@ -2626,6 +2637,11 @@ static int intel_compute_min_cdclk(struct intel_cdclk_state *cdclk_state)
 				return ret;
 		}
 	}
+
+	dbuf_state = intel_atomic_get_new_dbuf_state(state);
+	if (dbuf_state)
+		dbuf_state->mdclk_cdclk_ratio =
+			get_mdclk_cdclk_ratio(dev_priv, &cdclk_state->actual);
 
 	min_cdclk = max(cdclk_state->force_min_cdclk,
 			cdclk_state->bw_min_cdclk);
