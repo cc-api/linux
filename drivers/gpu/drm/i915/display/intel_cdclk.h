@@ -16,7 +16,7 @@ struct intel_atomic_state;
 struct intel_crtc_state;
 
 struct intel_cdclk_config {
-	unsigned int cdclk, vco, ref, bypass;
+	unsigned int cdclk, mdclk, vco, ref, bypass;
 	u8 voltage_level;
 };
 
