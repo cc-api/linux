@@ -1931,6 +1931,14 @@ static void _bxt_set_cdclk(struct drm_i915_private *dev_priv,
 	if ((IS_GEMINILAKE(dev_priv) || IS_BROXTON(dev_priv)) &&
 	    cdclk >= 500000)
 		val |= BXT_CDCLK_SSA_PRECHARGE_ENABLE;
+
+	/*
+	 * Using CDCLK through PLL seems to be always better option when its
+	 * supported, both in terms of perfomance and power consumption.
+	 */
+	if (DISPLAY_VER(dev_priv) >= 20)
+		val |= CDCLK_SOURCE_SEL_CDCLK_PLL;
+
 	intel_de_write(dev_priv, CDCLK_CTL, val);
 
 	if (pipe != INVALID_PIPE)
