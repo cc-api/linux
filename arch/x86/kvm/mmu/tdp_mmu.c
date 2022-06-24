@@ -1103,7 +1103,7 @@ bool kvm_tdp_mmu_zap_sp(struct kvm *kvm, struct kvm_mmu_page *sp)
 
 static struct kvm_mmu_page *tdp_mmu_alloc_sp_for_split(struct kvm *kvm,
 						       struct tdp_iter *iter,
-						       bool shared);
+						       bool shared, bool can_yield);
 
 static int tdp_mmu_split_huge_page(struct kvm *kvm, struct tdp_iter *iter,
 				   struct kvm_mmu_page *sp, bool shared);
@@ -1161,7 +1161,8 @@ static bool tdp_mmu_zap_leafs(struct kvm *kvm, struct kvm_mmu_page *root,
 			if (!kvm_page_type_valid_on_level(gfn, slot, iter.level) ||
 			    (gfn & mask) < start ||
 			    end < (gfn & mask) + KVM_PAGES_PER_HPAGE(iter.level)) {
-				sp = tdp_mmu_alloc_sp_for_split(kvm, &iter, false);
+				sp = tdp_mmu_alloc_sp_for_split(kvm, &iter, false,
+								can_yield);
 				if (!sp) {
 					WARN_ON(1);
 				}
@@ -1827,7 +1828,8 @@ static struct kvm_mmu_page *__tdp_mmu_alloc_sp_for_split(
 
 static struct kvm_mmu_page *tdp_mmu_alloc_sp_for_split(struct kvm *kvm,
 						       struct tdp_iter *iter,
-						       bool shared)
+						       bool shared,
+						       bool can_yield)
 {
 	struct kvm_mmu_page *sp;
 	bool is_private = iter->is_private;
@@ -1844,7 +1846,7 @@ static struct kvm_mmu_page *tdp_mmu_alloc_sp_for_split(struct kvm *kvm,
 	 * allowed.
 	 */
 	sp = __tdp_mmu_alloc_sp_for_split(GFP_NOWAIT | __GFP_ACCOUNT, is_private);
-	if (sp)
+	if (sp || !can_yield)
 		return sp;
 
 	rcu_read_unlock();
@@ -1938,7 +1940,7 @@ retry:
 			continue;
 
 		if (!sp) {
-			sp = tdp_mmu_alloc_sp_for_split(kvm, &iter, shared);
+			sp = tdp_mmu_alloc_sp_for_split(kvm, &iter, shared, true);
 			if (!sp) {
 				ret = -ENOMEM;
 				trace_kvm_mmu_split_huge_page(iter.gfn,
