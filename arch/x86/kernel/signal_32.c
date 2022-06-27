@@ -36,22 +36,43 @@
 #ifdef CONFIG_IA32_EMULATION
 #include <asm/ia32_unistd.h>
 
+static inline u16 normalize_useg_selector(u16 sel)
+{
+	/*
+	 * Convert an user segment selector into normalized form.
+	 *
+	 * For the indexes 0,1,2,3 always use the value of 0, as IRET
+	 * forces this form for the nul segment.
+	 *
+	 * Otherwise set both DPL bits to force it to be a userspace
+	 * ring 3 segment selector.
+	 */
+	return sel <= 3 ? 0 : sel | 3;
+}
+
 static inline void reload_segments(struct sigcontext_32 *sc)
 {
-	unsigned int cur;
+	unsigned int new, cur;
 
+	new = normalize_useg_selector(sc->gs);
 	savesegment(gs, cur);
-	if ((sc->gs | 0x03) != cur)
-		load_gs_index(sc->gs | 0x03);
-	savesegment(fs, cur);
-	if ((sc->fs | 0x03) != cur)
-		loadsegment(fs, sc->fs | 0x03);
-	savesegment(ds, cur);
-	if ((sc->ds | 0x03) != cur)
-		loadsegment(ds, sc->ds | 0x03);
-	savesegment(es, cur);
-	if ((sc->es | 0x03) != cur)
-		loadsegment(es, sc->es | 0x03);
+	cur = normalize_useg_selector(cur);
+	if (new != cur)
+		load_gs_index(new);
+
+#define RELOAD_USEG_SELECTOR(seg) {			\
+	new = normalize_useg_selector(sc->seg);		\
+	savesegment(seg, cur);				\
+	cur = normalize_useg_selector(cur);		\
+	if (new != cur)					\
+		loadsegment(seg, new);			\
+}
+
+	RELOAD_USEG_SELECTOR(fs);
+	RELOAD_USEG_SELECTOR(ds);
+	RELOAD_USEG_SELECTOR(es);
+
+#undef RELOAD_USEG_SELECTOR
 }
 
 #define sigset32_t			compat_sigset_t
