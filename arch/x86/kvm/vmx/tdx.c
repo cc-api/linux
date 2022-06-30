@@ -43,6 +43,8 @@ enum tdx_module_version {
 struct tdx_capabilities {
 	u8 tdcs_nr_pages;
 	u8 tdvpx_nr_pages;
+	u8 sys_rd;
+	u32 max_servtds;
 
 	u64 attrs_fixed0;
 	u64 attrs_fixed1;
@@ -3571,10 +3573,17 @@ static enum tdx_module_version tdx_get_module_version(u16 major_version,
 	return TDX_MODULE_VERSION_1_0;
 }
 
+bool is_sys_rd_supported(void)
+{
+	return !!tdx_caps.sys_rd;
+}
+
 int __init tdx_module_setup(void)
 {
 	const struct tdsysinfo_struct *tdsysinfo;
+	struct tdx_module_output out;
 	int ret = 0;
+	u64 err;
 
 	BUILD_BUG_ON(sizeof(*tdsysinfo) != 1024);
 	BUILD_BUG_ON(TDX_MAX_NR_CPUID_CONFIGS != 37);
@@ -3603,10 +3612,23 @@ int __init tdx_module_setup(void)
 		.xfam_fixed0 =	tdsysinfo->xfam_fixed0,
 		.xfam_fixed1 = tdsysinfo->xfam_fixed1,
 		.nr_cpuid_configs = tdsysinfo->num_cpuid_config,
+		.sys_rd = tdsysinfo->sys_rd,
 	};
 
 	/*TODO: use tdsysinfo->minor_version when TDX has the support */
 	tdx_caps.tdx_version = tdx_get_module_version(tdsysinfo->major_version, 5);
+
+	err = tdh_sys_rd(TDX_MD_FID_SERVTD_MAX_SERVTDS, &out);
+	/*
+	 * If error happens, it isn't critical and no need to fail the entire
+	 * tdx setup. Only servtd binding (which is optional) won't be allowed
+	 * later, as we keep max_servtds be 0.
+	 */
+	if (err == TDX_SUCCESS) {
+		tdx_caps.max_servtds = out.r8;
+		printk(KERN_EMERG"%s: max_servtds=%d\n",
+		       __func__, tdx_caps.max_servtds);
+	}
 
 	if (!memcpy(tdx_caps.cpuid_configs, tdsysinfo->cpuid_configs,
 			tdsysinfo->num_cpuid_config *
