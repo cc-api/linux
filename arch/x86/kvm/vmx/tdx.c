@@ -5093,6 +5093,6 @@ static int __init tdx_module_update_init(void)
 
 static void tdx_module_update_destroy(void)
 {
->>>>>>> KVM: x86/tdx: Add userspace interfaces of TDX module loading
+
 }
 #endif /* CONFIG_INTEL_TDX_MODULE_UPDATE */
