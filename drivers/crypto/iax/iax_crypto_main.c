@@ -121,8 +121,10 @@ static int iax_crypto_enable(const char *val, const struct kernel_param *kp)
 		} else if (ret < 0) {
 			pr_err("%s: iax_crypto enable failed: ret=%d\n", __func__, ret);
 			return ret;
-		} else
+		} else {
 			iax_crypto_enabled = true;
+			ret = 0;
+		}
 	} else {
 		pr_err("%s: iax_crypto failed, bad enable val: ret=%d\n", __func__, -EINVAL);
 		return -EINVAL;
