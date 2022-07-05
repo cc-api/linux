@@ -635,6 +635,32 @@ static void setup_fixed_pmc_eventsel(struct kvm_pmu *pmu)
 	}
 }
 
+static bool cpuid_enable_lbr(struct kvm_vcpu *vcpu)
+{
+	struct kvm_pmu *pmu = vcpu_to_pmu(vcpu);
+	struct kvm_cpuid_entry2 *entry;
+	int depth_bit;
+
+	if (!kvm_cpu_cap_has(X86_FEATURE_ARCH_LBR))
+		return !static_cpu_has(X86_FEATURE_ARCH_LBR) &&
+			intel_pmu_lbr_is_compatible(vcpu);
+
+	pmu->kvm_arch_lbr_depth = 0;
+	if (!guest_cpuid_has(vcpu, X86_FEATURE_ARCH_LBR))
+		return false;
+
+	entry = kvm_find_cpuid_entry(vcpu, 0x1C, 0);
+	if (!entry)
+		return false;
+
+	depth_bit = fls(cpuid_eax(0x1C) & 0xff);
+	if ((entry->eax & 0xff) != (1 << (depth_bit - 1)))
+		return false;
+
+	pmu->kvm_arch_lbr_depth = depth_bit * 8;
+	return true;
+}
+
 static void intel_pmu_refresh(struct kvm_vcpu *vcpu)
 {
 	struct kvm_pmu *pmu = vcpu_to_pmu(vcpu);
@@ -722,7 +748,7 @@ static void intel_pmu_refresh(struct kvm_vcpu *vcpu)
 	nested_vmx_pmu_refresh(vcpu,
 			       intel_is_valid_msr(vcpu, MSR_CORE_PERF_GLOBAL_CTRL, false));
 
-	if (intel_pmu_lbr_is_compatible(vcpu))
+	if (cpuid_enable_lbr(vcpu))
 		x86_perf_get_lbr(&lbr_desc->records);
 	else
 		lbr_desc->records.nr = 0;
