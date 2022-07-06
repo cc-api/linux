@@ -94,7 +94,7 @@ EXPORT_SYMBOL_GPL(tdx_kvm_hypercall);
 static inline void tdx_module_call(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
 				   struct tdx_module_output *out)
 {
-	if (__tdx_module_call(fn, rcx, rdx, r8, r9, out))
+	if (__tdx_module_call(fn, rcx, rdx, r8, r9, 0, 0, 0, 0, out))
 		panic("TDCALL %lld failed (Buggy TDX module!)\n", fn);
 }
 
@@ -684,7 +684,8 @@ static bool try_accept_one(phys_addr_t *start, unsigned long len,
 	}
 
 	tdcall_rcx = *start | page_size;
-	if (__tdx_module_call(TDX_ACCEPT_PAGE, tdcall_rcx, 0, 0, 0, NULL))
+	if (__tdx_module_call(TDX_ACCEPT_PAGE, tdcall_rcx, 0, 0, 0, 0, 0, 0, 0,
+			      NULL))
 		return false;
 
 	*start += accept_size;
