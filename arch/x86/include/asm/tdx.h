@@ -72,6 +72,7 @@ void __init tdx_early_init(void);
 
 /* Used to communicate with the TDX module */
 u64 __tdx_module_call(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
+		      u64 r10, u64 r11, u64 r12, u64 r13,
 		      struct tdx_module_output *out);
 
 void tdx_get_ve_info(struct ve_info *ve);
