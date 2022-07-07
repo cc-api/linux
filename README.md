@@ -16,6 +16,13 @@ Use at your own risk.
 Release History
 ===============
 
+EMR-BKC-v1.1
+------------
+6. TD-preserving and boot-time/dynamic TDX module loading (Chao Gao)
+7. CET and Arch-LBR Fix (Weijiang Yang and Chenyi Qiang)
+8. Array BIST (Jithu Joseph)
+9. TD-preserving Fix (Yuan Yao and Chao Gao)
+
 EMR-BKC-v1.0
 ------------
 1. IPIv (Guang Zeng)
