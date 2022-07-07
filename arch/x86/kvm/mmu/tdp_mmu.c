@@ -1142,9 +1142,12 @@ static bool tdp_mmu_zap_leafs(struct kvm *kvm, struct kvm_mmu_page *root,
 		if (is_private && kvm_gfn_shared_mask(kvm) &&
 		    is_large_pte(iter.old_spte)) {
 			gfn_t gfn = iter.gfn & ~kvm_gfn_shared_mask(kvm);
+			gfn_t mask = KVM_HPAGE_GFN_MASK(iter.level);
 
 			slot = gfn_to_memslot(kvm, gfn);
-			if (!kvm_page_type_valid_on_level(gfn, slot, iter.level)) {
+			if (!kvm_page_type_valid_on_level(gfn, slot, iter.level) ||
+			    (gfn & mask) < start ||
+			    end < (gfn & mask) + KVM_PAGES_PER_HPAGE(iter.level)) {
 				sp = tdp_mmu_alloc_sp_for_split(kvm, &iter, false);
 				if (!sp) {
 					WARN_ON(1);
