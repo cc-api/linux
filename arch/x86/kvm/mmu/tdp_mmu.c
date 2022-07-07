@@ -1135,7 +1135,8 @@ static bool tdp_mmu_zap_leafs(struct kvm *kvm, struct kvm_mmu_page *root,
 			continue;
 		}
 
-		if (!is_shadow_present_pte(iter.old_spte) ||
+		if ((!is_shadow_present_pte(iter.old_spte) &&
+		     !is_private_zapped_spte(iter.old_spte)) ||
 		    !is_last_spte(iter.old_spte, iter.level))
 			continue;
 
