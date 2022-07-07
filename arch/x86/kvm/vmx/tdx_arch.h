@@ -133,8 +133,7 @@ struct tdx_cpuid_value {
  * TODO: Once XFEATURE_CET_{U, S} in arch/x86/include/asm/fpu/types.h is
  * defined, Remove this.
  */
-#define TDX_TD_XFAM_CET	(XFEATURE_CET_USER | \
-			XFEATURE_CET_KERNEL_UNIMPLEMENTED_SO_FAR)
+#define TDX_TD_XFAM_CET	(XFEATURE_MASK_CET_USER | XFEATURE_MASK_CET_KERNEL)
 
 /*
  * TD_PARAMS is provided as an input to TDH_MNG_INIT, the size of which is 1024B.
