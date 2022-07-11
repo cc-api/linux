@@ -16,6 +16,11 @@ Use at your own risk.
 Release History
 ===============
 
+EMR-BKC-v1.2
+------------
+10. Port a definition patch (Kan Liang)
+11. Add EMR-BKC-v1 kconfig (Chenyi Qiang)
+
 EMR-BKC-v1.1
 ------------
 6. TD-preserving and boot-time/dynamic TDX module loading (Chao Gao)
