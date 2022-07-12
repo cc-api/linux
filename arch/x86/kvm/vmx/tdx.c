@@ -87,13 +87,6 @@ void tdx_svmm_put(int event)
 		offsetof(struct tdsysinfo_struct, cpuid_configs))	\
 		/ sizeof(struct tdx_cpuid_config))
 
-enum tdx_module_version {
-	TDX_MODULE_VERSION_1_0,
-	TDX_MODULE_VERSION_1_5,
-
-	TDX_MODULE_VERSION_UNKNOWN,
-};
-
 struct tdx_capabilities {
 	u8 tdcs_nr_pages;
 	u8 tdvpx_nr_pages;
@@ -107,8 +100,6 @@ struct tdx_capabilities {
 
 	u32 nr_cpuid_configs;
 	struct tdx_cpuid_config cpuid_configs[TDX_MAX_NR_CPUID_CONFIGS];
-
-	enum tdx_module_version tdx_version;
 };
 
 /*
@@ -4404,19 +4395,6 @@ static void tdx_guest_pmi_handler(void)
 	kvm_make_request(KVM_REQ_PMI, vcpu);
 }
 
-static enum tdx_module_version tdx_get_module_version(u16 major_version,
-						      u16 minor_version)
-{
-	/* We only have support up to TDX 1.5 so far */
-	if (major_version != 1)
-		return TDX_MODULE_VERSION_UNKNOWN;
-
-	if (minor_version >= 5)
-		return TDX_MODULE_VERSION_1_5;
-
-	return TDX_MODULE_VERSION_1_0;
-}
-
 bool is_sys_rd_supported(void)
 {
 	return !!tdx_caps.sys_rd;
@@ -4458,9 +4436,6 @@ int tdx_module_setup(void)
 		.nr_cpuid_configs = tdsysinfo->num_cpuid_config,
 		.sys_rd = tdsysinfo->sys_rd,
 	};
-
-	/*TODO: use tdsysinfo->minor_version when TDX has the support */
-	tdx_caps.tdx_version = tdx_get_module_version(tdsysinfo->major_version, 5);
 
 	err = tdh_sys_rd(TDX_MD_FID_SERVTD_MAX_SERVTDS, &out);
 	/*
@@ -4835,24 +4810,6 @@ static int tdx_write_guest_memory(struct kvm *kvm, struct kvm_rw_memory *rw_memo
 
 	rw_memory->len = complete_len;
 	return ret;
-}
-
-static u64 tdx_non_arch_field_switch_1_5(u64 field)
-{
-
-	if (field == TDX_MD_FID_NOARCH_TDVPS_DETAILS_1_0)
-		return TDX_MD_FID_NOARCH_TDVPS_DETAILS_1_5;
-
-	pr_err("%s: field %llx not supported\n", __func__, field);
-	return field;
-}
-
-u64 tdx_non_arch_field_switch(u64 field)
-{
-	if (tdx_caps.tdx_version == TDX_MODULE_VERSION_1_5)
-		return tdx_non_arch_field_switch_1_5(field);
-
-	return field;
 }
 
 static int __init tdx_module_update_init(void);
