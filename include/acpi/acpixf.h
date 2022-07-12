@@ -966,6 +966,6 @@ void acpi_run_debugger(char *batch_buffer);
 
 void acpi_set_debugger_thread_id(acpi_thread_id thread_id);
 
-void __init acpi_tbl_allow_setup(char *s);
+void acpi_tbl_allow_setup(char *s);
 
 #endif				/* __ACXFACE_H__ */

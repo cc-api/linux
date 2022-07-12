@@ -1650,7 +1650,6 @@ void acpi_tbl_allow_setup(char *s)
 	while ((name = strsep(&s, ",")))
 		acpi_tbl_allow_list[acpi_tbl_allow_len++] = name;
 }
-EXPORT_SYMBOL_GPL(acpi_tbl_allow_setup);
 
 static int __init acpi_disable_return_repair(char *s)
 {

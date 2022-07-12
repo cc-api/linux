@@ -14,7 +14,7 @@
 
 extern struct boot_params *boot_params;
 
-static bool is_tdx_guest(void)
+bool is_tdx_guest(void)
 {
 	static bool once;
 	static bool is_tdx;

@@ -13,11 +13,12 @@
 #include <linux/cc_platform.h>
 #include <asm/processor.h>
 #include <asm/cpufeature.h>
+#include <asm/shared/tdx.h>
 
 #define RDRAND_RETRY_LOOPS	10
 
 #if defined(BOOT_COMPRESSED_MISC_H) && defined(CONFIG_INTEL_TDX_GUEST)
-extern bool early_is_tdx_guest(void);
+extern bool is_tdx_guest(void);
 #endif
 
 /* Unconditional execution of RDRAND and RDSEED */
@@ -26,7 +27,7 @@ static inline bool rd_loop(void)
 {
 #if defined(BOOT_COMPRESSED_MISC_H) && defined(CONFIG_INTEL_TDX_GUEST)
 	/* In decompression code */
-	return early_is_tdx_guest();
+	return is_tdx_guest();
 #else
 	return cc_platform_has(CC_ATTR_GUEST_RAND_LOOP);
 #endif
