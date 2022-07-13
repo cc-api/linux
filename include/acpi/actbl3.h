@@ -42,7 +42,7 @@
 #define ACPI_SIG_WSMT           "WSMT"	/* Windows SMM Security Mitigations Table */
 #define ACPI_SIG_XENV           "XENV"	/* Xen Environment table */
 #define ACPI_SIG_XXXX           "XXXX"	/* Intermediate AML header for ASL/ASL+ converter */
-#define ACPI_SIG_TDEL           "TDEL"	/* Intel Trust Domain Event Log table */
+#define ACPI_SIG_CCEL           "CCEL"	/* Confidential Computing Event Log table */
 
 /*
  * All tables must be byte-packed to match the ACPI specification, since
@@ -477,16 +477,18 @@ struct acpi_tpm2_arm_smc {
 
 /*******************************************************************************
  *
- * TDEL - Trust Domain Event Log Table
+ * CCEL - Confidential Computing Event Log Table
  *
- * Conforms to Intel TDX GHCI Specification
- * Version 1, Sep 2021
+ * Conforms to Intel TDX GHCI Specification Version 1.0,
+ * 344426-003US, Feb 2022
  *
  ******************************************************************************/
 
-struct acpi_table_tdel {
+struct acpi_table_ccel {
 	struct acpi_table_header header;    /* Common ACPI table header */
-	u32 reserved;
+	u8  cc_type;            /* Confidential Computing type */
+	u8  cc_subtype;         /* Confidential Computing type specific sub-type */
+	u16 reserved;
 	u64 log_area_length;    /* Log area minimum length */
 	u64 log_area_address;   /* Log area start address */
 };
