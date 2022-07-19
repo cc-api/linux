@@ -189,6 +189,10 @@ int arch_show_interrupts(struct seq_file *p, int prec)
 	seq_puts(p, "  TDX Guest performance monitoring interrupts\n");
 #endif
 #if IS_ENABLED(CONFIG_INTEL_TDX_GUEST)
+	seq_printf(p, "%*s: ", prec, "TGV");
+	for_each_online_cpu(j)
+		seq_printf(p, "%10u ", irq_stats(j)->tdx_ve_count);
+	seq_puts(p, "  TDX Guest VE event\n");
 	seq_printf(p, "%*s: ", prec, "TGN");
 	for_each_online_cpu(j)
 		seq_printf(p, "%10u ",
