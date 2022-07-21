@@ -74,6 +74,7 @@ bool tdx_allowed_port(short int port);
 
 static inline void tdx_early_init(void) { };
 static inline void tdx_safe_halt(void) { };
+static inline void tdx_filter_init(void) { };
 
 static inline bool tdx_early_handle_ve(struct pt_regs *regs) { return false; }
 
