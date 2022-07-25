@@ -16,6 +16,11 @@ Use at your own risk.
 Release History
 ===============
 
+EMR-BKC-v1.3
+12. TD migration support (Wei Wang)
+13. TD guest (Kuppuswamy Sathyanarayanan)
+14. one TD guest fix (Chao Gao)
+
 EMR-BKC-v1.2
 ------------
 10. Port a definition patch (Kan Liang)
