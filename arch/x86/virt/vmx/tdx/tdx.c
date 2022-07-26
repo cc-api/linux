@@ -2015,3 +2015,45 @@ void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx)
 	free_cpumask_var(vmx_tdx->vmx_enabled);
 }
 EXPORT_SYMBOL_GPL(vmxoff_all);
+
+/* tdxio early init */
+static bool tdxio;
+
+static int __init tdxio_setup(char *s)
+{
+	if (s)
+		return -EINVAL;
+
+	pr_info("TDX-IO allowed\n");
+	tdxio = true;
+	return 0;
+}
+early_param("tdxio", tdxio_setup);
+
+/*
+ * Do tdx init early only for tdxio case, otherwise skip early initialization
+ * work. e.g. leave kvm-intel to init tdx during loading.
+ */
+int tdx_init_early(void)
+{
+	struct vmx_tdx_enabled vmx_tdx;
+	int ret;
+
+	if (!tdxio)
+		return 0;
+
+	ret = vmxon_all(&vmx_tdx);
+	if (ret)
+		return ret;
+
+	ret = tdx_enable();
+	vmxoff_all(&vmx_tdx);
+	return ret;
+}
+arch_initcall(tdx_init_early);
+
+bool tdx_io_support(void)
+{
+	return !!(tdx_features0 & TDX_FEATURES0_IO);
+}
+EXPORT_SYMBOL_GPL(tdx_io_support);

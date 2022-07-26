@@ -207,6 +207,7 @@ struct vmx_tdx_enabled {
 
 int vmxon_all(struct vmx_tdx_enabled *vmx_tdx);
 void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx);
+bool tdx_io_support(void);
 #else	/* !CONFIG_INTEL_TDX_HOST */
 struct tdsysinfo_struct;
 static inline const struct tdsysinfo_struct *tdx_get_sysinfo(void) { return NULL; }
@@ -229,6 +230,7 @@ static inline void tdx_guest_keyid_free(int keyid) { }
 struct vmx_tdx_enabled;
 static inline int vmxon_all(struct vmx_tdx_enabled *vmx_tdx) { return -EOPNOTSUPP; }
 static inline void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx) {}
+static inline bool tdx_io_support(void) { return false; }
 #endif	/* CONFIG_INTEL_TDX_HOST */
 
 #endif /* !__ASSEMBLY__ */

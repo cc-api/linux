@@ -72,6 +72,7 @@ struct tdmr_info {
  * TDX module metadata identifiers
  */
 #define TDX_MD_FEATURES0			0x0A00000300000008
+#define		TDX_FEATURES0_IO		BIT(6)
 
 /*
  * Do not put any hardware-defined TDX structure representations below
