@@ -125,6 +125,7 @@ void kvm_mmu_sync_roots(struct kvm_vcpu *vcpu);
 void kvm_mmu_sync_prev_roots(struct kvm_vcpu *vcpu);
 int kvm_mmu_move_private_pages_from(struct kvm_vcpu *vcpu,
 				    struct kvm_vcpu *src_vcpu);
+bool kvm_is_mmio_pfn(kvm_pfn_t pfn);
 
 static inline int kvm_mmu_reload(struct kvm_vcpu *vcpu)
 {
