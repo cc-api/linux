@@ -18,6 +18,10 @@ Use at your own risk.
 Release History
 ===============
 
+SPR-BKC-PC-V10.1
+----------------
+139. ACPI, APEI, EINJ: Refuse to inject into the zero page (Tony Luck)
+
 SPR-BKC-PC-v9.6
 ----------------
 138. TDX fix (Yuan Yao):
