@@ -18,6 +18,10 @@ Use at your own risk.
 Release History
 ===============
 
+SPR-BKC-PC-V10.2
+----------------
+140. ACPI: Fix _EINJ vs EFI_MEMORY_SP (Dan Williams)
+
 SPR-BKC-PC-V10.1
 ----------------
 139. ACPI, APEI, EINJ: Refuse to inject into the zero page (Tony Luck)
