@@ -18,6 +18,10 @@ Use at your own risk.
 Release History
 ===============
 
+SPR-BKC-PC-V10.3
+----------------
+141. crypto: iax: Return only 0 or err val from iax_crypto_enable() (Tom Zanussi)
+
 SPR-BKC-PC-V10.2
 ----------------
 140. ACPI: Fix _EINJ vs EFI_MEMORY_SP (Dan Williams)
