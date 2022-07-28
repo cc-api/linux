@@ -4276,10 +4276,27 @@ static int tdx_servtd_bind(struct kvm *target_kvm, struct kvm_tdx_cmd *cmd)
 	return ret;
 }
 
-static int tdx_migration_info_set(struct kvm_tdx *tdx,
-				  struct kvm_tdx_mig_info *info,
+static void tdx_notify_servtd(struct kvm_tdx *tdx)
+{
+	struct kvm *kvm;
+	struct kvm_vcpu *vcpu;
+	unsigned long i;
+
+	kvm = &tdx->kvm;
+	kvm_for_each_vcpu(i, vcpu, kvm) {
+		if (vcpu->arch.mp_state == KVM_MP_STATE_HALTED) {
+			vcpu->arch.mp_state = KVM_MP_STATE_RUNNABLE;
+			kvm_vcpu_kick(vcpu);
+			printk("%s: wake up on vcpu\n", __func__);
+		}
+	}
+}
+
+static int tdx_migration_info_set(struct kvm_tdx_mig_info *info,
 				  struct tdx_binding_slot *slot)
 {
+	struct kvm_tdx *servtd_tdx = slot->servtd_tdx;
+
 	if (tdx_binding_slot_get_status(slot) !=
 	    TDX_BINDING_SLOT_STATUS_BOUND) {
 		pr_err("%s err: servtd not bound\n", __func__);
@@ -4289,6 +4306,7 @@ static int tdx_migration_info_set(struct kvm_tdx *tdx,
 	slot->vsock_port = info->vsock_port;
 	slot->is_src = info->is_src;
 	tdx_binding_slot_set_status(slot, TDX_BINDING_SLOT_STATUS_PREMIG_WAIT);
+	tdx_notify_servtd(servtd_tdx);
 	printk(KERN_EMERG"%s: binding slot status=%d\n",
 		__func__, tdx_binding_slot_get_status(slot));
 	return 0;
@@ -4299,7 +4317,6 @@ static int tdx_migration_info(struct kvm *kvm,
 			      bool set)
 {
 	struct kvm_tdx *target_tdx = to_kvm_tdx(kvm);
-	struct kvm_tdx *servtd_tdx = target_tdx->servtd_tdx;
 	struct kvm_tdx_mig_info info;
 	struct tdx_binding_slot *slot;
 
@@ -4312,7 +4329,7 @@ static int tdx_migration_info(struct kvm *kvm,
 		return -EINVAL;
 
 	slot = &target_tdx->binding_slots[KVM_TDX_SERVTD_TYPE_MIGTD];
-	if (set && tdx_migration_info_set(servtd_tdx, &info, slot))
+	if (set && tdx_migration_info_set(&info, slot))
 		return -EINVAL;
 	/*
 	 * For KVM_TDX_GET_MIGRATION_INFO, only status needs to be copied to
