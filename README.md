@@ -18,6 +18,10 @@ Use at your own risk.
 Release History
 ===============
 
+SPR-BKC-PC-V10.4
+----------------
+142. intel_th: pci: Add Sapphire Rapids PCH support (Alexander Shishkin)
+
 SPR-BKC-PC-V10.3
 ----------------
 141. crypto: iax: Return only 0 or err val from iax_crypto_enable() (Tom Zanussi)
