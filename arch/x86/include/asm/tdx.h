@@ -275,6 +275,8 @@ static inline u64 seamcall_retry(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
 
 #define TDH_PHYMEM_PAGE_RECLAIM		28
 #define TDH_PHYMEM_PAGE_WBINVD		41
+#define TDH_IOMMU_SETREG		128
+#define TDH_IOMMU_GETREG		129
 
 static inline u64 tdh_phymem_page_reclaim(u64 page,
 					  struct tdx_module_output *out)
@@ -287,6 +289,46 @@ static inline u64 tdh_phymem_page_wbinvd(u64 page)
 {
 	return seamcall_retry(TDH_PHYMEM_PAGE_WBINVD,
 			      page, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
+}
+
+static inline u64 tdh_iommu_setreg(u64 iommu_id, u64 reg, u64 val)
+{
+	u64 ret;
+
+        /*
+         * Input: RCX: iommu id
+         * Input: RDX: register id
+         * Input: R8:  register value
+         */
+	ret = seamcall_retry(TDH_IOMMU_SETREG, iommu_id, reg, val,
+			     0, 0, 0, 0, 0, 0, 0, NULL);
+
+	pr_info("%s: iommu_id 0x%llx reg 0x%llx val 0x%llx ret 0x%llx\n",
+		__func__, iommu_id, reg, val, ret);
+
+	return ret;
+}
+
+static inline u64 tdh_iommu_getreg(u64 iommu_id, u64 reg, u64 *val)
+{
+        struct tdx_module_output out;
+        u64 ret;
+
+	/*
+         * Input: RCX: iommu id
+         * Input: RDX: register id
+         * Output: R8: register value
+	 */
+	ret = seamcall_retry(TDH_IOMMU_GETREG, iommu_id, reg,
+			     0, 0, 0, 0, 0, 0, 0, 0, &out);
+
+	pr_info("%s: iommu_id 0x%llx reg 0x%llx val 0x%llx ret 0x%llx\n",
+		__func__, iommu_id, reg, out.r8, ret);
+
+	if (!ret)
+		*val = out.r8;
+
+        return ret;
 }
 
 #else	/* !CONFIG_INTEL_TDX_HOST */
@@ -327,7 +369,8 @@ static inline void tdx_reclaim_td_page(unsigned long td_page_pa) { }
 static inline u64 tdh_phymem_page_reclaim(u64 page,
 					  struct tdx_module_output *out) { return -EOPNOTSUPP; }
 static inline u64 tdh_phymem_page_wbinvd(u64 page) { return -EOPNOTSUPP; }
-
+static inline u64 tdh_iommu_setreg(u64 iommu_id, u64 reg, u64 val) { return 0; }
+static inline u64 tdh_iommu_getreg(u64 iommu_id, u64 reg, u64 *val) { return 0; }
 #endif	/* CONFIG_INTEL_TDX_HOST */
 
 #endif /* !__ASSEMBLY__ */
