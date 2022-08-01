@@ -40,7 +40,6 @@
 #define _XELPDP_USBC2_AUX_CH_DATA1      0x16F414
 #define _XELPDP_USBC3_AUX_CH_DATA1      0x16F614
 #define _XELPDP_USBC4_AUX_CH_DATA1      0x16F814
-
 #define XELPDP_DP_AUX_CH_DATA(aux_ch, i)	_MMIO(_PICK(aux_ch, \
 						       _DPA_AUX_CH_DATA1, \
 						       _DPB_AUX_CH_DATA1, \
@@ -54,7 +53,6 @@
 #define   DP_AUX_CH_CTL_DONE			REG_BIT(30)
 #define   DP_AUX_CH_CTL_INTERRUPT		REG_BIT(29)
 #define   DP_AUX_CH_CTL_TIME_OUT_ERROR		REG_BIT(28)
-
 #define   DP_AUX_CH_CTL_TIME_OUT_MASK		REG_GENMASK(27, 26)
 #define   DP_AUX_CH_CTL_TIME_OUT_400us		REG_FIELD_PREP(DP_AUX_CH_CTL_TIME_OUT_MASK, 0)
 #define   DP_AUX_CH_CTL_TIME_OUT_600us		REG_FIELD_PREP(DP_AUX_CH_CTL_TIME_OUT_MASK, 1)
@@ -82,5 +80,32 @@
 #define   DP_AUX_CH_CTL_FW_SYNC_PULSE_SKL(c)	REG_FIELD_PREP(DP_AUX_CH_CTL_FW_SYNC_PULSE_SKL_MASK, (c) - 1)
 #define   DP_AUX_CH_CTL_SYNC_PULSE_SKL_MASK	REG_GENMASK(4, 0) /* skl+ */
 #define   DP_AUX_CH_CTL_SYNC_PULSE_SKL(c)	REG_FIELD_PREP(DP_AUX_CH_CTL_SYNC_PULSE_SKL_MASK, (c) - 1)
+
+#define _XE2LPD_DPA_AUX_CH_CTL		0x16FA10
+#define _XE2LPD_DPB_AUX_CH_CTL		0x16FC10
+#define _XE2LPD_DPA_AUX_CH_DATA1	0x16FA14
+#define _XE2LPD_DPB_AUX_CH_DATA1	0x16FC14
+#define XE2LPD_DP_AUX_CH_CTL(aux_ch)		_MMIO(_PICK(aux_ch, \
+						       _XE2LPD_DPA_AUX_CH_CTL, \
+						       _XE2LPD_DPB_AUX_CH_CTL, \
+						       0, /* port/aux_ch C is non-existent */ \
+						       _XELPDP_USBC1_AUX_CH_CTL, \
+						       _XELPDP_USBC2_AUX_CH_CTL, \
+						       _XELPDP_USBC3_AUX_CH_CTL, \
+						       _XELPDP_USBC4_AUX_CH_CTL))
+#define XE2LPD_DP_AUX_CH_DATA(aux_ch, i)	_MMIO(_PICK(aux_ch, \
+						       _XE2LPD_DPA_AUX_CH_DATA1, \
+						       _XE2LPD_DPB_AUX_CH_DATA1, \
+						       0, /* port/aux_ch C is non-existent */ \
+						       _XELPDP_USBC1_AUX_CH_DATA1, \
+						       _XELPDP_USBC2_AUX_CH_DATA1, \
+						       _XELPDP_USBC3_AUX_CH_DATA1, \
+						       _XELPDP_USBC4_AUX_CH_DATA1) + (i) * 4)
+
+/* PICA Power Well Control register for Xe2 platforms*/
+#define XE2LPD_PICA_PW_CTL	_MMIO(0x16FE04)
+
+#define   XE2LPD_PICA_CTL_POWER_REQUEST BIT(31)
+#define   XE2LPD_PICA_CTL_POWER_STATUS  BIT(30)
 
 #endif /* __INTEL_DP_AUX_REGS_H__ */
