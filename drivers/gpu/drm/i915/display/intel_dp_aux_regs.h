@@ -50,6 +50,29 @@
 						       _XELPDP_USBC3_AUX_CH_DATA1, \
 						       _XELPDP_USBC4_AUX_CH_DATA1) + (i) * 4)
 
+#define _XE2LPD_DPA_AUX_CH_CTL		0x16FA10
+#define _XE2LPD_DPB_AUX_CH_CTL		0x16FC10
+#define _XE2LPD_DPA_AUX_CH_DATA1	0x16FA14
+#define _XE2LPD_DPB_AUX_CH_DATA1	0x16FC14
+
+#define XE2LPD_DP_AUX_CH_CTL(aux_ch)		_MMIO(_PICK(aux_ch, \
+						       _XE2LPD_DPA_AUX_CH_CTL, \
+						       _XE2LPD_DPB_AUX_CH_CTL, \
+						       0, /* port/aux_ch C is non-existent */ \
+						       _XELPDP_USBC1_AUX_CH_CTL, \
+						       _XELPDP_USBC2_AUX_CH_CTL, \
+						       _XELPDP_USBC3_AUX_CH_CTL, \
+						       _XELPDP_USBC4_AUX_CH_CTL))
+
+#define XE2LPD_DP_AUX_CH_DATA(aux_ch, i)	_MMIO(_PICK(aux_ch, \
+						       _XE2LPD_DPA_AUX_CH_DATA1, \
+						       _XE2LPD_DPB_AUX_CH_DATA1, \
+						       0, /* port/aux_ch C is non-existent */ \
+						       _XELPDP_USBC1_AUX_CH_DATA1, \
+						       _XELPDP_USBC2_AUX_CH_DATA1, \
+						       _XELPDP_USBC3_AUX_CH_DATA1, \
+						       _XELPDP_USBC4_AUX_CH_DATA1) + (i) * 4)
+
 #define   DP_AUX_CH_CTL_SEND_BUSY	    (1 << 31)
 #define   DP_AUX_CH_CTL_DONE		    (1 << 30)
 #define   DP_AUX_CH_CTL_INTERRUPT	    (1 << 29)
@@ -80,5 +103,11 @@
 #define   DP_AUX_CH_CTL_FW_SYNC_PULSE_SKL_MASK (0x1f << 5)
 #define   DP_AUX_CH_CTL_FW_SYNC_PULSE_SKL(c) (((c) - 1) << 5)
 #define   DP_AUX_CH_CTL_SYNC_PULSE_SKL(c)   ((c) - 1)
+
+/* PICA Power Well Control register for Xe2 platforms*/
+#define XE2LPD_PICA_PW_CTL	_MMIO(0x16FE04)
+
+#define   XE2LPD_PICA_CTL_POWER_REQUEST BIT(31)
+#define   XE2LPD_PICA_CTL_POWER_STATUS  BIT(30)
 
 #endif /* __INTEL_DP_AUX_REGS_H__ */
