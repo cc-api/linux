@@ -1484,7 +1484,16 @@ static int identify_page_state(unsigned long pfn, struct page *p,
 
 static int try_to_split_thp_page(struct page *page, const char *msg)
 {
+	struct page *head = compound_head(page);
+
 	lock_page(page);
+	/*
+	 * If thp page has private data attached, thp split will fail.
+	 * Release private data before split thp.
+	 */
+	if (page_has_private(head))
+		try_to_release_page(head, GFP_KERNEL);
+
 	if (unlikely(split_huge_page(page))) {
 		unsigned long pfn = page_to_pfn(page);
 
