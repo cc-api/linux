@@ -3,8 +3,8 @@ Purpose
 Provide (Pre-Silicon) Best Known Configuration (BKC) kernel for Emerald Rapids
 (EMR) customers.
 
-The BKC kernel is based on v5.19-rc4. New SPR feautre patches which are not
-in v5.19-rc4 are added to the BKC kernel.
+The BKC kernel is based on v5.19. New SPR feautre patches which are not
+in v5.19 are added to the BKC kernel.
 
 WARNING this kernel contains technology preview code that is
 subject to change once it goes upstream. This kernel is
@@ -15,6 +15,12 @@ Use at your own risk.
 
 Release History
 ===============
+
+EMR-BKC-v1.4
+------------
+15. TD migration fix (Wei Wang)
+16. 2M page and swiotlb related fix (Yuan Yao)
+17. Array BIST fix (Jithu Joseph)
 
 EMR-BKC-v1.3
 ------------
