@@ -4306,7 +4306,6 @@ static void tdx_notify_servtd(struct kvm_tdx *tdx)
 		if (vcpu->arch.mp_state == KVM_MP_STATE_HALTED) {
 			vcpu->arch.mp_state = KVM_MP_STATE_RUNNABLE;
 			kvm_vcpu_kick(vcpu);
-			printk("%s: wake up on vcpu\n", __func__);
 		}
 	}
 }
@@ -4563,8 +4562,6 @@ int tdx_module_setup(void)
 			pr_warn("TDX support less servtds than KVM\n");
 			return -EINVAL;
 		}
-		printk(KERN_EMERG"%s: max_servtds=%d\n",
-		       __func__, tdx_caps.max_servtds);
 	}
 
 	if (!memcpy(tdx_caps.cpuid_configs, tdsysinfo->cpuid_configs,
