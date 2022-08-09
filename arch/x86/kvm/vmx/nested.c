@@ -1378,6 +1378,7 @@ int vmx_set_vmx_msr(struct kvm_vcpu *vcpu, u32 msr_index, u64 data)
 	case MSR_IA32_VMX_PINBASED_CTLS:
 	case MSR_IA32_VMX_PROCBASED_CTLS:
 	case MSR_IA32_VMX_EXIT_CTLS:
+	case MSR_IA32_VMX_EXIT_CTLS2:
 	case MSR_IA32_VMX_ENTRY_CTLS:
 		/*
 		 * The "non-true" VMX capability MSRs are generated from the
@@ -1455,6 +1456,9 @@ int vmx_get_vmx_msr(struct nested_vmx_msrs *msrs, u32 msr_index, u64 *pdata)
 			msrs->exit_ctls_high);
 		if (msr_index == MSR_IA32_VMX_EXIT_CTLS)
 			*pdata |= VM_EXIT_ALWAYSON_WITHOUT_TRUE_MSR;
+		break;
+	case MSR_IA32_VMX_EXIT_CTLS2:
+		*pdata = msrs->secondary_exit_ctls;
 		break;
 	case MSR_IA32_VMX_TRUE_ENTRY_CTLS:
 	case MSR_IA32_VMX_ENTRY_CTLS:
@@ -1659,6 +1663,8 @@ static void copy_enlightened_to_vmcs12(struct vcpu_vmx *vmx, u32 hv_clean_fields
 		vmcs12->pin_based_vm_exec_control =
 			evmcs->pin_based_vm_exec_control;
 		vmcs12->vm_exit_controls = evmcs->vm_exit_controls;
+		vmcs12->secondary_vm_exit_controls =
+			evmcs->secondary_vm_exit_controls;
 		vmcs12->secondary_vm_exec_control =
 			evmcs->secondary_vm_exec_control;
 	}
@@ -1861,6 +1867,7 @@ static void copy_vmcs12_to_enlightened(struct vcpu_vmx *vmx)
 	 * evmcs->vmcs_link_pointer = vmcs12->vmcs_link_pointer;
 	 * evmcs->pin_based_vm_exec_control = vmcs12->pin_based_vm_exec_control;
 	 * evmcs->vm_exit_controls = vmcs12->vm_exit_controls;
+	 * evmcs->secondary_vm_exit_controls = vmcs12->secondary_vm_exit_controls;
 	 * evmcs->secondary_vm_exec_control = vmcs12->secondary_vm_exec_control;
 	 * evmcs->page_fault_error_code_mask =
 	 *		vmcs12->page_fault_error_code_mask;
@@ -2377,6 +2384,11 @@ static void prepare_vmcs02_early(struct vcpu_vmx *vmx, struct loaded_vmcs *vmcs0
 	else
 		exec_control &= ~VM_EXIT_LOAD_IA32_EFER;
 	vm_exit_controls_set(vmx, exec_control);
+
+	if (exec_control & VM_EXIT_ACTIVATE_SECONDARY_CONTROLS) {
+		exec_control = __secondary_vm_exit_controls_get(vmcs01);
+		secondary_vm_exit_controls_set(vmx, exec_control);
+	}
 
 	/*
 	 * Interrupt/Exception Fields
@@ -6786,12 +6798,16 @@ static void nested_vmx_setup_exit_ctls(struct vmcs_config *vmcs_conf,
 		VM_EXIT_HOST_ADDR_SPACE_SIZE |
 #endif
 		VM_EXIT_LOAD_IA32_PAT | VM_EXIT_SAVE_IA32_PAT |
-		VM_EXIT_CLEAR_BNDCFGS;
+		VM_EXIT_CLEAR_BNDCFGS | VM_EXIT_ACTIVATE_SECONDARY_CONTROLS;
 	msrs->exit_ctls_high |=
 		VM_EXIT_ALWAYSON_WITHOUT_TRUE_MSR |
 		VM_EXIT_LOAD_IA32_EFER | VM_EXIT_SAVE_IA32_EFER |
 		VM_EXIT_SAVE_VMX_PREEMPTION_TIMER | VM_EXIT_ACK_INTR_ON_EXIT |
 		VM_EXIT_LOAD_IA32_PERF_GLOBAL_CTRL;
+
+	/* secondary exit controls */
+	if (msrs->exit_ctls_high & VM_EXIT_ACTIVATE_SECONDARY_CONTROLS)
+		rdmsrl(MSR_IA32_VMX_EXIT_CTLS2, msrs->secondary_exit_ctls);
 
 	/* We support free control of debug control saving. */
 	msrs->exit_ctls_low &= ~VM_EXIT_SAVE_DEBUG_CONTROLS;

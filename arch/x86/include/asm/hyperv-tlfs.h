@@ -616,6 +616,7 @@ struct hv_enlightened_vmcs {
 	u64 host_ssp;
 	u64 host_ia32_int_ssp_table_addr;
 	u64 padding64_6;
+	u64 secondary_vm_exit_controls;
 } __packed;
 
 #define HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE			0

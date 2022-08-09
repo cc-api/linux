@@ -103,7 +103,10 @@
 	 VM_EXIT_LOAD_IA32_EFER |					\
 	 VM_EXIT_CLEAR_BNDCFGS |					\
 	 VM_EXIT_PT_CONCEAL_PIP |					\
-	 VM_EXIT_CLEAR_IA32_RTIT_CTL)
+	 VM_EXIT_CLEAR_IA32_RTIT_CTL |					\
+	 VM_EXIT_ACTIVATE_SECONDARY_CONTROLS)
+
+#define EVMCS1_SUPPORTED_VMEXIT_CTRL2 (0ULL)
 
 #define EVMCS1_SUPPORTED_VMENTRY_CTRL					\
 	(VM_ENTRY_ALWAYSON_WITHOUT_TRUE_MSR |				\
@@ -315,6 +318,8 @@ const struct evmcs_field vmcs_field_to_evmcs_1[] = {
 		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1),
 	EVMCS1_FIELD(VM_EXIT_CONTROLS, vm_exit_controls,
 		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1),
+	EVMCS1_FIELD(SECONDARY_VM_EXIT_CONTROLS, secondary_vm_exit_controls,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1),
 	EVMCS1_FIELD(SECONDARY_VM_EXEC_CONTROL, secondary_vm_exec_control,
 		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1),
 	EVMCS1_FIELD(GUEST_ES_LIMIT, guest_es_limit,
@@ -464,6 +469,7 @@ enum evmcs_revision {
 
 enum evmcs_ctrl_type {
 	EVMCS_EXIT_CTRLS,
+	EVMCS_2NDEXIT,
 	EVMCS_ENTRY_CTRLS,
 	EVMCS_EXEC_CTRL,
 	EVMCS_2NDEXEC,
@@ -476,6 +482,9 @@ enum evmcs_ctrl_type {
 static const u32 evmcs_supported_ctrls[NR_EVMCS_CTRLS][NR_EVMCS_REVISIONS] = {
 	[EVMCS_EXIT_CTRLS] = {
 		[EVMCSv1_LEGACY] = EVMCS1_SUPPORTED_VMEXIT_CTRL,
+	},
+	[EVMCS_2NDEXIT] = {
+		[EVMCSv1_LEGACY] = EVMCS1_SUPPORTED_VMEXIT_CTRL2,
 	},
 	[EVMCS_ENTRY_CTRLS] = {
 		[EVMCSv1_LEGACY] = EVMCS1_SUPPORTED_VMENTRY_CTRL,
@@ -539,6 +548,9 @@ void nested_evmcs_filter_control_msr(struct kvm_vcpu *vcpu, u32 msr_index, u64 *
 			supported_ctrls &= ~VM_EXIT_LOAD_IA32_PERF_GLOBAL_CTRL;
 		ctl_high &= supported_ctrls;
 		break;
+	case MSR_IA32_VMX_EXIT_CTLS2:
+		ctl_low &= evmcs_get_supported_ctls(EVMCS_2NDEXIT);
+		break;
 	case MSR_IA32_VMX_ENTRY_CTLS:
 	case MSR_IA32_VMX_TRUE_ENTRY_CTLS:
 		supported_ctrls = evmcs_get_supported_ctls(EVMCS_ENTRY_CTRLS);
@@ -587,6 +599,10 @@ int nested_evmcs_check_controls(struct vmcs12 *vmcs12)
 
 	if (CC(!nested_evmcs_is_valid_controls(EVMCS_EXIT_CTRLS,
 					       vmcs12->vm_exit_controls)))
+		return -EINVAL;
+
+	if (CC(!nested_evmcs_is_valid_controls(EVMCS_2NDEXIT,
+					       vmcs12->secondary_vm_exit_controls)))
 		return -EINVAL;
 
 	if (CC(!nested_evmcs_is_valid_controls(EVMCS_ENTRY_CTRLS,
