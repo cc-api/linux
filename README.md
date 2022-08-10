@@ -16,6 +16,12 @@ Use at your own risk.
 Release History
 ===============
 
+EMR-BKC-v1.5
+------------
+18. TD migration fix (Wei Wang)
+19. Intel TH (Alexander Shishkin)
+20. one Array BIST fix (Jithu Joseph)
+
 EMR-BKC-v1.4
 ------------
 15. TD migration fix (Wei Wang)
