@@ -170,6 +170,19 @@ struct tdsysinfo_struct {
 	DECLARE_FLEX_ARRAY(struct tdx_cpuid_config, cpuid_configs);
 } __packed;
 
+#include <linux/bug.h>
+static __always_inline int pg_level_to_tdx_sept_level(enum pg_level level)
+{
+	WARN_ON_ONCE(level == PG_LEVEL_NONE);
+	return level - 1;
+}
+
+#include <asm/processor.h>
+static __always_inline u64 set_hkid_to_hpa(u64 pa, u16 hkid)
+{
+	return pa | ((u64)hkid << boot_cpu_data.x86_phys_bits);
+}
+
 const struct tdsysinfo_struct *tdx_get_sysinfo(void);
 bool platform_tdx_enabled(void);
 int tdx_cpu_enable(void);
@@ -209,6 +222,9 @@ struct vmx_tdx_enabled {
 int vmxon_all(struct vmx_tdx_enabled *vmx_tdx);
 void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx);
 bool tdx_io_support(void);
+void tdx_clear_page(unsigned long page_pa, int size);
+int tdx_reclaim_page(unsigned long pa, enum pg_level level, bool do_wb, u16 hkid);
+void tdx_reclaim_td_page(unsigned long td_page_pa);
 
 /* Temp solution, copied from tdx_error.h */
 #define TDX_INTERRUPTED_RESUMABLE		0x8000000300000000ULL
@@ -257,6 +273,22 @@ static inline u64 seamcall_retry(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
 	return ret;
 }
 
+#define TDH_PHYMEM_PAGE_RECLAIM		28
+#define TDH_PHYMEM_PAGE_WBINVD		41
+
+static inline u64 tdh_phymem_page_reclaim(u64 page,
+					  struct tdx_module_output *out)
+{
+	return seamcall_retry(TDH_PHYMEM_PAGE_RECLAIM,
+			      page, 0, 0, 0, 0, 0, 0, 0, 0, 0, out);
+}
+
+static inline u64 tdh_phymem_page_wbinvd(u64 page)
+{
+	return seamcall_retry(TDH_PHYMEM_PAGE_WBINVD,
+			      page, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
+}
+
 #else	/* !CONFIG_INTEL_TDX_HOST */
 struct tdsysinfo_struct;
 static inline const struct tdsysinfo_struct *tdx_get_sysinfo(void) { return NULL; }
@@ -288,6 +320,14 @@ static inline u64 seamcall_retry(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
 {
 	return TDX_SEAMCALL_UD;
 }
+static inline void tdx_clear_page(unsigned long page_pa, int size) { }
+static inline int tdx_reclaim_page(unsigned long pa, enum pg_level level, bool do_wb,
+				   u16 hkid) { return -EOPNOTSUPP; }
+static inline void tdx_reclaim_td_page(unsigned long td_page_pa) { }
+static inline u64 tdh_phymem_page_reclaim(u64 page,
+					  struct tdx_module_output *out) { return -EOPNOTSUPP; }
+static inline u64 tdh_phymem_page_wbinvd(u64 page) { return -EOPNOTSUPP; }
+
 #endif	/* CONFIG_INTEL_TDX_HOST */
 
 #endif /* !__ASSEMBLY__ */
