@@ -273,6 +273,10 @@ static inline u64 seamcall_retry(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
 	return ret;
 }
 
+/* Export Intel-IOMMU registers for other components */
+#define DMAR_CONFIG_RP_REG	0x8000000B
+#define DMAR_CLEAR_RP_REG	0x8000000C
+
 #define TDH_PHYMEM_PAGE_RECLAIM		28
 #define TDH_PHYMEM_PAGE_WBINVD		41
 #define TDH_IOMMU_SETREG		128
