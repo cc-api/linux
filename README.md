@@ -16,6 +16,10 @@ Use at your own risk.
 Release History
 ===============
 
+EMR-BKC-v1.6
+------------
+21. RAS patch fix (Fengwei Yin)
+
 EMR-BKC-v1.5
 ------------
 18. TD migration fix (Wei Wang)
