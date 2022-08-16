@@ -141,6 +141,8 @@ struct kvm_tdx {
 	 */
 	spinlock_t binding_slot_lock;
 
+	u64 eptp_controls;
+
 	/* mutex for tdi bind */
 	struct mutex ttdi_mutex;
 	struct list_head ktiommu_list;
