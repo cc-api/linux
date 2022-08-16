@@ -2,11 +2,10 @@
 #ifndef _INTEL_PMT_CLASS_H
 #define _INTEL_PMT_CLASS_H
 
-#include <linux/xarray.h>
-#include <linux/types.h>
 #include <linux/bits.h>
 #include <linux/err.h>
 #include <linux/io.h>
+#include <linux/types.h>
 
 #include "../vsec.h"
 
@@ -17,6 +16,8 @@
 /* PMT discovery base address/offset register layout */
 #define GET_BIR(v)		((v) & GENMASK(2, 0))
 #define GET_ADDRESS(v)		((v) & GENMASK(31, 3))
+
+struct xarray;
 
 struct intel_pmt_entry {
 	struct bin_attribute	pmt_bin_attr;
