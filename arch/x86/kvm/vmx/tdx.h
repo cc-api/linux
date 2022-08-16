@@ -51,6 +51,20 @@ struct tdx_binding_slot {
 	struct tdx_binding_slot_migtd migtd_data;
 };
 
+struct tdx_iommu {
+	u64 iommu_id;
+
+	struct kref ref;
+	struct list_head node;
+};
+
+struct kvm_tdx_iommu {
+	struct tdx_iommu *tiommu;
+	struct kref ref;
+
+	struct list_head node;
+};
+
 #define SERVTD_SLOTS_MAX 32
 struct kvm_tdx {
 	struct kvm kvm;
@@ -129,6 +143,7 @@ struct kvm_tdx {
 
 	/* mutex for tdi bind */
 	struct mutex ttdi_mutex;
+	struct list_head ktiommu_list;
 	struct list_head ttdi_list;
 
 	u64 mmio_offset;
@@ -459,6 +474,7 @@ struct tdx_tdi {
 	u16 rid;
 
 	struct kvm_tdx *kvm_tdx;
+	struct tdx_iommu *tiommu;
 	struct pci_tdi *tdi;
 
 	struct list_head node;
