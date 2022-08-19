@@ -16,6 +16,12 @@ Use at your own risk.
 Release History
 ===============
 
+EMR-BKC-v1.7
+------------
+22. new EMR CPU model number support for PMU (Kan Liang)
+23. new EMR CPU model number support for RAPL and turbostat (Rui Zhang)
+24. one fix in TDX coredump (Isaku Yamahata)
+
 EMR-BKC-v1.6
 ------------
 21. RAS patch fix (Fengwei Yin)
