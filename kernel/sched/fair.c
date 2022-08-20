@@ -9515,15 +9515,15 @@ out:
 	return ret;
 }
 
-/* Called only if cpu_of(@rq) is not idle and has tasks running. */
-static void update_sg_lb_ipcc_stats(int dst_cpu, struct sg_lb_stats *sgs,
-				    struct rq *rq)
+/*
+ * Called only if cpu_of(@rq) is not idle and has tasks running and if the
+ * destination CPU is idle.
+ */
+static void update_sg_ilb_ipcc_stats(int dst_cpu, struct sg_lb_stats *sgs,
+				     struct rq *rq)
 {
 	unsigned int ipcc;
 	long score;
-
-	if (!sched_ipcc_enabled())
-		return;
 
 	if (rq_last_task_ipcc(dst_cpu, rq, &ipcc))
 		return;
@@ -9548,6 +9548,15 @@ static void update_sg_lb_ipcc_stats(int dst_cpu, struct sg_lb_stats *sgs,
 		sgs->min_score = score;
 		sgs->min_ipcc = ipcc;
 	}
+}
+
+static void update_sg_lb_ipcc_stats(int dst_cpu, struct sg_lb_stats *sgs,
+				    struct rq *rq)
+{
+	if (!sched_ipcc_enabled())
+		return;
+
+	update_sg_ilb_ipcc_stats(dst_cpu, sgs, rq);
 }
 
 static void update_sg_lb_stats_scores(struct sg_lb_stats *sgs,
