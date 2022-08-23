@@ -9673,6 +9673,9 @@ static void update_sg_ilb_ipcc_stats(int dst_cpu, struct sg_lb_stats *sgs,
 	unsigned int ipcc;
 	long score;
 
+	if (!sched_ipcc_idle_lb_enabled())
+		return;
+
 	if (rq_last_task_ipcc(dst_cpu, rq, &ipcc))
 		return;
 
@@ -9702,6 +9705,9 @@ static void update_sg_busy_ipcc_stats(struct sg_lb_stats *sgs, int dst_cpu,
 				      struct rq *rq)
 {
 	long score_on_dst_cpu, score_on_src_cpu = 0;
+
+	if (!sched_ipcc_busy_lb_enabled())
+		return;
 
 	/* TODO: Handle returned errors. */
 	score_on_dst_cpu = arch_get_ipcc_score(rq->curr->ipcc, dst_cpu);
@@ -9746,6 +9752,9 @@ static void update_sg_lb_stats_scores(struct sg_lb_stats *sgs,
 	int busy_cpus;
 
 	if (!sched_ipcc_enabled())
+		return;
+
+	if (!sched_ipcc_idle_lb_enabled())
 		return;
 
 	/* The IPCC statistics of this group are invalid. */
@@ -9809,6 +9818,9 @@ static bool sched_asym_ipcc_prefer(struct sg_lb_stats *a,
 				   struct sg_lb_stats *b)
 {
 	if (!sched_ipcc_enabled())
+		return false;
+
+	if (!sched_ipcc_idle_lb_enabled())
 		return false;
 
 	/* @a increases overall throughput after load balance. */
@@ -9956,6 +9968,11 @@ static int migrate_swap_stop2(void *data)
 }
 
 #endif /* CONFIG_IPC_CLASSES */
+
+#ifdef CONFIG_SCHED_DEBUG
+DEFINE_STATIC_KEY_FALSE(sched_ipcc_debug_idle_lb);
+DEFINE_STATIC_KEY_FALSE(sched_ipcc_debug_busy_lb);
+#endif
 
 /**
  * sched_use_asym_prio - Check whether asym_packing priority must be used
@@ -10195,7 +10212,8 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 	 * throughput if they have higher priority than those on
 	 * already on the dst CPU.
 	 */
-	if (sched_ipcc_enabled() && !local_group && env->idle == CPU_NOT_IDLE &&
+	if (sched_ipcc_busy_lb_enabled() &&
+	    sched_ipcc_enabled() && !local_group && env->idle == CPU_NOT_IDLE &&
 	    sched_group_has_misfit_ipcc(env, sgs, &sds->local_stat))
 		sgs->group_misfit_ipc_classes = 1;
 
@@ -11570,7 +11588,8 @@ static int should_we_balance(struct lb_env *env)
 	 * task from the busiest queue if doing so increaes throughput due to
 	 * differences in instructions-per-cycle among CPUs.
 	 */
-	if (sched_ipcc_enabled() && env->idle == CPU_NOT_IDLE)
+	if (sched_ipcc_busy_lb_enabled() &&
+	    sched_ipcc_enabled() && env->idle == CPU_NOT_IDLE)
 		return 1;
 
 	/*
@@ -11957,7 +11976,8 @@ get_sd_balance_interval(struct sched_domain *sd, int cpu_busy)
 	 * busy CPU do load balancing. It may want to swap tasks with other
 	 * CPUs that have classes of tasks of higher priority.
 	 */
-	if (!sched_ipcc_enabled() && cpu_busy)
+	if (!sched_ipcc_busy_lb_enabled() &&
+	    !sched_ipcc_enabled() && cpu_busy)
 		interval *= sd->busy_factor;
 
 	/* scale ms to jiffies */
