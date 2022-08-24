@@ -276,7 +276,7 @@ static void do_user_control_protection_fault(struct pt_regs *regs,
 	cond_local_irq_disable(regs);
 }
 #else
-static void do_user_control_protection_fault(struct pt_regs *regs,
+static inline void do_user_control_protection_fault(struct pt_regs *regs,
 					     unsigned long error_code) {}
 #endif
 
@@ -333,7 +333,7 @@ static int __init ibt_setup(char *str)
 
 __setup("ibt=", ibt_setup);
 #else
-static void do_kernel_control_protection_fault(struct pt_regs *regs)
+static inline void do_kernel_control_protection_fault(struct pt_regs *regs)
 {
 }
 #endif /* CONFIG_X86_KERNEL_IBT */
