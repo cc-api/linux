@@ -153,6 +153,7 @@ KVM_X86_OP_OPTIONAL_RET0(vcpu_get_apicv_inhibit_reasons);
 KVM_X86_OP(check_processor_compatibility)
 KVM_X86_OP_OPTIONAL(svmm_get)
 KVM_X86_OP_OPTIONAL(svmm_put)
+KVM_X86_OP(ioasid_bind)
 
 #undef KVM_X86_OP
 #undef KVM_X86_OP_OPTIONAL

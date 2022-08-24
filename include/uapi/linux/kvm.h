@@ -882,6 +882,12 @@ struct kvm_guest_debug {
 	struct kvm_guest_debug_arch arch;
 };
 
+struct kvm_bind_pasid {
+	__u32 spid;
+	__u32 id;
+	bool bind;
+};
+
 enum {
 	kvm_ioeventfd_flag_nr_datamatch,
 	kvm_ioeventfd_flag_nr_pio,
@@ -2308,5 +2314,7 @@ struct kvm_map_gpa {
 };
 
 #define KVM_MAP_GPA	_IOW(KVMIO,  0xd2, struct kvm_map_gpa)
+
+#define KVM_BIND_PASID  _IOW(KVMIO,  0xd3, struct kvm_bind_pasid)
 
 #endif /* __LINUX_KVM_H */
