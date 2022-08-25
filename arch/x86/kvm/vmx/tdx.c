@@ -2098,6 +2098,13 @@ static int tdx_handle_service(struct kvm_vcpu *vcpu)
 	enum tdvmcall_service_id service_id;
 	bool need_block = false;
 	int ret = 1;
+	unsigned long tdvmcall_ret = TDG_VP_VMCALL_INVALID_OPERAND;
+
+	if ((nvector > 0 && nvector < 32) || nvector > 255)  {
+		pr_warn("%s: interrupt not supported, nvector %lld\n",
+			__func__, nvector);
+		goto err_cmd;
+	}
 
 	if (kvm_mem_is_private(kvm, gpa_to_gfn(cmd_gpa)) ||
 	    kvm_mem_is_private(kvm, gpa_to_gfn(resp_gpa))) {
@@ -2144,6 +2151,7 @@ static int tdx_handle_service(struct kvm_vcpu *vcpu)
 	} else {
 		/* Update the guest status buf and free the host buf */
 		tdvmcall_status_copy_and_free(resp_buf, vcpu, resp_gpa);
+		tdvmcall_ret = TDG_VP_VMCALL_SUCCESS;
 	}
 
 err_status:
@@ -2151,6 +2159,9 @@ err_status:
 	if (need_block && !nvector)
 		return kvm_emulate_halt_noskip(vcpu);
 err_cmd:
+	if (ret)
+		tdvmcall_set_return_code(vcpu, tdvmcall_ret);
+
 	return ret;
 }
 
