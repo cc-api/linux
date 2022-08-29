@@ -576,6 +576,10 @@ struct device_physical_location {
 	bool lid;
 };
 
+#define MODE_UNAUTHORIZED	0
+#define MODE_SHARED		1
+#define MODE_SECURE		2
+
 /**
  * struct device - The basic device structure
  * @parent:	The device's "parent" device, the device to which it is attached.
@@ -760,7 +764,7 @@ struct device {
 
 	enum device_removable	removable;
 
-	bool			authorized:1;
+	int			authorized;
 	bool			authorizable:1;
 	bool			offline_disabled:1;
 	bool			offline:1;
@@ -1207,7 +1211,7 @@ extern int (*platform_notify)(struct device *dev);
 
 extern int (*platform_notify_remove)(struct device *dev);
 
-extern bool dev_authorized_init(void);
+extern int dev_authorized_init(void);
 
 /*
  * get_device - atomically increment the reference count for the device.
@@ -1248,6 +1252,6 @@ __printf(3, 4) int dev_err_probe(const struct device *dev, int err, const char *
 #define MODULE_ALIAS_CHARDEV_MAJOR(major) \
 	MODULE_ALIAS("char-major-" __stringify(major) "-*")
 
-bool arch_dev_authorized(struct device *dev);
+int arch_dev_authorized(struct device *dev);
 
 #endif /* _DEVICE_H_ */
