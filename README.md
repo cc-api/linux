@@ -16,6 +16,20 @@ Use at your own risk.
 Release History
 ===============
 
+EMR-BKC-v1.8
+------------
+25. Some compile issue fixes (Chenyi Qiang and Wei Wang)
+26. Enumerate architectual split lock (Fenghua Yu)
+27. IDXD/SIOV support and some fixes (Fenghua Yu)
+28. venqcmd support (Yi Sun)
+29. Huge page split fix (Yuan Yao)
+30. Array BIST fix (Jithu Joseph)
+31. SGX AEX Notify support (Dave Hansen and Kai Huang)
+32. TD preserving fix (Chao Gao)
+33. TD attestation fix (Kuppuswamy Sathyanarayanan)
+34. Device pass-thru fix (Chenyi Qiang)
+35. Add IDXD/SIOV related and ACPI_PFRUT kconfig in EMR-BKC-v2.config (Chenyi Qiang)
+
 EMR-BKC-v1.7
 ------------
 22. new EMR CPU model number support for PMU (Kan Liang)
