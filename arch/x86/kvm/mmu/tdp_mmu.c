@@ -1466,8 +1466,9 @@ static int tdp_mmu_unzap_large_spte(
 }
 
 static int tdp_mmu_split_pivate_huge_page(struct kvm_vcpu *vcpu,
-                                         struct tdp_iter *iter,
-                                         struct kvm_page_fault *fault)
+					  struct tdp_iter *iter,
+					  struct kvm_page_fault *fault,
+					  bool shared)
 {
        struct kvm_mmu_page *sp;
        int ret = -EBUSY;
@@ -1479,7 +1480,7 @@ static int tdp_mmu_split_pivate_huge_page(struct kvm_vcpu *vcpu,
                        break;
                if (!is_large_pte(iter->old_spte))
                        break;
-               ret = tdp_mmu_split_huge_page(vcpu->kvm, iter, sp, true);
+               ret = tdp_mmu_split_huge_page(vcpu->kvm, iter, sp, shared);
        }
 
        if (ret)
@@ -1549,8 +1550,9 @@ int kvm_tdp_mmu_map(struct kvm_vcpu *vcpu, struct kvm_page_fault *fault)
 		if (is_shadow_present_pte(iter.old_spte) &&
 		    is_large_pte(iter.old_spte)) {
 			if (is_private) {
-				if (tdp_mmu_split_pivate_huge_page(vcpu, &iter, fault))
-					break;
+				tdp_mmu_split_pivate_huge_page(vcpu, &iter,
+							       fault, true);
+				break;
 			} else {
 				if (tdp_mmu_zap_spte_atomic(vcpu->kvm, &iter))
 					break;
