@@ -89,11 +89,8 @@ static bool authorized_node_match(struct device *dev,
 
 
 	/* If bus matches "ALL" and dev_list is NULL, return true */
-	if (!strcmp(node->bus, "ALL") && !node->dev_list) {
-		if (dev_is_pci(dev))
-			to_pci_dev(dev)->error_state = pci_channel_io_normal;
+	if (!strcmp(node->bus, "ALL") && !node->dev_list)
 		return true;
-	}
 
 	/*
 	 * Since next step involves bus specific comparison, make
@@ -104,11 +101,8 @@ static bool authorized_node_match(struct device *dev,
 		return false;
 
 	/* If dev_list is NULL, allow all and return true */
-	if (!node->dev_list) {
-		if (dev_is_pci(dev))
-			 to_pci_dev(dev)->error_state = pci_channel_io_normal;
+	if (!node->dev_list)
 		return true;
-	}
 
 	/*
 	 * Do bus specific device ID match. Currently only PCI
@@ -116,10 +110,9 @@ static bool authorized_node_match(struct device *dev,
 	 */
 	if (dev_is_pci(dev)) {
 		if (pci_match_id((struct pci_device_id *)node->dev_list,
-				 to_pci_dev(dev))) {
-			to_pci_dev(dev)->error_state = pci_channel_io_normal;
+				 to_pci_dev(dev)))
 			return true;
-		}
+
 		/*
 		 * Prevent any config space accesses in initcalls.
 		 * No locking needed here because it's a fresh device.
