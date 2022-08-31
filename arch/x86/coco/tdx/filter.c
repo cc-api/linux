@@ -144,6 +144,19 @@ static bool authorized_node_match(struct device *dev,
 	return false;
 }
 
+static void fixup_unauthorized_device(struct device *dev)
+{
+	/*
+	 * Prevent any config space accesses in initcalls.
+	 * No locking needed here because it's a fresh device.
+	 */
+	if (dev_is_pci(dev)) {
+		struct pci_dev *pdev = to_pci_dev(dev);
+		if (pci_pcie_type(pdev) != PCI_EXP_TYPE_ROOT_PORT)
+			pdev->error_state = pci_channel_io_perm_failure;
+	}
+}
+
 static struct pci_device_id *parse_pci_id(char *ids)
 {
 	unsigned int subdevice = PCI_ANY_ID, class = 0, class_mask = 0;
@@ -249,6 +262,8 @@ bool arch_dev_authorized(struct device *dev)
 		if (authorized_node_match(dev, &cmd_allowed_nodes[i]))
 			return true;
 	}
+
+	fixup_unauthorized_device(dev);
 
 	return false;
 }
