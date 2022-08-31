@@ -22,6 +22,7 @@
 #include <linux/bitfield.h>
 #include <linux/xarray.h>
 #include <linux/perf_event.h>
+#include <uapi/linux/iommufd.h>
 
 #include <asm/cacheflush.h>
 #include <asm/iommu.h>
@@ -835,6 +836,24 @@ static inline int nr_pte_to_next_page(struct dma_pte *pte)
 static inline bool context_present(struct context_entry *context)
 {
 	return (context->lo & 1);
+}
+
+static inline bool intel_iommu_user_data_valid(const void *data, size_t length,
+					       size_t real_size)
+{
+	const char *bytes = data;
+	int i;
+
+	if (!data || length <= real_size)
+		return false;
+
+	/* check for trailing zeros */
+	for (i = real_size; i < length; i++) {
+		if (bytes[i])
+			return false;
+	}
+
+	return true;
 }
 
 struct dmar_drhd_unit *dmar_find_matched_drhd_unit(struct pci_dev *dev);
