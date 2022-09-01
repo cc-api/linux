@@ -391,6 +391,13 @@ static void setup_uintr(struct cpuinfo_x86 *c)
 	if (!cpu_has(c, X86_FEATURE_UINTR))
 		goto disable_uintr;
 
+	/* Confirm XSAVE support for UINTR is present.
+	if (!cpu_has_xfeatures(XFEATURE_MASK_UINTR, NULL)) {
+		pr_info_once("x86: User Interrupts (UINTR) not enabled. XSAVE support for UINTR is missing.\n");
+		goto clear_uintr_cap;
+	}
+	   Skip this check for now since xfeatures initialization has been delayed */
+
 	/*
 	 * User Interrupts currently doesn't support PTI. For processors that
 	 * support User interrupts PTI in auto mode will default to off.  Need
