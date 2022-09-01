@@ -64,11 +64,11 @@ static int tdx_get_caps(void)
 	}
 
 	tdx_caps.tdcs_nr_pages = tdsysinfo->tdcs_base_size / PAGE_SIZE;
-	if (tdx_caps.tdcs_nr_pages != TDX_NR_TDCX_PAGES)
+	if (tdx_caps.tdcs_nr_pages > TDX_NR_TDCX_PAGES)
 		return -EIO;
 
 	tdx_caps.tdvpx_nr_pages = tdsysinfo->tdvps_base_size / PAGE_SIZE - 1;
-	if (tdx_caps.tdvpx_nr_pages != TDX_NR_TDVPX_PAGES)
+	if (tdx_caps.tdvpx_nr_pages > TDX_NR_TDVPX_PAGES)
 		return -EIO;
 
 	tdx_caps.attrs_fixed0 = tdsysinfo->attributes_fixed0;

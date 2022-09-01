@@ -210,10 +210,10 @@ enum tdx_tdcs_execution_control {
 /* @field is any of enum tdx_tdcs_execution_control */
 #define TDCS_EXEC(field)	BUILD_TDX_FIELD(17, (field))
 
-#define TDX_NR_TDCX_PAGES		4
-#define TDX_NR_TDVPX_PAGES		5
+#define TDX_NR_TDCX_PAGES		10
+#define TDX_NR_TDVPX_PAGES		10
 
-#define TDX_MAX_NR_CPUID_CONFIGS	6
+#define TDX_MAX_NR_CPUID_CONFIGS	10
 #define TDX_MAX_NR_CMRS			32
 #define TDX_MAX_NR_TDMRS		64
 #define TDX_MAX_NR_RSVD_AREAS		16
