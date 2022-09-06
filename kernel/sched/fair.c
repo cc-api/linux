@@ -9186,6 +9186,8 @@ struct sg_lb_stats {
 	long min_score; /* Min(score(list_last_entry(rq))) */
 	unsigned int min_ipcc; /* Min(class(list_last_entry(rq))) */
 	long sum_score; /* Sum(score(list_last_entry(rq))) */
+	long ipcc_score_after; /* Prospective IPCC score after load balancing */
+	long ipcc_score_before; /* IPCC score before load balancing */
 #endif
 };
 
@@ -9532,6 +9534,65 @@ static void update_sg_lb_ipcc_stats(int dst_cpu, struct sg_lb_stats *sgs,
 	}
 }
 
+static void update_sg_lb_stats_scores(struct sg_lb_stats *sgs,
+				      struct sched_group *sg,
+				      struct lb_env *env)
+{
+	long score_on_dst_cpu, before, after;
+	int busy_cpus;
+
+	if (!sched_ipcc_enabled())
+		return;
+
+	/* The IPCC statistics of this group are invalid. */
+	if (sgs->sum_score < 0)
+		return;
+
+	/*
+	 * IPCC scores are only useful during idle load balancing. For now,
+	 * only asym_packing uses IPCC scores.
+	 */
+	if (!(env->sd->flags & SD_ASYM_PACKING) ||
+	    env->idle == CPU_NOT_IDLE)
+		return;
+
+	/*
+	 * IPCC scores are used to break ties only between these types of
+	 * groups.
+	 */
+	if (sgs->group_type != group_fully_busy &&
+	    sgs->group_type != group_asym_packing)
+		return;
+
+	busy_cpus = sgs->group_weight - sgs->idle_cpus;
+
+	/* No busy CPUs in the group. No tasks to move. */
+	if (!busy_cpus)
+		return;
+
+	score_on_dst_cpu = arch_get_ipcc_score(sgs->min_ipcc, env->dst_cpu);
+
+	/*
+	 * Do not use IPC scores. sgs::ipcc_score_{after, before} will be zero
+	 * and not used.
+	 */
+	if (score_on_dst_cpu < 0)
+		return;
+
+	before = sgs->sum_score;
+	after = before - sgs->min_score;
+
+	/* SMT siblings share throughput. */
+	if (busy_cpus > 1 && sg->flags & SD_SHARE_CPUCAPACITY) {
+		before /= busy_cpus;
+		/* One sibling will become idle after load balance. */
+		after /= busy_cpus - 1;
+	}
+
+	sgs->ipcc_score_after = after + score_on_dst_cpu;
+	sgs->ipcc_score_before = before;
+}
+
 #else /* CONFIG_IPC_CLASSES */
 static void update_sg_lb_ipcc_stats(int dst_cpu, struct sg_lb_stats *sgs,
 				    struct rq *rq)
@@ -9541,6 +9602,13 @@ static void update_sg_lb_ipcc_stats(int dst_cpu, struct sg_lb_stats *sgs,
 static void init_rq_ipcc_stats(struct sg_lb_stats *sgs)
 {
 }
+
+static void update_sg_lb_stats_scores(struct sg_lb_stats *sgs,
+				      struct sched_group *sg,
+				      struct lb_env *env)
+{
+}
+
 #endif /* CONFIG_IPC_CLASSES */
 
 /**
@@ -9768,6 +9836,9 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 		sgs->group_smt_balance = 1;
 
 	sgs->group_type = group_classify(env->sd->imbalance_pct, group, sgs);
+
+	if (!local_group)
+		update_sg_lb_stats_scores(sgs, group, env);
 
 	/* Computing avg_load makes sense only when group is overloaded */
 	if (sgs->group_type == group_overloaded)
