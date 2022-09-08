@@ -272,6 +272,10 @@ struct apic {
 	void	(*send_IPI_all)(int vector);
 	void	(*send_IPI_self)(int vector);
 
+	/* User Interrupt specific function */
+	/* Check: Is ndst the right name? */
+	void	(*send_UINTR)(u32 ndst, int vector);
+
 	enum apic_delivery_modes delivery_mode;
 
 	u32	disable_esr		: 1,
