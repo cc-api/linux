@@ -4658,6 +4658,11 @@ static void intel_iommu_get_resv_regions(struct device *device,
 	list_add_tail(&reg->list, head);
 }
 
+/*
+ *  A TDX connect fix for intel_iommu_enable_pasid is needed but it is not
+ *  added now
+ */
+
 static struct iommu_group *intel_iommu_device_group(struct device *dev)
 {
 	if (dev_is_pci(dev))
