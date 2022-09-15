@@ -1451,6 +1451,9 @@ static const u32 msrs_to_save_base[] = {
 	MSR_STAR,
 #ifdef CONFIG_X86_64
 	MSR_CSTAR, MSR_KERNEL_GS_BASE, MSR_SYSCALL_MASK, MSR_LSTAR,
+	MSR_IA32_FRED_RSP0, MSR_IA32_FRED_RSP1, MSR_IA32_FRED_RSP2,
+	MSR_IA32_FRED_RSP3, MSR_IA32_FRED_STKLVLS, MSR_IA32_FRED_SSP1,
+	MSR_IA32_FRED_SSP2, MSR_IA32_FRED_SSP3, MSR_IA32_FRED_CONFIG,
 #endif
 	MSR_IA32_TSC, MSR_IA32_CR_PAT, MSR_VM_HSAVE_PA,
 	MSR_IA32_FEAT_CTL, MSR_IA32_BNDCFGS, MSR_TSC_AUX,
@@ -1890,6 +1893,16 @@ static int __kvm_set_msr(struct kvm_vcpu *vcpu, u32 index, u64 data,
 
 		data = (u32)data;
 		break;
+	case MSR_IA32_FRED_RSP0 ... MSR_IA32_FRED_CONFIG:
+		if (host_initiated || guest_cpuid_has(vcpu, X86_FEATURE_FRED))
+			break;
+
+		/*
+		 * Inject #GP upon FRED MSRs accesses from a non-FRED guest to
+		 * make sure no malicious guest can write to FRED MSRs thus to
+		 * corrupt host FRED MSRs.
+		 */
+		return 1;
 	}
 
 	msr.data = data;
@@ -1933,6 +1946,16 @@ int __kvm_get_msr(struct kvm_vcpu *vcpu, u32 index, u64 *data,
 		    !guest_cpuid_has(vcpu, X86_FEATURE_RDPID))
 			return 1;
 		break;
+	case MSR_IA32_FRED_RSP0 ... MSR_IA32_FRED_CONFIG:
+		if (host_initiated || guest_cpuid_has(vcpu, X86_FEATURE_FRED))
+			break;
+
+		/*
+		 * Inject #GP upon FRED MSRs accesses from a non-FRED guest to
+		 * make sure no malicious guest can write to FRED MSRs thus to
+		 * corrupt host FRED MSRs.
+		 */
+		return 1;
 	}
 
 	msr.index = index;
