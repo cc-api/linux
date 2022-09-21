@@ -118,7 +118,6 @@ static void idxd_file_dev_release(struct device *dev)
 {
 	struct idxd_user_context *ctx = dev_to_uctx(dev);
 	struct idxd_wq *wq = ctx->wq;
-	struct idxd_cdev *idxd_cdev = wq->idxd_cdev;
 	struct idxd_device *idxd = wq->idxd;
 	int rc;
 
