@@ -84,7 +84,7 @@ void tdx_accept_memory(phys_addr_t start, phys_addr_t end)
 	int i;
 
 	if (__tdx_hypercall(TDX_HYPERCALL_STANDARD, TDVMCALL_MAP_GPA,
-			    start, end, 0, 0, &outl)) {
+			    start, end - start, 0, 0, &outl)) {
 		error("Cannot accept memory: MapGPA failed\n");
 	}
 
