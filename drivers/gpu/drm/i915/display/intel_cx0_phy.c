@@ -29,7 +29,7 @@
 
 bool intel_is_c10phy(struct drm_i915_private *i915, enum phy phy)
 {
-	if (IS_METEORLAKE(i915) && (phy < PHY_C))
+	if (DISPLAY_VER(i915) >= 14 && !IS_DGFX(i915) && (phy < PHY_C))
 		return true;
 
 	return false;
