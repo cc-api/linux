@@ -6,13 +6,15 @@
 #ifndef __INTEL_CX0_PHY_REGS_H__
 #define __INTEL_CX0_PHY_REGS_H__
 
+#include "i915_drv.h"
 #include "i915_reg_defs.h"
+#include "intel_display_limits.h"
 
 #define _XELPDP_PORT_M2P_MSGBUS_CTL_LN0_A		0x64040
 #define _XELPDP_PORT_M2P_MSGBUS_CTL_LN0_B		0x64140
 #define _XELPDP_PORT_M2P_MSGBUS_CTL_LN0_USBC1		0x16F240
 #define _XELPDP_PORT_M2P_MSGBUS_CTL_LN0_USBC2		0x16F440
-#define XELPDP_PORT_M2P_MSGBUS_CTL(port, lane)		_MMIO(_PICK_EVEN_2RANGES(port, PORT_TC1, \
+#define XELPDP_PORT_M2P_MSGBUS_CTL(idx, lane)		_MMIO(_PICK_EVEN_2RANGES(idx, PORT_TC1, \
 										 _XELPDP_PORT_M2P_MSGBUS_CTL_LN0_A, \
 										 _XELPDP_PORT_M2P_MSGBUS_CTL_LN0_B, \
 										 _XELPDP_PORT_M2P_MSGBUS_CTL_LN0_USBC1, \
@@ -27,7 +29,7 @@
 #define   XELPDP_PORT_M2P_TRANSACTION_RESET		REG_BIT(15)
 #define   XELPDP_PORT_M2P_ADDRESS_MASK			REG_GENMASK(11, 0)
 #define   XELPDP_PORT_M2P_ADDRESS(val)			REG_FIELD_PREP(XELPDP_PORT_M2P_ADDRESS_MASK, val)
-#define XELPDP_PORT_P2M_MSGBUS_STATUS(port, lane)	_MMIO(_PICK_EVEN_2RANGES(port, PORT_TC1, \
+#define XELPDP_PORT_P2M_MSGBUS_STATUS(idx, lane)	_MMIO(_PICK_EVEN_2RANGES(idx, PORT_TC1, \
 										 _XELPDP_PORT_M2P_MSGBUS_CTL_LN0_A, \
 										 _XELPDP_PORT_M2P_MSGBUS_CTL_LN0_B, \
 										 _XELPDP_PORT_M2P_MSGBUS_CTL_LN0_USBC1, \
@@ -54,7 +56,7 @@
 #define _XELPDP_PORT_BUF_CTL1_LN0_B			0x64104
 #define _XELPDP_PORT_BUF_CTL1_LN0_USBC1			0x16F200
 #define _XELPDP_PORT_BUF_CTL1_LN0_USBC2			0x16F400
-#define XELPDP_PORT_BUF_CTL1(port)			_MMIO(_PICK_EVEN_2RANGES(port, PORT_TC1, \
+#define XELPDP_PORT_BUF_CTL1(idx)			_MMIO(_PICK_EVEN_2RANGES(idx, PORT_TC1, \
 										 _XELPDP_PORT_BUF_CTL1_LN0_A, \
 										 _XELPDP_PORT_BUF_CTL1_LN0_B, \
 										 _XELPDP_PORT_BUF_CTL1_LN0_USBC1, \
@@ -75,7 +77,7 @@
 #define   XELPDP_PORT_WIDTH_MASK			REG_GENMASK(3, 1)
 #define   XELPDP_PORT_WIDTH(val)			REG_FIELD_PREP(XELPDP_PORT_WIDTH_MASK, val)
 
-#define XELPDP_PORT_BUF_CTL2(port)			_MMIO(_PICK_EVEN_2RANGES(port, PORT_TC1, \
+#define XELPDP_PORT_BUF_CTL2(idx)			_MMIO(_PICK_EVEN_2RANGES(idx, PORT_TC1, \
 										 _XELPDP_PORT_BUF_CTL1_LN0_A, \
 										 _XELPDP_PORT_BUF_CTL1_LN0_B, \
 										 _XELPDP_PORT_BUF_CTL1_LN0_USBC1, \
@@ -95,7 +97,7 @@
 #define   XELPDP_POWER_STATE_READY_MASK			REG_GENMASK(7, 4)
 #define   XELPDP_POWER_STATE_READY(val)			REG_FIELD_PREP(XELPDP_POWER_STATE_READY_MASK, val)
 
-#define XELPDP_PORT_BUF_CTL3(port)			_MMIO(_PICK_EVEN_2RANGES(port, PORT_TC1, \
+#define XELPDP_PORT_BUF_CTL3(idx)			_MMIO(_PICK_EVEN_2RANGES(idx, PORT_TC1, \
 										 _XELPDP_PORT_BUF_CTL1_LN0_A, \
 										 _XELPDP_PORT_BUF_CTL1_LN0_B, \
 										 _XELPDP_PORT_BUF_CTL1_LN0_USBC1, \
@@ -114,7 +116,7 @@
 #define _XELPDP_PORT_CLOCK_CTL_B			0x641E0
 #define _XELPDP_PORT_CLOCK_CTL_USBC1			0x16F260
 #define _XELPDP_PORT_CLOCK_CTL_USBC2			0x16F460
-#define XELPDP_PORT_CLOCK_CTL(port)			_MMIO(_PICK_EVEN_2RANGES(port, PORT_TC1, \
+#define XELPDP_PORT_CLOCK_CTL(idx)			_MMIO(_PICK_EVEN_2RANGES(idx, PORT_TC1, \
 										 _XELPDP_PORT_CLOCK_CTL_A, \
 										 _XELPDP_PORT_CLOCK_CTL_B, \
 										 _XELPDP_PORT_CLOCK_CTL_USBC1, \
@@ -217,5 +219,62 @@
 #define C20_PHY_VSWING_PREEMPH(val)	REG_FIELD_PREP8(C20_PHY_VSWING_PREEMPH_MASK, val)
 
 #define RAWLANEAONX_DIG_TX_MPLLB_CAL_DONE_BANK(idx) (0x303D + (idx))
+
+/*
+ * All registers are in the same IP, with a single range.  However the registers
+ * for TC_PORT come first.
+ */
+static inline enum port xe2lpd_port_idx(enum port port)
+{
+        return port >= PORT_TC1 ? port : PORT_TC4 + 1 + port - PORT_A;
+}
+
+static inline i915_reg_t xelpdp_port_clock_ctl_reg(struct drm_i915_private *i915,
+                                                   enum port port)
+{
+        return DISPLAY_VER(i915) >= 20 ?
+                XELPDP_PORT_CLOCK_CTL(xe2lpd_port_idx(port)) :
+                XELPDP_PORT_CLOCK_CTL(port);
+}
+
+static inline i915_reg_t xelpdp_port_buf_ctl3_reg(struct drm_i915_private *i915,
+                                                  enum port port)
+{
+        return DISPLAY_VER(i915) >= 20 ?
+                XELPDP_PORT_BUF_CTL3(xe2lpd_port_idx(port)) :
+                XELPDP_PORT_BUF_CTL3(port);
+}
+
+static inline i915_reg_t xelpdp_port_buf_ctl2_reg(struct drm_i915_private *i915,
+                                                  enum port port)
+{
+        return DISPLAY_VER(i915) >= 20 ?
+                XELPDP_PORT_BUF_CTL2(xe2lpd_port_idx(port)) :
+                XELPDP_PORT_BUF_CTL2(port);
+}
+
+static inline i915_reg_t xelpdp_port_buf_ctl1_reg(struct drm_i915_private *i915,
+                                                  enum port port)
+{
+        return DISPLAY_VER(i915) >= 20 ?
+                XELPDP_PORT_BUF_CTL1(xe2lpd_port_idx(port)) :
+                XELPDP_PORT_BUF_CTL1(port);
+}
+
+static inline i915_reg_t xelpdp_port_m2p_msgbus_ctl_reg(struct drm_i915_private *i915,
+                                                        enum port port, int lane)
+{
+        return DISPLAY_VER(i915) >= 20 ?
+                XELPDP_PORT_M2P_MSGBUS_CTL(xe2lpd_port_idx(port), lane) :
+                XELPDP_PORT_M2P_MSGBUS_CTL(port, lane);
+}
+
+static inline i915_reg_t xelpdp_port_p2m_msgbus_status_reg(struct drm_i915_private *i915,
+                                                           enum port port, int lane)
+{
+        return DISPLAY_VER(i915) >= 20 ?
+                XELPDP_PORT_P2M_MSGBUS_STATUS(xe2lpd_port_idx(port), lane) :
+                XELPDP_PORT_P2M_MSGBUS_STATUS(port, lane);
+}
 
 #endif /* __INTEL_CX0_REG_DEFS_H__ */
