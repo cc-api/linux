@@ -724,6 +724,17 @@ static const struct intel_c10pll_state * const mtl_c10_edp_tables[] = {
 	NULL,
 };
 
+static struct intel_c20pll_reg mtl_c20_reg = {
+	.tx_cnt_a = MTL_C20_A_TX_CNTX_CFG_ADDR,
+	.tx_cnt_b = MTL_C20_B_TX_CNTX_CFG_ADDR,
+	.cmn_cnt_a = MTL_C20_A_CMN_CNTX_CFG_ADDR,
+	.cmn_cnt_b = MTL_C20_B_CMN_CNTX_CFG_ADDR,
+	.mplla_a = MTL_C20_A_MPLLA_CFG_ADDR,
+	.mplla_b = MTL_C20_B_MPLLA_CFG_ADDR,
+	.mpllb_a = MTL_C20_A_MPLLB_CFG_ADDR,
+	.mpllb_b = MTL_C20_B_MPLLB_CFG_ADDR
+};
+
 /* C20 basic DP 1.4 tables */
 static const struct intel_c20pll_state mtl_c20_dp_rbr = {
 	.link_bit_rate = 162000,
@@ -2111,6 +2122,7 @@ void intel_c20pll_readout_hw_state(struct intel_encoder *encoder,
 	bool cntx;
 	intel_wakeref_t wakeref;
 	int i;
+	struct intel_c20pll_reg *pll_reg = &mtl_c20_reg;
 
 	wakeref = intel_cx0_phy_transaction_begin(encoder);
 
@@ -2121,20 +2133,20 @@ void intel_c20pll_readout_hw_state(struct intel_encoder *encoder,
 	for (i = 0; i < ARRAY_SIZE(pll_state->tx); i++) {
 		if (cntx)
 			pll_state->tx[i] = intel_c20_sram_read(i915, encoder->port, INTEL_CX0_LANE0,
-							       PHY_C20_B_TX_CNTX_CFG(i));
+							       PHY_C20_B_TX_CNTX_CFG(pll_reg, i));
 		else
 			pll_state->tx[i] = intel_c20_sram_read(i915, encoder->port, INTEL_CX0_LANE0,
-							       PHY_C20_A_TX_CNTX_CFG(i));
+							       PHY_C20_A_TX_CNTX_CFG(pll_reg, i));
 	}
 
 	/* Read common configuration */
 	for (i = 0; i < ARRAY_SIZE(pll_state->cmn); i++) {
 		if (cntx)
 			pll_state->cmn[i] = intel_c20_sram_read(i915, encoder->port, INTEL_CX0_LANE0,
-								PHY_C20_B_CMN_CNTX_CFG(i));
+								PHY_C20_B_CMN_CNTX_CFG(pll_reg, i));
 		else
 			pll_state->cmn[i] = intel_c20_sram_read(i915, encoder->port, INTEL_CX0_LANE0,
-								PHY_C20_A_CMN_CNTX_CFG(i));
+								PHY_C20_A_CMN_CNTX_CFG(pll_reg, i));
 	}
 
 	if (pll_state->tx[0] & C20_PHY_USE_MPLLB) {
@@ -2142,20 +2154,20 @@ void intel_c20pll_readout_hw_state(struct intel_encoder *encoder,
 		for (i = 0; i < ARRAY_SIZE(pll_state->mpllb); i++) {
 			if (cntx)
 				pll_state->mpllb[i] = intel_c20_sram_read(i915, encoder->port, INTEL_CX0_LANE0,
-									  PHY_C20_B_MPLLB_CNTX_CFG(i));
+									  PHY_C20_B_MPLLB_CNTX_CFG(pll_reg, i));
 			else
 				pll_state->mpllb[i] = intel_c20_sram_read(i915, encoder->port, INTEL_CX0_LANE0,
-									  PHY_C20_A_MPLLB_CNTX_CFG(i));
+									  PHY_C20_A_MPLLB_CNTX_CFG(pll_reg, i));
 		}
 	} else {
 		/* MPLLA configuration */
 		for (i = 0; i < ARRAY_SIZE(pll_state->mplla); i++) {
 			if (cntx)
 				pll_state->mplla[i] = intel_c20_sram_read(i915, encoder->port, INTEL_CX0_LANE0,
-									  PHY_C20_B_MPLLA_CNTX_CFG(i));
+									  PHY_C20_B_MPLLA_CNTX_CFG(pll_reg, i));
 			else
 				pll_state->mplla[i] = intel_c20_sram_read(i915, encoder->port, INTEL_CX0_LANE0,
-									  PHY_C20_A_MPLLA_CNTX_CFG(i));
+									  PHY_C20_A_MPLLA_CNTX_CFG(pll_reg, i));
 		}
 	}
 
@@ -2288,6 +2300,7 @@ static void intel_c20_pll_program(struct drm_i915_private *i915,
 	int lane = crtc_state->lane_count > 2 ? INTEL_CX0_BOTH_LANES : INTEL_CX0_LANE0;
 	bool cntx;
 	int i;
+	const struct intel_c20pll_reg *pll_reg = &mtl_c20_reg;
 
 	if (intel_crtc_has_dp_encoder(crtc_state))
 		dp = true;
@@ -2310,17 +2323,21 @@ static void intel_c20_pll_program(struct drm_i915_private *i915,
 	/* 3.1 Tx configuration */
 	for (i = 0; i < ARRAY_SIZE(pll_state->tx); i++) {
 		if (cntx)
-			intel_c20_sram_write(i915, encoder->port, INTEL_CX0_LANE0, PHY_C20_A_TX_CNTX_CFG(i), pll_state->tx[i]);
+			intel_c20_sram_write(i915, encoder->port,
+					     INTEL_CX0_LANE0, PHY_C20_A_TX_CNTX_CFG(pll_reg, i), pll_state->tx[i]);
 		else
-			intel_c20_sram_write(i915, encoder->port, INTEL_CX0_LANE0, PHY_C20_B_TX_CNTX_CFG(i), pll_state->tx[i]);
+			intel_c20_sram_write(i915, encoder->port,
+					     INTEL_CX0_LANE0, PHY_C20_B_TX_CNTX_CFG(pll_reg, i), pll_state->tx[i]);
 	}
 
 	/* 3.2 common configuration */
 	for (i = 0; i < ARRAY_SIZE(pll_state->cmn); i++) {
 		if (cntx)
-			intel_c20_sram_write(i915, encoder->port, INTEL_CX0_LANE0, PHY_C20_A_CMN_CNTX_CFG(i), pll_state->cmn[i]);
+			intel_c20_sram_write(i915, encoder->port,
+					     INTEL_CX0_LANE0, PHY_C20_A_CMN_CNTX_CFG(pll_reg, i), pll_state->cmn[i]);
 		else
-			intel_c20_sram_write(i915, encoder->port, INTEL_CX0_LANE0, PHY_C20_B_CMN_CNTX_CFG(i), pll_state->cmn[i]);
+			intel_c20_sram_write(i915, encoder->port,
+					     INTEL_CX0_LANE0, PHY_C20_B_CMN_CNTX_CFG(pll_reg, i), pll_state->cmn[i]);
 	}
 
 	/* 3.3 mpllb or mplla configuration */
@@ -2328,22 +2345,22 @@ static void intel_c20_pll_program(struct drm_i915_private *i915,
 		for (i = 0; i < ARRAY_SIZE(pll_state->mplla); i++) {
 			if (cntx)
 				intel_c20_sram_write(i915, encoder->port, INTEL_CX0_LANE0,
-						     PHY_C20_A_MPLLA_CNTX_CFG(i),
+						     PHY_C20_A_MPLLA_CNTX_CFG(pll_reg, i),
 						     pll_state->mplla[i]);
 			else
 				intel_c20_sram_write(i915, encoder->port, INTEL_CX0_LANE0,
-						     PHY_C20_B_MPLLA_CNTX_CFG(i),
+						     PHY_C20_B_MPLLA_CNTX_CFG(pll_reg, i),
 						     pll_state->mplla[i]);
 		}
 	} else {
 		for (i = 0; i < ARRAY_SIZE(pll_state->mpllb); i++) {
 			if (cntx)
 				intel_c20_sram_write(i915, encoder->port, INTEL_CX0_LANE0,
-						     PHY_C20_A_MPLLB_CNTX_CFG(i),
+						     PHY_C20_A_MPLLB_CNTX_CFG(pll_reg, i),
 						     pll_state->mpllb[i]);
 			else
 				intel_c20_sram_write(i915, encoder->port, INTEL_CX0_LANE0,
-						     PHY_C20_B_MPLLB_CNTX_CFG(i),
+						     PHY_C20_B_MPLLB_CNTX_CFG(pll_reg, i),
 						     pll_state->mpllb[i]);
 		}
 	}
