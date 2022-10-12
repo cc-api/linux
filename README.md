@@ -16,6 +16,10 @@ Use at your own risk.
 Release History
 ===============
 
+EMR-BKC-v1.9
+------------
+37. one fix for Array IFS/ARRAY BIST (Jithu Joseph)
+
 EMR-BKC-v1.8
 ------------
 25. Some compile issue fixes (Chenyi Qiang and Wei Wang)
@@ -29,6 +33,7 @@ EMR-BKC-v1.8
 33. TD attestation fix (Kuppuswamy Sathyanarayanan)
 34. Device pass-thru fix (Chenyi Qiang)
 35. Add IDXD/SIOV related and ACPI_PFRUT kconfig in EMR-BKC-v2.config (Chenyi Qiang)
+36. Ucode rollback support (Ashok Raj)
 
 EMR-BKC-v1.7
 ------------
