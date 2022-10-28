@@ -46,7 +46,8 @@
 #define DRIVER_NAME	"tdx-guest"
 
 /* TD Attributes masks */
-#define        ATTR_DEBUG_MODE                 BIT(0)
+#define ATTR_DEBUG_MODE         BIT(0)
+#define ATTR_SEPT_VE_DISABLE	BIT(28)
 
 /* Caches GPA width from TDG.VP.INFO TDCALL */
 static unsigned int gpa_width;
@@ -185,15 +186,19 @@ static void tdx_parse_tdinfo(void)
 	 * information, TD attributes etc. More details about the ABI can be
 	 * found in TDX Guest-Host-Communication Interface (GHCI), section
 	 * 2.4.2 TDCALL [TDG.VP.INFO].
-	 *
-	 * The GPA width that comes out of this call is critical. TDX guests
-	 * can not meaningfully run without it.
 	 */
 	tdx_module_call(TDX_GET_INFO, 0, 0, 0, 0, &out);
 
 	gpa_width = out.rcx & GENMASK(5, 0);
 
+	/*
+	 * The kernel can not handle #VE's when accessing normal kernel
+	 * memory.  Ensure that no #VE will be delivered for accesses to
+	 * TD-private memory.  Only VMM-shared memory (MMIO) will #VE.
+	 */
 	td_attr = out.rdx;
+	if (!(td_attr & ATTR_SEPT_VE_DISABLE))
+		panic("TD misconfiguration: SEPT_VE_DISABLE attibute must be set.\n");
 }
 
 static u64 get_cc_mask(void)
