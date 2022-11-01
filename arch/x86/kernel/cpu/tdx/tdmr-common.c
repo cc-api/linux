@@ -1281,6 +1281,7 @@ struct tdx_memblock * __init tdx_memblock_create(unsigned long start_pfn,
 	tmb->end_pfn = end_pfn;
 	tmb->data = data;
 	tmb->ops = ops;
+	tmb->nid = nid;
 
 	return tmb;
 }
