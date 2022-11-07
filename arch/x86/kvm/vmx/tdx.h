@@ -5,6 +5,7 @@
 #ifdef CONFIG_INTEL_TDX_HOST
 
 #include "posted_intr.h"
+#include "pmu_intel.h"
 #include "tdx_ops.h"
 
 int tdx_module_setup(void);
@@ -126,6 +127,11 @@ struct vcpu_tdx {
 	unsigned int buggy_hlt_workaround;
 
 	unsigned long dr6;
+	/*
+	 * Dummy to make pmu_intel not corrupt memory.
+	 * TODO: Support PMU for TDX.  Future work.
+	 */
+	struct lbr_desc lbr_desc;
 };
 
 static inline bool is_td(struct kvm *kvm)
