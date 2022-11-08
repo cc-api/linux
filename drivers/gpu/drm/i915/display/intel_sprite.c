@@ -40,6 +40,11 @@
 
 #include "i915_drv.h"
 #include "i915_reg.h"
+
+#ifdef I915
+#include "i915_vgpu.h"
+#endif
+
 #include "i9xx_plane.h"
 #include "intel_atomic_plane.h"
 #include "intel_de.h"
@@ -1666,3 +1671,4 @@ fail:
 
 	return ERR_PTR(ret);
 }
+
