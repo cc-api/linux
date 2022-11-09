@@ -9189,13 +9189,11 @@ struct sg_lb_stats {
 	unsigned int nr_numa_running;
 	unsigned int nr_preferred_running;
 #endif
-#ifdef CONFIG_IPC_CLASSES
 	long min_score; /* Min(score(list_last_entry(rq))) */
 	unsigned int min_ipcc; /* Min(class(list_last_entry(rq))) */
 	long sum_score; /* Sum(score(list_last_entry(rq))) */
 	long ipcc_score_after; /* Prospective IPCC score after load balancing */
 	long ipcc_score_before; /* IPCC score before load balancing */
-#endif
 };
 
 /*
