@@ -16,6 +16,10 @@ Use at your own risk.
 Release History
 ===============
 
+EMR-BKC-v1.10
+-------------
+38.  one fix for IDXD/SIOV (Fenghua Yu)
+
 EMR-BKC-v1.9
 ------------
 37. one fix for Array IFS/ARRAY BIST (Jithu Joseph)
