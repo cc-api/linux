@@ -3610,7 +3610,6 @@ static int tdx_access_guest_memory(struct kvm *kvm,
 	u32 offset = offset_in_page(gpa);
 	u32 done_len;
 	bool is_private;
-	kvm_pfn_t pfn;
 	int idx;
 	int ret;
 
@@ -3630,10 +3629,13 @@ static int tdx_access_guest_memory(struct kvm *kvm,
 	}
 
 	write_lock(&kvm->mmu_lock);
-	ret = kvm_mmu_is_page_private(kvm, memslot, gpa_to_gfn(gpa),
-				      &is_private, &pfn);
+	if (is_tdp_mmu_enabled(kvm))
+		ret = kvm_tdp_mmu_is_page_private(kvm, memslot, gpa_to_gfn(gpa),
+						  &is_private);
+	else
+		ret = kvm_mmu_is_page_private(kvm, memslot, gpa_to_gfn(gpa),
+					      &is_private);
 	if (ret) {
-		is_private = false;
 		done_len = 0;
 		goto exit_unlock;
 	}
@@ -3661,8 +3663,6 @@ exit_unlock_srcu:
 
 	if (completed_len)
 		*completed_len = done_len;
-	if (is_private && kvm_slot_is_private(memslot))
-		kvm_private_mem_put_pfn(memslot, pfn);
 	return ret;
 }
 
