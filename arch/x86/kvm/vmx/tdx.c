@@ -860,6 +860,10 @@ void tdx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 		struct kvm_cpuid_entry2 *e;
 
 		e = kvmalloc_array(1, sizeof(*e), GFP_KERNEL_ACCOUNT);
+		if (WARN_ON(!e)) {
+			goto td_bugged;
+		}
+
 		*e  = (struct kvm_cpuid_entry2) {
 			.function = 1,	/* Features for X2APIC */
 			.index = 0,
