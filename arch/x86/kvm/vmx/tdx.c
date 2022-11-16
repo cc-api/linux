@@ -3233,6 +3233,9 @@ static int tdx_td_init(struct kvm *kvm, struct kvm_tdx_cmd *cmd)
 		return -EINVAL;
 
 	init_vm = kzalloc(sizeof(*init_vm), GFP_KERNEL);
+	if (!init_vm)
+		return -ENOMEM;
+
 	if (copy_from_user(init_vm, (void __user *)cmd->data, sizeof(*init_vm))) {
 		ret = -EFAULT;
 		goto out;
