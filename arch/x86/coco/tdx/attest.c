@@ -341,6 +341,8 @@ static void quote_callback_handler(struct work_struct *work)
 int __init tdx_attest_init(void *data)
 {
 	quote_wq = create_singlethread_workqueue("tdx_quote_handler");
+	if (!quote_wq)
+		return -ENOMEM;
 
 	INIT_WORK(&quote_work, quote_callback_handler);
 
