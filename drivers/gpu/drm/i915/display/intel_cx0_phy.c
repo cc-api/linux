@@ -408,6 +408,9 @@ void intel_cx0_phy_set_signal_levels(struct intel_encoder *encoder,
 	intel_wakeref_t wakeref;
 	int n_entries, ln;
 
+	if (IS_SIMULATOR(i915))
+		return;
+
 	wakeref = intel_cx0_phy_transaction_begin(encoder);
 
 	trans = encoder->get_buf_trans(encoder, crtc_state, &n_entries);
@@ -2290,6 +2293,9 @@ void intel_c20pll_readout_hw_state(struct intel_encoder *encoder,
 	int i;
 	struct intel_c20pll_reg *pll_reg;
 
+	if (IS_SIMULATOR(i915))
+		return;
+
 	wakeref = intel_cx0_phy_transaction_begin(encoder);
 
 	/* 1. Read current context selection */
@@ -2899,7 +2905,12 @@ static void intel_cx0pll_enable(struct intel_encoder *encoder,
 	bool lane_reversal = dig_port->saved_port_bits & DDI_BUF_PORT_REVERSAL;
 	u8 maxpclk_lane = lane_reversal ? INTEL_CX0_LANE1 :
 					  INTEL_CX0_LANE0;
-	intel_wakeref_t wakeref = intel_cx0_phy_transaction_begin(encoder);
+	intel_wakeref_t wakeref = 0;
+
+	if (IS_SIMULATOR(i915))
+		return;
+
+	wakeref = intel_cx0_phy_transaction_begin(encoder);
 
 	/*
 	 * 1. Program PORT_CLOCK_CTL REGISTER to configure
