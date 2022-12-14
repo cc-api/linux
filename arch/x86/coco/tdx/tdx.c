@@ -15,6 +15,7 @@
 #include <linux/numa.h>
 #include <linux/random.h>
 #include <linux/virtio_anchor.h>
+#include <linux/uaccess.h>
 #include <asm/coco.h>
 #include <asm/tdx.h>
 #include <asm/i8259.h>
@@ -54,6 +55,11 @@ static unsigned int gpa_width;
 /* Caches TD Attributes from TDG.VP.INFO TDCALL */
 static u64 td_attr;
 static u64 cc_mask;
+
+/* TDX Module call error codes */
+#define TDCALL_RETURN_CODE(a)	((a) >> 32)
+#define TDCALL_INVALID_OPERAND	0xc0000100
+#define TDCALL_OPERAND_BUSY	0x80000200
 
 static struct miscdevice tdx_misc_dev;
 int tdx_notify_irq = -1;
@@ -176,6 +182,38 @@ static long tdx_hcall_set_notify_intr(u8 vector)
 
 	return 0;
 }
+
+/**
+ * tdx_mcall_extend_rtmr() - Wrapper to extend RTMR registers using
+ *                           TDG.MR.RTMR.EXTEND TDCALL.
+ * @data: Address of the input buffer with RTMR register extend data.
+ * @index: Index of RTMR register to be extended.
+ *
+ * Refer to section titled "TDG.MR.RTMR.EXTEND leaf" in the TDX Module
+ * v1.0 specification for more information on TDG.MR.RTMR.EXTEND TDCALL.
+ * It is used in the TDX guest driver module to allow user extend the
+ * RTMR registers (index > 1).
+ *
+ * Return 0 on success, -EINVAL for invalid operands, -EBUSY for busy
+ * operation or -EIO on other TDCALL failures.
+ */
+int tdx_mcall_extend_rtmr(u8 *data, u8 index)
+{
+	u64 ret;
+
+	ret = __tdx_module_call(TDX_EXTEND_RTMR, virt_to_phys(data), index,
+				0, 0, NULL);
+	if (ret) {
+		if (TDCALL_RETURN_CODE(ret) == TDCALL_INVALID_OPERAND)
+			return -EINVAL;
+		if (TDCALL_RETURN_CODE(ret) == TDCALL_OPERAND_BUSY)
+			return -EBUSY;
+		return -EIO;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(tdx_mcall_extend_rtmr);
 
 static void tdx_parse_tdinfo(void)
 {
@@ -1134,6 +1172,39 @@ void __init tdx_early_init(void)
 	pr_info("Guest detected\n");
 }
 
+static long tdx_extend_rtmr(struct tdx_extend_rtmr_req __user *req)
+{
+	u8 *data, index;
+	int ret;
+
+	if (copy_from_user(&index, &req->index, sizeof(u8)))
+		return -EFAULT;
+
+	/*
+	 * RTMR index 0 and 1 is used by BIOS and kernel and are not
+	 * allowed for userspace update.
+	 */
+	if (index < 2)
+		return -EINVAL;
+
+	/* TDG.MR.RTMR.EXTEND TDCALL expects buffer to be 64B aligned */
+	data = kmalloc(ALIGN(sizeof(req->data), 64), GFP_KERNEL);
+	if (!data)
+		return -ENOMEM;
+
+	if (copy_from_user(data, req->data, sizeof(req->data))) {
+		ret = -EFAULT;
+		goto out;
+	}
+
+	/* Extend RTMR registers using "TDG.MR.RTMR.EXTEND" TDCALL */
+	ret = tdx_mcall_extend_rtmr(data, index);
+out:
+	kfree(data);
+
+	return ret;
+}
+
 static long tdx_guest_ioctl(struct file *file, unsigned int cmd,
 			    unsigned long arg)
 {
@@ -1146,6 +1217,9 @@ static long tdx_guest_ioctl(struct file *file, unsigned int cmd,
 		break;
 	case TDX_CMD_GET_QUOTE:
 		ret = tdx_get_quote(argp);
+		break;
+	case TDX_CMD_EXTEND_RTMR:
+		ret = tdx_extend_rtmr((struct tdx_extend_rtmr_req __user *)arg);
 		break;
 	default:
 		pr_debug("cmd %d not supported\n", cmd);
