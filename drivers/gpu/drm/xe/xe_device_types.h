@@ -22,6 +22,8 @@
 #include "intel_display_core.h"
 #endif
 
+#include "presi/xe_presi.h"
+
 #define XE_BO_INVALID_OFFSET	LONG_MAX
 
 #define GRAPHICS_VER(xe) ((xe)->info.graphics_verx100 / 100)
@@ -54,6 +56,9 @@
 struct xe_device {
 	/** @drm: drm device */
 	struct drm_device drm;
+
+	/** @presi_info: PreSi info */
+	struct xe_presi_info presi_info;
 
 	/** @info: device info */
 	struct intel_device_info {
