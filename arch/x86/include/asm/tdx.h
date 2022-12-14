@@ -55,6 +55,8 @@ extern int tdx_notify_irq;
 
 bool tdx_allowed_port(short int port);
 
+int tdx_mcall_extend_rtmr(u8 *data, u8 index);
+
 #else
 
 static inline void tdx_early_init(void) { };
