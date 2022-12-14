@@ -32,6 +32,8 @@
 #include "xe_vm_madvise.h"
 #include "xe_wait_user_fence.h"
 
+#include "presi/xe_presi.h"
+
 static int xe_file_open(struct drm_device *dev, struct drm_file *file)
 {
 	struct xe_file *xef;
@@ -246,6 +248,8 @@ int xe_device_probe(struct xe_device *xe)
 	err = xe_display_init_nommio(xe);
 	if (err)
 		return err;
+
+	xe_presi_init(xe);
 
 	for_each_gt(gt, xe, id) {
 		err = xe_gt_alloc(xe, gt);
