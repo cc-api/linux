@@ -253,6 +253,9 @@ ifeq ($(CONFIG_DRM_FBDEV_EMULATION),y)
 	xe-$(CONFIG_DRM_XE_DISPLAY) += i915-display/intel_fbdev.o
 endif
 
+# pre-silicon support
+xe-y += presi/xe_presi.o
+
 obj-$(CONFIG_DRM_XE) += xe.o
 obj-$(CONFIG_DRM_XE_KUNIT_TEST) += tests/
 

@@ -38,6 +38,8 @@
 #include "xe_wait_user_fence.h"
 #include "xe_hwmon.h"
 
+#include "presi/xe_presi.h"
+
 #ifdef CONFIG_LOCKDEP
 struct lockdep_map xe_device_mem_access_lockdep_map = {
 	.name = "xe_device_mem_access_lockdep_map"
