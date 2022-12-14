@@ -24,6 +24,8 @@
 #include "intel_display_device.h"
 #endif
 
+#include "presi/xe_presi.h"
+
 struct xe_ggtt;
 
 #define XE_BO_INVALID_OFFSET	LONG_MAX
@@ -159,6 +161,9 @@ struct xe_tile {
 struct xe_device {
 	/** @drm: drm device */
 	struct drm_device drm;
+
+	/** @presi_info: PreSi info */
+	struct xe_presi_info presi_info;
 
 	/** @devcoredump: device coredump */
 	struct xe_devcoredump devcoredump;
