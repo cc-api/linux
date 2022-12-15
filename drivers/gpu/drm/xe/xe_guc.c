@@ -310,6 +310,11 @@ int xe_guc_reset(struct xe_guc *guc)
 	u32 guc_status, gdrst;
 	int ret;
 
+	if (XE_PRESI_SKIP_FEATURE(xe, GUC_RESET)) {
+		drm_dbg(&xe->drm, "Skipping GuC reset: presilicon\n");
+		return 0;
+	}
+
 	xe_force_wake_assert_held(gt_to_fw(gt), XE_FW_GT);
 
 	xe_mmio_write32(gt, GDRST, GRDOM_GUC);
