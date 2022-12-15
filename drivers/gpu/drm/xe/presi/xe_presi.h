@@ -10,8 +10,8 @@
 
 struct xe_device;
 
-/* List will be updated in the follow on patches */
-#define XE_PRESI_FEATURE_LIST(macro)
+#define XE_PRESI_FEATURE_LIST(macro) \
+		macro(GUC_RESET),
 
 #define XE_PRESI_FEATURE_ENUM(name) XE_PRESI_FEATURE_EN_##name
 enum xe_presi_feature {
