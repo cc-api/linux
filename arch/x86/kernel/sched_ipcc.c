@@ -83,6 +83,8 @@ static bool classification_is_accurate(u8 hfi_class, bool smt_siblings_idle)
 	case INTEL_FAM6_RAPTORLAKE:
 	case INTEL_FAM6_RAPTORLAKE_P:
 	case INTEL_FAM6_RAPTORLAKE_S:
+	case INTEL_FAM6_METEORLAKE:
+	case INTEL_FAM6_METEORLAKE_L:
 		if (hfi_class == 3 || hfi_class == 2 || smt_siblings_idle)
 			return true;
 
