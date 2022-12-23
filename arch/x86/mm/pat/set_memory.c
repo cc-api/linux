@@ -2058,7 +2058,8 @@ static int __set_memory_enc_pgtable(unsigned long addr, int numpages, bool enc, 
 	 * flushing gets optimized in the cpa_flush() path use the same logic
 	 * as above.
 	 */
-	cpa_flush(&cpa, 0);
+	if (flush)
+		cpa_flush(&cpa, 0);
 
 	/* Notify hypervisor that we have successfully set/clr encryption attribute. */
 	if (!ret) {
