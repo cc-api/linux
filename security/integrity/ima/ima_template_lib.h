@@ -66,4 +66,8 @@ int ima_eventinodexattrlengths_init(struct ima_event_data *event_data,
 				    struct ima_field_data *field_data);
 int ima_eventinodexattrvalues_init(struct ima_event_data *event_data,
 				   struct ima_field_data *field_data);
+int ima_eventcgn_init(struct ima_event_data *event_data,
+			struct ima_field_data *field_data);
+int ima_eventdep_init(struct ima_event_data *event_data,
+			struct ima_field_data *field_data);
 #endif /* __LINUX_IMA_TEMPLATE_LIB_H */

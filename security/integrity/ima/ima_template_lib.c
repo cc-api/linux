@@ -12,6 +12,11 @@
 #include "ima_template_lib.h"
 #include <linux/xattr.h>
 #include <linux/evm.h>
+#include <linux/types.h>
+#include <linux/sched.h>
+#include <linux/string.h>
+#include <linux/cgroup.h>
+#include <uapi/linux/limits.h>
 
 static bool ima_template_hash_algo_allowed(u8 algo)
 {
@@ -742,4 +747,94 @@ int ima_eventinodexattrvalues_init(struct ima_event_data *event_data,
 				   struct ima_field_data *field_data)
 {
 	return ima_eventinodexattrs_init_common(event_data, field_data, 'v');
+}
+
+/*
+ * ima_eventcgn_init - inclue the current task's subsys_id=1 cgroup name as part of the
+ * template data
+ */
+int ima_eventcgn_init(struct ima_event_data *event_data,
+			struct ima_field_data *field_data)
+{
+	char *cgroup_name_str = NULL;
+	struct cgroup *cgroup = NULL;
+	int rc = 0;
+
+	cgroup_name_str = kmalloc(NAME_MAX, GFP_KERNEL);
+	if (!cgroup_name_str)
+		return -ENOMEM;
+
+	cgroup = task_cgroup(current, 1);
+	if (!cgroup)
+		goto out;
+	rc = cgroup_name(cgroup, cgroup_name_str, NAME_MAX);
+	if (!rc)
+		goto out;
+
+	rc = ima_write_template_field_data(cgroup_name_str, strlen(cgroup_name_str),  DATA_FMT_STRING, field_data);
+
+	kfree(cgroup_name_str);
+
+	return rc;
+out:
+	return ima_write_template_field_data("-", 1, DATA_FMT_STRING, field_data);
+}
+
+/*
+ * ima_eventdep_init - include the executable's path, colon separated, for all the ancestors of the current task as part of the
+ * template data
+ */
+int ima_eventdep_init(struct ima_event_data *event_data,
+			struct ima_field_data *field_data)
+{
+	int count = 0, rc;
+	char *paths_buf = NULL, *pathbuf = NULL;
+	const char *pathname = NULL;
+	char filename[NAME_MAX];
+	struct task_struct *curr_task = NULL;
+	struct file *exe_file = NULL;
+	char comm[TASK_COMM_LEN];
+
+	//get number of ancestors for current task
+	for (curr_task = current; curr_task && curr_task->pid; curr_task = curr_task->real_parent)
+		count++;
+
+	if (curr_task)
+		count++;
+
+	paths_buf = kmalloc(PATH_MAX*count+count-1, GFP_KERNEL);
+	if (!paths_buf)
+		return -ENOMEM;
+
+	paths_buf[0] = '\0';
+	for (curr_task = current; curr_task && curr_task->pid; curr_task = curr_task->real_parent) {
+		exe_file = get_task_exe_file(curr_task);
+		if (!exe_file) {
+			get_task_comm(comm, curr_task);
+			strcat(paths_buf, comm);
+			strcat(paths_buf, ":");
+			continue;
+		}
+
+		pathname = ima_d_path(&exe_file->f_path, &pathbuf, filename);
+
+		strcat(paths_buf, pathname);
+		strcat(paths_buf, ":");
+	}
+	if (curr_task) {
+		exe_file = get_task_exe_file(curr_task);
+		if (!exe_file) {
+			get_task_comm(comm, curr_task);
+			strcat(paths_buf, comm);
+		} else {
+			pathname = ima_d_path(&exe_file->f_path, &pathbuf, filename);
+			strcat(paths_buf, pathname);
+		}
+	}
+
+	rc = ima_write_template_field_data(paths_buf, strlen(paths_buf), DATA_FMT_STRING,  field_data);
+
+	kfree(paths_buf);
+
+	return rc;
 }

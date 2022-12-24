@@ -76,6 +76,8 @@ choice
 		bool "ima-ng (default)"
 	config IMA_SIG_TEMPLATE
 		bool "ima-sig"
+	config IMA_DEP_CGN_TEMPLATE
+		bool "ima-dep-cgn"
 endchoice
 
 config IMA_DEFAULT_TEMPLATE
@@ -83,6 +85,7 @@ config IMA_DEFAULT_TEMPLATE
 	depends on IMA
 	default "ima-ng" if IMA_NG_TEMPLATE
 	default "ima-sig" if IMA_SIG_TEMPLATE
+	default "ima-dep-cgn" if IMA_DEP_CGN_TEMPLATE
 
 choice
 	prompt "Default integrity hash algorithm"
