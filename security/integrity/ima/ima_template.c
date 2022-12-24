@@ -27,6 +27,7 @@ static struct ima_template_desc builtin_templates[] = {
 	{.name = "evm-sig",
 	 .fmt = "d-ng|n-ng|evmsig|xattrnames|xattrlengths|xattrvalues|iuid|igid|imode"},
 	{.name = "ima-dep-cgn", .fmt = "dep|cgn|d-ng|n-ng"},
+	{.name = "ima-cgpath", .fmt = "dep|cg-path|d-ng|n-ng"},
 	{.name = "", .fmt = ""},	/* placeholder for a custom format */
 };
 
@@ -73,6 +74,8 @@ static const struct ima_template_field supported_fields[] = {
 	{.field_id = "cgn", .field_init = ima_eventcgn_init,
 	 .field_show = ima_show_template_string},
 	{.field_id = "dep", .field_init = ima_eventdep_init,
+	 .field_show = ima_show_template_string},
+	{.field_id = "cg-path", .field_init = ima_eventcg_path_init,
 	 .field_show = ima_show_template_string},
 };
 

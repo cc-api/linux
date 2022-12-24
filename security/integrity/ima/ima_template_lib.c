@@ -838,3 +838,34 @@ int ima_eventdep_init(struct ima_event_data *event_data,
 
 	return rc;
 }
+
+/*
+ * ima_eventcg_path_init - include the current task's subsys_id=1 cgroup path as part of the
+ * template data
+ */
+int ima_eventcg_path_init(struct ima_event_data *event_data,
+				struct ima_field_data *field_data)
+{
+	char *cgroup_path_str = NULL;
+	struct cgroup *cgroup = NULL;
+	int rc = 0;
+
+	cgroup_path_str = kmalloc(PATH_MAX, GFP_KERNEL);
+
+	if (!cgroup_path_str)
+		return -ENOMEM;
+
+	cgroup = task_cgroup(current, 1);
+	if (!cgroup)
+		goto out;
+
+	rc = cgroup_path(cgroup, cgroup_path_str, PATH_MAX);
+	if (!rc)
+		goto out;
+
+	rc = ima_write_template_field_data(cgroup_path_str, strlen(cgroup_path_str), DATA_FMT_STRING, field_data);
+	kfree(cgroup_path_str);
+	return rc;
+out:
+	return ima_write_template_field_data("-", 1, DATA_FMT_STRING, field_data);
+}

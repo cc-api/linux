@@ -78,6 +78,8 @@ choice
 		bool "ima-sig"
 	config IMA_DEP_CGN_TEMPLATE
 		bool "ima-dep-cgn"
+	config IMA_CGPATH_TEMPLATE
+		bool "ima-cgpath"
 endchoice
 
 config IMA_DEFAULT_TEMPLATE
@@ -86,6 +88,7 @@ config IMA_DEFAULT_TEMPLATE
 	default "ima-ng" if IMA_NG_TEMPLATE
 	default "ima-sig" if IMA_SIG_TEMPLATE
 	default "ima-dep-cgn" if IMA_DEP_CGN_TEMPLATE
+	default "ima-cgpath" if IMA_CGPATH_TEMPLATE
 
 choice
 	prompt "Default integrity hash algorithm"
