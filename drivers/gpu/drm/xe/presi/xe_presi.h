@@ -11,7 +11,8 @@
 struct xe_device;
 
 #define XE_PRESI_FEATURE_LIST(macro) \
-		macro(GUC_RESET),
+		macro(GUC_RESET), \
+		macro(PCODE),
 
 #define XE_PRESI_FEATURE_ENUM(name) XE_PRESI_FEATURE_EN_##name
 enum xe_presi_feature {
