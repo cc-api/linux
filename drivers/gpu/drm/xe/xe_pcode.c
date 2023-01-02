@@ -45,6 +45,9 @@ static int pcode_mailbox_status(struct xe_gt *gt)
 
 	lockdep_assert_held(&gt->pcode.lock);
 
+	if (XE_PRESI_SKIP_FEATURE(gt_to_xe(gt), PCODE))
+		return 0;
+
 	err = xe_mmio_read32(gt, PCODE_MAILBOX) & PCODE_ERROR_MASK;
 	if (err) {
 		drm_err(&gt_to_xe(gt)->drm, "PCODE Mailbox failed: %d %s", err,
@@ -250,6 +253,9 @@ int xe_pcode_init(struct xe_gt *gt)
 	int ret;
 
 	if (!IS_DGFX(gt_to_xe(gt)))
+		return 0;
+
+	if (XE_PRESI_SKIP_FEATURE(gt_to_xe(gt), PCODE))
 		return 0;
 
 	mutex_lock(&gt->pcode.lock);
