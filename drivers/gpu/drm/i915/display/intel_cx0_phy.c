@@ -677,6 +677,243 @@ static const struct intel_c10pll_state * const mtl_c10_edp_tables[] = {
 	NULL,
 };
 
+static const struct intel_c10pll_state lnl_c10_dp_rbr = {
+	.clock = 162000,
+	.pll[0] = 0xB4,
+	.pll[1] = 0,
+	.pll[2] = 0x30,
+	.pll[3] = 0x1,
+	.pll[4] = 0x26,
+	.pll[5] = 0xC0,
+	.pll[6] = 0x98,
+	.pll[7] = 0x46,
+	.pll[8] = 0x1,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0xC0,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0x2,
+	.pll[16] = 0x85,
+	.pll[17] = 0x60,
+	.pll[18] = 0xE6,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_dp_hbr1 = {
+	.clock = 270000,
+	.pll[0] = 0xF4,
+	.pll[1] = 0,
+	.pll[2] = 0xF8,
+	.pll[3] = 0x0,
+	.pll[4] = 0x20,
+	.pll[5] = 0xA0,
+	.pll[6] = 0x29,
+	.pll[7] = 0x10,
+	.pll[8] = 0x1,   /* Verify */
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0xA0,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0x1,
+	.pll[16] = 0x85,
+	.pll[17] = 0x60,
+	.pll[18] = 0xE6,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_dp_hbr2 = {
+	.clock = 540000,
+	.pll[0] = 0xF4,
+	.pll[1] = 0,
+	.pll[2] = 0xF8,
+	.pll[3] = 0,
+	.pll[4] = 0x20,
+	.pll[5] = 0xA0,
+	.pll[6] = 0x29,
+	.pll[7] = 0x10,
+	.pll[8] = 0x1,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0xA0,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0,
+	.pll[16] = 0x85,
+	.pll[17] = 0x60,
+	.pll[18] = 0xE6,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_dp_hbr3 = {
+	.clock = 810000,
+	.pll[0] = 0x34,
+	.pll[1] = 0,
+	.pll[2] = 0x84,
+	.pll[3] = 0x1,
+	.pll[4] = 0x30,
+	.pll[5] = 0xF0,
+	.pll[6] = 0x3D,
+	.pll[7] = 0x98,
+	.pll[8] = 0x1,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0xF0,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0,
+	.pll[16] = 0x86,
+	.pll[17] = 0xA0,
+	.pll[18] = 0xE6,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_edp_r216 = {
+	.clock = 216000,
+	.pll[0] = 0x4,
+	.pll[1] = 0,
+	.pll[2] = 0xA2,
+	.pll[3] = 0x1,
+	.pll[4] = 0x33,
+	.pll[5] = 0x10,
+	.pll[6] = 0x75,
+	.pll[7] = 0xB3,
+	.pll[8] = 0x1,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0x2,
+	.pll[16] = 0x85,
+	.pll[17] = 0x20,
+	.pll[18] = 0xE6,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_edp_r243 = {
+	.clock = 243000,
+	.pll[0] = 0x34,
+	.pll[1] = 0,
+	.pll[2] = 0xDA,
+	.pll[3] = 0x1,
+	.pll[4] = 0x39,
+	.pll[5] = 0x12,
+	.pll[6] = 0xE3,
+	.pll[7] = 0xE9,
+	.pll[8] = 0x1,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0x20,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0x2,
+	.pll[16] = 0x85,
+	.pll[17] = 0xA0,
+	.pll[18] = 0xE6,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_edp_r324 = {
+	.clock = 324000,
+	.pll[0] = 0xB4,
+	.pll[1] = 0,
+	.pll[2] = 0x30,
+	.pll[3] = 0x1,
+	.pll[4] = 0x26,
+	.pll[5] = 0xC0,
+	.pll[6] = 0x98,
+	.pll[7] = 0x46,
+	.pll[8] = 0x1,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0xC0,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0x1,
+	.pll[16] = 0x85,
+	.pll[17] = 0x60,
+	.pll[18] = 0xE6,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_edp_r432 = {
+	.clock = 432000,
+	.pll[0] = 0x4,
+	.pll[1] = 0,
+	.pll[2] = 0xA2,
+	.pll[3] = 0x1,
+	.pll[4] = 0x33,
+	.pll[5] = 0x10,
+	.pll[6] = 0x75,
+	.pll[7] = 0xB3,
+	.pll[8] = 0x1,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0x1,
+	.pll[16] = 0x85,
+	.pll[17] = 0x20,
+	.pll[18] = 0xE6,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_edp_r675 = {
+	.clock = 675000,
+	.pll[0] = 0xB4,
+	.pll[1] = 0,
+	.pll[2] = 0x3E,
+	.pll[3] = 0x1,
+	.pll[4] = 0xA8,
+	.pll[5] = 0xC8,
+	.pll[6] = 0x33,
+	.pll[7] = 0x54,
+	.pll[8] = 0x1,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0xC8,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0,
+	.pll[16] = 0x85,
+	.pll[17] = 0xA0,
+	.pll[18] = 0xE6,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state * const lnl_c10_dp_tables[] = {
+	&lnl_c10_dp_rbr,
+	&lnl_c10_dp_hbr1,
+	&lnl_c10_dp_hbr2,
+	&lnl_c10_dp_hbr3,
+	NULL,
+};
+
+static const struct intel_c10pll_state * const lnl_c10_edp_tables[] = {
+	&lnl_c10_dp_rbr,
+	&lnl_c10_edp_r216,
+	&lnl_c10_edp_r243,
+	&lnl_c10_dp_hbr1,
+	&lnl_c10_edp_r324,
+	&lnl_c10_edp_r432,
+	&lnl_c10_dp_hbr2,
+	&lnl_c10_edp_r675,
+	&lnl_c10_dp_hbr3,
+	NULL,
+};
+
 /* C20 basic DP 1.4 tables */
 static const struct intel_c20pll_state mtl_c20_dp_rbr = {
 	.link_bit_rate = 162000,
@@ -1454,6 +1691,140 @@ static const struct intel_c10pll_state * const mtl_c10_hdmi_tables[] = {
 	NULL,
 };
 
+/*
+ * HDMI link rates with 38.4 MHz reference clock.
+ */
+
+static const struct intel_c10pll_state lnl_c10_hdmi_252 = {
+	.clock = 25200,
+	.pll[0] = 0x4,
+	.pll[1] = 0,
+	.pll[2] = 0xB2,
+	.pll[3] = 0,
+	.pll[4] = 0,
+	.pll[5] = 0,
+	.pll[6] = 0,
+	.pll[7] = 0,
+	.pll[8] = 0x20,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0xD,
+	.pll[16] = 0x0A,
+	.pll[17] = 0xA0,
+	.pll[18] = 0x87,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_hdmi_27_0 = {
+	.clock = 27000,
+	.pll[0] = 0x34,
+	.pll[1] = 0,
+	.pll[2] = 0xC0,
+	.pll[3] = 0,
+	.pll[4] = 0,
+	.pll[5] = 0,
+	.pll[6] = 0,
+	.pll[7] = 0,
+	.pll[8] = 0x20,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0x80,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0xD,
+	.pll[16] = 0x6,
+	.pll[17] = 0xE0,
+	.pll[18] = 0x84,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_hdmi_74_2 = {
+	.clock = 74250,
+	.pll[0] = 0xF4,
+	.pll[1] = 0,
+	.pll[2] = 0x7A,
+	.pll[3] = 0,
+	.pll[4] = 0,
+	.pll[5] = 0,
+	.pll[6] = 0,
+	.pll[7] = 0,
+	.pll[8] = 0x20,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0x58,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0xB,
+	.pll[16] = 0x6,
+	.pll[17] = 0x20,
+	.pll[18] = 0x85,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_hdmi_148_5 = {
+	.clock = 148500,
+	.pll[0] = 0xF4,
+	.pll[1] = 0,
+	.pll[2] = 0x7A,
+	.pll[3] = 0,
+	.pll[4] = 0,
+	.pll[5] = 0,
+	.pll[6] = 0,
+	.pll[7] = 0,
+	.pll[8] = 0x20,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0x58,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0xA,
+	.pll[16] = 0x6,
+	.pll[17] = 0x20,
+	.pll[18] = 0x85,
+	.pll[19] = 0x2F,
+};
+
+static const struct intel_c10pll_state lnl_c10_hdmi_594 = {
+	.clock = 594000,
+	.pll[0] = 0xF4,
+	.pll[1] = 0,
+	.pll[2] = 0x7A,
+	.pll[3] = 0,
+	.pll[4] = 0,
+	.pll[5] = 0,
+	.pll[6] = 0,
+	.pll[7] = 0,
+	.pll[8] = 0x20,
+	.pll[9] = 0x1,
+	.pll[10] = 0,
+	.pll[11] = 0,
+	.pll[12] = 0x58,
+	.pll[13] = 0,
+	.pll[14] = 0,
+	.pll[15] = 0x8,
+	.pll[16] = 0x6,
+	.pll[17] = 0x20,
+	.pll[18] = 0x85,
+	.pll[19] = 0x2F,
+};
+
+/* Consolidated Table */
+static const struct intel_c10pll_state * const lnl_c10_hdmi_tables[] = {
+	&lnl_c10_hdmi_252,
+	&lnl_c10_hdmi_27_0,
+	&lnl_c10_hdmi_74_2,
+	&lnl_c10_hdmi_148_5,
+	&lnl_c10_hdmi_594,
+	NULL,
+};
+
 static const struct intel_c20pll_state mtl_c20_hdmi_25_175 = {
 	.link_bit_rate = 25175,
 	.clock = 25175,
@@ -1745,13 +2116,25 @@ static const struct intel_c10pll_state * const *
 intel_c10pll_tables_get(struct intel_crtc_state *crtc_state,
 			struct intel_encoder *encoder)
 {
+	struct drm_i915_private *i915 = to_i915(encoder->base.dev);
+
 	if (intel_crtc_has_dp_encoder(crtc_state)) {
-		if (intel_crtc_has_type(crtc_state, INTEL_OUTPUT_EDP))
-			return mtl_c10_edp_tables;
-		else
-			return mtl_c10_dp_tables;
+                if (intel_crtc_has_type(crtc_state, INTEL_OUTPUT_EDP)) {
+                        if (DISPLAY_VER(i915) >= 20)
+                                return lnl_c10_edp_tables;
+                        else
+                                return mtl_c10_edp_tables;
+                } else {
+                        if (DISPLAY_VER(i915) >= 20)
+                                return lnl_c10_dp_tables;
+                        else
+                                return mtl_c10_dp_tables;
+                }
 	} else if (intel_crtc_has_type(crtc_state, INTEL_OUTPUT_HDMI)) {
-		return mtl_c10_hdmi_tables;
+                if (DISPLAY_VER(i915) >= 20)
+                        return lnl_c10_hdmi_tables;
+                else
+                        return mtl_c10_hdmi_tables;
 	}
 
 	MISSING_CASE(encoder->type);
