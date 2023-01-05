@@ -2536,7 +2536,7 @@ static void intel_cx0_phy_lane_reset(struct drm_i915_private *i915,
 {
 	enum port port = encoder->port;
 	enum phy phy = intel_port_to_phy(i915, port);
-	bool both_lanes =  intel_tc_port_fia_max_lane_count(enc_to_dig_port(encoder)) > 2;
+	bool both_lanes =  intel_tc_port_max_lane_count(enc_to_dig_port(encoder)) > 2;
 	u8 lane_mask = lane_reversal ? INTEL_CX0_LANE1 :
 				  INTEL_CX0_LANE0;
 	u32 lane_pipe_reset = both_lanes ?
