@@ -306,13 +306,13 @@ static int mtl_tc_port_get_max_lane_count(struct intel_digital_port *dig_port)
 	}
 }
 
-int intel_tc_port_fia_max_lane_count(struct intel_digital_port *dig_port)
+static int intel_tc_port_get_max_lane_count(struct intel_digital_port *dig_port)
 {
 	struct drm_i915_private *i915 = to_i915(dig_port->base.base.dev);
 	struct intel_tc_port *tc = to_tc_port(dig_port);
 	enum phy phy = intel_port_to_phy(i915, dig_port->base.port);
 	intel_wakeref_t wakeref;
-	u32 lane_mask;
+	u32 lane_mask = 0;
 
 	if (!intel_phy_is_tc(i915, phy) || tc->mode != TC_PORT_DP_ALT)
 		return 4;
@@ -322,7 +322,6 @@ int intel_tc_port_fia_max_lane_count(struct intel_digital_port *dig_port)
 	if (DISPLAY_VER(i915) >= 14)
 		return mtl_tc_port_get_max_lane_count(dig_port);
 
-	lane_mask = 0;
 	with_intel_display_power(i915, POWER_DOMAIN_DISPLAY_CORE, wakeref)
 		lane_mask = intel_tc_port_get_lane_mask(dig_port);
 
@@ -341,6 +340,20 @@ int intel_tc_port_fia_max_lane_count(struct intel_digital_port *dig_port)
 	case 0xf:
 		return 4;
 	}
+}
+
+int intel_tc_port_fia_max_lane_count(struct intel_digital_port *dig_port)
+{
+	struct drm_i915_private *i915 = to_i915(dig_port->base.base.dev);
+	struct intel_tc_port *tc = to_tc_port(dig_port);
+
+	if (tc->mode != TC_PORT_DP_ALT)
+		return 4;
+
+	if (DISPLAY_VER(i915) >= 14)
+		return mtl_tc_port_get_max_lane_count(dig_port);
+
+	return intel_tc_port_get_max_lane_count(dig_port);
 }
 
 void intel_tc_port_set_fia_lane_count(struct intel_digital_port *dig_port,
