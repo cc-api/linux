@@ -844,7 +844,7 @@ static inline bool intel_iommu_user_data_valid(const void *data, size_t length,
 	const char *bytes = data;
 	int i;
 
-	if (!data || length <= real_size)
+	if (!data || length < real_size)
 		return false;
 
 	/* check for trailing zeros */
