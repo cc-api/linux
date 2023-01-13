@@ -7,12 +7,14 @@
 #define _XE_PRESI_H_
 
 #include "xe_macros.h"
+#include "xe_gt_types.h"
 
 struct xe_device;
 
 #define XE_PRESI_FEATURE_LIST(macro) \
 		macro(GUC_RESET), \
-		macro(PCODE),
+		macro(PCODE), \
+		macro(UC_AUTH),
 
 #define XE_PRESI_FEATURE_ENUM(name) XE_PRESI_FEATURE_EN_##name
 enum xe_presi_feature {
@@ -69,5 +71,7 @@ struct xe_presi_info {
 					 xe->presi_info.timeout_multiplier : 1)
 
 void xe_presi_init(struct xe_device *xe);
+
+void xe_presi_skip_uc_auth(struct xe_gt *gt);
 
 #endif
