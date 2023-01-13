@@ -35,6 +35,8 @@
 #include "xe_trace.h"
 #include "xe_vm.h"
 
+#include "presi/xe_presi.h"
+
 static struct xe_gt *
 guc_to_gt(struct xe_guc *guc)
 {
@@ -1163,6 +1165,10 @@ static int guc_exec_queue_init(struct xe_exec_queue *q)
 
 	timeout = (q->vm && xe_vm_no_dma_fences(q->vm)) ? MAX_SCHEDULE_TIMEOUT :
 		  q->hwe->eclass->sched_props.job_timeout_ms;
+
+	if (timeout != MAX_SCHEDULE_TIMEOUT)
+		timeout *= XE_PRESI_TIMEOUT_MULTIPLIER(guc_to_xe(guc));
+
 	err = drm_sched_init(&ge->sched, &drm_sched_ops, NULL,
 			     q->lrc[0].ring.size / MAX_JOB_SIZE_BYTES,
 			     64, timeout, guc_to_gt(guc)->ordered_wq, NULL,
