@@ -747,6 +747,9 @@ int xe_guc_pc_gucrc_disable(struct xe_guc_pc *pc)
 	struct xe_gt *gt = pc_to_gt(pc);
 	int ret = 0;
 
+	if (XE_PRESI_SKIP_FEATURE(pc_to_xe(pc), GUC_SLPC))
+		return 0;
+
 	xe_device_mem_access_get(pc_to_xe(pc));
 
 	ret = pc_action_setup_gucrc(pc, XE_GUCRC_HOST_CONTROL);
@@ -816,7 +819,8 @@ int xe_guc_pc_start(struct xe_guc_pc *pc)
 	u32 size = PAGE_ALIGN(sizeof(struct slpc_shared_data));
 	int ret;
 
-	if (GRAPHICS_VERx100(xe) >= 2000)
+	if (XE_PRESI_SKIP_FEATURE(xe, GUC_SLPC) ||
+	    GRAPHICS_VERx100(xe) >= 2000)
 		return 0;
 
 	xe_gt_assert(gt, xe_device_uc_enabled(xe));
@@ -867,7 +871,8 @@ int xe_guc_pc_stop(struct xe_guc_pc *pc)
 {
 	int ret;
 
-	if (GRAPHICS_VERx100(pc_to_xe(pc)) >= 2000)
+	if (XE_PRESI_SKIP_FEATURE(pc_to_xe(pc), GUC_SLPC) ||
+	    GRAPHICS_VERx100(pc_to_xe(pc)) >= 2000)
 		return 0;
 
 	xe_device_mem_access_get(pc_to_xe(pc));
@@ -905,6 +910,7 @@ void xe_guc_pc_fini(struct xe_guc_pc *pc)
  */
 int xe_guc_pc_init(struct xe_guc_pc *pc)
 {
+
 	struct xe_gt *gt = pc_to_gt(pc);
 	struct xe_tile *tile = gt_to_tile(gt);
 	struct xe_device *xe = gt_to_xe(gt);
@@ -912,7 +918,8 @@ int xe_guc_pc_init(struct xe_guc_pc *pc)
 	u32 size = PAGE_ALIGN(sizeof(struct slpc_shared_data));
 	int err;
 
-	if (GRAPHICS_VERx100(xe) >= 2000)
+	if (XE_PRESI_SKIP_FEATURE(pc_to_xe(pc), GUC_SLPC) ||
+	    GRAPHICS_VERx100(xe) >= 2000)
 		return 0;
 
 	mutex_init(&pc->freq_lock);
