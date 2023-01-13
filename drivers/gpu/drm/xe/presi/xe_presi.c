@@ -3,7 +3,9 @@
  * Copyright © 2022 Intel Corporation
  */
 
+#include "regs/xe_guc_regs.h"
 #include "xe_device_types.h"
+#include "xe_mmio.h"
 #include "xe_presi.h"
 
 static const char * const presi_mode_names[] = {
@@ -103,4 +105,19 @@ void xe_presi_init(struct xe_device *xe)
 		drm_info(&xe->drm, "using pre-silicon timeout multiplier: %d\n",
 				xe->presi_info.timeout_multiplier);
 
+}
+
+#define GUC_SHIM_CONTROL2_VALUE (GUC_SHA_COMPUTATION_DISABLE	| \
+				 GUC_RSA_CHECK_BOOT_ROM_DISABLE	| \
+				 GUC_RSA_KEY_SELECTION)
+
+void xe_presi_skip_uc_auth(struct xe_gt *gt)
+{
+	struct xe_device *xe =  gt_to_xe(gt);
+	/*
+	 * uc firmware authentication could be disabled using module parameter or
+	 * when executing on presilicon environment
+	 */
+	if (XE_PRESI_SKIP_FEATURE(xe, UC_AUTH))
+		xe_mmio_write32(gt, GUC_SHIM_CONTROL2, GUC_SHIM_CONTROL2_VALUE);
 }
