@@ -377,6 +377,8 @@ static void guc_prepare_xfer(struct xe_guc *guc)
 	xe_mmio_write32(gt, GT_PM_CONFIG, GT_DOORBELL_ENABLE);
 
 	select_gamctrl_queue(gt);
+
+	xe_presi_skip_uc_auth(gt);
 }
 
 /*
