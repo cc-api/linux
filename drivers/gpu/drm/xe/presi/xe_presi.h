@@ -65,7 +65,8 @@ struct xe_presi_info {
 #define XE_PRESI_SKIP_FEATURE(xe, name) \
 	(xe->presi_info.disabled_features & XE_PRESI_FEATURE_BIT(name))
 
-#define XE_PRESI_TIMEOUT_MULTIPLIER(xe) (xe->presi_info.timeout_multiplier)
+#define XE_PRESI_TIMEOUT_MULTIPLIER(xe) (IS_PRESILICON(xe) ? \
+					 xe->presi_info.timeout_multiplier : 1)
 
 void xe_presi_init(struct xe_device *xe);
 
