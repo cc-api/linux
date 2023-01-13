@@ -801,6 +801,9 @@ int xe_guc_pc_start(struct xe_guc_pc *pc)
 	u32 size = PAGE_ALIGN(sizeof(struct slpc_shared_data));
 	int ret;
 
+	if (XE_PRESI_SKIP_FEATURE(xe, GUC_SLPC))
+		return 0;
+
 	XE_WARN_ON(!xe_device_guc_submission_enabled(xe));
 
 	xe_device_mem_access_get(pc_to_xe(pc));
@@ -848,6 +851,9 @@ int xe_guc_pc_stop(struct xe_guc_pc *pc)
 {
 	int ret;
 
+	if (XE_PRESI_SKIP_FEATURE(pc_to_xe(pc), GUC_SLPC))
+		return 0;
+
 	xe_device_mem_access_get(pc_to_xe(pc));
 
 	ret = pc_gucrc_disable(pc);
@@ -887,11 +893,15 @@ static void pc_fini(struct drm_device *drm, void *arg)
  */
 int xe_guc_pc_init(struct xe_guc_pc *pc)
 {
+
 	struct xe_gt *gt = pc_to_gt(pc);
 	struct xe_device *xe = gt_to_xe(gt);
 	struct xe_bo *bo;
 	u32 size = PAGE_ALIGN(sizeof(struct slpc_shared_data));
 	int err;
+
+	if (XE_PRESI_SKIP_FEATURE(pc_to_xe(pc), GUC_SLPC))
+		return 0;
 
 	mutex_init(&pc->freq_lock);
 
