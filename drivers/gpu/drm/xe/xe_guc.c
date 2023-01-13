@@ -523,6 +523,19 @@ int xe_guc_min_load_for_hwconfig(struct xe_guc *guc)
 {
 	int ret;
 
+	/* Minimal GuC loading for reading the hwconfig is causing issues the
+	 * later once when the complete GuC is transferred and GuC is ready to
+	 * submissions. For some reason, workloads submitted using GuC CT gets
+	 * no response. This happens only if the minimal GuC loading is performed.
+	 * When this step is skipped, no issue observed.
+	 * Possible cause could be because the GuC reset is not supported and
+	 * hence skipped on presilicon. For now, the minimal loading is skipped if
+	 * the GuC reset support is disabled.
+	 * HSD number: 16019817552
+	 */
+	if (XE_PRESI_SKIP_FEATURE(guc_to_xe(guc), GUC_RESET))
+		return 0;
+
 	xe_guc_ads_populate_minimal(&guc->ads);
 
 	ret = __xe_guc_upload(guc);
