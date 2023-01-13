@@ -241,7 +241,9 @@ static int emit_nop_job(struct xe_gt *gt, struct xe_engine *e)
 	fence = dma_fence_get(&job->drm.s_fence->finished);
 	xe_sched_job_push(job);
 
-	timeout = dma_fence_wait_timeout(fence, false, HZ);
+	timeout = HZ * XE_PRESI_TIMEOUT_MULTIPLIER(gt_to_xe(gt));
+
+	timeout = dma_fence_wait_timeout(fence, false, timeout);
 	dma_fence_put(fence);
 	xe_bb_free(bb, NULL);
 	if (timeout < 0)
@@ -292,7 +294,10 @@ static int emit_wa_job(struct xe_gt *gt, struct xe_engine *e)
 	fence = dma_fence_get(&job->drm.s_fence->finished);
 	xe_sched_job_push(job);
 
-	timeout = dma_fence_wait_timeout(fence, false, HZ);
+	timeout = HZ * XE_PRESI_TIMEOUT_MULTIPLIER(gt_to_xe(gt));
+
+	timeout = dma_fence_wait_timeout(fence, false, timeout);
+
 	dma_fence_put(fence);
 	xe_bb_free(bb, NULL);
 	if (timeout < 0)
