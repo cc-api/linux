@@ -9,7 +9,10 @@
 #include <linux/delay.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
 
+#include "xe_gt.h"
 #include "xe_gt_types.h"
+
+#include "presi/xe_presi.h"
 
 struct drm_device;
 struct drm_file;
@@ -79,10 +82,15 @@ static inline int xe_mmio_wait32(struct xe_gt *gt, u32 reg, u32 val, u32 mask,
 				 u32 timeout_us, u32 *out_val, bool atomic)
 {
 	ktime_t cur = ktime_get_raw();
-	const ktime_t end = ktime_add_us(cur, timeout_us);
+	ktime_t end;
 	int ret = -ETIMEDOUT;
 	s64 wait = 10;
 	u32 read;
+
+	if (IS_PRESILICON(gt_to_xe(gt)) && (timeout_us != MAX_SCHEDULE_TIMEOUT))
+		timeout_us *= XE_PRESI_TIMEOUT_MULTIPLIER(gt_to_xe(gt));
+
+	end = ktime_add_us(cur, timeout_us);
 
 	for (;;) {
 		if ((xe_mmio_read32(gt, reg) & mask) == val)
