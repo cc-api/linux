@@ -31,7 +31,8 @@ static void xe_gt_tlb_fence_timeout(struct work_struct *work)
 		s64 since_inval_ms = ktime_ms_delta(ktime_get(),
 						    fence->invalidation_time);
 
-		if (msecs_to_jiffies(since_inval_ms) < TLB_TIMEOUT)
+		if (msecs_to_jiffies(since_inval_ms) <
+		    TLB_TIMEOUT * XE_PRESI_TIMEOUT_MULTIPLIER(gt_to_xe(gt)))
 			break;
 
 		trace_xe_gt_tlb_invalidation_fence_timeout(fence);
@@ -46,7 +47,7 @@ static void xe_gt_tlb_fence_timeout(struct work_struct *work)
 	if (!list_empty(&gt->tlb_invalidation.pending_fences))
 		queue_delayed_work(system_wq,
 				   &gt->tlb_invalidation.fence_tdr,
-				   TLB_TIMEOUT);
+				   TLB_TIMEOUT * XE_PRESI_TIMEOUT_MULTIPLIER(gt_to_xe(gt)));
 	mutex_unlock(&gt->uc.guc.ct.lock);
 }
 
@@ -135,7 +136,7 @@ static int send_tlb_invalidation(struct xe_guc *guc,
 		if (queue_work)
 			queue_delayed_work(system_wq,
 					   &gt->tlb_invalidation.fence_tdr,
-					   TLB_TIMEOUT);
+					   TLB_TIMEOUT * XE_PRESI_TIMEOUT_MULTIPLIER(gt_to_xe(gt)));
 	}
 	if (!ret)
 		ret = seqno;
@@ -290,7 +291,7 @@ int xe_gt_tlb_invalidation_wait(struct xe_gt *gt, int seqno)
 	 */
 	ret = wait_event_timeout(guc->ct.wq,
 				 tlb_invalidation_seqno_past(gt, seqno),
-				 TLB_TIMEOUT);
+				 TLB_TIMEOUT * XE_PRESI_TIMEOUT_MULTIPLIER(xe));
 	if (!ret) {
 		drm_err(&xe->drm, "gt%d: TLB invalidation time'd out, seqno=%d, recv=%d\n",
 			gt->info.id, seqno, gt->tlb_invalidation.seqno_recv);
@@ -346,7 +347,7 @@ int xe_guc_tlb_invalidation_done_handler(struct xe_guc *guc, u32 *msg, u32 len)
 		if (!list_empty(&gt->tlb_invalidation.pending_fences))
 			mod_delayed_work(system_wq,
 					 &gt->tlb_invalidation.fence_tdr,
-					 TLB_TIMEOUT);
+					 TLB_TIMEOUT * XE_PRESI_TIMEOUT_MULTIPLIER(gt_to_xe(gt)));
 		else
 			cancel_delayed_work(&gt->tlb_invalidation.fence_tdr);
 	}
