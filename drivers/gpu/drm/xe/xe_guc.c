@@ -368,6 +368,8 @@ static void guc_prepare_xfer(struct xe_guc *guc)
 	xe_mmio_write32(gt, GUC_SHIM_CONTROL.reg, shim_flags);
 
 	xe_mmio_write32(gt, GEN9_GT_PM_CONFIG.reg, GT_DOORBELL_ENABLE);
+
+	xe_presi_skip_uc_auth(gt);
 }
 
 /*
