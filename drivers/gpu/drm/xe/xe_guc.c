@@ -70,7 +70,8 @@ static u32 guc_ctl_debug_flags(struct xe_guc *guc)
 
 static u32 guc_ctl_feature_flags(struct xe_guc *guc)
 {
-	if (GRAPHICS_VERx100(guc_to_xe(guc)) >= 2000)
+	if (XE_PRESI_SKIP_FEATURE(guc_to_xe(guc), GUC_SLPC) ||
+	    GRAPHICS_VERx100(guc_to_xe(guc)) >= 2000)
 		return 0;
 
 	return GUC_CTL_ENABLE_SLPC;
