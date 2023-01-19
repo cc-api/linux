@@ -31,6 +31,9 @@
 #include <asm/cpu.h>
 #include <asm/set_memory.h>
 
+#define TDSYSINFO_STRUCT_SIZE        1024
+#define TDSYSINFO_STRUCT_ALIGNMENT   1024
+
 /*
  * This file contains both macros and data structures defined by the TDX
  * architecture and Linux defined software data structures and functions.
@@ -99,9 +102,6 @@ struct tdmr_info {
  */
 
 struct tdx_module_output;
-u64 __seamcall(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
-	       u64 r10, u64 r11, u64 r12, u64 r13,
-	       struct tdx_module_output *out);
 
 /* Support Intel Secure Arbitration Mode Range Registers (SEAMRR) */
 #define MTRR_CAP_SEAMRR			BIT(15)
@@ -501,7 +501,7 @@ static int seamcall(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
 {
 	u64 sret;
 
-	sret = __seamcall(fn, rcx, rdx, r8, r9, 0, 0, 0, 0, out);
+	sret = __seamcall(fn, rcx, rdx, r8, r9, out);
 
 	/* Save SEAMCALL return code if the caller wants it */
 	if (seamcall_ret)
@@ -1397,13 +1397,8 @@ static int init_tdmrs(struct tdmr_info_list *tdmr_list)
 
 static void do_lp_init(void *data)
 {
-	u64 tsx_ctrl;
 	int ret;
-
-	tsx_ctrl = tsx_ctrl_clear();
 	ret = seamcall(TDH_SYS_LP_INIT, 0, 0, 0, 0, NULL, NULL);
-	tsx_ctrl_restore(tsx_ctrl);
-
 	*(int *)data = ret;
 }
 static int tdx_module_init_cpus(void)
@@ -1425,7 +1420,7 @@ static int tdx_module_init_cpus(void)
 	return ret;
 }
 
-static void tdx_trace_seamcalls(u64 level)
+static void tdx_trace_seamcalls_old(u64 level)
 {
 	static bool debugconfig_supported = true;
 	int ret;
@@ -1449,21 +1444,18 @@ static int init_tdx_module(void)
 	 */
 	struct tdsysinfo_struct *sysinfo = &PADDED_STRUCT(tdsysinfo);
 	struct tdmr_info_list tdmr_list;
-	u64 tsx_ctrl;
 	int ret;
 
 	preempt_disable();
-	tsx_ctrl = tsx_ctrl_clear();
 	ret = seamcall(TDH_SYS_INIT, 0, 0, 0, 0, NULL, NULL);
-	tsx_ctrl_restore(tsx_ctrl);
 	preempt_enable();
 	if (ret)
 		goto out;
 
 	if (trace_boot_seamcalls)
-		tdx_trace_seamcalls(DEBUGCONFIG_TRACE_ALL);
+		tdx_trace_seamcalls_old(DEBUGCONFIG_TRACE_ALL);
 	else
-		tdx_trace_seamcalls(tdx_trace_level);
+		tdx_trace_seamcalls_old(tdx_trace_level);
 
 	/* Logical-cpu scope initialization */
 	ret = tdx_module_init_cpus();
