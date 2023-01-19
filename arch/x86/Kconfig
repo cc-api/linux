@@ -1944,7 +1944,7 @@ config INTEL_TDX_HOST
 	bool "Intel Trust Domain Extensions (TDX) host support"
 	depends on CPU_SUP_INTEL
 	depends on X86_64
-	depends on KVM_INTEL
+	depends on KVM_INTEL || SVOS
 	depends on X86_X2APIC
 	select ARCH_KEEP_MEMBLOCK
 	select HAVE_VMX_GENERIC

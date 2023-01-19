@@ -3,4 +3,6 @@ obj-y += seamcall.o tdx.o
 obj-$(CONFIG_INTEL_TDX_HOST_DEBUG)	+= tdx_debug.o
 obj-$(CONFIG_INTEL_TDX_MODULE_LOADER_OLD) += tdx_module_loader_old/
 obj-$(CONFIG_INTEL_TDX_MODULE_UPDATE) += seamldr.o
+ifdef CONFIG_SVOS
 obj-$(CONFIG_INTEL_TDX_HOST_OLD)   += tdx-old.o
+endif
