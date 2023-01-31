@@ -294,33 +294,47 @@ static void ifs_test_core(int cpu, struct device *dev)
 	}
 }
 
+#define SPINUNIT 100 /* 100 nsec */
+static atomic_t array_cpus_out;
+
 /*
- * Execute the scan. Called "simultaneously" on all threads of a core
- * at high priority using the stop_cpus mechanism.
+ * Simplified cpu sibling rendezvous loop based on microcode loader __wait_for_cpus()
  */
+static void wait_for_sibling_cpu(atomic_t *t, long long timeout)
+{
+	int cpu = smp_processor_id();
+	const struct cpumask *smt_mask = cpu_smt_mask(cpu);
+	int all_cpus = cpumask_weight(smt_mask);
+
+	atomic_inc(t);
+	while (atomic_read(t) < all_cpus) {
+		if (timeout < SPINUNIT)
+			return;
+		ndelay(SPINUNIT);
+		timeout -= SPINUNIT;
+		touch_nmi_watchdog();
+	}
+}
+
 static int do_array_test(void *data)
 {
 	int cpu = smp_processor_id();
 	u64 *msrs = data;
 	int first;
 
-	/* Only the first logical CPU on a core reports result */
+	/*
+	 * Only one logical CPU on a core needs to trigger the Array test via MSR write.
+	 */
 	first = cpumask_first(cpu_smt_mask(cpu));
 
-	/*
-	 * This WRMSR will wait for other HT threads to also write
-	 * to this MSR (at most for activate.delay cycles). Then it
-	 * starts scan of each requested chunk. The core scan happens
-	 * during the "execution" of the WRMSR. This instruction can
-	 * take up to <TODO profile time> (in the case where all chunks
-	 * are processed in a single pass) before it retires.
-	 */
-	wrmsrl(MSR_ARRAY_BIST, msrs[0]);
-
 	if (cpu == first) {
-		/* Pass back the result of the scan */
+		wrmsrl(MSR_ARRAY_BIST, msrs[0]);
+		/* Pass back the result of the test */
 		rdmsrl(MSR_ARRAY_BIST, msrs[1]);
 	}
+
+	/* Tests complete faster if the sibling is spinning here */
+	wait_for_sibling_cpu(&array_cpus_out, NSEC_PER_SEC);
 
 	return 0;
 }
