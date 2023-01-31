@@ -43,6 +43,7 @@ struct xe_presi_info {
 		XE_MAX_PRESI_MODE = XE_PRESI_MODE_EMULATOR_PIPE2D
 	} mode;
 	u64 disabled_features;
+	int timeout_multiplier;
 };
 
 #define MODPARAM_TO_PRESI_MODE(x) ({ \
@@ -63,6 +64,8 @@ struct xe_presi_info {
 
 #define XE_PRESI_SKIP_FEATURE(xe, name) \
 	(xe->presi_info.disabled_features & XE_PRESI_FEATURE_BIT(name))
+
+#define XE_PRESI_TIMEOUT_MULTIPLIER(xe) (xe->presi_info.timeout_multiplier)
 
 void xe_presi_init(struct xe_device *xe);
 

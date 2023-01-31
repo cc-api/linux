@@ -19,6 +19,12 @@ MODULE_PARM_DESC(presi_mode, "Select pre-si mode "
 		 "(0=none/silicon [default], 1=simulator,"
 		 "2=pipeGT emulator, 3=pipe2D emulator)");
 
+static int xe_presi_timeout_multiplier = 0;
+module_param_named_unsafe(presi_timeout_multiplier,
+			  xe_presi_timeout_multiplier, int, 0600);
+MODULE_PARM_DESC(presi_timeout_multiplier,
+		 "Timeout multiplier for presilicon execution");
+
 #define XE_PRESI_FORCE_DISABLE_FEATURE(xe, name) \
 	xe->presi_info.disabled_features |= XE_PRESI_FEATURE_BIT(name)
 
@@ -83,4 +89,18 @@ void xe_presi_init(struct xe_device *xe)
 	}
 
 	xe_presi_init_disabled_features(xe);
+
+	xe->presi_info.timeout_multiplier = 1;
+	if (xe_presi_timeout_multiplier) {
+		xe->presi_info.timeout_multiplier = xe_presi_timeout_multiplier;
+	} else {
+		/* presilicon timeout multiplier module param is not set. */
+		if (IS_PRESILICON(xe))
+			xe->presi_info.timeout_multiplier = 100;
+	}
+
+	if (xe->presi_info.timeout_multiplier > 1)
+		drm_info(&xe->drm, "using pre-silicon timeout multiplier: %d\n",
+				xe->presi_info.timeout_multiplier);
+
 }
