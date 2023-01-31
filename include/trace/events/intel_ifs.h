@@ -55,7 +55,7 @@ TRACE_EVENT(ifs_array,
 		__entry->status	= status.data;
 	),
 
-	TP_printk("cpu: %d, array_list: %.8x, array_bank: %.4x, status: %llx",
+	TP_printk("cpu: %d, array_list: %.8x, array_bank: %.4x, status: %.16llx",
 		__entry->cpu,
 		__entry->arrays,
 		__entry->bank,
