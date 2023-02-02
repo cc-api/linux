@@ -19,6 +19,44 @@ MODULE_PARM_DESC(presi_mode, "Select pre-si mode "
 		 "(0=none/silicon [default], 1=simulator,"
 		 "2=pipeGT emulator, 3=pipe2D emulator)");
 
+#define XE_PRESI_FORCE_DISABLE_FEATURE(xe, name) \
+	xe->presi_info.disabled_features |= XE_PRESI_FEATURE_BIT(name)
+
+#define XE_PRESI_FORCE_ENABLE_FEATURE(xe, name) \
+	xe->presi_info.disabled_features &= ~XE_PRESI_FEATURE_BIT(name)
+
+static void dg2_sim_init_disabled_features(struct xe_device *xe)
+{
+	xe->presi_info.disabled_features = 0;
+}
+
+/*
+ * For now there is no common feature which is disabled across all platforms on
+ * simulator environment.
+ * This would avoid adding new switch cases for platforms if they just disable
+ * the feature which is common for all platforms.
+ */
+#define XE_PRESI_SIM_COMMON_DISABLED_FEATURES 0
+
+static void xe_presi_init_disabled_features(struct xe_device *xe)
+{
+	BUILD_BUG_ON(sizeof(xe->presi_info.disabled_features) * BITS_PER_BYTE <
+		     XE_PRESI_FEATURE_COUNT);
+
+	if (IS_SIMULATOR(xe)) {
+		xe->presi_info.disabled_features =
+			XE_PRESI_SIM_COMMON_DISABLED_FEATURES;
+		switch(xe->info.platform) {
+			case XE_DG2:
+				dg2_sim_init_disabled_features(xe);
+				break;
+			default:
+				/* Added just to satisfy the warning */
+		}
+	}
+	/* Other presilicon environments like PipeGT and Pipe2D are yet to be handled */
+}
+
 /**
  * xe_presi_init - checks the pre-si modparam and acts on it
  * @xe:	xe device
@@ -43,4 +81,6 @@ void xe_presi_init(struct xe_device *xe)
 				  xe_presi_mode);
 		xe->presi_info.mode = XE_PRESI_MODE_NONE;
 	}
+
+	xe_presi_init_disabled_features(xe);
 }
