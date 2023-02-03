@@ -363,6 +363,7 @@ static void ifs_array_test_core(int cpu, struct device *dev)
 
 		msrvals[0] = activate.data;
 
+		atomic_set(&array_cpus_out, 0);
 		stop_core_cpuslocked(cpu, do_array_test, msrvals);
 		status.data = msrvals[1];
 
