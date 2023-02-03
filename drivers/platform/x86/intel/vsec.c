@@ -421,6 +421,12 @@ static const struct intel_vsec_platform_info tgl_info = {
 	.quirks = VSEC_QUIRK_TABLE_SHIFT | VSEC_QUIRK_EARLY_HW,
 };
 
+/* TGL info */
+static const struct intel_vsec_platform_info tgl_info = {
+	.quirks = VSEC_QUIRK_NO_WATCHER | VSEC_QUIRK_NO_CRASHLOG |
+		  VSEC_QUIRK_TABLE_SHIFT | VSEC_QUIRK_EARLY_HW,
+};
+
 #define PCI_DEVICE_ID_INTEL_VSEC_ADL		0x467d
 #define PCI_DEVICE_ID_INTEL_VSEC_DG1		0x490e
 #define PCI_DEVICE_ID_INTEL_VSEC_MTL_M		0x7d0d
