@@ -15,7 +15,16 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.2
+------------
+5. Fix the issue that VDEV Block-on-Fault not set in guest VM, which is documented in
+    https://hsdes.intel.com/appstore/article/#/22015866177
+
+    vfio: idxd: Set block on fault in GENCAP
+    dmaengine: idxd: Load block on fault from wq config
+
 GNR-BKC-V3.1
+------------
 4. DLB driver is not able to enable PASID in 5.19 intel-next kernel with new SIOV/IOMMUFD framework. Previously the PCI PASID and PRI capabilities are enabled in the path of iommu device probe only if CONFIG_INTEL_IOMMU_SVM is configured and the device supports ATS. As we've already decoupled the I/O page fault handler from SVA, we could also decouple PASID and PRI enabling from it.
     https://jira.devtools.intel.com/browse/LFE-4880
     iommu/vt-d: Decouple PASID & PRI enabling from SVA
