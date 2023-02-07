@@ -22,11 +22,13 @@ struct device;
 
 enum _late_load_flags {
 	__LATE_LOAD_BOTH,
+	__LATE_LOAD_SAFE,
 	__LATE_LOAD_MAX,
 };
 
 enum late_load_flags {
 	LATE_LOAD_BOTH = BIT(__LATE_LOAD_BOTH),
+	LATE_LOAD_SAFE = BIT(__LATE_LOAD_SAFE),
 	LATE_LOAD_MAX  = BIT(__LATE_LOAD_MAX)
 };
 
