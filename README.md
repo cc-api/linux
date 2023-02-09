@@ -15,6 +15,12 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.5
+------------
+7. This is to fix device hot-plug failed on DSA/IAX PF/VDEV passthrough when using iommufd in modern scalable mode. In this case we adjust host supported address width info when no5lvl is set in host cmdline.
+    https://jira.devtools.intel.com/browse/LFE-6367
+    iommu: Adjust host addr_width info with no5lvl
+
 GNR-BKC-V3.4
 ------------
 6. Add Confidential Computing Event Log (CCEL) support,
