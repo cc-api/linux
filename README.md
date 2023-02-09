@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.6
+------------
+8. GNR BKC IDXD driver will enter a dead lock status when handling HALT interrupt. The issue blocks HATL testing: https://hsdes.intel.com/appstore/article/#/15012432746
+    dmaengine: idxd: avoid deadlock in process_misc_interrupts()
+
 GNR-BKC-V3.5
 ------------
 7. This is to fix device hot-plug failed on DSA/IAX PF/VDEV passthrough when using iommufd in modern scalable mode. In this case we adjust host supported address width info when no5lvl is set in host cmdline.
