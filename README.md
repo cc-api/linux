@@ -15,6 +15,12 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.8
+------------
+10. max_xfer_shift and max_batch_shift from hardware's cap may be different from WQ's configuration. Guest only can use up to the values from the host WQ instead of hardware's cap.
+    https://hsdes.intel.com/appstore/article/#/22016309793
+    vfio: idxd: Config max_xfer_shift and max_batch_shift from WQ
+
 GNR-BKC-V3.7
 ------------
 9. Turn on ACPI debugger
