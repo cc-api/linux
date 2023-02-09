@@ -15,6 +15,15 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.4
+------------
+6. Add Confidential Computing Event Log (CCEL) support,
+    https://jira.devtools.intel.com/browse/LFE-6431
+    https://hsdes.intel.com/appstore/article/#/16019570262
+    https://hsdes.intel.com/appstore/article/#/15012454062
+    ACPICA: Add CCEL table header
+    ACPI/sysfs: Enable ACPI sysfs support for CCEL records
+
 GNR-BKC-V3.3
 ------------
 5. Cherry-pick ACPI/PRM feature from EMR kernel
