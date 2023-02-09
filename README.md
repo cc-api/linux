@@ -15,7 +15,12 @@ Use at your own risk.
 
 Release History
 ===============
-GNR-BKC-V3.2
+GNR-BKC-V3.3
+------------
+5. Cherry-pick ACPI/PRM feature from EMR kernel
+ACPI/RPM changes (Aubrey Li, https://hsdes.intel.com/appstore/article/#/16018211583)
+
+ GNR-BKC-V3.2
 ------------
 5. Fix the issue that VDEV Block-on-Fault not set in guest VM, which is documented in
     https://hsdes.intel.com/appstore/article/#/22015866177
