@@ -15,6 +15,12 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.7
+------------
+9. Turn on ACPI debugger
+    https://hsdes.intel.com/appstore/article/#/16018211583
+    config: enable ACPI DEBUGGER
+
 GNR-BKC-V3.6
 ------------
 8. GNR BKC IDXD driver will enter a dead lock status when handling HALT interrupt. The issue blocks HATL testing: https://hsdes.intel.com/appstore/article/#/15012432746
