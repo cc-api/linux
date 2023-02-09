@@ -222,6 +222,7 @@ struct vmx_tdx_enabled {
 int vmxon_all(struct vmx_tdx_enabled *vmx_tdx);
 void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx);
 bool tdx_io_support(void);
+bool tdx_io_enabled(void);
 void tdx_clear_page(unsigned long page_pa, int size);
 int tdx_reclaim_page(unsigned long pa, enum pg_level level, bool do_wb, u16 hkid);
 void tdx_reclaim_td_page(unsigned long td_page_pa);
@@ -972,6 +973,7 @@ struct vmx_tdx_enabled;
 static inline int vmxon_all(struct vmx_tdx_enabled *vmx_tdx) { return -EOPNOTSUPP; }
 static inline void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx) {}
 static inline bool tdx_io_support(void) { return false; }
+static inline bool tdx_io_enabled(void) { return false; }
 static inline u64 seamcall_retry(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
 			         u64 r10, u64 r11, u64 r12, u64 r13,
 			         u64 r14, u64 r15,
