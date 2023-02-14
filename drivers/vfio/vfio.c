@@ -1070,6 +1070,7 @@ static void __vfio_group_unset_container(struct vfio_group *group)
 		vfio_group_unset_iommufd(group->iommufd,
 					 &group->device_list);
 		group->iommufd = NULL;
+		group->container_users = 0;
 		return;
 	}
 
