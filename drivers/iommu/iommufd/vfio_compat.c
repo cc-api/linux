@@ -609,6 +609,7 @@ static void vfio_device_detach_unbind(struct vfio_device *device,
 
 	if (device->ops->detach_hwpt)
 		device->ops->detach_hwpt(device, &detach);
+	__vfio_device_close_group_locked(device);
 	if (device->ops->unbind_iommufd)
 		device->ops->unbind_iommufd(device);
 }
@@ -627,10 +628,20 @@ static int vfio_device_bind_attach(struct vfio_device *device,
 	if (rc)
 		return rc;
 
+	rc = __vfio_device_open_group_locked(device);
+	if (rc)
+		goto err_bind_iommufd;
+
 	rc = device->ops->attach_ioas(device, attach);
 	if (rc)
-		device->ops->unbind_iommufd(device);
+		goto err_attach_ioas;
 
+	return 0;
+
+err_attach_ioas:
+	__vfio_device_close_group_locked(device);
+err_bind_iommufd:
+	device->ops->unbind_iommufd(device);
 	return rc;
 }
 

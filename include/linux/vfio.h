@@ -330,4 +330,6 @@ static inline int vfio_ims_init(struct vfio_device *vdev, int num, bool *ims_map
 static inline void vfio_ims_free(struct vfio_device *vdev) {}
 #endif /* CONFIG_VFIO_MDEV_IMS */
 
+int __vfio_device_open_group_locked(struct vfio_device *device);
+void __vfio_device_close_group_locked(struct vfio_device *device);
 #endif /* VFIO_H */

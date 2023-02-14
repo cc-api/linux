@@ -1243,6 +1243,65 @@ static void vfio_device_unassign_container(struct vfio_device *device)
 	up_write(&device->group->group_rwsem);
 }
 
+/* Caller already hold group->group_rwsem */
+int __vfio_device_open_group_locked(struct vfio_device *device)
+{
+	int ret = 0;
+
+	if (!try_module_get(device->dev->driver->owner))
+		return -ENODEV;
+
+	mutex_lock(&device->dev_set->lock);
+	device->open_count++;
+	if (device->open_count == 1) {
+		/*
+		 * Here we pass the KVM pointer with the group under the read
+		 * lock.  If the device driver will use it, it must obtain a
+		 * reference and release it during close_device.
+		 */
+		device->kvm = device->group->kvm;
+		if (device->group->attrs & VFIO_GROUP_ATTRS_TRUSTED)
+			device->trusted = true;
+		else
+			device->trusted = false;
+
+		if (device->ops->open_device) {
+			ret = device->ops->open_device(device);
+			if (ret)
+				goto err_undo_count;
+		}
+	}
+	mutex_unlock(&device->dev_set->lock);
+
+	return 0;
+err_undo_count:
+	device->open_count--;
+	if (device->open_count == 0 && device->kvm)
+		device->kvm = NULL;
+	mutex_unlock(&device->dev_set->lock);
+	module_put(device->dev->driver->owner);
+	return ret;
+}
+
+void __vfio_device_close_group_locked(struct vfio_device *device)
+{
+	mutex_lock(&device->dev_set->lock);
+	vfio_assert_device_open(device);
+	if (device->open_count == 1) {
+		if (!vfio_device_in_container(device) &&
+		    device->ops->unbind_iommufd)
+			device->ops->unbind_iommufd(device);
+		if (device->ops->close_device)
+			device->ops->close_device(device);
+	}
+	device->open_count--;
+	if (device->open_count == 0)
+		device->kvm = NULL;
+	mutex_unlock(&device->dev_set->lock);
+
+	module_put(device->dev->driver->owner);
+}
+
 static int __vfio_device_open(struct vfio_device *device)
 {
 	int ret = 0;
