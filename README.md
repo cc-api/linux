@@ -15,6 +15,12 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.9
+------------
+11. This fixes an failure of the tool when running on GNR Q2TK, which supports PP level4 only.
+    https://hsdes.intel.com/resource/16019627423
+    tools/power/x86/intel-speed-select: return failure for unsupported PP level
+
 GNR-BKC-V3.8
 ------------
 10. max_xfer_shift and max_batch_shift from hardware's cap may be different from WQ's configuration. Guest only can use up to the values from the host WQ instead of hardware's cap.
