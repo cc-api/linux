@@ -15,6 +15,23 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.10
+-------------
+12. During poweron testing core team informed us that unlike SAF, Array
+    test needs to be triggered from only a single sibling thread of the
+    initating core.
+    We were also seeing lot of retries if the sibling of the core initiating
+    the test is in m-wait state. As a mitigation we spin the sibling until
+    the first thread completes the test.
+
+    [1] https://hsdes.intel.com/resource/14018157349
+    [2] https://hsdes.intel.com/resource/16018961627
+    [3] https://hsdes.intel.com/resource/13010567499
+
+    platform/x86/intel/ifs: Enhance support for array test
+    platform/x86/intel/ifs: ArrayBIST initialize spin var
+    platform/x86/intel/ifs: ArrayBIST trigger from 1 sibling
+
 GNR-BKC-V3.9
 ------------
 11. This fixes an failure of the tool when running on GNR Q2TK, which supports PP level4 only.
