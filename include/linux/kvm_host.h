@@ -605,7 +605,12 @@ struct kvm_memory_slot {
 
 static inline bool kvm_slot_can_be_private(const struct kvm_memory_slot *slot)
 {
-	return slot && (slot->flags & KVM_MEM_PRIVATE);
+	return slot && (slot->flags & (KVM_MEM_PRIVATE | KVM_MEM_NONUPM_SAFE));
+}
+
+static inline bool kvm_slot_is_nonupm_safe(const struct kvm_memory_slot *slot)
+{
+	return slot && (slot->flags & KVM_MEM_NONUPM_SAFE);
 }
 
 static inline bool kvm_slot_dirty_track_enabled(const struct kvm_memory_slot *slot)
