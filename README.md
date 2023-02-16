@@ -15,6 +15,15 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.11
+-------------
+13. Fix QAT device address translation issue with invalidation completion ordering, by issuing an extra dTLB flush for QAT devices on impacted platforms of all SPR/EMR steppings, GNR stepping A0 and B0, SRF stepping A0, and GNR-D steppping A0.
+    https://hsdes.intel.com/appstore/article/#/22015770501
+    https://jira.devtools.intel.com/browse/LFE-6307
+    [Pre-Production] iommu/vt-d: Extra dTLB flush for QAT devices on GNR and SRF platforms
+    iommu/vt-d: Fix buggy QAT device mask
+    iommu/vt-d: Add a fix for devices need extra dtlb flush
+
 GNR-BKC-V3.10
 -------------
 12. During poweron testing core team informed us that unlike SAF, Array
