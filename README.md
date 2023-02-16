@@ -15,6 +15,13 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.12
+-------------
+14. Boot up a guest with scalable mode IAX VDEV passthrough (iommufd=iommufd0), in the guest run dmatest before reboot, dmatest passed on guest. Then reboot VM , run dmatest again after VM rebooted, dmatest failed in VM. It is because iopt add domain failed when there are some areas couldn't get proper pfn. The workaround is to have all the areas failed in filling the domain to be skipped and removed from the iopt in this case.
+    https://hsdes.intel.com/appstore/article/#/22016638873
+    https://jira.devtools.intel.com/browse/LFE-4915
+    iommufd: remove wrong area in iopt while domain attached
+
 GNR-BKC-V3.11
 -------------
 13. Fix QAT device address translation issue with invalidation completion ordering, by issuing an extra dTLB flush for QAT devices on impacted platforms of all SPR/EMR steppings, GNR stepping A0 and B0, SRF stepping A0, and GNR-D steppping A0.
