@@ -15,6 +15,12 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V3.13
+-------------
+15. Fix an issue that a vdev is created without a work queue bound to it. The fix is to have the just created vdev to be removed if this vdev cannot be bound to the dedicated work queue.
+    https://hsdes.intel.com/appstore/article/#/22015866268
+    vfio: idxd: Fix vdev bound to DWQ
+
 GNR-BKC-V3.12
 -------------
 14. Boot up a guest with scalable mode IAX VDEV passthrough (iommufd=iommufd0), in the guest run dmatest before reboot, dmatest passed on guest. Then reboot VM , run dmatest again after VM rebooted, dmatest failed in VM. It is because iopt add domain failed when there are some areas couldn't get proper pfn. The workaround is to have all the areas failed in filling the domain to be skipped and removed from the iopt in this case.
