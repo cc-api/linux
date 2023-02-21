@@ -15,6 +15,14 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V4.1
+------------
+16. KVM bridge doesn't work with Intel 100G NIC. Includes three patches to fix the double vlan promiscuous mode in ice driver.
+    https://jira.devtools.intel.com/browse/BLR-798
+    ice: Fix clearing of promisc mode with bridge over bond
+    ice: Ignore EEXIST when setting promisc mode
+    ice: Fix double VLAN error when entering promisc mode
+
 GNR-BKC-V3.13
 -------------
 15. Fix an issue that a vdev is created without a work queue bound to it. The fix is to have the just created vdev to be removed if this vdev cannot be bound to the dedicated work queue.
