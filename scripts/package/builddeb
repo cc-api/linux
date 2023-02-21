@@ -391,7 +391,7 @@ EOF
 # OOT: build and include x86 tools
 NO_LIBPYTHON=1 NO_LIBPERL=1 $MAKE -C tools perf
 $MAKE -C tools/power/x86/x86_energy_perf_policy
-$MAKE -C tools/power/x86/turbostat
+MAKEFLAGS="" $MAKE -C tools/power/x86/turbostat
 $MAKE tools/intel-speed-select
 $MAKE -j1 tools/acpi
 
