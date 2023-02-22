@@ -535,6 +535,7 @@ static int uc_fw_xfer(struct xe_uc_fw *uc_fw, u32 offset, u32 dma_flags)
 	struct xe_gt *gt = uc_fw_to_gt(uc_fw);
 	u32 src_offset, dma_ctrl;
 	int ret;
+	u32 timeout_us;
 
 	xe_force_wake_assert_held(gt_to_fw(gt), XE_FW_GT);
 
@@ -558,8 +559,13 @@ static int uc_fw_xfer(struct xe_uc_fw *uc_fw, u32 offset, u32 dma_flags)
 	xe_mmio_write32(gt, DMA_CTRL,
 			_MASKED_BIT_ENABLE(dma_flags | START_DMA));
 
+	/* For DMA transfer, on top of the regular timeout multiplier an
+	 * additional multiplier is used for Presilicon because DMA transfer
+	 * takes quite a long time to complete compared to other wait times
+	 */
+	timeout_us = 100000 * (IS_PRESILICON(xe) ?  10 : 1);
 	/* Wait for DMA to finish */
-	ret = xe_mmio_wait32(gt, DMA_CTRL, START_DMA, 0, 100000, &dma_ctrl,
+	ret = xe_mmio_wait32(gt, DMA_CTRL, START_DMA, 0, timeout_us, &dma_ctrl,
 			     false);
 	if (ret)
 		drm_err(&xe->drm, "DMA for %s fw failed, DMA_CTRL=%u\n",
