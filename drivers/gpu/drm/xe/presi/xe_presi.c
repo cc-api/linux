@@ -42,6 +42,14 @@ static void dg2_sim_init_disabled_features(struct xe_device *xe)
 	xe->presi_info.disabled_features = 0;
 }
 
+static void pvc_sim_init_disabled_features(struct xe_device *xe)
+{
+	xe->presi_info.disabled_features = \
+					   XE_PRESI_FEATURE_BIT(GUC_RESET)| \
+					   XE_PRESI_FEATURE_BIT(UC_AUTH)| \
+					   XE_PRESI_FEATURE_BIT(GUC_SLPC);
+}
+
 /*
  * For now there is no common feature which is disabled across all platforms on
  * simulator environment.
@@ -62,6 +70,8 @@ static void xe_presi_init_disabled_features(struct xe_device *xe)
 			case XE_DG2:
 				dg2_sim_init_disabled_features(xe);
 				break;
+			case XE_PVC:
+				pvc_sim_init_disabled_features(xe);
 			default:
 				/* Added just to satisfy the warning */
 		}
