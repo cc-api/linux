@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V4.2
+------------
+17. Add ZRAM related configs to make IAA compress tests available.
+    config: enable ZRAM
+
 GNR-BKC-V4.1
 ------------
 16. KVM bridge doesn't work with Intel 100G NIC. Includes three patches to fix the double vlan promiscuous mode in ice driver.
