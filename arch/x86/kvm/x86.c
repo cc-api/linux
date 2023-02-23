@@ -645,7 +645,8 @@ static void kvm_leave_nested(struct kvm_vcpu *vcpu)
 
 static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 		unsigned nr, bool has_error, u32 error_code,
-	        bool has_payload, unsigned long payload, bool reinject)
+	        bool has_payload, unsigned long payload,
+		bool reinject, bool nested)
 {
 	u32 prev_nr;
 	int class1, class2;
@@ -678,6 +679,7 @@ static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 			 */
 			WARN_ON_ONCE(kvm_is_exception_pending(vcpu));
 			vcpu->arch.exception.injected = true;
+			vcpu->arch.exception.nested = nested;
 			if (WARN_ON_ONCE(has_payload)) {
 				/*
 				 * A reinjected event has already
@@ -721,6 +723,8 @@ static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 
 		kvm_queue_exception_e(vcpu, DF_VECTOR, 0);
 	} else {
+		vcpu->arch.exception.nested = true;
+
 		/* replace previous exception with a new one in a hope
 		   that instruction re-execution will regenerate lost
 		   exception */
@@ -730,20 +734,20 @@ static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 
 void kvm_queue_exception(struct kvm_vcpu *vcpu, unsigned nr)
 {
-	kvm_multiple_exception(vcpu, nr, false, 0, false, 0, false);
+	kvm_multiple_exception(vcpu, nr, false, 0, false, 0, false, false);
 }
 EXPORT_SYMBOL_GPL(kvm_queue_exception);
 
-void kvm_requeue_exception(struct kvm_vcpu *vcpu, unsigned nr)
+void kvm_requeue_exception(struct kvm_vcpu *vcpu, unsigned nr, bool nested)
 {
-	kvm_multiple_exception(vcpu, nr, false, 0, false, 0, true);
+	kvm_multiple_exception(vcpu, nr, false, 0, false, 0, true, nested);
 }
 EXPORT_SYMBOL_GPL(kvm_requeue_exception);
 
 void kvm_queue_exception_p(struct kvm_vcpu *vcpu, unsigned nr,
 			   unsigned long payload)
 {
-	kvm_multiple_exception(vcpu, nr, false, 0, true, payload, false);
+	kvm_multiple_exception(vcpu, nr, false, 0, true, payload, false, false);
 }
 EXPORT_SYMBOL_GPL(kvm_queue_exception_p);
 
@@ -751,7 +755,7 @@ static void kvm_queue_exception_e_p(struct kvm_vcpu *vcpu, unsigned nr,
 				    u32 error_code, unsigned long payload)
 {
 	kvm_multiple_exception(vcpu, nr, true, error_code,
-			       true, payload, false);
+			       true, payload, false, false);
 }
 
 int kvm_complete_insn_gp(struct kvm_vcpu *vcpu, int err)
@@ -823,13 +827,13 @@ void kvm_inject_nmi(struct kvm_vcpu *vcpu)
 
 void kvm_queue_exception_e(struct kvm_vcpu *vcpu, unsigned nr, u32 error_code)
 {
-	kvm_multiple_exception(vcpu, nr, true, error_code, false, 0, false);
+	kvm_multiple_exception(vcpu, nr, true, error_code, false, 0, false, false);
 }
 EXPORT_SYMBOL_GPL(kvm_queue_exception_e);
 
-void kvm_requeue_exception_e(struct kvm_vcpu *vcpu, unsigned nr, u32 error_code)
+void kvm_requeue_exception_e(struct kvm_vcpu *vcpu, unsigned nr, u32 error_code, bool nested)
 {
-	kvm_multiple_exception(vcpu, nr, true, error_code, false, 0, true);
+	kvm_multiple_exception(vcpu, nr, true, error_code, false, 0, true, nested);
 }
 EXPORT_SYMBOL_GPL(kvm_requeue_exception_e);
 

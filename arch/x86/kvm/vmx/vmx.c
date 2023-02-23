@@ -1905,6 +1905,8 @@ static void vmx_inject_exception(struct kvm_vcpu *vcpu)
 				event_data = vcpu->arch.guest_fpu.xfd_err;
 
 			vmcs_write64(INJECTED_EVENT_DATA, event_data);
+
+			intr_info |= ex->nested ? INTR_INFO_NESTED_EXCEPTION_MASK : 0;
 		}
 	}
 
@@ -2856,6 +2858,19 @@ static int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 	/* IA-32 SDM Vol 3B: 64-bit CPUs always have VMX_BASIC_MSR[48]==0. */
 	if (vmx_msr_high & (1u << (VMX_BASIC_32BIT_PHYS_ADDR_ONLY_SHIFT - 32)))
 		return -EIO;
+
+	/*
+	 * FRED draft Spec 5.0 Section 9.2:
+	 *
+	 * Any processor that enumerates support for FRED transitions
+	 * will also enumerate VMX nested-exception support.
+	 */
+	if (cpu_feature_enabled(X86_FEATURE_FRED) &&
+	    !(vmx_msr_high & (1u << (VMX_BASIC_NESTED_EXCEPTION_SHIFT - 32)))) {
+		pr_warn_once("FRED enabled but no VMX nested-exception support\n");
+		if (error_on_inconsistent_vmcs_config)
+			return -EIO;
+	}
 #endif
 
 	/* Require Write-Back (WB) memory type for VMCS accesses. */
@@ -7291,11 +7306,12 @@ static void __vmx_complete_interrupts(struct kvm_vcpu *vcpu,
 		vcpu->arch.event_exit_inst_len = vmcs_read32(instr_len_field);
 		fallthrough;
 	case INTR_TYPE_HARD_EXCEPTION:
-		if (idt_vectoring_info & VECTORING_INFO_DELIVER_CODE_MASK) {
-			u32 err = vmcs_read32(error_code_field);
-			kvm_requeue_exception_e(vcpu, vector, err);
-		} else
-			kvm_requeue_exception(vcpu, vector);
+		if (idt_vectoring_info & VECTORING_INFO_DELIVER_CODE_MASK)
+			kvm_requeue_exception_e(vcpu, vector, vmcs_read32(error_code_field),
+						idt_vectoring_info & INTR_INFO_NESTED_EXCEPTION_MASK);
+		else
+			kvm_requeue_exception(vcpu, vector,
+					      idt_vectoring_info & INTR_INFO_NESTED_EXCEPTION_MASK);
 		break;
 	case INTR_TYPE_SOFT_INTR:
 		vcpu->arch.event_exit_inst_len = vmcs_read32(instr_len_field);
