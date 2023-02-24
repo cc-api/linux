@@ -4295,6 +4295,8 @@ static int tdx_td_init(struct kvm *kvm, struct kvm_tdx_cmd *cmd)
 		goto out;
 
 	kvm_tdx->tsc_offset = td_tdcs_exec_read64(kvm_tdx, TD_TDCS_EXEC_TSC_OFFSET);
+	kvm_tdx->mmio_offset = tdx_io_enabled() ?
+		td_tdr_tdxio_read64(kvm_tdx, TD_TDR_TDXIO_RND_HPA_OFFSET) : 0;
 	kvm_tdx->attributes = td_params->attributes;
 	kvm_tdx->xfam = td_params->xfam;
 
