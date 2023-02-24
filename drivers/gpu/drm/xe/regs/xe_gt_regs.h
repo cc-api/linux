@@ -382,4 +382,12 @@
 #define XEHPC_BCS5_BCS6_INTR_MASK		_MMIO(0x190118)
 #define XEHPC_BCS7_BCS8_INTR_MASK		_MMIO(0x19011c)
 
+
+/* ---------------------  EXTRA REGISTERS ----------------------------------- */
+
+#define XEHPC_GT_COMPUTE_DSS_2			_MMIO(0x914c)
+
+#define XE2_GT_GEOMETRY_DSS_1			_MMIO(0x9150)
+#define XE2_GT_GEOMETRY_DSS_2			_MMIO(0x9154)
+
 #endif
