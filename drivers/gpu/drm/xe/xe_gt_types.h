@@ -54,6 +54,7 @@ enum xe_steering_type {
 	LNCF,
 	DSS,
 	OADDRM,
+	SQIDI_PSMI,
 
 	/*
 	 * On some platforms there are multiple types of MCR registers that
