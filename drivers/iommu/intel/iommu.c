@@ -1885,7 +1885,7 @@ static void domain_detach_iommu(struct dmar_domain *domain,
 
 	spin_lock(&iommu->lock);
 	info = xa_load(&domain->iommu_array, iommu->seq_id);
-	if (--info->refcnt == 0) {
+	if (info && --info->refcnt == 0) {
 		clear_bit(info->did, iommu->domain_ids);
 		xa_erase(&domain->iommu_array, iommu->seq_id);
 		domain->nid = NUMA_NO_NODE;
@@ -2508,7 +2508,8 @@ static int dmar_domain_attach_device(struct dmar_domain *domain,
 		return ret;
 	info->domain = domain;
 	spin_lock_irqsave(&domain->lock, flags);
-	list_add(&info->link, &domain->devices);
+	if (++info->users == 1)
+		list_add(&info->link, &domain->devices);
 	spin_unlock_irqrestore(&domain->lock, flags);
 
 	/* PASID table is mandatory for a PCI device in scalable mode. */
@@ -4071,7 +4072,8 @@ static void dmar_remove_one_dev_info(struct device *dev)
 	}
 
 	spin_lock_irqsave(&domain->lock, flags);
-	list_del(&info->link);
+	if (--info->users == 0)
+		list_del(&info->link);
 	spin_unlock_irqrestore(&domain->lock, flags);
 
 	domain_detach_iommu(domain, iommu);
@@ -4102,7 +4104,8 @@ static void device_block_translation(struct device *dev)
 		return;
 
 	spin_lock_irqsave(&info->domain->lock, flags);
-	list_del(&info->link);
+	if (--info->users == 0)
+		list_del(&info->link);
 	spin_unlock_irqrestore(&info->domain->lock, flags);
 
 	domain_detach_iommu(info->domain, iommu);
