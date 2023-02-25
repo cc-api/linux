@@ -16,6 +16,8 @@
 #include "xe_platform_types.h"
 #include "xe_step_types.h"
 
+#include "presi/xe_presi.h"
+
 /* For display substruct */
 #include "display/intel_display_core.h"
 #include "display/ext/intel_device_info.h"
@@ -310,6 +312,9 @@ struct xe_device {
 		const char *vbt_firmware;
 		u32 lvds_channel_mode;
 	} params;
+
+	/** @presi_info: PreSi info */
+	struct xe_presi_info presi_info;
 };
 
 /**

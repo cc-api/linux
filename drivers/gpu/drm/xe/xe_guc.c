@@ -70,6 +70,9 @@ static u32 guc_ctl_debug_flags(struct xe_guc *guc)
 
 static u32 guc_ctl_feature_flags(struct xe_guc *guc)
 {
+	if (XE_PRESI_SKIP_FEATURE(guc_to_xe(guc), GUC_SLPC))
+		return 0;
+
 	return GUC_CTL_ENABLE_SLPC;
 }
 
@@ -321,6 +324,11 @@ int xe_guc_reset(struct xe_guc *guc)
 	u32 guc_status, gdrst;
 	int ret;
 
+	if (XE_PRESI_SKIP_FEATURE(xe, GUC_RESET)) {
+		drm_dbg(&xe->drm, "Skipping GuC reset: presilicon\n");
+		return 0;
+	}
+
 	xe_force_wake_assert_held(gt_to_fw(gt), XE_FW_GT);
 
 	xe_mmio_write32(gt, GEN6_GDRST.reg, GEN11_GRDOM_GUC);
@@ -369,6 +377,8 @@ static void guc_prepare_xfer(struct xe_guc *guc)
 	xe_mmio_write32(gt, GUC_SHIM_CONTROL.reg, shim_flags);
 
 	xe_mmio_write32(gt, GEN9_GT_PM_CONFIG.reg, GT_DOORBELL_ENABLE);
+
+	xe_presi_skip_uc_auth(gt);
 }
 
 /*
@@ -514,6 +524,19 @@ out:
 int xe_guc_min_load_for_hwconfig(struct xe_guc *guc)
 {
 	int ret;
+
+	/* Minimal GuC loading for reading the hwconfig is causing issues the
+	 * later once when the complete GuC is transferred and GuC is ready to
+	 * submissions. For some reason, workloads submitted using GuC CT gets
+	 * no response. This happens only if the minimal GuC loading is performed.
+	 * When this step is skipped, no issue observed.
+	 * Possible cause could be because the GuC reset is not supported and
+	 * hence skipped on presilicon. For now, the minimal loading is skipped if
+	 * the GuC reset support is disabled.
+	 * HSD number: 16019817552
+	 */
+	if (XE_PRESI_SKIP_FEATURE(guc_to_xe(guc), GUC_RESET))
+		return 0;
 
 	xe_guc_ads_populate_minimal(&guc->ads);
 
