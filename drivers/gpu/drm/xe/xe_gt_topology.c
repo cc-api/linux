@@ -17,6 +17,10 @@
 #define XELP_GT_GEOMETRY_DSS_ENABLE		0x913c
 #define XEHP_GT_COMPUTE_DSS_ENABLE		0x9144
 #define XEHPC_GT_COMPUTE_DSS_ENABLE_EXT		0x9148
+#define XEHPC_GT_COMPUTE_DSS_2			0x914c
+
+#define XE2_GT_GEOMETRY_DSS_1			0x9150
+#define XE2_GT_GEOMETRY_DSS_2			0x9154
 
 static void
 load_dss_mask(struct xe_gt *gt, xe_dss_mask_t mask, int numregs, ...)
@@ -73,7 +77,10 @@ xe_gt_topology_init(struct xe_gt *gt)
 	struct drm_printer p = drm_debug_printer("GT topology");
 	int num_geometry_regs, num_compute_regs;
 
-	if (GRAPHICS_VERx100(xe) == 1260) {
+	if (GRAPHICS_VER(xe) > 20) {
+		num_geometry_regs = 3;
+		num_compute_regs = 3;
+	} else if (GRAPHICS_VERx100(xe) == 1260) {
 		num_geometry_regs = 0;
 		num_compute_regs = 2;
 	} else if (GRAPHICS_VERx100(xe) >= 1250) {
@@ -85,10 +92,13 @@ xe_gt_topology_init(struct xe_gt *gt)
 	}
 
 	load_dss_mask(gt, gt->fuse_topo.g_dss_mask, num_geometry_regs,
-		      XELP_GT_GEOMETRY_DSS_ENABLE);
+		      XELP_GT_GEOMETRY_DSS_ENABLE,
+		      XE2_GT_GEOMETRY_DSS_1,
+		      XE2_GT_GEOMETRY_DSS_2);
 	load_dss_mask(gt, gt->fuse_topo.c_dss_mask, num_compute_regs,
 		      XEHP_GT_COMPUTE_DSS_ENABLE,
-		      XEHPC_GT_COMPUTE_DSS_ENABLE_EXT);
+		      XEHPC_GT_COMPUTE_DSS_ENABLE_EXT,
+		      XEHPC_GT_COMPUTE_DSS_2);
 	load_eu_mask(gt, gt->fuse_topo.eu_mask_per_dss);
 
 	xe_gt_topology_dump(gt, &p);
