@@ -451,13 +451,40 @@ static void read_copy_fuses(struct xe_gt *gt)
 	}
 }
 
+static void read_compute_fuses(struct xe_gt *gt)
+{
+	struct xe_device *xe = gt_to_xe(gt);
+	u32 ccs_mask;
+
+	if (GRAPHICS_VER(xe) < 20)
+		/*
+		 * FIXME:  Xe_HPC at least should probably have CCS handling too
+		 * (inferred from the DSS fusing), but we need to clarify the
+		 * details first.
+		 */
+		return;
+
+	ccs_mask = xe_mmio_read32(gt, XEHP_FUSE4.reg);
+	ccs_mask = REG_FIELD_GET(CCS_EN_MASK, ccs_mask);
+
+	for (int i = XE_HW_ENGINE_CCS0, j = 0; i <= XE_HW_ENGINE_CCS3; ++i, ++j) {
+		if (!(gt->info.engine_mask & BIT(i)))
+			continue;
+
+		if ((ccs_mask & BIT(j)) == 0) {
+			gt->info.engine_mask &= ~BIT(i);
+			drm_info(&xe->drm, "ccs%u fused off\n", j);
+		}
+	}
+}
+
 int xe_hw_engines_init_early(struct xe_gt *gt)
 {
 	int i;
 
 	read_media_fuses(gt);
 	read_copy_fuses(gt);
-	/* TODO: compute engines */
+	read_compute_fuses(gt);
 
 	for (i = 0; i < ARRAY_SIZE(gt->hw_engines); i++)
 		hw_engine_init_early(gt, &gt->hw_engines[i], i);

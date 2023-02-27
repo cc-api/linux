@@ -552,6 +552,7 @@
 
 /* Fuse readout registers for GT */
 #define XEHP_FUSE4				_MMIO(0x9114)
+#define   CCS_EN_MASK				REG_GENMASK(19, 16)
 #define   GT_L3_EXC_MASK			REG_GENMASK(6, 4)
 #define	GEN10_MIRROR_FUSE3			_MMIO(0x9118)
 #define   GEN10_L3BANK_PAIR_COUNT		4
