@@ -134,6 +134,7 @@
 
 /* Fuse readout registers for GT */
 #define XEHP_FUSE4				_MMIO(0x9114)
+#define   CCS_EN_MASK				REG_GENMASK(19, 16)
 #define   GT_L3_EXC_MASK			REG_GENMASK(6, 4)
 
 #define GEN11_GT_VEBOX_VDBOX_DISABLE		_MMIO(0x9140)
