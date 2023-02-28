@@ -306,6 +306,25 @@ static const struct xe_gt_desc xe2_media_gt[] = {
 		BIT(XE_HW_ENGINE_CCS2) | BIT(XE_HW_ENGINE_CCS3), \
 	.extra_gts = xe2_media_gt
 
+static const u16 bmg_g10_ids[] = { XE_BMG_G10_IDS(NOP), 0 };
+static const u16 bmg_g21_ids[] = { XE_BMG_G21_IDS(NOP), 0 };
+
+static const struct xe_device_desc bmg_desc = {
+	XE2_FEATURES,
+	DGFX_FEATURES,
+	PLATFORM(XE_BATTLEMAGE),
+	/* FIXME: These need to come from GMD_ID */
+	.graphics_ver = 20,
+	.graphics_rel = 0,
+	.media_ver = 13,
+	.media_rel = 1,
+	.subplatforms = (const struct xe_subplatform_desc[]) {
+		{ XE_SUBPLATFORM_BMG_G10, "G10", bmg_g10_ids },
+		{ XE_SUBPLATFORM_BMG_G21, "G21", bmg_g21_ids },
+		{ }
+	},
+};
+
 #undef PLATFORM
 __diag_pop();
 
@@ -329,6 +348,7 @@ static const struct pci_device_id pciidlist[] = {
 	XE_ADLP_IDS(INTEL_VGA_DEVICE, &adl_p_desc),
 	XE_PVC_IDS(INTEL_VGA_DEVICE, &pvc_desc),
 	XE_MTL_IDS(INTEL_VGA_DEVICE, &mtl_desc),
+	XE_BMG_IDS(INTEL_VGA_DEVICE, &bmg_desc),
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, pciidlist);
