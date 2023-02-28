@@ -65,6 +65,7 @@ struct xe_device_desc {
 
 	u8 vram_flags;
 	u8 max_tiles;
+	u8 va_bits;
 	u8 vm_max_level;
 
 	bool supports_usm;
@@ -90,6 +91,7 @@ __diag_ignore_all("-Woverride-init", "Allow field overrides in table");
 	.media_ver = 12, \
 	.dma_mask_size = 39, \
 	.max_tiles = 1, \
+	.va_bits = 48, \
 	.vm_max_level = 3, \
 	.vram_flags = 0
 
@@ -148,6 +150,7 @@ static const struct xe_device_desc dg1_desc = {
 	.has_flat_ccs = true, \
 	.dma_mask_size = 46, \
 	.max_tiles = 1, \
+	.va_bits = 48, \
 	.vm_max_level = 3
 
 #define XE_HPM_FEATURES \
@@ -227,6 +230,7 @@ static const struct xe_device_desc pvc_desc = {
 	.vram_flags = XE_VRAM_FLAGS_NEED64K,
 	.dma_mask_size = 52,
 	.max_tiles = 2,
+	.va_bits = 57,
 	.vm_max_level = 4,
 	.supports_usm = true,
 	.has_asid = true,
@@ -260,6 +264,7 @@ static const struct xe_device_desc mtl_desc = {
 	.graphics_rel = 70,
 	.dma_mask_size = 46,
 	.max_tiles = 2,
+	.va_bits = 48,
 	.vm_max_level = 3,
 	.media_ver = 13,
 	.has_range_tlb_invalidation = true,
@@ -446,6 +451,7 @@ static int xe_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	xe->info.dma_mask_size = desc->dma_mask_size;
 	xe->info.vram_flags = desc->vram_flags;
 	xe->info.tile_count = desc->max_tiles;
+	xe->info.va_bits = desc->va_bits;
 	xe->info.vm_max_level = desc->vm_max_level;
 	xe->info.supports_usm = desc->supports_usm;
 	xe->info.has_asid = desc->has_asid;
