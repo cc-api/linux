@@ -19,6 +19,7 @@ enum xe_platform {
 	XE_ALDERLAKE_P,
 	XE_METEORLAKE,
 	XE_BATTLEMAGE,
+	XE_LUNARLAKE,
 };
 
 enum xe_subplatform {
