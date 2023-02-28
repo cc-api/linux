@@ -218,4 +218,15 @@
 	MACRO__(0x64A0, ## __VA_ARGS__), \
 	MACRO__(0x64B0, ## __VA_ARGS__)
 
+#define XE_BMG_IDS(MACRO__, ...) \
+	MACRO__(0xE201, ## __VA_ARGS__), \
+        MACRO__(0xE202, ## __VA_ARGS__), \
+	MACRO__(0xE204, ## __VA_ARGS__), \
+	MACRO__(0xE205, ## __VA_ARGS__), \
+	MACRO__(0xE208, ## __VA_ARGS__), \
+        MACRO__(0xE20B, ## __VA_ARGS__), \
+        MACRO__(0xE20C, ## __VA_ARGS__), \
+        MACRO__(0xE20D, ## __VA_ARGS__), \
+        MACRO__(0xE212, ## __VA_ARGS__)
+
 #endif
