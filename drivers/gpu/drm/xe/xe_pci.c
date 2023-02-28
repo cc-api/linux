@@ -322,6 +322,22 @@ static const struct xe_device_desc mtl_desc = {
 	.has_display = true,
 };
 
+static const u16 bmg_g10_ids[] = { XE_BMG_G10_IDS(NOP), 0 };
+static const u16 bmg_g21_ids[] = { XE_BMG_G21_IDS(NOP), 0 };
+
+static const struct xe_device_desc bmg_desc = {
+	DGFX_FEATURES,
+	PLATFORM(XE_BATTLEMAGE),
+	.has_4tile = true,
+	.has_display = false, /* TODO: not implemented yet */
+	.require_force_probe = true,
+	.subplatforms = (const struct xe_subplatform_desc[]) {
+		{ XE_SUBPLATFORM_BMG_G10, "G10", bmg_g10_ids },
+		{ XE_SUBPLATFORM_BMG_G21, "G21", bmg_g21_ids },
+		{ }
+	},
+};
+
 #undef PLATFORM
 __diag_pop();
 
@@ -365,6 +381,7 @@ static const struct pci_device_id pciidlist[] = {
 	XE_DG2_IDS(INTEL_VGA_DEVICE, &dg2_desc),
 	XE_PVC_IDS(INTEL_VGA_DEVICE, &pvc_desc),
 	XE_MTL_IDS(INTEL_VGA_DEVICE, &mtl_desc),
+	XE_BMG_IDS(INTEL_VGA_DEVICE, &bmg_desc),
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, pciidlist);
