@@ -268,6 +268,37 @@ static const struct xe_device_desc mtl_desc = {
 	.platform_engine_mask = MTL_MAIN_ENGINES,
 };
 
+#define XE2_MEDIA_ENGINES \
+	BIT(XE_HW_ENGINE_VCS0) | BIT(XE_HW_ENGINE_VECS0) /* TODO: GSC0 */
+
+static const struct xe_gt_desc xe2_media_gt[] = {
+	{
+		.type = XE_GT_TYPE_MEDIA,
+		.vram_id = 0,
+		.engine_mask = XE2_MEDIA_ENGINES,
+		.mmio_adj_limit = 0x40000,
+		.mmio_adj_offset = 0x380000,
+	}
+};
+
+#define XE2_FEATURES \
+	.dma_mask_size = 46, \
+	.vm_max_level = 4, \
+	.supports_usm = true, \
+	.has_flat_ccs = true, \
+	.has_4tile = true, \
+	.has_range_tlb_invalidation = true, \
+	.platform_engine_mask = \
+		BIT(XE_HW_ENGINE_RCS0) | \
+		BIT(XE_HW_ENGINE_BCS0) | BIT(XE_HW_ENGINE_BCS1) | \
+		BIT(XE_HW_ENGINE_BCS2) | BIT(XE_HW_ENGINE_BCS3) | \
+		BIT(XE_HW_ENGINE_BCS4) | BIT(XE_HW_ENGINE_BCS5) | \
+		BIT(XE_HW_ENGINE_BCS6) | BIT(XE_HW_ENGINE_BCS7) | \
+		BIT(XE_HW_ENGINE_BCS8) | \
+		BIT(XE_HW_ENGINE_CCS0) | BIT(XE_HW_ENGINE_CCS1) | \
+		BIT(XE_HW_ENGINE_CCS2) | BIT(XE_HW_ENGINE_CCS3), \
+	.extra_gts = xe2_media_gt
+
 #undef PLATFORM
 __diag_pop();
 
