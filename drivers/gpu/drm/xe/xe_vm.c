@@ -1092,7 +1092,7 @@ struct xe_vm *xe_vm_create(struct xe_device *xe, u32 flags)
 	kref_init(&vm->refcount);
 	dma_resv_init(&vm->resv);
 
-	vm->size = 1ull << xe_pt_shift(xe->info.vm_max_level + 1);
+	vm->size = 1ull << xe->info.va_bits;
 
 	vm->vmas = RB_ROOT;
 	vm->flags = flags;
