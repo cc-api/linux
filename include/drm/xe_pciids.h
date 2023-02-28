@@ -213,4 +213,14 @@
 #define XE_LNL_IDS(MACRO__, ...) \
 	MACRO__(0x64A0, ## __VA_ARGS__)
 
+#define XE_BMG_G10_IDS(MACRO__, ...) \
+	MACRO__(0xE201, ## __VA_ARGS__)
+
+#define XE_BMG_G21_IDS(MACRO__, ...) \
+        MACRO__(0xE202, ## __VA_ARGS__)
+
+#define XE_BMG_IDS(MACRO__, ...) \
+	XE_BMG_G10_IDS(MACRO__, ## __VA_ARGS__), \
+	XE_BMG_G21_IDS(MACRO__, ## __VA_ARGS__)
+
 #endif
