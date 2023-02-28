@@ -15,6 +15,13 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V4.3
+------------
+18. Fix an issue reported in https://jira.devtools.intel.com/browse/LFE-4901 that host ping/SSH VM failed while performing SRIOV VF NIC passthrough to VM with scalable mode vIOMMU while qemu command adds "iommufd=iommufd0"
+    iommu: detach from nest domain before blocking
+    iommu/vt-d: Setup pasid binding for PASID_RID2PASID
+7
+
 GNR-BKC-V4.2
 ------------
 17. Add ZRAM related configs to make IAA compress tests available.
