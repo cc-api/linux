@@ -22,6 +22,7 @@ enum xe_platform {
 	XE_PVC,
 	XE_METEORLAKE,
 	XE_BATTLEMAGE,
+	XE_LUNARLAKE,
 };
 
 enum xe_subplatform {

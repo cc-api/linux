@@ -338,6 +338,13 @@ static const struct xe_device_desc bmg_desc = {
 	},
 };
 
+static const struct xe_device_desc lnl_desc = {
+	PLATFORM(XE_LUNARLAKE),
+	.has_4tile = true,
+	.has_display = false, /* TODO: not implemented yet */
+	.require_force_probe = true,
+};
+
 #undef PLATFORM
 __diag_pop();
 
@@ -382,6 +389,7 @@ static const struct pci_device_id pciidlist[] = {
 	XE_PVC_IDS(INTEL_VGA_DEVICE, &pvc_desc),
 	XE_MTL_IDS(INTEL_VGA_DEVICE, &mtl_desc),
 	XE_BMG_IDS(INTEL_VGA_DEVICE, &bmg_desc),
+	XE_LNL_IDS(INTEL_VGA_DEVICE, &lnl_desc),
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, pciidlist);
