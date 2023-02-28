@@ -18,6 +18,7 @@ enum xe_platform {
 	XE_ALDERLAKE_S,
 	XE_ALDERLAKE_P,
 	XE_METEORLAKE,
+	XE_BATTLEMAGE,
 };
 
 enum xe_subplatform {
@@ -27,6 +28,8 @@ enum xe_subplatform {
 	XE_SUBPLATFORM_DG2_G11,
 	XE_SUBPLATFORM_DG2_G12,
 	XE_SUBPLATFORM_ADLP_RPLU,
+	XE_SUBPLATFORM_BMG_G10,
+	XE_SUBPLATFORM_BMG_G21,
 };
 
 #endif
