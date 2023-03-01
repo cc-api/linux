@@ -15,6 +15,12 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V4.6
+------------
+21. Like avx2_p1 and avx512_p1, don't display amx_p1 frequency when it is Zero.
+This fixes https://hsdes.intel.com/appstore/article/#/16019865009
+    tools/power/x86/intel-speed-select: ignore invalid amx_p1
+
 GNR-BKC-V4.5
 ------------
 20. EUPDATESVN is a new SGX instruction which allows enclave attestation to include information about updated microcode without a reboot. This series implements the infrastructure needed to track and tear down enclaves and then run EUPDATESVN.
