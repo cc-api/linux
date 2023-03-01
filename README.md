@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V4.5
+------------
+20. EUPDATESVN is a new SGX instruction which allows enclave attestation to include information about updated microcode without a reboot. This series implements the infrastructure needed to track and tear down enclaves and then run EUPDATESVN.
+    https://hsdes.intel.com/appstore/article/#/16019751088
+
 GNR-BKC-V4.4
 ------------
 19. Fix an issue reported in https://jira.devtools.intel.com/browse/LFE-4904 that dmatest failed while performing VM VDEV passthrough with legacy mode and without vIOMMU.
