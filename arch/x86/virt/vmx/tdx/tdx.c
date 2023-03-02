@@ -27,6 +27,7 @@
 #include <asm/msr.h>
 #include <asm/smp.h>
 #include <asm/tdx.h>
+#include <asm/tdx_errno.h>
 #include "tdx.h"
 
 /*
@@ -336,10 +337,18 @@ static int tdx_module_init_global(void)
 	u64 ret;
 
 	ret = seamcall(TDH_SYS_INIT, 0, 0, 0, 0, NULL);
-	if (ret == TDX_SEAMCALL_VMFAILINVALID)
-		return -ENODEV;
 
-	return ret ? -EFAULT : 0;
+	switch (ret) {
+	case TDX_SEAMCALL_VMFAILINVALID:
+		pr_err_once("TDX module is not loaded.\n");
+		return -ENODEV;
+	case TDX_INCORRECT_CPUID_VALUE:
+	case TDX_INCORRECT_MSR_VALUE_TSX:
+		pr_err_once("TDX module is outdated. Use v1.0.3 or newer.\n");
+		return -ENODEV;
+	default:
+		return ret ? -EFAULT : 0;
+	}
 }
 
 static int tdx_module_init_cpus(void)

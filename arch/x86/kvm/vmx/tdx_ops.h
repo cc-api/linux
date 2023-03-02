@@ -11,8 +11,8 @@
 #include <asm/asm.h>
 #include <asm/kvm_host.h>
 #include <asm/tdx.h>
+#include <asm/tdx_errno.h>
 
-#include "tdx_errno.h"
 #include "tdx_arch.h"
 
 #ifdef CONFIG_INTEL_TDX_HOST
