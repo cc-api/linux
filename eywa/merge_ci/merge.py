@@ -21,7 +21,7 @@ import functools
 import tabulate
 import itertools
 import more_itertools
-
+from io import StringIO
 manifest_in_path="manifest_in.json"
 manifest_out_path="manifest.json"
 script_name="Intel Next Merge script"
@@ -36,7 +36,7 @@ config_files_to_val = ["dcg_x86_64_defconfig",
                "intel_next_rpm_defconfig"]
 
 PROXY = "http://proxy-us.intel.com:911"
-
+DEFAULT_BRANDING="Intel Next"
 
 #config files to add to git
 config_files = [config_fragments] + config_files_to_val
@@ -309,7 +309,7 @@ def reset_repo(manifest):
     run_shell_cmd("git reset --hard {}".format(format(main_branch["rev"])))
 
 
-def do_merge(manifest, continue_merge):
+def do_merge(manifest, continue_merge, branding):
     #main merge function. use git rerere for cached conflicts
     if continue_merge:
         print_and_log(patch_manifest)
@@ -327,8 +327,8 @@ def do_merge(manifest, continue_merge):
                                       branch["branch"],
                                       branch["rev"]))
             try:
-                merge_msg= '"Intel Next: Merge commit {} from {} {}"'.format(branch["rev"],branch["repourl"],branch["branch"])
-                run_shell_cmd("git merge -m " + merge_msg + " --no-ff --log {} --rerere-autoupdate" .format(branch["rev"]))
+                merge_msg= '"{}: Merge commit {} from {} {}\n\n{}"'.format(branding,branch["rev"],branch["repourl"],branch["branch"],gen_manifest_blurb(None,branch))
+                run_shell_cmd("git merge -m " + merge_msg + " --no-ff  {} --rerere-autoupdate" .format(branch["rev"]))
             except Exception as e:
                 rerere_output= run_shell_cmd("git rerere status")
                 if rerere_output == "":
@@ -367,8 +367,12 @@ def create_readme_file():
     with open("README.intel","w") as f:
         f.write(readme_out)
 
-def merge_commit(manifest, project,config_options):
-    #Final Intel next commit. We need to make it look good.
+def merge_commit(manifest, project,config_options,branding):
+    #If eywa folder has not been merged, print msg and return
+    if not os.path.isdir("eywa"):
+        print("eywa branch has not been merged - skipping final merge commit")
+        return
+
     artifacts=["manifest","manifest.json"]
     date = datetime.date.today()
     #commit everything important
@@ -389,9 +393,9 @@ def merge_commit(manifest, project,config_options):
     run_shell_cmd("git add eywa/{}".format(patch_manifest))
 
     if project != None:
-        base_msg = "Intel Next ({} project release): Add release files for ".format(project)
+        base_msg = "{} ({} project release): Add release files for ".format(branding,project)
     else:
-        base_msg = "Intel Next: Add release files for ".format(project)
+        base_msg = "{}: Add release files for ".format(branding,project)
 
     if manifest["master_branch"]["use_latest_tag"]:
         commit_msg = base_msg + "{} {}\n\n".format(manifest["master_branch"]["tag"],date)
@@ -420,6 +424,37 @@ def merge_commit(manifest, project,config_options):
 
     run_shell_cmd("git commit -s -m '{}'".format(commit_msg))
 
+def gen_manifest_blurb(project,branch):
+    f = StringIO()
+    contributors = ["{} <{}>".format(contrib["name"],contrib["email"]) for contrib in branch["contributor"]]
+    ip_owner = ["{} <{}>".format(contrib["name"],contrib["email"]) for contrib in branch["ip_owner"]]
+    sdl_contact = ["{} <{}>".format(contrib["name"],contrib["email"]) for contrib in branch["sdl_contact"]]
+    cfg_options = ["#\t{}={}".format(cfg["name"],cfg["value"]) for cfg in branch["config_options"]]
+
+    f.write("#Topic Branch: {}\n".format(branch["name"]))
+    f.write("#Classification: {}\n".format(branch["status"]))
+    f.write("#Description: {}\n".format(branch["description"]))
+    if project != None:
+        f.write("#Project: {}\n".format(project))
+    f.write("#Jira: https://jira.devtools.intel.com/browse/{}\n".format(branch["jira"]))
+    f.write("#Contributor: {}\n".format(", ".join(contributors)))
+    f.write("#Branch Type: {}\n".format(branch["branch_type"]))
+    f.write("#Ip Owner: {}\n".format(", ".join(ip_owner)))
+    f.write("#SDL Contact: {}\n".format(", ".join(sdl_contact)))
+    if cfg_options != []:
+        f.write("#Config Options:\n{}\n".format("\n".join(cfg_options)))
+    else:
+        f.write("#Config Options: N/A\n")
+
+    if branch["enabled"]:
+        f.write("{} {} {}\n\n".format(branch["repourl"],branch["branch"],branch["rev"]))
+    else:
+        #If we want to print out DISABLED branches them change for loop above
+        f.write("#DISABLED {} {}\n\n".format(branch["repourl"],branch["branch"]))
+    val = f.getvalue()
+    f.close()
+    return val
+
 def print_manifest_log(manifest,project):
     #Creates TXT version of the manifest which can be sent out
     master= manifest["master_branch"]
@@ -430,34 +465,9 @@ def print_manifest_log(manifest,project):
             f.write("{} {} {} {}\n\n".format(master["repourl"],master["tag"],master["branch"],master["rev"]))
         else:
             f.write("{} {} {}\n\n".format(master["repourl"],master["branch"],master["rev"]))
-       
-        for branch in filter(lambda x: x['enabled'] == True,branches):
-            
-            contributors = ["{} <{}>".format(contrib["name"],contrib["email"]) for contrib in branch["contributor"]]
-            ip_owner = ["{} <{}>".format(contrib["name"],contrib["email"]) for contrib in branch["ip_owner"]]
-            sdl_contact = ["{} <{}>".format(contrib["name"],contrib["email"]) for contrib in branch["sdl_contact"]]
-            cfg_options = ["#\t{}={}".format(cfg["name"],cfg["value"]) for cfg in branch["config_options"]]
 
-            f.write("#Topic Branch: {}\n".format(branch["name"]))
-            f.write("#Classification: {}\n".format(branch["status"]))
-            f.write("#Description: {}\n".format(branch["description"]))
-            if project != None:
-                f.write("#Project: {}\n".format(project))
-            f.write("#Jira: {}\n".format(branch["jira"]))
-            f.write("#Contributor: {}\n".format(", ".join(contributors)))
-            f.write("#Branch Type: {}\n".format(branch["branch_type"]))
-            f.write("#Ip Owner: {}\n".format(", ".join(ip_owner)))
-            f.write("#SDL Contact: {}\n".format(", ".join(sdl_contact)))
-            if cfg_options != []:
-                f.write("#Config Options:\n{}\n".format("\n".join(cfg_options)))
-            else:
-                f.write("#Config Options: N/A\n")
-           
-            if branch["enabled"]:
-                f.write("{} {} {}\n\n".format(branch["repourl"],branch["branch"],branch["rev"]))
-            else:
-                #If we want to print out DISABLED branches them change for loop above
-                f.write("#DISABLED {} {}\n\n".format(branch["repourl"],branch["branch"]))
+        for branch in filter(lambda x: x['enabled'] == True,branches):
+            f.write(gen_manifest_blurb(project,branch))
 
 def list_manifest(manifest,list_repos):
     """
@@ -701,6 +711,8 @@ def open_logs(mode):
     global patch
     log = open(log_file_name,mode)
     patch = open(patch_manifest,mode)
+    args = " ".join(sys.argv)
+    log.write(f"Script started with {args}\n")
 
 def branch_is_for_all_subprojects(branch):
     '''Check if branch is to be included in all sub projects'''
@@ -749,6 +761,7 @@ def main():
     parser.add_argument('-b','--blacklist', help='comma seperated list of branches not to merge even if enabled',type=str)
     parser.add_argument('-e','--enable_list', help='comma seperated list of branches to enable if disabled in manifest_in.json',type=str)
     parser.add_argument('-w','--whitelist', help='comma seperated list of branches to exclusively merge',type=str)
+    parser.add_argument('-br','--branding', help=f'Branding for merge default:{DEFAULT_BRANDING}',type=str,default=DEFAULT_BRANDING)
     args = parser.parse_args()
 
     skip_fetch = args.skip_fetch
@@ -757,6 +770,7 @@ def main():
     regen_config = args.regen_config
     run_describe = args.run_describe
     master_branch = args.master_branch
+    branding = args.branding
 
     blacklist = []
     if args.blacklist != None:
@@ -804,7 +818,7 @@ def main():
         print_manifest_log(manifest,project)
     
     #Do actual merge now that everything is setup
-    do_merge(manifest, continue_merge)
+    do_merge(manifest, continue_merge,branding)
     create_readme_file()
     
     config_change = None 
@@ -812,7 +826,7 @@ def main():
         config_change = gen_config()
 
     #Last step is to do the merge commit which checks in log files/cfg files etc 
-    merge_commit(manifest,project,config_change)
+    merge_commit(manifest,project,config_change,branding)
     #If we get here without Exception, merge is done
     print_and_log("Merge script has completed without error")
 
