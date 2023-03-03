@@ -22,6 +22,7 @@
 #define TELEM_SIZE_OFFSET	0x0
 #define TELEM_GUID_OFFSET	0x4
 #define TELEM_BASE_OFFSET	0x8
+#define TELEM_TELE_ID_OFFSET	0xC
 #define TELEM_ACCESS(v)		((v) & GENMASK(3, 0))
 #define TELEM_TYPE(v)		(((v) & GENMASK(7, 4)) >> 4)
 /* size is in bytes */
@@ -77,6 +78,7 @@ static int pmt_telem_header_decode(struct intel_pmt_entry *entry,
 	header->access_type = TELEM_ACCESS(readl(disc_table));
 	header->guid = readl(disc_table + TELEM_GUID_OFFSET);
 	header->base_offset = readl(disc_table + TELEM_BASE_OFFSET);
+	header->telem_type = TELEM_TYPE(readl(entry->disc_table));
 
 	/* Size is measured in DWORDS, but accessor returns bytes */
 	header->size = TELEM_SIZE(readl(disc_table));
@@ -88,6 +90,9 @@ static int pmt_telem_header_decode(struct intel_pmt_entry *entry,
 	 */
 	if (header->size == 0 || header->access_type == 0xF)
 		return 1;
+
+	if (header->telem_type == TELEM_TYPE_PUNIT_FIXED)
+		header->tele_id = readl(disc_table + TELEM_TELE_ID_OFFSET);
 
 	return 0;
 }
@@ -111,6 +116,7 @@ static int pmt_telem_add_endpoint(struct intel_pmt_entry *entry,
 	ep->header.guid = entry->header.guid;
 	ep->header.base_offset = entry->header.base_offset;
 	ep->header.size = entry->header.size;
+	ep->header.tele_id = entry->header.tele_id;
 	ep->base = entry->base;
 	ep->present = true;
 
@@ -281,6 +287,31 @@ pmt_telem_find_and_register_endpoint(struct pci_dev *pcidev, u32 guid, u16 pos)
 	return ERR_PTR(-ENXIO);
 }
 EXPORT_SYMBOL_NS(pmt_telem_find_and_register_endpoint, INTEL_PMT);
+
+struct telem_endpoint *
+pmt_telem_register_fixed_endpoint(struct pci_dev *pcidev, u32 tele_id, u16 pos)
+{
+	int devid = 0;
+	int inst = 0;
+	int err = 0;
+
+	while ((devid = pmt_telem_get_next_endpoint(devid))) {
+		struct telem_endpoint_info ep_info;
+
+		err = pmt_telem_get_endpoint_info(devid, &ep_info);
+		if (err)
+			return ERR_PTR(err);
+
+		if (ep_info.header.tele_id == tele_id && ep_info.pdev == pcidev) {
+			if (inst == pos)
+				return pmt_telem_register_endpoint(devid);
+			++inst;
+		}
+	}
+
+	return ERR_PTR(-ENXIO);
+}
+EXPORT_SYMBOL(pmt_telem_register_fixed_endpoint);
 
 static void pmt_telem_remove(struct auxiliary_device *auxdev)
 {
