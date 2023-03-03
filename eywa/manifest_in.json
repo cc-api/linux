@@ -1,7 +1,7 @@
 {
     "metadata": {
-        "kernel_cycle": "v6.2",
-        "jira_epic": "NEXT-3177"
+        "kernel_cycle": "v6.3",
+        "jira_epic": "NEXT-3280"
     },
     "master_branch": {
         "branch": "master",
@@ -25,9 +25,9 @@
                 }
             ],
             "description": "intel-next scripts and patches",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
-            "jira": "NEXT-3178",
+            "jira": "NEXT-3283",
             "name": "eywa",
             "repourl": "https://github.com/intel-innersource/os.linux.intelnext.kernel.git",
             "sdl_contact": [],
@@ -95,9 +95,9 @@
                 }
             ],
             "description": "intel-next scripts and patches",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
-            "jira": "NEXT-3179",
+            "jira": "NEXT-3284",
             "name": "configs",
             "repourl": "https://github.com/intel-innersource/os.linux.intelnext.kernel.git",
             "sdl_contact": [],
@@ -116,9 +116,9 @@
                 }
             ],
             "description": "intel-next scripts and patches",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
-            "jira": "NEXT-3180",
+            "jira": "NEXT-3285",
             "name": "packaging",
             "repourl": "https://github.com/intel-innersource/os.linux.intelnext.kernel.git",
             "sdl_contact": [],
@@ -146,14 +146,14 @@
                 }
             ],
             "description": "Custom intel-next logo on bootup",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Kyle Pelton",
                     "email": "kyle.d.pelton@intel.com"
                 }
             ],
-            "jira": "NEXT-3181",
+            "jira": "NEXT-3286",
             "name": "branding",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [
@@ -177,9 +177,9 @@
                 }
             ],
             "description": "NEXT PM tree",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
-            "jira": "NEXT-3189",
+            "jira": "NEXT-3281",
             "name": "pm-testing",
             "repourl": "https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git",
             "sdl_contact": [],
@@ -198,14 +198,14 @@
                 }
             ],
             "description": "TPM code",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
-            "jira": "NEXT-3190",
+            "jira": "NEXT-3282",
             "name": "tpm",
             "repourl": "https://git.kernel.org/pub/scm/linux/kernel/git/jarkko/linux-tpmdd.git",
             "sdl_contact": [],
             "status": "public",
-            "stuck_at_ref": "85b93bbd1c9768d09adebbe9f33bab0d4ec94404",
+            "stuck_at_ref": "",
             "last_enabled": "v6.2"
         },
         {
@@ -228,14 +228,14 @@
                 }
             ],
             "description": "Drm embargo branch",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Rodrigio Vivi",
                     "email": "rodrigo.vivi@intel.com"
                 }
             ],
-            "jira": "NEXT-3182",
+            "jira": "NEXT-3287",
             "name": "drm",
             "repourl": "https://github.com/intel-innersource/drivers.gpu.i915.drm-intel.git",
             "sdl_contact": [
@@ -268,14 +268,14 @@
                 }
             ],
             "description": "NVME driver enabling",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Revanth Rajashekar",
                     "email": "revanth.rajashekar@intel.com"
                 }
             ],
-            "jira": "NEXT-3183",
+            "jira": "NEXT-3288",
             "name": "nvme",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [
@@ -364,7 +364,7 @@
                 }
             ],
             "description": "MMC Subsystem and SCS (eMMC/ SD card / SDIO / UFS) driver enabling",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Rajesh Bhaskar",
@@ -379,7 +379,7 @@
                     "email": "arijit.chattopadhyay@intel.com"
                 }
             ],
-            "jira": "NEXT-3222",
+            "jira": "",
             "name": "mmc",
             "repourl": "https://github.com/intel-sandbox/ahunter6.next.git",
             "sdl_contact": [
@@ -472,14 +472,14 @@
                 }
             ],
             "description": "CSE/CSME MEI driver and MEI client drivers",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "William A. Stevens",
                     "email": "William.a.stevens@intel.com"
                 }
             ],
-            "jira": "NEXT-3199",
+            "jira": "",
             "name": "mei",
             "repourl": "https://github.com/intel-innersource/drivers.security.cse.drivers.linux-mei-pk.git",
             "sdl_contact": [
@@ -544,14 +544,14 @@
                 }
             ],
             "description": "USB host support and fixes",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Abdul Rahman Ismail",
                     "email": "abdul.r.ismail@intel.com"
                 }
             ],
-            "jira": "NEXT-3209",
+            "jira": "",
             "name": "usb-xhci",
             "repourl": "https://github.com/intel-sandbox/mnyman-linux.git",
             "sdl_contact": [
@@ -748,7 +748,7 @@
                 }
             ],
             "description": "LPSS(MFD/DMA/UART)/GPIO enabling for v6.2",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Rajesh Bhaskar",
@@ -759,7 +759,7 @@
                     "email": "eric.thian.aun.tan@intel.com"
                 }
             ],
-            "jira": "NEXT-3184",
+            "jira": "NEXT-3289",
             "name": "lpss_gpio",
             "repourl": "https://github.com/intel-sandbox/ashevche.linux.kernel",
             "sdl_contact": [
@@ -792,14 +792,14 @@
                 }
             ],
             "description": "Support for AES key hiding from memory during encryption and decryption process",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Jason W Brandt",
                     "email": "jason.w.brandt@intel.com"
                 }
             ],
-            "jira": "NEXT-3244",
+            "jira": "",
             "name": "keylocker",
             "repourl": "https://github.com/intel-sandbox/cbae1.linux.git",
             "sdl_contact": [
@@ -872,7 +872,7 @@
                 }
             ],
             "description": "EDAC for SPR and IEH for TGL",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Ahmad, Annie",
@@ -891,7 +891,7 @@
                     "email": "tomer.levy@intel.com"
                 }
             ],
-            "jira": "NEXT-3204",
+            "jira": "",
             "name": "edac",
             "repourl": "https://github.com/intel-sandbox/qzhuo-linux.git",
             "sdl_contact": [
@@ -928,7 +928,7 @@
                 }
             ],
             "description": "Lakefield, Raptor Lake, Alder Lake N and MTL support for PMC core driver and new AVX512 cpuid support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Mark Charney",
@@ -939,7 +939,7 @@
                     "email": "christopher.j.lake@intel.com"
                 }
             ],
-            "jira": "NEXT-3185",
+            "jira": "NEXT-3290",
             "name": "pmc_core",
             "repourl": "https://github.com/intel-sandbox/xi_linux.git",
             "sdl_contact": [
@@ -1016,7 +1016,7 @@
                 }
             ],
             "description": "Contains tracehub support for Granite Rapids, Meteor Lake, Raptor Lake.",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Swarnakumar Aswatnarayana",
@@ -1027,7 +1027,7 @@
                     "email": "saish.amonkar@intel.com"
                 }
             ],
-            "jira": "NEXT-3219",
+            "jira": "",
             "name": "tracehub",
             "repourl": "https://github.com/intel-sandbox/ahunter6.next.git",
             "sdl_contact": [
@@ -1080,14 +1080,14 @@
                 }
             ],
             "description": "USB Type-C/DWC3 ",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Abdul Rahman Ismail",
                     "email": "abdul.r.ismail@intel.com"
                 }
             ],
-            "jira": "NEXT-3198",
+            "jira": "",
             "name": "usb-typec",
             "repourl": "https://github.com/intel-sandbox/hkrogeru-linux.git",
             "sdl_contact": [
@@ -1120,14 +1120,14 @@
                 }
             ],
             "description": "intel_rapl/intel_idle/thermal/turbostat support for AlderLake/RaptorLake/MeteorLake and GNR",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Evelyn Fields",
                     "email": "evelyn.fields@intel.com"
                 }
             ],
-            "jira": "NEXT-3186",
+            "jira": "NEXT-3291",
             "name": "rapl/idle",
             "repourl": "https://github.com/intel-sandbox/rzhang1.git",
             "sdl_contact": [
@@ -1160,14 +1160,14 @@
                 }
             ],
             "description": "Linux thermal",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Jim Hermerding",
                     "email": "jim.g.hermerding@intel.com"
                 }
             ],
-            "jira": "NEXT-3213",
+            "jira": "",
             "name": "thermal",
             "repourl": "https://github.com/intel-sandbox/spandruv.linux.git",
             "sdl_contact": [
@@ -1342,14 +1342,14 @@
                 }
             ],
             "description": "SVOS Kernel/Driver Changes ",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Tom Stonecypher",
                     "email": "tom.stonecypher@intel.com"
                 }
             ],
-            "jira": "NEXT-3224",
+            "jira": "",
             "name": "SVOS Kernel",
             "repourl": "https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next",
             "sdl_contact": [
@@ -1382,7 +1382,7 @@
                 }
             ],
             "description": "Support for hybrid CPUs and Hardware Feedback Interface",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Eliezer Weissman",
@@ -1393,7 +1393,7 @@
                     "email": "muhammad.abozaed@intel.com"
                 }
             ],
-            "jira": "NEXT-3215",
+            "jira": "",
             "name": "hybrid",
             "repourl": "https://github.com/intel-sandbox/ranerica.linux.git",
             "sdl_contact": [
@@ -1417,14 +1417,14 @@
                 }
             ],
             "description": "Enable ISA extension of LASS",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Vedvyas Shanbhogue",
                     "email": "vedvyas.shanbhogue@intel.com"
                 }
             ],
-            "jira": "NEXT-3207",
+            "jira": "",
             "name": "LASS",
             "repourl": "https://github.com/intel-sandbox/kernel-works.git",
             "sdl_contact": [
@@ -1481,14 +1481,14 @@
                 }
             ],
             "description": "The dlb2 driver is a kernel module that supports configuration and use of the DLB 2.0 device",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Niall Mcdonnell",
                     "email": "niall.mcdonnell@intel.com"
                 }
             ],
-            "jira": "NEXT-3264",
+            "jira": "",
             "name": "dlb2",
             "repourl": "https://github.com/intel-innersource/drivers.scheduling.dynamic-load-balancer.upstreamed-dlb-linux-driver.git",
             "sdl_contact": [
@@ -1572,7 +1572,7 @@
                 }
             ],
             "description": "SPI-NOR/PCI/Thunderbolt/USB4 enabling",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Kevin Zhenyu Zhu",
@@ -1583,7 +1583,7 @@
                     "email": "reuven.rozic@intel.com"
                 }
             ],
-            "jira": "NEXT-3194",
+            "jira": "",
             "name": "SPI-NOR/PCI/Thunderbolt/USB4",
             "repourl": "https://github.com/intel-sandbox/mwesterb-linux.git",
             "sdl_contact": [
@@ -1676,14 +1676,14 @@
                 }
             ],
             "description": "PRM runtime update support for Intel PRM-capable platform",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Sinha, Ankit",
                     "email": "ankit.sinha@intel.com"
                 }
             ],
-            "jira": "NEXT-3251",
+            "jira": "",
             "name": "prm_linux_support",
             "repourl": "https://github.com/intel-sandbox/aubrey-linux.git",
             "sdl_contact": [
@@ -1870,7 +1870,7 @@
                     "email": "philip.abraham@intel.com"
                 }
             ],
-            "jira": "NEXT-3211",
+            "jira": "",
             "name": "In Field Scan",
             "repourl": "https://github.com/intel-sandbox/drivers.saf.git",
             "sdl_contact": [
@@ -1939,14 +1939,14 @@
                 }
             ],
             "description": "Intel TPMI MFD driver",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Chen, Stanley",
                     "email": "stanley.chen@intel.com"
                 }
             ],
-            "jira": "NEXT-3200",
+            "jira": "",
             "name": "tpmi",
             "repourl": "https://github.com/intel-sandbox/spandruv.linux.git",
             "sdl_contact": [
@@ -2007,14 +2007,14 @@
                 }
             ],
             "description": "Intel TPMI MFD driver and speed select tool",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Chen, Stanley",
                     "email": "stanley.chen@intel.com"
                 }
             ],
-            "jira": "NEXT-3218",
+            "jira": "",
             "name": "tpmi_speed_select",
             "repourl": "https://github.com/intel-sandbox/rzhang1.git",
             "sdl_contact": [
@@ -2267,14 +2267,14 @@
                 }
             ],
             "description": "Intel OOBMSM device support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Van De Groenendaal, Johan",
                     "email": "johan.van.de.groenendaal@intel.com"
                 }
             ],
-            "jira": "NEXT-3234",
+            "jira": "",
             "name": "oobmsm",
             "repourl": "https://github.com/intel-sandbox/debox1.linux.git",
             "sdl_contact": [
@@ -2327,9 +2327,9 @@
                 }
             ],
             "description": "CXL Memory Expander support ",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
-            "jira": "NEXT-3205",
+            "jira": "",
             "name": "cxl",
             "repourl": "https://git.kernel.org/pub/scm/linux/kernel/git/cxl/cxl",
             "sdl_contact": [
@@ -2526,14 +2526,14 @@
                 }
             ],
             "description": "Enable microcode rollback in intel-next based on Ashok's/Qiuxu's microcode branch",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Ravi Shankar",
                     "email": "ravi.v.shankar@intel.com"
                 }
             ],
-            "jira": "NEXT-3187",
+            "jira": "NEXT-3292",
             "name": "microcode_rollback",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [
@@ -2659,14 +2659,14 @@
                 }
             ],
             "description": "RDT MBA 4.0",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Andrew J Herdrich",
                     "email": "andrew.j.herdrich@intel.com"
                 }
             ],
-            "jira": "NEXT-3210",
+            "jira": "",
             "name": "rdt_mba",
             "repourl": "https://github.com/intel-sandbox/agluck-linux.git",
             "sdl_contact": [
@@ -2903,7 +2903,7 @@
                 }
             ],
             "description": "LPSS/SMBus Changes",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Rajesh Bhaskar",
@@ -2922,7 +2922,7 @@
                     "email": "raymond.tan@intel.com"
                 }
             ],
-            "jira": "NEXT-3202",
+            "jira": "",
             "name": "LPSS/SMBus",
             "repourl": "https://github.com/intel-sandbox/jarkkoni.linux.kernel.git",
             "sdl_contact": [
@@ -3131,9 +3131,9 @@
                 }
             ],
             "description": "Shadow stack feature",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
-            "jira": "NEXT-3232",
+            "jira": "",
             "name": "shadow_stacks",
             "repourl": "https://github.com/intel-sandbox/rpedgeco.linux.git",
             "sdl_contact": [
@@ -3219,14 +3219,14 @@
                 }
             ],
             "description": "Architecturally enable split lock detection",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Ravi Shankar",
                     "email": "ravi.v.shankar@intel.com"
                 }
             ],
-            "jira": "NEXT-3236",
+            "jira": "",
             "name": "splitlock",
             "repourl": "https://github.com/intel-sandbox/kernel",
             "sdl_contact": [
@@ -3342,14 +3342,14 @@
                 }
             ],
             "description": "Add DIDs 8086:7D0B and 8086:AD0B for Intel MTL-M/S SKU's",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Nirmal Patel",
                     "email": "nirmal.patel@intel.com"
                 }
             ],
-            "jira": "NEXT-3188",
+            "jira": "",
             "name": "MTLDIDs",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [],
@@ -3862,14 +3862,14 @@
                 }
             ],
             "description": "SVOS TDX Modifications for v6.1",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Sergio Perez Gonzalez",
                     "email": "sergio.perez.gonzalez@intel.com"
                 }
             ],
-            "jira": "NEXT-3249",
+            "jira": "",
             "name": "svos_tdx",
             "repourl": "https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next.git",
             "sdl_contact": [
@@ -4083,14 +4083,14 @@
                 }
             ],
             "description": "TDX KVM support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Isaku Yamahata",
                     "email": "isaku.yamahata@intel.com"
                 }
             ],
-            "jira": "NEXT-3206",
+            "jira": "",
             "name": "tdx_kvm_support",
             "repourl": "https://github.com/intel-innersource/virtualization.hypervisors.tdx.linux.git",
             "sdl_contact": [
@@ -4123,14 +4123,14 @@
                 }
             ],
             "description": "TDX Guest support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Prajwal Karur Mohan",
                     "email": "prajwal.karur.mohan@intel.com"
                 }
             ],
-            "jira": "NEXT-3208",
+            "jira": "",
             "name": "tdx_guest",
             "repourl": "https://github.com/intel/tdx.git",
             "sdl_contact": [
@@ -4584,14 +4584,14 @@
                 }
             ],
             "description": "Idle injection",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Srinivas Pandruvada",
                     "email": "srinivas.pandruvada@linux.intel.com"
                 }
             ],
-            "jira": "NEXT-3201",
+            "jira": "",
             "name": "idle_injection",
             "repourl": "https://github.com/intel-sandbox/spandruv.linux.git",
             "sdl_contact": [
@@ -4667,14 +4667,14 @@
                 }
             ],
             "description": "Merge SEP5.36 into Linux tree ",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Vishnu Naikawadi",
                     "email": "vishnu.naikawadi@intel.com"
                 }
             ],
-            "jira": "NEXT-3214",
+            "jira": "",
             "name": "sep_drivers",
             "repourl": "https://github.com/intel-sandbox/sep.intelnext.kernel",
             "sdl_contact": [
@@ -4844,7 +4844,7 @@
                 }
             ],
             "description": "This pull request introduces the Linux perf PMU support for PMU core and uncore support on MTL, LNL, ARL, EMR, GNR, GRR, SRF. It also has fixes for the SPR uncore support, IOMMU PerfMon and MSRL.",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Beeman Strong",
@@ -4859,7 +4859,7 @@
                     "email": "jeremiah.d.williamson@intel.com"
                 }
             ],
-            "jira": "NEXT-3216",
+            "jira": "",
             "name": "perf",
             "repourl": "https://github.com/intel-innersource/os.linux.perf.intel-next.git",
             "sdl_contact": [
@@ -4883,14 +4883,14 @@
                 }
             ],
             "description": "Patch is needed in order for tdx/thread_director to merge",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Kyle Pelton",
                     "email": "kyle.d.pelton@intel.com"
                 }
             ],
-            "jira": "NEXT-3223",
+            "jira": "",
             "name": "thread_director_kvm_tdx_fixup",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [
@@ -4927,7 +4927,7 @@
                 }
             ],
             "description": "enable Intel Thread Director (ITD) in virtualization scenario",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Eliezer Weissmann",
@@ -4938,7 +4938,7 @@
                     "email": "muhammad.abozaed@intel.com"
                 }
             ],
-            "jira": "NEXT-3221",
+            "jira": "",
             "name": "thread_director_virt",
             "repourl": "https://github.com/intel-sandbox/zhaoliu.linux.git",
             "sdl_contact": [
@@ -5010,7 +5010,7 @@
                 }
             ],
             "description": "Uniform Microcode Loading and Microcode Staging Support,Enable In Field Scan device driver",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Chandrasekaran, Avinash",
@@ -5021,7 +5021,7 @@
                     "email": "philip.abraham@intel.com"
                 }
             ],
-            "jira": "NEXT-3226",
+            "jira": "",
             "name": "ucode",
             "repourl": "https://github.com/intel-sandbox/qzhuo-linux.git",
             "sdl_contact": [
@@ -5076,14 +5076,14 @@
                 }
             ],
             "description": "KVM: Arch LBR and CET features",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Weijiang Yang",
                     "email": "weijiang.yang@intel.com"
                 }
             ],
-            "jira": "NEXT-3220",
+            "jira": "",
             "name": "kvm_arch_lbr_cet",
             "repourl": "https://github.com/intel-sandbox/weijiang.linux.kvm.git",
             "sdl_contact": [
@@ -5120,14 +5120,14 @@
                 }
             ],
             "description": "SGX bootless support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Jun Nakajima",
                     "email": "jun.nakajima@intel.com"
                 }
             ],
-            "jira": "NEXT-3225",
+            "jira": "",
             "name": "microcode_sgx",
             "repourl": "https://github.com/wenqian77/os.linux.intelnext.kernel.git",
             "sdl_contact": [
@@ -5158,7 +5158,7 @@
                     "email": "kyle.d.pelton@intel.com"
                 }
             ],
-            "jira": "NEXT-3243",
+            "jira": "",
             "name": "pm_testing_fixup",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [
@@ -5189,7 +5189,7 @@
                     "email": "rajvi.jingar@intel.com"
                 }
             ],
-            "jira": "NEXT-3250",
+            "jira": "",
             "name": "debugfs_slp_s0",
             "repourl": "https://github.com/intel-sandbox/linux-kernel-rjingar.git",
             "sdl_contact": [
@@ -5199,7 +5199,7 @@
                 }
             ],
             "status": "public",
-            "stuck_at_ref": "36bddd632936de303b3d2be650f56d5207b8cbce",
+            "stuck_at_ref": "",
             "last_enabled": "v6.2"
         },
         {
@@ -5226,14 +5226,14 @@
                 }
             ],
             "description": "Adds the KVM support for TDX 1.5 features including TD preserving and TD live migration.",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Caspi Dror",
                     "email": "dror.caspi@intel.com"
                 }
             ],
-            "jira": "NEXT-3254",
+            "jira": "",
             "name": "kvm_tdx_1_5",
             "repourl": "https://github.com/intel-sandbox/cqiang-tdx-kvm.git",
             "sdl_contact": [
@@ -5306,14 +5306,14 @@
                 }
             ],
             "description": "SIOV/VFIO/PASID/IDXD enabling",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Chao Peng",
                     "email": "chao.p.peng@intel.com"
                 }
             ],
-            "jira": "NEXT-3258",
+            "jira": "",
             "name": "siov_vfio_iommufd_pasid_idxd",
             "repourl": "https://github.com/intel-sandbox/idxd",
             "sdl_contact": [
@@ -5337,14 +5337,14 @@
                 }
             ],
             "description": "Power management support patches for intel-next",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "David E Box",
                     "email": "david.e.box@intel.com"
                 }
             ],
-            "jira": "NEXT-3260",
+            "jira": "",
             "name": "pm_support_patches",
             "repourl": "https://github.com/intel-sandbox/debox1.linux.git",
             "sdl_contact": [
@@ -5368,14 +5368,14 @@
                 }
             ],
             "description": "SIOV/VFIO/PASID/IDXD enabling fixup for tdx_kvm",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Kyle Pelton",
                     "email": "kyle.d.pelton@intel.com"
                 }
             ],
-            "jira": "NEXT-3261",
+            "jira": "",
             "name": "siov_vfio_iommufd_pasid_idxd_fixup",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [
@@ -5401,7 +5401,7 @@
             "description": "Fixup branch for dlb2",
             "enabled": false,
             "ip_owner": [],
-            "jira": "NEXT-3266",
+            "jira": "",
             "name": "dlb2_fixup",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [],
