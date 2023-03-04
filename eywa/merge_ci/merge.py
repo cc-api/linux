@@ -328,7 +328,7 @@ def do_merge(manifest, continue_merge, branding):
                                       branch["rev"]))
             try:
                 merge_msg= '"{}: Merge commit {} from {} {}\n\n{}"'.format(branding,branch["rev"],branch["repourl"],branch["branch"],gen_manifest_blurb(None,branch))
-                run_shell_cmd("git merge -m " + merge_msg + " --no-ff  {} --rerere-autoupdate" .format(branch["rev"]))
+                run_shell_cmd("git merge -m " + merge_msg + " --no-ff  {} --rerere-autoupdate --log" .format(branch["rev"]))
             except Exception as e:
                 rerere_output= run_shell_cmd("git rerere status")
                 if rerere_output == "":
