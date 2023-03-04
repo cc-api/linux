@@ -3349,7 +3349,7 @@
                     "email": "nirmal.patel@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3293",
             "name": "MTLDIDs",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [],
