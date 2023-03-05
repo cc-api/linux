@@ -25,7 +25,7 @@
                 }
             ],
             "description": "intel-next scripts and patches",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3283",
             "name": "eywa",
@@ -33,7 +33,7 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "configs",
@@ -95,7 +95,7 @@
                 }
             ],
             "description": "intel-next scripts and patches",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3284",
             "name": "configs",
@@ -103,7 +103,7 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "packaging",
@@ -116,7 +116,7 @@
                 }
             ],
             "description": "intel-next scripts and patches",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3285",
             "name": "packaging",
@@ -124,7 +124,7 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "intel_next_branding",
@@ -146,7 +146,7 @@
                 }
             ],
             "description": "Custom intel-next logo on bootup",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Kyle Pelton",
@@ -164,7 +164,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "testing",
@@ -3342,7 +3342,7 @@
                 }
             ],
             "description": "Add DIDs 8086:7D0B and 8086:AD0B for Intel MTL-M/S SKU's",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Nirmal Patel",
@@ -3355,7 +3355,7 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "sof-for-next-5.17",
