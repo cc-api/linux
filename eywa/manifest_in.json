@@ -1119,7 +1119,7 @@
                     "email": "rui.zhang@intel.com"
                 }
             ],
-            "description": "intel_rapl/intel_idle/thermal/turbostat support for AlderLake/RaptorLake/MeteorLake and GNR",
+            "description": "intel_rapl/intel_idle/thermal/turbostat support for AlderLake/RaptorLake/MeteorLake/EmeraldRapids/GraniteRapids",
             "enabled": true,
             "ip_owner": [
                 {
@@ -2267,14 +2267,14 @@
                 }
             ],
             "description": "Intel OOBMSM device support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Van De Groenendaal, Johan",
                     "email": "johan.van.de.groenendaal@intel.com"
                 }
             ],
-            "jira": "NEXT-3297",
+            "jira": "",
             "name": "oobmsm",
             "repourl": "https://github.com/intel-sandbox/debox1.linux.git",
             "sdl_contact": [
@@ -2285,7 +2285,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.2"
         },
         {
             "branch": "next",
