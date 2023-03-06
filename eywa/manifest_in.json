@@ -2444,78 +2444,6 @@
             "last_enabled": "v6.0"
         },
         {
-            "branch": "for-intel-next",
-            "branch_type": "expiring",
-            "config_options": [
-                {
-                    "name": "CONFIG_I2C_DESIGNWARE_PLATFORM",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_I2C_DESIGNWARE_PCI",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_I2C_I801",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_MFD_INTEL_LPSS_ACPI",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_MFD_INTEL_LPSS_PCI",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_SPI_PXA2XX",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_SPI_PXA2XX_PCI",
-                    "value": "m"
-                }
-            ],
-            "contributor": [
-                {
-                    "name": "Jarkko Nikula",
-                    "email": "jarkko.nikula@linux.intel.com"
-                }
-            ],
-            "description": "Add support for Intel Raptor Lake PCH-S, Intel Meteor Lake PCH-P",
-            "enabled": true,
-            "ip_owner": [
-                {
-                    "name": "Bhaskar, Rajesh",
-                    "email": "rajesh.bhaskar@intel.com"
-                },
-                {
-                    "name": "Lee, Ming Chew",
-                    "email": "ming.chew.lee@intel.com"
-                },
-                {
-                    "name": "Ismail, Abdul Rahman",
-                    "email": "abdul.r.ismail@intel.com"
-                },
-                {
-                    "name": "Tan, Raymond",
-                    "email": "raymond.tan@intel.com"
-                }
-            ],
-            "jira": "NEXT-3294",
-            "name": "lpss",
-            "repourl": "ssh://git@gitlab.devtools.intel.com:29418/jarkkoni/linux.git",
-            "sdl_contact": [
-                {
-                    "name": "Svahn, Kai",
-                    "email": "kai.svahn@intel.com"
-                }
-            ],
-            "status": "intel confidential",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.3"
-        },
-        {
             "branch": "microcode_rollback_rebase",
             "branch_type": "internal nonexpiring",
             "config_options": [],
@@ -2902,8 +2830,8 @@
                     "email": "jarkko.nikula@linux.intel.com"
                 }
             ],
-            "description": "LPSS/SMBus Changes",
-            "enabled": false,
+            "description": "Add support for Intel Raptor Lake PCH-S, Intel Meteor Lake PCH-P",
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Rajesh Bhaskar",
@@ -2922,7 +2850,7 @@
                     "email": "raymond.tan@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3294",
             "name": "LPSS/SMBus",
             "repourl": "https://github.com/intel-sandbox/jarkkoni.linux.kernel.git",
             "sdl_contact": [
@@ -2933,7 +2861,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "libnvdimm-for-next",
