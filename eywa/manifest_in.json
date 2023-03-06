@@ -2483,7 +2483,7 @@
                 }
             ],
             "description": "Add support for Intel Raptor Lake PCH-S, Intel Meteor Lake PCH-P",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Bhaskar, Rajesh",
@@ -2502,7 +2502,7 @@
                     "email": "raymond.tan@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3294",
             "name": "lpss",
             "repourl": "ssh://git@gitlab.devtools.intel.com:29418/jarkkoni/linux.git",
             "sdl_contact": [
@@ -2513,7 +2513,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "microcode_rollback_rebase",
