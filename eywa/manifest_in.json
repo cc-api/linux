@@ -2830,7 +2830,7 @@
                     "email": "jarkko.nikula@linux.intel.com"
                 }
             ],
-            "description": "Add support for Intel Raptor Lake PCH-S, Intel Meteor Lake PCH-P",
+            "description": "Add I2C support for Birch stream, Intel Meteor Lake",
             "enabled": true,
             "ip_owner": [
                 {
