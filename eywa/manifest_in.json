@@ -747,8 +747,8 @@
                     "email": "andriy.shevchenko@linux.intel.com"
                 }
             ],
-            "description": "LPSS(MFD/DMA/UART)/GPIO enabling for v6.2",
-            "enabled": false,
+            "description": "LPSS(MFD/DMA/UART)/GPIO enabling for v6.3",
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Rajesh Bhaskar",
@@ -770,7 +770,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "kl_intel-next",
