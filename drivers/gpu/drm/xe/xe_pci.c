@@ -66,6 +66,7 @@ struct xe_device_desc {
 
 	u8 vram_flags;
 	u8 max_tiles;
+	u8 va_bits;
 	u8 vm_max_level;
 
 	bool supports_usm;
@@ -155,6 +156,7 @@ struct xe_device_desc {
 	.media_ver = 12, \
 	.dma_mask_size = 39, \
 	.max_tiles = 1, \
+	.va_bits = 48, \
 	.vm_max_level = 3, \
 	.vram_flags = 0
 
@@ -213,6 +215,7 @@ static const struct xe_device_desc dg1_desc = {
 	.has_flat_ccs = true, \
 	.dma_mask_size = 46, \
 	.max_tiles = 1, \
+	.va_bits = 48, \
 	.vm_max_level = 3
 
 #define XE_HPM_FEATURES \
@@ -295,6 +298,7 @@ static const struct xe_device_desc pvc_desc = {
 	.vram_flags = XE_VRAM_FLAGS_NEED64K,
 	.dma_mask_size = 52,
 	.max_tiles = 2,
+	.va_bits = 57,
 	.vm_max_level = 4,
 	.supports_usm = true,
 	.has_asid = true,
@@ -328,6 +332,7 @@ static const struct xe_device_desc mtl_desc = {
 	.graphics_rel = 70,
 	.dma_mask_size = 46,
 	.max_tiles = 2,
+	.va_bits = 48,
 	.vm_max_level = 3,
 	.media_ver = 13,
 	.has_range_tlb_invalidation = true,
@@ -338,6 +343,67 @@ static const struct xe_device_desc mtl_desc = {
 	.display.ver = 14,
 	.display.has_cdclk_crawl = 1,
 	.display.has_cdclk_squash = 1,
+};
+
+#define XE2_MEDIA_ENGINES \
+	BIT(XE_HW_ENGINE_VCS0) | BIT(XE_HW_ENGINE_VECS0) /* TODO: GSC0 */
+
+static const struct xe_gt_desc xe2_media_gt[] = {
+	{
+		.type = XE_GT_TYPE_MEDIA,
+		.vram_id = 0,
+		.engine_mask = XE2_MEDIA_ENGINES,
+		.mmio_adj_limit = 0x40000,
+		.mmio_adj_offset = 0x380000,
+	}
+};
+
+#define XE2_FEATURES \
+	.dma_mask_size = 46, \
+	.va_bits = 48, \
+	.vm_max_level = 4, \
+	.supports_usm = true, \
+	.has_flat_ccs = true, \
+	.has_4tile = true, \
+	.has_range_tlb_invalidation = true, \
+	.platform_engine_mask = \
+		BIT(XE_HW_ENGINE_RCS0) | \
+		BIT(XE_HW_ENGINE_BCS0) | BIT(XE_HW_ENGINE_BCS1) | \
+		BIT(XE_HW_ENGINE_BCS2) | BIT(XE_HW_ENGINE_BCS3) | \
+		BIT(XE_HW_ENGINE_BCS4) | BIT(XE_HW_ENGINE_BCS5) | \
+		BIT(XE_HW_ENGINE_BCS6) | BIT(XE_HW_ENGINE_BCS7) | \
+		BIT(XE_HW_ENGINE_BCS8) | \
+		BIT(XE_HW_ENGINE_CCS0) | BIT(XE_HW_ENGINE_CCS1) | \
+		BIT(XE_HW_ENGINE_CCS2) | BIT(XE_HW_ENGINE_CCS3), \
+	.extra_gts = xe2_media_gt
+
+static const u16 bmg_g10_ids[] = { XE_BMG_G10_IDS(NOP), 0 };
+static const u16 bmg_g21_ids[] = { XE_BMG_G21_IDS(NOP), 0 };
+
+static const struct xe_device_desc bmg_desc = {
+	XE2_FEATURES,
+	DGFX_FEATURES,
+	PLATFORM(XE_BATTLEMAGE),
+	/* FIXME: These need to come from GMD_ID */
+	.graphics_ver = 20,
+	.graphics_rel = 0,
+	.media_ver = 13,
+	.media_rel = 1,
+	.subplatforms = (const struct xe_subplatform_desc[]) {
+		{ XE_SUBPLATFORM_BMG_G10, "G10", bmg_g10_ids },
+		{ XE_SUBPLATFORM_BMG_G21, "G21", bmg_g21_ids },
+		{ }
+	},
+};
+
+static const struct xe_device_desc lnl_desc = {
+	XE2_FEATURES,
+	PLATFORM(XE_LUNARLAKE),
+	/* FIXME: These need to come from GMD_ID */
+	.graphics_ver = 20,
+	.graphics_rel = 4,
+	.media_ver = 20,
+	.media_rel = 0,
 };
 
 #undef PLATFORM
@@ -362,6 +428,8 @@ static const struct pci_device_id pciidlist[] = {
 	XE_ADLP_IDS(INTEL_VGA_DEVICE, &adl_p_desc),
 	XE_PVC_IDS(INTEL_VGA_DEVICE, &pvc_desc),
 	XE_MTL_IDS(INTEL_VGA_DEVICE, &mtl_desc),
+	XE_BMG_IDS(INTEL_VGA_DEVICE, &bmg_desc),
+	XE_LNL_IDS(INTEL_VGA_DEVICE, &lnl_desc),
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, pciidlist);
@@ -484,6 +552,7 @@ static int xe_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	xe->info.dma_mask_size = desc->dma_mask_size;
 	xe->info.vram_flags = desc->vram_flags;
 	xe->info.tile_count = desc->max_tiles;
+	xe->info.va_bits = desc->va_bits;
 	xe->info.vm_max_level = desc->vm_max_level;
 	xe->info.supports_usm = desc->supports_usm;
 	xe->info.has_asid = desc->has_asid;
