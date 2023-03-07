@@ -4508,14 +4508,14 @@
                 }
             ],
             "description": "Idle injection",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Srinivas Pandruvada",
                     "email": "srinivas.pandruvada@linux.intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3300",
             "name": "idle_injection",
             "repourl": "https://github.com/intel-sandbox/spandruv.linux.git",
             "sdl_contact": [
@@ -4526,7 +4526,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "spec-ctrl-22aug21-internal",
