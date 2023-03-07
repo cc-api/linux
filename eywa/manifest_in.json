@@ -176,7 +176,7 @@
                     "email": "rafael.j.wysocki@intel.com"
                 }
             ],
-            "description": "NEXT PM tree",
+            "description": "Linux Next PM public tree",
             "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3281",
@@ -197,7 +197,7 @@
                     "email": "jarkko.sakkinen@intel.com"
                 }
             ],
-            "description": "TPM code",
+            "description": "Linux Next TPM public next tree",
             "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3282",
@@ -747,7 +747,7 @@
                     "email": "andriy.shevchenko@linux.intel.com"
                 }
             ],
-            "description": "LPSS(MFD/DMA/UART)/GPIO enabling for v6.3",
+            "description": "LPSS(MFD/DMA/UART)/GPIO enabling for LNL,MTL(SoC P, S and PCH S variants),ADL,TGL,ICL and other/older platforms",
             "enabled": true,
             "ip_owner": [
                 {
@@ -927,7 +927,7 @@
                     "email": "xi.pardee@intel.com"
                 }
             ],
-            "description": "Skylake to Metorlake PMC core driver",
+            "description": "SKL to MTL PMC core driver",
             "enabled": true,
             "ip_owner": [
                 {
@@ -1119,7 +1119,7 @@
                     "email": "rui.zhang@intel.com"
                 }
             ],
-            "description": "intel_rapl/intel_idle/thermal/turbostat support for AlderLake/RaptorLake/MeteorLake/EmeraldRapids/GraniteRapids",
+            "description": "intel_rapl/intel_idle/thermal/turbostat support for ADL, RPL, MTL, EMR, GNR",
             "enabled": true,
             "ip_owner": [
                 {
@@ -2830,7 +2830,7 @@
                     "email": "jarkko.nikula@linux.intel.com"
                 }
             ],
-            "description": "Add I2C support for Birch stream, Intel Meteor Lake",
+            "description": "Add I2C support for Birstream, MTL",
             "enabled": true,
             "ip_owner": [
                 {
