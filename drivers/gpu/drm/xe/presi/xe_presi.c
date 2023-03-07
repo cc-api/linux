@@ -72,7 +72,7 @@ static void xe_presi_init_disabled_features(struct xe_device *xe)
 				break;
 			case XE_PVC:
 				pvc_sim_init_disabled_features(xe);
-			default:
+			default:;
 				/* Added just to satisfy the warning */
 		}
 	}
