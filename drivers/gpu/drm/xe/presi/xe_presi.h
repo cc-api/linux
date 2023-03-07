@@ -74,5 +74,7 @@ struct xe_presi_info {
 void xe_presi_init(struct xe_device *xe);
 
 void xe_presi_skip_uc_auth(struct xe_gt *gt);
+bool xe_presi_setup_guc_wopcm_region(struct xe_gt *gt, u32 *wopcm_base,
+				     u32 *wopcm_size);
 
 #endif
