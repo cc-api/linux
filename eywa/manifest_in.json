@@ -2232,10 +2232,6 @@
             "branch_type": "expiring",
             "config_options": [
                 {
-                    "name": "CONFIG_MFD_INTEL_PMT",
-                    "value": "m"
-                },
-                {
                     "name": "CONFIG_INTEL_PMT_TELEMETRY",
                     "value": "m"
                 },
