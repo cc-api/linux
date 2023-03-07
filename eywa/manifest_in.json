@@ -1160,14 +1160,14 @@
                 }
             ],
             "description": "Linux thermal",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Jim Hermerding",
                     "email": "jim.g.hermerding@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3298",
             "name": "thermal",
             "repourl": "https://github.com/intel-sandbox/spandruv.linux.git",
             "sdl_contact": [
@@ -1178,7 +1178,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "intel-sst",
