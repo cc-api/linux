@@ -126,8 +126,13 @@ static bool __wopcm_regs_locked(struct xe_gt *gt,
 	u32 reg_size = xe_mmio_read32(gt, GUC_WOPCM_SIZE);
 
 	if (!(reg_size & GUC_WOPCM_SIZE_LOCKED) ||
-	    !(reg_base & GUC_WOPCM_OFFSET_VALID))
+	    !(reg_base & GUC_WOPCM_OFFSET_VALID)) {
+		if (IS_SIMULATOR(gt_to_xe(gt)))
+			return xe_presi_setup_guc_wopcm_region(gt,
+							       guc_wopcm_base,
+							       guc_wopcm_size);
 		return false;
+	}
 
 	*guc_wopcm_base = reg_base & GUC_WOPCM_OFFSET_MASK;
 	*guc_wopcm_size = reg_size & GUC_WOPCM_SIZE_MASK;
