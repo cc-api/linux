@@ -135,3 +135,43 @@ void xe_presi_skip_uc_auth(struct xe_gt *gt)
 	if (XE_PRESI_SKIP_FEATURE(xe, UC_AUTH))
 		xe_mmio_write32(gt, GUC_SHIM_CONTROL2, GUC_SHIM_CONTROL2_VALUE);
 }
+
+bool xe_presi_setup_guc_wopcm_region(struct xe_gt *gt, u32 *guc_wopcm_base,
+				     u32 *guc_wopcm_size)
+{
+	u32 mask;
+	int err;
+	u32 guc_base, guc_size;
+
+	/*
+	 * These values are chosen based on tests using PVC simulation.
+	 */
+	guc_base = 0x4000;
+	guc_size = 0x100000;
+
+	mask = GUC_WOPCM_OFFSET_MASK | GUC_WOPCM_OFFSET_VALID |
+	       HUC_LOADING_AGENT_GUC;
+	err = xe_mmio_write32_and_verify(gt, DMA_GUC_WOPCM_OFFSET,
+					 guc_base | HUC_LOADING_AGENT_GUC,
+					 mask, guc_base | HUC_LOADING_AGENT_GUC |
+					 GUC_WOPCM_OFFSET_VALID);
+	if (err) {
+		drm_err(&gt_to_xe(gt)->drm, "Failed to write the GuC wopcm base to register, Offset:0x%X\n",
+			guc_base);
+		return false;
+	}
+
+	mask = GUC_WOPCM_SIZE_MASK | GUC_WOPCM_SIZE_LOCKED;
+	err = xe_mmio_write32_and_verify(gt, GUC_WOPCM_SIZE, guc_size,
+					 mask, guc_size | GUC_WOPCM_SIZE_LOCKED);
+	if (err) {
+		drm_err(&gt_to_xe(gt)->drm, "Failed to write the GuC wopcm size to register, size:0x%X\n",
+			guc_size);
+		return false;
+	}
+
+	*guc_wopcm_base = guc_base;
+	*guc_wopcm_size = guc_size;
+
+	return true;
+}
