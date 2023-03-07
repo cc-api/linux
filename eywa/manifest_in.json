@@ -1159,7 +1159,7 @@
                     "email": "srinivas.pandruvada@intel.com"
                 }
             ],
-            "description": "Linux thermal for MTL-M",
+            "description": "https://jira.devtools.intel.com/browse/NEXT-3297 Linux thermal for MTL-M",
             "enabled": true,
             "ip_owner": [
                 {
