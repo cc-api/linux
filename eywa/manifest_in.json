@@ -1159,7 +1159,7 @@
                     "email": "srinivas.pandruvada@intel.com"
                 }
             ],
-            "description": "Linux thermal",
+            "description": "Linux thermal for MTL-M",
             "enabled": true,
             "ip_owner": [
                 {
@@ -1571,7 +1571,7 @@
                     "email": "mika.westerberg@linux.intel.com"
                 }
             ],
-            "description": "SPI-NOR/PCI/Thunderbolt/USB4 enabling",
+            "description": "SPI-NOR/PCI/Thunderbolt/USB4 enabling for LNL-M, Barlow Ridge",
             "enabled": true,
             "ip_owner": [
                 {
