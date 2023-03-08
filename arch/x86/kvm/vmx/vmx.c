@@ -1884,8 +1884,29 @@ static void vmx_inject_exception(struct kvm_vcpu *vcpu)
 		vmcs_write32(VM_ENTRY_INSTRUCTION_LEN,
 			     vmx->vcpu.arch.event_exit_inst_len);
 		intr_info |= INTR_TYPE_SOFT_EXCEPTION;
-	} else
+	} else {
 		intr_info |= INTR_TYPE_HARD_EXCEPTION;
+
+		if (kvm_is_fred_enabled(vcpu)) {
+			u64 event_data = 0;
+
+			if (is_debug(intr_info))
+				/*
+				 * Compared to DR6, FRED #DB event data saved on
+				 * the stack frame have bits 4 ~ 11 and 16 ~ 31
+				 * inverted, i.e.,
+				 *   fred_db_event_data = dr6 ^ 0xFFFF0FF0UL
+				 */
+				event_data = vcpu->arch.dr6 ^ DR6_RESERVED;
+			else if (is_page_fault(intr_info))
+				event_data = vcpu->arch.cr2;
+			else if (is_nm_fault(intr_info) &&
+				 vcpu->arch.guest_fpu.fpstate->xfd)
+				event_data = vcpu->arch.guest_fpu.xfd_err;
+
+			vmcs_write64(INJECTED_EVENT_DATA, event_data);
+		}
+	}
 
 	vmcs_write32(VM_ENTRY_INTR_INFO_FIELD, intr_info);
 
