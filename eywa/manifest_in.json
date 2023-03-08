@@ -267,7 +267,7 @@
                     "email": "shyjumon.n@intel.com"
                 }
             ],
-            "description": "NVME driver enabling",
+            "description": "Simics NVME driver enabling",
             "enabled": true,
             "ip_owner": [
                 {
