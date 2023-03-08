@@ -15,6 +15,10 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V5.1
+------------
+22. Add support for new ucore unid MSF_SB0 and fix opt of b2ci and b2upi
+
 GNR-BKC-V4.6
 ------------
 21. Like avx2_p1 and avx512_p1, don't display amx_p1 frequency when it is Zero.
