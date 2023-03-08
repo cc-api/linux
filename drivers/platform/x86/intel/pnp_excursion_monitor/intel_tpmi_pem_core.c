@@ -314,6 +314,7 @@ static int pem_control_store(int cpu, u32 fet, u32 tm)
 	ret = intel_tpmi_writeq(instance->auxdev, val, (u8 __iomem *)instance->pem_base +
 				PEM_CONTROL_INDEX);
 
+	pr_info("%s FET:%x tw:%x val:%llx\n", __func__, fet, tm, val);
 control_store_unlock:
 	rcu_read_unlock();
 
@@ -342,6 +343,7 @@ static int pem_status_clear(int cpu, u32 bit_index)
 	ret = intel_tpmi_writeq(instance->auxdev, val, (u8 __iomem *)instance->pem_base +
 				PEM_STATUS_INDEX);
 
+	pr_info("%s clear perf status:%llx\n", __func__, val);
 status_store_unlock:
 	rcu_read_unlock();
 
@@ -373,6 +375,7 @@ static int pem_feature_enable(int cpu, unsigned int enable)
 	ret = intel_tpmi_writeq(instance->auxdev, val, (u8 __iomem *)instance->pem_base +
 				PEM_CONTROL_INDEX);
 
+	pr_info("%s PEM_CONTROL_INDEX WR:%llx\n", __func__, val);
 enable_unlock:
 	rcu_read_unlock();
 
@@ -648,6 +651,9 @@ static inline u64 pem_pmu_read_counter(struct perf_event *event)
 	ret = intel_tpmi_readq(instance->auxdev,
 			       (u8 __iomem *)instance->pem_base + PEM_STATUS_INDEX,
 			       &val);
+
+	pr_info("%s PEM_STATUS:%llx\n", __func__, val);
+
 	if (ret)
 		goto read_counter_unlock;
 
