@@ -927,7 +927,7 @@
                     "email": "xi.pardee@intel.com"
                 }
             ],
-            "description": "SKL to MTL PMC core driver",
+            "description": "SKL, TGL, LNL, MTL PMC core driver",
             "enabled": true,
             "ip_owner": [
                 {
