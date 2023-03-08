@@ -612,6 +612,7 @@ static int pem_store_pmt_pci_info(struct tpmi_pem_instance_info *instance)
 	instance->pmt_guid = guid;
 	instance->pmt_sample_id = sample_id;
 	instance->pmt_sample_count = sample_count;
+	pr_info("%s instance :%p guid:%x sample_id:%x sample_count:%d\n", __func__, instance->pmt_pci_dev, instance->pmt_guid, instance->pmt_sample_id, instance->pmt_sample_count);
 
 	return 0;
 }
@@ -627,6 +628,7 @@ static u32 pem_read_pmt_counter(struct tpmi_pem_instance_info *instance, int ind
 	if (!instance->pmt_pci_dev)
 		return 0;
 
+	pr_info("%s read instance:%p guid:%x sample_id:%x sample_count:%d\n", __func__, instance->pmt_pci_dev, instance->pmt_guid, instance->pmt_sample_id, instance->pmt_sample_count);
 	ret = pmt_telem_read_counters(instance->pmt_pci_dev, 0, instance->pmt_guid,
 				      instance->pmt_sample_id, instance->pmt_sample_count,
 				      counters);
