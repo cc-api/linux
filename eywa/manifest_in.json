@@ -1159,7 +1159,7 @@
                     "email": "srinivas.pandruvada@intel.com"
                 }
             ],
-            "description": "https://jira.devtools.intel.com/browse/NEXT-3297 Linux thermal for MTL-M",
+            "description": "Linux thermal for MTL-M",
             "enabled": true,
             "ip_owner": [
                 {
@@ -1938,7 +1938,7 @@
                     "email": "srinivas.pandruvada@intel.com"
                 }
             ],
-            "description": "Intel TPMI MFD driver",
+            "description": "Intel TPMI MFD driver for EMR",
             "enabled": true,
             "ip_owner": [
                 {
