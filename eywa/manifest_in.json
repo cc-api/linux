@@ -116,7 +116,7 @@
                 }
             ],
             "description": "intel-next scripts and patches",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3285",
             "name": "packaging",
@@ -5344,7 +5344,7 @@
                 }
             ],
             "description": "Testing for packaging rebase",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3301",
             "name": "new_packaging",
