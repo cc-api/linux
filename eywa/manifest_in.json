@@ -1319,7 +1319,7 @@
             "last_enabled": "v6.1"
         },
         {
-            "branch": "svos-next-pull-6.2",
+            "branch": "svos-next-pull-6.3",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -1342,25 +1342,25 @@
                 }
             ],
             "description": "SVOS Kernel/Driver Changes ",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
-                    "name": "Tom Stonecypher",
-                    "email": "tom.stonecypher@intel.com"
+                    "name": "Adam Preble",
+                    "email": "adam.c.preble@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3303",
             "name": "SVOS Kernel",
             "repourl": "https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next",
             "sdl_contact": [
                 {
-                    "name": "Tom Stonecypher",
-                    "email": "tom.stonecypher@intel.com"
+                    "name": "Adam Preble",
+                    "email": "adam.c.preble@intel.com"
                 }
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "rneri/hybrid-for-intel-next",
