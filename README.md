@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V5.2
+------------
+23. Fix https://hsdes.intel.com/appstore/article/#/16019672875 
+    Incorrect package_id in uncore sysfs
+
 GNR-BKC-V5.1
 ------------
 22. Add support for new ucore unid MSF_SB0 and fix opt of b2ci and b2upi
