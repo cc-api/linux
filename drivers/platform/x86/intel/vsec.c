@@ -32,6 +32,9 @@ static DEFINE_IDA(intel_vsec_ida);
 static DEFINE_IDA(intel_vsec_sdsi_ida);
 static DEFINE_XARRAY_ALLOC(auxdev_array);
 
+/* XXX: WA For MTL A step bug */
+static const struct intel_vsec_platform_info mtl_info;
+
 static const char *intel_vsec_name(enum intel_vsec_id id)
 {
 	switch (id) {
@@ -191,6 +194,12 @@ static int intel_vsec_add_dev(struct pci_dev *pdev, struct intel_vsec_header *he
 		base_addr = info->base_addr;
 	else
 		base_addr = pdev->resource[header->tbir].start;
+
+	/* XXX: Work Around for A stepping bug. Not for upstream */
+	if (info == &mtl_info && ((header->offset >> 12) == 0x48)) {
+		header->offset >>= TABLE_OFFSET_SHIFT;
+		pr_warn("%s: Intel PMT: MTL A-stepping WA applied\n", __func__);
+	}
 
 	/*
 	 * The DVSEC/VSEC contains the starting offset and count for a block of
