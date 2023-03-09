@@ -393,7 +393,7 @@
             "last_enabled": "v6.2"
         },
         {
-            "branch": "cse-6.2",
+            "branch": "cse-6.3",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -479,7 +479,7 @@
                     "email": "William.a.stevens@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3305",
             "name": "mei",
             "repourl": "https://github.com/intel-innersource/drivers.security.cse.drivers.linux-mei-pk.git",
             "sdl_contact": [
