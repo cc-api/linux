@@ -4507,7 +4507,7 @@
                     "email": "srinivas.pandruvada@linux.intel.com"
                 }
             ],
-            "description": "Idle injection",
+            "description": "Idle injection for MTL, LNL",
             "enabled": true,
             "ip_owner": [
                 {
