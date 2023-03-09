@@ -23,6 +23,85 @@
 #define SSRAM_IOE_OFFSET	0x68
 #define SSRAM_DEVID_OFFSET	0x70
 
+/* PCH query */
+#define LPM_REG_INDEX_OFFSET	2
+#define LPM_REG_NUM		28
+#define LPM_SUBSTATE_NUM	1
+
+static u32 pmc_core_find_guid(struct pmc_info *list, const struct pmc_reg_map *map)
+{
+	for (; list->map; ++list)
+		if (list->map == map)
+			return list->guid;
+
+	return 0;
+}
+
+int pmc_core_get_lpm_reqs(struct pmc_dev *pmcdev)
+{
+	struct pci_dev *pcidev;
+	int i, j, mode, pmc_index;
+	u32 *lpm_req_regs, guid, lpm_size;
+
+	for (pmc_index = 0; pmc_index < ARRAY_SIZE(pmcdev->pmcs); ++pmc_index) {
+		struct pmc *pmc = pmcdev->pmcs[pmc_index];
+		int map_offset = 0;
+		int ret = 0;
+		const u8 *reg_index;
+		int num_maps;
+		struct telem_endpoint *ep;
+
+		if (!pmc)
+			continue;
+
+		reg_index = pmc->map->lpm_reg_index;
+		num_maps = pmc->map->lpm_num_maps;
+		lpm_size = LPM_MAX_NUM_MODES * num_maps;
+		pcidev = pmcdev->ssram_pcidev;
+		pmc->lpm_req_regs = NULL;
+
+		if (!pcidev)
+			return 0;
+
+		guid = pmc_core_find_guid(pmcdev->regmap_list, pmc->map);
+		if (!guid)
+			return 0;
+
+		ep = pmt_telem_find_and_register_endpoint(pcidev, guid, 0);
+		if (IS_ERR(ep)) {
+			ret = PTR_ERR(ep);
+			dev_err(&pmcdev->pdev->dev, "pmc_core: couldn't get telem endpoint %d", ret);
+			return -EPROBE_DEFER;
+		}
+
+		lpm_req_regs = devm_kzalloc(&pmcdev->pdev->dev, lpm_size * sizeof(u32),
+					     GFP_KERNEL);
+
+		for (j = 0, mode = pmcdev->lpm_en_modes[j]; j < pmcdev->num_lpm_modes; j++,
+			 mode = pmcdev->lpm_en_modes[j]) {
+			u32 *ptr;
+
+			ptr = lpm_req_regs;
+			ptr += mode * num_maps;
+			for (i = 0; i < num_maps; ++i) {
+				u8 index = reg_index[i] + LPM_REG_INDEX_OFFSET + map_offset;
+
+				ret = pmt_telem_read32(ep, index, ptr, 1);
+				if (ret) {
+					dev_err(&pmcdev->pdev->dev,
+							"pmc_core: couldn't read 32 bit data %d", ret);
+					return 0;
+				}
+				++ptr;
+			}
+			map_offset += LPM_REG_NUM + LPM_SUBSTATE_NUM;
+		}
+		pmc->lpm_req_regs = lpm_req_regs;
+		pmt_telem_unregister_endpoint(ep);
+	}
+	return 0;
+}
+
 static void
 pmc_add_pmt(struct pmc_dev *pmcdev, u64 ssram_base, void __iomem *ssram)
 {
