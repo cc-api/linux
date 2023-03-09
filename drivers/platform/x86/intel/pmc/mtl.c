@@ -985,6 +985,7 @@ static int mtl_resume(struct pmc_dev *pmcdev)
 int mtl_core_init(struct pmc_dev *pmcdev)
 {
 	struct pmc *pmc = pmcdev->pmcs[PMC_IDX_SOC];
+	int i;
 	int ret = 0;
 
 	mtl_d3_fixup();
@@ -1000,6 +1001,15 @@ int mtl_core_init(struct pmc_dev *pmcdev)
 		ret = get_primary_reg_base(pmc);
 		if (ret)
 			return ret;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(pmcdev->pmcs); ++i) {
+		struct pmc *pmc = pmcdev->pmcs[i];
+
+		if (!pmc)
+			continue;
+
+		pmc_core_get_low_power_modes(pmcdev, i);
 	}
 
 	/* Due to a hardware limitation, the GBE LTR blocks PC10
