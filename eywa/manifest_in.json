@@ -1705,7 +1705,7 @@
             "last_enabled": "v6.2"
         },
         {
-            "branch": "socwatch_linux_6_0",
+            "branch": "socwatch_linux_6_3",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -1756,14 +1756,14 @@
                 }
             ],
             "description": "SoCWatch drivers",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Benmlih, Faycal",
                     "email": "faycal.benmlih@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3308",
             "name": "socwatch",
             "repourl": "https://github.com/mchinth/linux.git",
             "sdl_contact": [
@@ -1774,7 +1774,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.0"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "sgx-bootless-next-v5.16-rc2",
