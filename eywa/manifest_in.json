@@ -1382,7 +1382,7 @@
                 }
             ],
             "description": "Support for hybrid CPUs and Hardware Feedback Interface",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Eliezer Weissman",
@@ -1393,7 +1393,7 @@
                     "email": "muhammad.abozaed@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3306",
             "name": "hybrid",
             "repourl": "https://github.com/intel-sandbox/ranerica.linux.git",
             "sdl_contact": [
@@ -1404,7 +1404,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "lass-6.2-rc2",
