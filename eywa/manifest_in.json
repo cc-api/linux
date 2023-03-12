@@ -2280,7 +2280,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "",
+            "stuck_at_ref": "08053ef8936f138bb5719c8a49460155c6f755f5",
             "last_enabled": "v6.3"
         },
         {
@@ -4007,7 +4007,7 @@
                 }
             ],
             "description": "TDX KVM support",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Isaku Yamahata",
@@ -4025,7 +4025,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "guest-next",
