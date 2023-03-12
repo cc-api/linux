@@ -949,7 +949,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "fa5c5fbc7c8136879ba7039427ab7c9e0de30ab0",
+            "stuck_at_ref": "897b421ca5e33b0a69d810c22db8f6c942128e74",
             "last_enabled": "v6.3"
         },
         {
@@ -2280,7 +2280,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "08053ef8936f138bb5719c8a49460155c6f755f5",
+            "stuck_at_ref": "82686f5ab0c6045d7206c2c3c451d4fbfc4faae3",
             "last_enabled": "v6.3"
         },
         {
