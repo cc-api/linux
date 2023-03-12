@@ -3992,10 +3992,6 @@
             "branch_type": "expiring",
             "config_options": [
                 {
-                    "name": "CONFIG_KVM_INTEL_TDX_SEAM_BACKDOOR",
-                    "value": "y"
-                },
-                {
                     "name": "CONFIG_INTEL_TDX_HOST",
                     "value": "y"
                 }
@@ -4014,7 +4010,7 @@
                     "email": "isaku.yamahata@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3310",
             "name": "tdx_kvm_support",
             "repourl": "https://github.com/intel-innersource/virtualization.hypervisors.tdx.linux.git",
             "sdl_contact": [
