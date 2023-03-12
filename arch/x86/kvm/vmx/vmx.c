@@ -182,6 +182,29 @@ module_param(allow_smaller_maxphyaddr, bool, S_IRUGO);
 	THERM_MASK_THRESHOLD0 | THERM_INT_THRESHOLD0_ENABLE | \
 	THERM_MASK_THRESHOLD1 | THERM_INT_THRESHOLD1_ENABLE)
 
+/* HFI (CPUID.06H:EAX[19]) is not emulated in kvm yet. */
+#define MSR_IA32_PACKAGE_THERM_STATUS_RO_MASK (PACKAGE_THERM_STATUS_PROCHOT | \
+	PACKAGE_THERM_STATUS_PROCHOT_EVENT | PACKAGE_THERM_STATUS_CRITICAL_TEMP | \
+	THERM_STATUS_THRESHOLD0 | THERM_STATUS_THRESHOLD1 | \
+	PACKAGE_THERM_STATUS_POWER_LIMIT | PACKAGE_THERM_STATUS_DIG_READOUT_MASK)
+#define MSR_IA32_PACKAGE_THERM_STATUS_RWC0_MASK (PACKAGE_THERM_STATUS_PROCHOT_LOG | \
+	PACKAGE_THERM_STATUS_PROCHOT_EVENT_LOG | PACKAGE_THERM_STATUS_CRITICAL_TEMP_LOG | \
+	THERM_LOG_THRESHOLD0 | THERM_LOG_THRESHOLD1 | \
+	PACKAGE_THERM_STATUS_POWER_LIMIT_LOG)
+/* MSR_IA32_PACKAGE_THERM_STATUS unavailable bits mask: unsupported and reserved bits. */
+#define MSR_IA32_PACKAGE_THERM_STATUS_UNAVAIL_MASK (~(MSR_IA32_PACKAGE_THERM_STATUS_RO_MASK | \
+	MSR_IA32_PACKAGE_THERM_STATUS_RWC0_MASK))
+
+/*
+ * MSR_IA32_PACKAGE_THERM_INTERRUPT available bits mask.
+ * HFI (CPUID.06H:EAX[19]) is not emulated in kvm yet.
+ */
+#define MSR_IA32_PACKAGE_THERM_INTERRUPT_AVAIL_MASK (PACKAGE_THERM_INT_HIGH_ENABLE | \
+	PACKAGE_THERM_INT_LOW_ENABLE | PACKAGE_THERM_INT_PROCHOT_ENABLE | \
+	PACKAGE_THERM_INT_OVERHEAT_ENABLE | THERM_MASK_THRESHOLD0 | \
+	THERM_INT_THRESHOLD0_ENABLE | THERM_MASK_THRESHOLD1 | \
+	THERM_INT_THRESHOLD1_ENABLE | PACKAGE_THERM_INT_PLN_ENABLE)
+
 /*
  * List of MSRs that can be directly passed to the guest.
  * In addition to these x2apic and PT MSRs are handled specially.
@@ -2020,6 +2043,7 @@ static int vmx_get_msr_feature(struct kvm_msr_entry *msr)
 static int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
 	struct vmx_uret_msr *msr;
 	u32 index;
 
@@ -2171,6 +2195,18 @@ static int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 			return 1;
 		msr_info->data = vmx->msr_ia32_therm_status;
 		break;
+	case MSR_IA32_PACKAGE_THERM_INTERRUPT:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_PTS))
+			return 1;
+		msr_info->data = kvm_vmx->pkg_therm.msr_pkg_therm_int;
+		break;
+	case MSR_IA32_PACKAGE_THERM_STATUS:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_PTS))
+			return 1;
+		msr_info->data = kvm_vmx->pkg_therm.msr_pkg_therm_status;
+		break;
 	default:
 	find_uret_msr:
 		msr = vmx_find_uret_msr(vmx, msr_info->index);
@@ -2231,6 +2267,7 @@ static inline u64 vmx_set_msr_rwc0_bits(u64 new_val, u64 old_val, u64 rwc0_mask)
 static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
 	struct vmx_uret_msr *msr;
 	int ret = 0;
 	u32 msr_index = msr_info->index;
@@ -2548,7 +2585,35 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		}
 		vmx->msr_ia32_therm_status = data;
 		break;
+	case MSR_IA32_PACKAGE_THERM_INTERRUPT:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_PTS))
+			return 1;
+		/* Unsupported and reserved bits: generate the exception. */
+		if (!msr_info->host_initiated &&
+		    data & ~MSR_IA32_PACKAGE_THERM_INTERRUPT_AVAIL_MASK)
+			return 1;
+		kvm_vmx->pkg_therm.msr_pkg_therm_int = data;
+		break;
+	case MSR_IA32_PACKAGE_THERM_STATUS:
+		if (!msr_info->host_initiated &&
+		    !guest_cpuid_has(vcpu, X86_FEATURE_PTS))
+			return 1;
+		/* Unsupported and reserved bits: generate the exception. */
+		if (!msr_info->host_initiated &&
+		    data & MSR_IA32_PACKAGE_THERM_STATUS_UNAVAIL_MASK)
+			return 1;
 
+		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+		if (!msr_info->host_initiated) {
+			data = vmx_set_msr_rwc0_bits(data, kvm_vmx->pkg_therm.msr_pkg_therm_status,
+						     MSR_IA32_PACKAGE_THERM_STATUS_RWC0_MASK);
+			data = vmx_set_msr_ro_bits(data, kvm_vmx->pkg_therm.msr_pkg_therm_status,
+						   MSR_IA32_PACKAGE_THERM_STATUS_RO_MASK);
+		}
+		kvm_vmx->pkg_therm.msr_pkg_therm_status = data;
+		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+		break;
 	default:
 	find_uret_msr:
 		msr = vmx_find_uret_msr(vmx, msr_index);
@@ -7651,6 +7716,17 @@ free_vpid:
 	return err;
 }
 
+static int vmx_vm_init_pkg_therm(struct kvm *kvm)
+{
+	struct pkg_therm_desc *pkg_therm = &to_kvm_vmx(kvm)->pkg_therm;
+
+	pkg_therm->msr_pkg_therm_int = 0;
+	pkg_therm->msr_pkg_therm_status = 0;
+	mutex_init(&pkg_therm->pkg_therm_lock);
+
+	return 0;
+}
+
 #define L1TF_MSG_SMT "L1TF CPU bug present and SMT on, data leak possible. See CVE-2018-3646 and https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/l1tf.html for details.\n"
 #define L1TF_MSG_L1D "L1TF CPU bug present and virtualization mitigation disabled, data leak possible. See CVE-2018-3646 and https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/l1tf.html for details.\n"
 
@@ -7682,7 +7758,8 @@ static int vmx_vm_init(struct kvm *kvm)
 			break;
 		}
 	}
-	return 0;
+
+	return vmx_vm_init_pkg_therm(kvm);
 }
 
 static u8 vmx_get_mt_mask(struct kvm_vcpu *vcpu, gfn_t gfn, bool is_mmio)

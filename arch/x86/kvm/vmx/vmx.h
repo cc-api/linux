@@ -367,6 +367,13 @@ struct vcpu_vmx {
 	} shadow_msr_intercept;
 };
 
+struct pkg_therm_desc {
+	u64			msr_pkg_therm_int;
+	u64			msr_pkg_therm_status;
+	/* All members before "struct mutex pkg_therm_lock" are protected by the lock. */
+	struct mutex		pkg_therm_lock;
+};
+
 struct kvm_vmx {
 	struct kvm kvm;
 
@@ -375,6 +382,8 @@ struct kvm_vmx {
 	gpa_t ept_identity_map_addr;
 	/* Posted Interrupt Descriptor (PID) table for IPI virtualization */
 	u64 *pid_table;
+
+	struct pkg_therm_desc pkg_therm;
 };
 
 void vmx_vcpu_load_vmcs(struct kvm_vcpu *vcpu, int cpu,

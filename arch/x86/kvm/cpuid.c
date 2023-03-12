@@ -632,6 +632,17 @@ void kvm_set_cpu_caps(void)
 		F(ARAT)
 	);
 
+	/*
+	 * PTS is the dependency of ITD, currently we only use PTS for
+	 * enabling ITD in KVM. Since KVM does not support msr topology at
+	 * present, the emulation of PTS has restrictions on the topology of
+	 * Guest, so we only expose PTS when Host enables ITD.
+	 */
+	if (cpu_feature_enabled(X86_FEATURE_ITD)) {
+		if (boot_cpu_has(X86_FEATURE_PTS))
+			kvm_cpu_cap_set(X86_FEATURE_PTS);
+	}
+
 	kvm_cpu_cap_mask(CPUID_7_0_EBX,
 		F(FSGSBASE) | F(SGX) | F(BMI1) | F(HLE) | F(AVX2) |
 		F(FDP_EXCPTN_ONLY) | F(SMEP) | F(BMI2) | F(ERMS) | F(INVPCID) |
