@@ -5349,6 +5349,37 @@
             "status": "intel confidential",
             "stuck_at_ref": "",
             "last_enabled": "v6.3"
+        },
+        {
+            "branch": "einj_cxl",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Tony Luck",
+                    "email": "tony.luck@intel.com"
+                }
+            ],
+            "description": "EINJ/CXL error injection",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Tony Luck",
+                    "email": "tony.luck@intel.com"
+                }
+            ],
+            "jira": "NEXT-3312",
+            "name": "einj_cxl_error",
+            "repourl": "https://github.com/intel-sandbox/agluck-linux.git",
+            "sdl_contact": [
+                {
+                    "name": "Tony Luck",
+                    "email": "tony.luck@intel.com"
+                }
+            ],
+            "status": "public",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.3"
         }
     ]
 }
