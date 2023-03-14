@@ -363,7 +363,7 @@
                     "email": "adrian.hunter@intel.com"
                 }
             ],
-            "description": "MMC Subsystem and SCS (eMMC/ SD card / SDIO / UFS) driver enabling",
+            "description": "MMC Subsystem and SCS (eMMC/ SD card / SDIO / UFS) driver enabling for LNL",
             "enabled": true,
             "ip_owner": [
                 {
@@ -4929,7 +4929,7 @@
                     "email": "jithu.joseph@intel.com"
                 }
             ],
-            "description": "Uniform Microcode Loading and Microcode Staging Support,Enable In Field Scan device driver",
+            "description": "Uniform Microcode Loading and Microcode Staging Support,Enable In Field Scan device driver for EMR,SRF,SPR,GNR",
             "enabled": false,
             "ip_owner": [
                 {
