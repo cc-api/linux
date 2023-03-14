@@ -4930,7 +4930,7 @@
                 }
             ],
             "description": "Uniform Microcode Loading and Microcode Staging Support,Enable In Field Scan device driver",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Chandrasekaran, Avinash",
@@ -4941,7 +4941,7 @@
                     "email": "philip.abraham@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3313",
             "name": "ucode",
             "repourl": "https://github.com/intel-sandbox/qzhuo-linux.git",
             "sdl_contact": [
@@ -4952,7 +4952,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "spec-msr-selftest",
