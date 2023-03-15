@@ -5380,6 +5380,37 @@
             "status": "public",
             "stuck_at_ref": "",
             "last_enabled": "v6.3"
+        },
+        {
+            "branch": "turbolnl",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Xi Pardee",
+                    "email": "xi.pardee@intel.com"
+                }
+            ],
+            "description": "Add LNL support to turbostat",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Charles Prestopine",
+                    "email": "charles.d.prestopine@intel.com"
+                }
+            ],
+            "jira": "NEXT-3317",
+            "name": "turbolnl",
+            "repourl": "https://github.com/intel-sandbox/xi_linux",
+            "sdl_contact": [
+                {
+                    "name": "Charles Prestopine",
+                    "email": "charles.d.prestopine@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.3"
         }
     ]
 }
