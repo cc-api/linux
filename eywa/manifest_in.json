@@ -4042,7 +4042,7 @@
                     "email": "sathyanarayanan.kuppuswamy@linux.intel.com"
                 }
             ],
-            "description": "TDX Guest support",
+            "description": "TDX Guest support for SPR,EMR,GNR,SRF",
             "enabled": true,
             "ip_owner": [
                 {
