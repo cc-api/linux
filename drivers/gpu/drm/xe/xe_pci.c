@@ -288,6 +288,7 @@ static const struct xe_gt_desc xe2_media_gt[] = {
 
 #define XE2_FEATURES \
 	.dma_mask_size = 46, \
+	.max_tiles = 2, \
 	.va_bits = 48, \
 	.vm_max_level = 4, \
 	.supports_usm = true, \
