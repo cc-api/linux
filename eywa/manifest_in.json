@@ -792,14 +792,14 @@
                 }
             ],
             "description": "Support for AES key hiding from memory during encryption and decryption process",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Jason W Brandt",
                     "email": "jason.w.brandt@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3319",
             "name": "keylocker",
             "repourl": "https://github.com/intel-sandbox/cbae1.linux.git",
             "sdl_contact": [
@@ -810,7 +810,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.3"
         },
         {
             "branch": "edac-for-intel-next",
