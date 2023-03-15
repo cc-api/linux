@@ -471,7 +471,7 @@
                     "email": "alexander.usyskin@intel.com"
                 }
             ],
-            "description": "CSE/CSME MEI driver and MEI client drivers",
+            "description": "CSE/CSME MEI driver and MEI client drivers for MTL,LNL,PNL",
             "enabled": true,
             "ip_owner": [
                 {
