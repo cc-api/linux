@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V5.3
+------------
+24. Fix the issue reported in https://jira.devtools.intel.com/browse/LFE-6622 that qemu-kvm shows errors when shuting down guest VM without disabling kernel mode wq. The resolution is to always pick default pasid for ioas bind/unbind.
+    vfio: Fix bind/unbind mismatch
+
 GNR-BKC-V5.2
 ------------
 23. Fix https://hsdes.intel.com/appstore/article/#/16019672875 
