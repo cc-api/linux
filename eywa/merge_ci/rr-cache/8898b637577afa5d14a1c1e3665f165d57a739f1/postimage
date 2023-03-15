@@ -222,8 +222,6 @@
 #define LBR_INFO_CYCLES			0xffff
 #define LBR_INFO_BR_TYPE_OFFSET		56
 #define LBR_INFO_BR_TYPE		(0xfull << LBR_INFO_BR_TYPE_OFFSET)
-#define LBR_INFO_EVENTS_OFFSET		32
-#define LBR_INFO_EVENTS			(0xffull << LBR_INFO_EVENTS_OFFSET)
 
 #define MSR_ARCH_LBR_CTL		0x000014ce
 #define ARCH_LBR_CTL_LBREN		BIT(0)
@@ -519,24 +517,10 @@
 /* Alternative perfctr range with full access. */
 #define MSR_IA32_PMC0			0x000004c1
 
-/* Alternative perfctr range with full access for PerfMon V6+. */
-#define MSR_IA32_V6_PMC0		0x00001900
-#define MSR_IA32_V6_EVNTSEL0		0x00001901
-#define MSR_IA32_V6_PMC0_RELOAD		0x00001902
-#define MSR_IA32_V6_EVNTSEL0_EXT	0x00001903
-
 /* Auto-reload via MSR instead of DS area */
 #define MSR_RELOAD_PMC0			0x000014c1
 #define MSR_RELOAD_FIXED_CTR0		0x00001309
 
-<<<<<<<
-#define MSR_IA32_PMC0_RELOAD_CFG	0x00002528
-#define MSR_IA32_FIXED0_RELOAD_CFG	0x00002464
-=======
-/* KeyID partitioning between MKTME and TDX */
-#define MSR_IA32_MKTME_KEYID_PARTITIONING	0x00000087
-
->>>>>>>
 /*
  * AMD64 MSRs. Not complete. See the architecture manual for a more
  * complete list.
@@ -932,7 +916,6 @@
 
 
 #define MSR_TSX_FORCE_ABORT		0x0000010F
-#define MSR_TSX_CONFLICT_ADDR		0x0000FFFF	/* Fake address */
 
 #define MSR_TFA_RTM_FORCE_ABORT_BIT	0
 #define MSR_TFA_RTM_FORCE_ABORT		BIT_ULL(MSR_TFA_RTM_FORCE_ABORT_BIT)
@@ -1063,22 +1046,6 @@
 
 /* Geode defined MSRs */
 #define MSR_GEODE_BUSCONT_CONF0		0x00001900
-
-/* MKTME MSRs */
-#define MSR_IA32_TME_ACTIVATE		0x00000982
-
-/* Helpers to access TME_ACTIVATE MSR */
-#define TME_ACTIVATE_LOCKED(x)		(x & 0x1)
-#define TME_ACTIVATE_ENABLED(x)		(x & 0x2)
-
-#define TME_ACTIVATE_POLICY(x)		((x >> 4) & 0xf)	/* Bits 7:4 */
-#define TME_ACTIVATE_KEYID_BITS(x)	((x >> 32) & 0xf)	/* Bits 35:32 */
-
-#define TME_ACTIVATE_POLICY_AES_XTS_128	0
-
-#define TME_ACTIVATE_CRYPTO_ALGS(x)	((x >> 48) & 0xffff)	/* Bits 63:48 */
-#define TME_ACTIVATE_CRYPTO_AES_XTS_128	1
-
 
 /* Intel VT MSRs */
 #define MSR_IA32_VMX_BASIC              0x00000480
