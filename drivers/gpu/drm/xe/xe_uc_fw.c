@@ -43,6 +43,7 @@ static struct xe_device *uc_fw_to_xe(struct xe_uc_fw *uc_fw)
  */
 #define XE_GUC_FIRMWARE_DEFS(fw_def, guc_def) \
 	fw_def(LUNARLAKE,    0, guc_def(lnl,  70, 5, 2)) \
+	fw_def(BATTLEMAGE,   0, guc_def(bmg,  70, 5, 2)) \
 	fw_def(METEORLAKE,   0, guc_def(mtl,  70, 5, 2)) \
 	fw_def(ALDERLAKE_P,  0, guc_def(adlp,  70, 5, 2)) \
 	fw_def(ALDERLAKE_S,  0, guc_def(tgl,  70, 5, 2)) \
