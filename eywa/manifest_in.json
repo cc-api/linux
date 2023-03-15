@@ -949,7 +949,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "897b421ca5e33b0a69d810c22db8f6c942128e74",
+            "stuck_at_ref": "",
             "last_enabled": "v6.3"
         },
         {
@@ -1756,7 +1756,7 @@
                 }
             ],
             "description": "SoCWatch drivers",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Benmlih, Faycal",
@@ -2280,7 +2280,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "82686f5ab0c6045d7206c2c3c451d4fbfc4faae3",
+            "stuck_at_ref": "",
             "last_enabled": "v6.3"
         },
         {
