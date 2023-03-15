@@ -791,7 +791,7 @@
                     "email": "chang.seok.bae@intel.com"
                 }
             ],
-            "description": "Support for AES key hiding from memory during encryption and decryption process",
+            "description": "Support for AES key hiding from memory during encryption and decryption process for TGL,ADL,RPL,MTL",
             "enabled": true,
             "ip_owner": [
                 {
