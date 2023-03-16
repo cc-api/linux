@@ -134,11 +134,13 @@ def fast_fetch_remotes(manifest_in, skip_fetch=False):
             dct["rev"] = dct["stuck_at_ref"]
     return manifest_in
 
-def accessor(keys):
+def accessor(keys, *, predicate=bool, default=None):
     def inner(obj):
         for k in keys:
+            if k not in obj:
+                return default
             obj = obj[k]
-        return obj
+        return obj if predicate(obj) else default
     return inner
 
 def generate_row(dct, func_dct):
@@ -148,6 +150,7 @@ def generate_table(manifest, tablefmt="github"):
     column_dct = {
         "Topic Branch" : accessor(["name"]),
         "Description" : accessor(["description"]),
+        "Targeted platforms" : accessor(["platforms"], default="N/A"),
         "Contributor" : accessor(["contributor", 0, "name"]),
         "Email" : accessor(["contributor", 0, "email"]),
         "Repo URL" : accessor(["repourl"]),
