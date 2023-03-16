@@ -137,9 +137,10 @@ def fast_fetch_remotes(manifest_in, skip_fetch=False):
 def accessor(keys, *, predicate=bool, default=None):
     def inner(obj):
         for k in keys:
-            if k not in obj:
+            try:
+                obj = obj[k]
+            except (IndexError, KeyError):
                 return default
-            obj = obj[k]
         return obj if predicate(obj) else default
     return inner
 
