@@ -849,7 +849,7 @@
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00084.html",
             "platforms": "ADL,MTL,RPL,TGL",
-            "feature_jiras": ""
+            "feature_jiras": "LCK-4405"
         },
         {
             "branch": "edac-for-intel-next",
