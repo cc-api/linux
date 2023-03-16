@@ -27,6 +27,7 @@
 #include "sdsi.h"
 #include "sdsi_genl.h"
 
+#define DRIVER_VERSION			"0.0.1"
 #define ACCESS_TYPE_BARID		2
 #define ACCESS_TYPE_LOCAL		3
 
@@ -1034,3 +1035,4 @@ module_exit(sdsi_exit);
 MODULE_AUTHOR("David E. Box <david.e.box@linux.intel.com>");
 MODULE_DESCRIPTION("Intel Software Defined Silicon driver");
 MODULE_LICENSE("GPL");
+MODULE_VERSION(DRIVER_VERSION);
