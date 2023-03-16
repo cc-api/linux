@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V5.5
+------------
+26. Fix the bug reported in https://hsdes.intel.com/appstore/article/#/15012857647 that Invalid inputs are accepted for setting telemetry type & log level using pfrut tool. The fix is to check if the input of level and type is in the right numeric range and if not just throw an error.
+    ACPI: tools: pfrut: Check if the input of level and type is in the right numeric range
+
 GNR-BKC-V5.4
 ------------
 25. Adds driver versions for the telemetry and SDSi driver. Also adds
