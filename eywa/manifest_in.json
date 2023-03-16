@@ -33,7 +33,10 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "configs",
@@ -103,7 +106,10 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "packaging",
@@ -124,7 +130,10 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "intel_next_branding",
@@ -164,7 +173,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "testing",
@@ -185,7 +197,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "next",
@@ -206,7 +221,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-intel-next",
@@ -246,7 +264,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "nvme_simics_fix",
@@ -286,7 +307,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "scs-v6.3",
@@ -390,7 +414,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "cse-6.3",
@@ -502,7 +529,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-intel-next",
@@ -562,7 +592,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "intel/for-next",
@@ -770,7 +803,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "kl_intel-next",
@@ -810,7 +846,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "edac-for-intel-next",
@@ -902,7 +941,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "pmc_core_intel_next",
@@ -950,7 +992,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "intel-th-v6.2",
@@ -1042,7 +1087,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-eywa",
@@ -1098,7 +1146,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-intel-next",
@@ -1138,7 +1189,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "thermal_intel_next",
@@ -1178,7 +1232,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "intel-sst",
@@ -1214,7 +1271,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.15"
+            "last_enabled": "v5.15",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "v5.14-rc2-cet",
@@ -1254,7 +1314,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.14"
+            "last_enabled": "v5.14",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "amx_intel-next",
@@ -1285,7 +1348,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.0"
+            "last_enabled": "v6.0",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "intel-pt-perf-tools-v6.1",
@@ -1316,7 +1382,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "svos-next-pull-6.3",
@@ -1360,7 +1429,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "rneri/hybrid-for-intel-next",
@@ -1404,7 +1476,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "lass-6.2-rc2",
@@ -1435,7 +1510,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "dlb2-for-intel-next-v6.2-rc7",
@@ -1499,7 +1577,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "satc-synced-with-intel-next-8a4e26ca",
@@ -1530,7 +1611,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.17"
+            "last_enabled": "v5.17",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-eywa",
@@ -1594,7 +1678,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for_intel_next_v6.1-rc2",
@@ -1654,7 +1741,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "prm_v6.2_for_intel_next",
@@ -1702,7 +1792,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "socwatch_linux_6_3",
@@ -1774,7 +1867,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "sgx-bootless-next-v5.16-rc2",
@@ -1805,7 +1901,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.16"
+            "last_enabled": "v5.16",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "ims_for_intel_next",
@@ -1845,7 +1944,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.17"
+            "last_enabled": "v5.17",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for_intel_nxt_v6.2",
@@ -1881,7 +1983,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "tpmi_intel_next",
@@ -1957,7 +2062,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-intel-next-tpmi",
@@ -2025,7 +2133,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "svos-next-tdx-pull-5.16",
@@ -2061,7 +2172,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.16"
+            "last_enabled": "v5.16",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "idxd-intel-next",
@@ -2153,7 +2267,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v5.18",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-intel-next",
@@ -2189,7 +2306,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.15"
+            "last_enabled": "v5.15",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-intel-next",
@@ -2225,7 +2345,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.16"
+            "last_enabled": "v5.16",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "oobmsm_for_intel_next",
@@ -2281,7 +2404,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "next",
@@ -2336,7 +2462,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "dev-queue",
@@ -2367,7 +2496,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.13"
+            "last_enabled": "v5.13",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "t7xx_intel_next",
@@ -2406,7 +2538,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "dmwr-6.0-rc1",
@@ -2437,7 +2572,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.0"
+            "last_enabled": "v6.0",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "microcode_rollback_rebase",
@@ -2472,7 +2610,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "pasid",
@@ -2503,7 +2644,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.17"
+            "last_enabled": "v5.17",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "perf-aux-dev-for-intel-next",
@@ -2534,7 +2678,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.14"
+            "last_enabled": "v5.14",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-intel-next",
@@ -2570,7 +2717,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.16"
+            "last_enabled": "v5.16",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "next-6.2-mba4.0",
@@ -2601,7 +2751,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "dynamic_msix_ims_for_intel_next",
@@ -2632,7 +2785,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.16"
+            "last_enabled": "v5.16",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "usi-for-intel-next",
@@ -2663,7 +2819,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.15"
+            "last_enabled": "v5.15",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "next-5.17-ppin",
@@ -2694,7 +2853,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.17"
+            "last_enabled": "v5.17",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "dma-api-pasid-intel-next",
@@ -2754,7 +2916,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.17"
+            "last_enabled": "v5.17",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "storm",
@@ -2785,7 +2950,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.16"
+            "last_enabled": "v5.16",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-intel-next",
@@ -2857,7 +3025,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "libnvdimm-for-next",
@@ -2883,7 +3054,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v5.18",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "cpuid-for-intel-next",
@@ -2914,7 +3088,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.16"
+            "last_enabled": "v5.16",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "sgx/for-intel-next",
@@ -2945,7 +3122,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "debox_pm_for_intel_next",
@@ -2976,7 +3156,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v5.18",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "next-6.1-cpuid",
@@ -3007,7 +3190,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "pks-pmem-for-intel-next-5.18-rc3",
@@ -3033,7 +3219,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v5.18",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "user_shstk_on_v6.2-rc4",
@@ -3068,7 +3257,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "kvm-ipiv-v5.19",
@@ -3099,7 +3291,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "sep_socwatch_linux_5_18",
@@ -3130,7 +3325,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "split_lock",
@@ -3161,7 +3359,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "pson_counter",
@@ -3192,7 +3393,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "mtl_dids_linus_rc",
@@ -3279,7 +3483,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "sof-for-next-5.17",
@@ -3463,7 +3670,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.17"
+            "last_enabled": "v5.17",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "svos-next-pull-5.19",
@@ -3507,7 +3717,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "ptm_disable_v2",
@@ -3538,7 +3751,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.0"
+            "last_enabled": "v6.0",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "r8152_wakeup_debug",
@@ -3569,7 +3785,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v5.18",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "r8152_wol_fix",
@@ -3600,7 +3819,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "x86_load_microcode_fix",
@@ -3631,7 +3853,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v5.18",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "hybrid_cat",
@@ -3662,7 +3887,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v5.18",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "sle_support_v5.19",
@@ -3702,7 +3930,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "bitops_fixup",
@@ -3733,7 +3964,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v5.18",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "bitops",
@@ -3764,7 +3998,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v5.18",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "svos-next-tdx-pull-6.2",
@@ -3804,7 +4041,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "iordt",
@@ -3835,7 +4075,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-intel-next/acpi-fixes",
@@ -3861,7 +4104,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.18"
+            "last_enabled": "v5.18",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "hotplug-5.19-rc1",
@@ -3892,7 +4138,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "notify-next",
@@ -3923,7 +4172,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "next-5.19-bert",
@@ -3954,7 +4206,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "gnr_srf_rc7",
@@ -3985,7 +4240,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "intel-next",
@@ -4021,7 +4279,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "guest-next",
@@ -4061,7 +4322,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "fyu/iommufd",
@@ -4092,7 +4356,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "dsa",
@@ -4132,7 +4399,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "dsa.fix.intel_iommu.h ",
@@ -4153,7 +4423,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "perf_fix",
@@ -4174,7 +4447,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "svos_fixup",
@@ -4195,7 +4471,10 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "v6.1-rc8-ucode",
@@ -4239,7 +4518,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "thp-for-intel-next",
@@ -4265,7 +4547,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "rpls_additional_did",
@@ -4356,7 +4641,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19"
+            "last_enabled": "v5.19",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "lam_fixup",
@@ -4387,7 +4675,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "lam",
@@ -4408,7 +4699,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "t7xx_intel_next",
@@ -4438,7 +4732,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.0"
+            "last_enabled": "v6.0",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "intel-next",
@@ -4478,7 +4775,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.0"
+            "last_enabled": "v6.0",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "idle_injection_next",
@@ -4522,7 +4822,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "spec-ctrl-22aug21-internal",
@@ -4543,7 +4846,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.0"
+            "last_enabled": "v6.0",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "vmd",
@@ -4574,7 +4880,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "sep_v5.38_linux_v6.2",
@@ -4605,7 +4914,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "kvm_lass",
@@ -4636,7 +4948,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "lam-kvm",
@@ -4657,7 +4972,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "cet_fixup",
@@ -4678,7 +4996,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.0"
+            "last_enabled": "v6.0",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "rtcfix",
@@ -4699,7 +5020,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "next-6.1-cow-recovery",
@@ -4730,7 +5054,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "edac_fixup",
@@ -4751,7 +5078,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "perf-intel-next",
@@ -4790,7 +5120,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "bottini/hybrid_virt_fixup",
@@ -4821,7 +5154,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "hybrid-virtual-for-intel-next",
@@ -4869,7 +5205,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "ibr_kvm_v4",
@@ -4904,7 +5243,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "ucode-for-intel-next",
@@ -4952,7 +5294,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "spec-msr-selftest",
@@ -4983,7 +5328,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1"
+            "last_enabled": "v6.1",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "v6.2-rc4-kvm-arch-lbr-cet-rebase",
@@ -5014,7 +5362,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "dev-v6.2-rc3-sgxseamless",
@@ -5058,7 +5409,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "pm_testing_fixup",
@@ -5089,7 +5443,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "pmc_core_fixes",
@@ -5120,7 +5477,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "for-intel-next",
@@ -5164,7 +5524,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "fyu/idxd.vdev.6.2",
@@ -5244,7 +5607,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "debox_pm_for_intel_next",
@@ -5275,7 +5641,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "siov_vfio_iommufd_pasid_idxd_fixup",
@@ -5306,7 +5675,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "dlb2_fixup",
@@ -5327,7 +5699,10 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2"
+            "last_enabled": "v6.2",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "kdp/new-packaging",
@@ -5348,7 +5723,10 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "einj_cxl",
@@ -5379,7 +5757,10 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         },
         {
             "branch": "turbolnl",
@@ -5410,7 +5791,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3"
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         }
     ]
 }
