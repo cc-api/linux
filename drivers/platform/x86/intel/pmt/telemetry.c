@@ -92,7 +92,7 @@ static int pmt_telem_header_decode(struct intel_pmt_entry *entry,
 	 * reserved for future use. They have zero size. Do not fail
 	 * probe for these. Just ignore them.
 	 */
-	if (header->size == 0)
+	if (header->size == 0 || header->access_type == 0xF)
 		return 1;
 
 	entry->header.access_type = header->access_type;
