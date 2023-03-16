@@ -15,6 +15,14 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V5.4
+------------
+25. Adds driver versions for the telemetry and SDSi driver. Also adds
+fix for PMT bug https://hsdes.intel.com/appstore/article/#/14017832501
+    platform/x86/intel/pmt/telemetry: Add driver version
+    platform/x86/intel/pmt: Ignore uninitialized entries
+    platform/x86/intel/sdsi: Add driver version
+
 GNR-BKC-V5.3
 ------------
 24. Fix the issue reported in https://jira.devtools.intel.com/browse/LFE-6622 that qemu-kvm shows errors when shuting down guest VM without disabling kernel mode wq. The resolution is to always pick default pasid for ioas bind/unbind.
