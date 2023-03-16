@@ -387,7 +387,7 @@
                     "email": "adrian.hunter@intel.com"
                 }
             ],
-            "description": "MMC Subsystem and SCS (eMMC/ SD card / SDIO / UFS) driver enabling for LNL",
+            "description": "MMC Subsystem and SCS (eMMC/ SD card / SDIO / UFS) driver enabling",
             "enabled": true,
             "ip_owner": [
                 {
@@ -416,7 +416,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "LNL",
             "feature_jiras": ""
         },
         {
@@ -498,7 +498,7 @@
                     "email": "alexander.usyskin@intel.com"
                 }
             ],
-            "description": "CSE/CSME MEI driver and MEI client drivers for MTL,LNL,PNL",
+            "description": "CSE/CSME MEI driver and MEI client drivers",
             "enabled": true,
             "ip_owner": [
                 {
@@ -531,7 +531,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "EMR,GNR,SPR,SRF",
             "feature_jiras": ""
         },
         {
@@ -805,7 +805,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "ADL,ICL,LNL,MTL,TGL",
             "feature_jiras": ""
         },
         {
@@ -827,7 +827,7 @@
                     "email": "chang.seok.bae@intel.com"
                 }
             ],
-            "description": "Support for AES key hiding from memory during encryption and decryption process for TGL,ADL,RPL,MTL",
+            "description": "Support for AES key hiding from memory during encryption and decryption process",
             "enabled": true,
             "ip_owner": [
                 {
@@ -848,7 +848,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "ADL,MTL,RPL,TGL",
             "feature_jiras": ""
         },
         {
@@ -943,7 +943,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "SPR,TGL",
             "feature_jiras": ""
         },
         {
@@ -969,7 +969,7 @@
                     "email": "xi.pardee@intel.com"
                 }
             ],
-            "description": "SKL, TGL, LNL, MTL PMC core driver",
+            "description": "PMC core driver",
             "enabled": true,
             "ip_owner": [
                 {
@@ -994,7 +994,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "LNL,MTL,SKL,TGL",
             "feature_jiras": ""
         },
         {
@@ -1148,7 +1148,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "MTL-S",
             "feature_jiras": ""
         },
         {
@@ -1170,7 +1170,7 @@
                     "email": "rui.zhang@intel.com"
                 }
             ],
-            "description": "intel_rapl/intel_idle/thermal/turbostat support for ADL, RPL, MTL, EMR, GNR",
+            "description": "intel_rapl/intel_idle/thermal/turbostat support",
             "enabled": true,
             "ip_owner": [
                 {
@@ -1191,7 +1191,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "ADL,EMR,GNR,MTL,RPL",
             "feature_jiras": ""
         },
         {
@@ -1234,7 +1234,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "MTL-M",
             "feature_jiras": ""
         },
         {
@@ -1680,7 +1680,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "LNL-M",
             "feature_jiras": ""
         },
         {
@@ -2064,7 +2064,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "EMR",
             "feature_jiras": ""
         },
         {
@@ -2994,7 +2994,7 @@
                     "email": "jarkko.nikula@linux.intel.com"
                 }
             ],
-            "description": "Add I2C support for Birstream, MTL",
+            "description": "Add I2C support for MTl, Birchstream",
             "enabled": true,
             "ip_owner": [
                 {
@@ -3027,7 +3027,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "GNR,MTL",
             "feature_jiras": ""
         },
         {
@@ -3485,7 +3485,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "MTL-M",
             "feature_jiras": ""
         },
         {
@@ -4303,7 +4303,7 @@
                     "email": "sathyanarayanan.kuppuswamy@linux.intel.com"
                 }
             ],
-            "description": "TDX Guest support for SPR,EMR,GNR,SRF",
+            "description": "TDX Guest support ",
             "enabled": true,
             "ip_owner": [
                 {
@@ -4324,7 +4324,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "EMR,GNR,SPR,SRF",
             "feature_jiras": ""
         },
         {
@@ -4824,7 +4824,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "LNL,MTL",
             "feature_jiras": ""
         },
         {
@@ -5093,7 +5093,7 @@
                     "email": "kan.liang@intel.com"
                 }
             ],
-            "description": "This pull request introduces the Linux perf PMU support for PMU core and uncore support on MTL, LNL, ARL, EMR, GNR, GRR, SRF. It also has fixes for the SPR uncore support, IOMMU PerfMon and MSRL.",
+            "description": "This pull request introduces the Linux perf PMU support for PMU core and uncore support. It also has fixes for the SPR uncore support, IOMMU PerfMon and MSRL.",
             "enabled": true,
             "ip_owner": [
                 {
@@ -5122,7 +5122,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "ARL,EMR,GNR,GRR,LNL,MTL,SPR,SRF",
             "feature_jiras": ""
         },
         {
@@ -5271,7 +5271,7 @@
                     "email": "jithu.joseph@intel.com"
                 }
             ],
-            "description": "Uniform Microcode Loading and Microcode Staging Support for GNR,Enable In Field Scan device driver for EMR,SRF,SPR,GNR",
+            "description": "Uniform Microcode Loading and Microcode Staging Support ,Enable In Field Scan device driver",
             "enabled": false,
             "ip_owner": [
                 {
@@ -5296,7 +5296,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "EMR,GNR,SPR,SRF",
             "feature_jiras": ""
         },
         {
@@ -5772,7 +5772,7 @@
                     "email": "xi.pardee@intel.com"
                 }
             ],
-            "description": "Add LNL support to turbostat",
+            "description": "Add  support to turbostat",
             "enabled": true,
             "ip_owner": [
                 {
@@ -5793,7 +5793,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
+            "platforms": "LNL",
             "feature_jiras": ""
         }
     ]
