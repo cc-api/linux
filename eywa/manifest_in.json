@@ -5738,7 +5738,7 @@
                     "email": "tony.luck@intel.com"
                 }
             ],
-            "description": "EINJ/CXL error injection",
+            "description": "EINJ/CXL error injection https://hsdes.intel.com/appstore/article/#/14017668076",
             "enabled": true,
             "ip_owner": [
                 {
@@ -5759,7 +5759,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00067.html",
-            "platforms": "",
+            "platforms": "GNR",
             "feature_jiras": ""
         },
         {
