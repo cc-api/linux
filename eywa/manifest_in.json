@@ -4930,11 +4930,11 @@
                 }
             ],
             "description": "Uniform Microcode Loading and Microcode Staging Support for GNR,Enable In Field Scan device driver for EMR,SRF,SPR,GNR",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Chandrasekaran, Avinash",
-                    "email": "<avinash.chandrasekaran@intel.com>"
+                    "email": "avinash.chandrasekaran@intel.com"
                 },
                 {
                     "name": "Philip Abraham",
@@ -4947,7 +4947,7 @@
             "sdl_contact": [
                 {
                     "name": "Raj, Ashok",
-                    "email": "<ashok.raj@intel.com>"
+                    "email": "ashok.raj@intel.com"
                 }
             ],
             "status": "intel confidential",
