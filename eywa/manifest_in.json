@@ -4930,7 +4930,7 @@
                 }
             ],
             "description": "Uniform Microcode Loading and Microcode Staging Support for GNR,Enable In Field Scan device driver for EMR,SRF,SPR,GNR",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Chandrasekaran, Avinash",
