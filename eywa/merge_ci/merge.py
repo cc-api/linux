@@ -37,6 +37,7 @@ config_files_to_val = ["dcg_x86_64_defconfig",
 
 PROXY = "http://proxy-us.intel.com:911"
 DEFAULT_BRANDING="Intel Next"
+BASE_JIRA_URL = "https://jira.devtools.intel.com/browse"
 
 #config files to add to git
 config_files = [config_fragments] + config_files_to_val
@@ -327,7 +328,7 @@ def do_merge(manifest, continue_merge, branding):
                                       branch["branch"],
                                       branch["rev"]))
             try:
-                merge_msg= '"{}: Merge commit {} from {} {}\n\n{}"'.format(branding,branch["rev"],branch["repourl"],branch["branch"],gen_manifest_blurb(None,branch))
+                merge_msg= '"{}: Merge commit {} from {} {}\n\n{}"'.format(branding,branch["rev"],branch["repourl"],branch["branch"],gen_manifest_blurb(None,branch,False))
                 run_shell_cmd("git merge -m " + merge_msg + " --no-ff  {} --rerere-autoupdate --log" .format(branch["rev"]))
             except Exception as e:
                 rerere_output= run_shell_cmd("git rerere status")
@@ -424,7 +425,7 @@ def merge_commit(manifest, project,config_options,branding):
 
     run_shell_cmd("git commit -s -m '{}'".format(commit_msg))
 
-def gen_manifest_blurb(project,branch):
+def gen_manifest_blurb(project,branch,print_repo_branch):
     f = StringIO()
     contributors = ["{} <{}>".format(contrib["name"],contrib["email"]) for contrib in branch["contributor"]]
     ip_owner = ["{} <{}>".format(contrib["name"],contrib["email"]) for contrib in branch["ip_owner"]]
@@ -436,7 +437,29 @@ def gen_manifest_blurb(project,branch):
     f.write("#Description: {}\n".format(branch["description"]))
     if project != None:
         f.write("#Project: {}\n".format(project))
-    f.write("#Jira: https://jira.devtools.intel.com/browse/{}\n".format(branch["jira"]))
+
+    if branch["jira"] != "":
+        f.write("#Topic Branch JIRA: {}/{}\n".format(BASE_JIRA_URL,branch["jira"]))
+    else:
+        f.write("#Topic Branch JIRA: N/A\n")
+
+    if "maillist" in branch and branch["maillist"] != "":
+        f.write("#Pull request: {}\n".format(branch["maillist"]))
+    else:
+        f.write("#Pull request: N/A\n")
+
+    if "platforms" in branch and branch["platforms"] != "":
+        f.write("#Targeted platforms: {}\n".format(branch["platforms"]))
+    else:
+        f.write("#Targeted platforms: N/A\n")
+
+    if "feature_jiras" in branch and branch["feature_jiras"] != "":
+        f.write("#Feature JIRAs: \n")
+        for jira in branch["feature_jiras"].split(","):
+            f.write("#\t{}/{}\n".format(BASE_JIRA_URL,jira))
+    else:
+        f.write("#Feature JIRAs: N/A\n")
+
     f.write("#Contributor: {}\n".format(", ".join(contributors)))
     f.write("#Branch Type: {}\n".format(branch["branch_type"]))
     f.write("#Ip Owner: {}\n".format(", ".join(ip_owner)))
@@ -446,11 +469,9 @@ def gen_manifest_blurb(project,branch):
     else:
         f.write("#Config Options: N/A\n")
 
-    if branch["enabled"]:
+    if print_repo_branch and branch["enabled"]:
         f.write("{} {} {}\n\n".format(branch["repourl"],branch["branch"],branch["rev"]))
-    else:
-        #If we want to print out DISABLED branches them change for loop above
-        f.write("#DISABLED {} {}\n\n".format(branch["repourl"],branch["branch"]))
+
     val = f.getvalue()
     f.close()
     return val
@@ -467,7 +488,7 @@ def print_manifest_log(manifest,project):
             f.write("{} {} {}\n\n".format(master["repourl"],master["branch"],master["rev"]))
 
         for branch in filter(lambda x: x['enabled'] == True,branches):
-            f.write(gen_manifest_blurb(project,branch))
+            f.write(gen_manifest_blurb(project,branch,True))
 
 def list_manifest(manifest,list_repos):
     """
