@@ -464,7 +464,7 @@ static int has_newer_microcode(void *mc, unsigned int csig, int cpf, int new_rev
 {
 	struct microcode_header_intel *mc_hdr = mc;
 
-	if (!ucode_load_same && mc_hdr->rev <= new_rev)
+	if (mc_hdr->rev <= new_rev)
 		return 0;
 
 	return intel_find_matching_signature(mc, csig, cpf);
@@ -474,6 +474,7 @@ static void save_microcode_patch(struct microcode_intel **ucode_ptr, int *ucode_
 {
 	struct microcode_header_intel *mc_hdr, *p;
 
+<<<<<<<
 	if (!(ucode_ptr && data))
 		return;
 
@@ -483,6 +484,56 @@ static void save_microcode_patch(struct microcode_intel **ucode_ptr, int *ucode_
 		kfree(*ucode_ptr);
 		*ucode_ptr = NULL;
 		*ucode_size = 0;
+=======
+	p = kzalloc(sizeof(struct ucode_patch), GFP_KERNEL);
+	if (!p)
+		return NULL;
+
+	p->data = kmemdup(data, size, GFP_KERNEL);
+	if (!p->data) {
+		kfree(p);
+		return NULL;
+	}
+
+	return p;
+}
+
+static void save_microcode_patch(struct ucode_cpu_info *uci, void *data, unsigned int size)
+{
+	struct microcode_header_intel *mc_hdr, *mc_saved_hdr;
+	struct ucode_patch *iter, *tmp, *p = NULL;
+	bool prev_found = false;
+	unsigned int sig, pf;
+#ifdef CONFIG_SVOS
+	extern bool late_load;
+#endif
+
+	mc_hdr = (struct microcode_header_intel *)data;
+
+	list_for_each_entry_safe(iter, tmp, &microcode_cache, plist) {
+		mc_saved_hdr = (struct microcode_header_intel *)iter->data;
+		sig	     = mc_saved_hdr->sig;
+		pf	     = mc_saved_hdr->pf;
+
+		if (intel_find_matching_signature(data, sig, pf)) {
+			prev_found = true;
+
+#ifdef CONFIG_SVOS
+			if (!late_load)
+#endif
+			if (mc_hdr->rev <= mc_saved_hdr->rev)
+				continue;
+
+			p = memdup_patch(data, size);
+			if (!p)
+				pr_err("Error allocating buffer %p\n", data);
+			else {
+				list_replace(&iter->plist, &p->plist);
+				kfree(iter->data);
+				kfree(iter);
+			}
+		}
+>>>>>>>
 	}
 
 	p = kmemdup(data, size, GFP_KERNEL);
@@ -907,7 +958,35 @@ void load_ucode_intel(bool bsp)
 
 	uci.mc = patch;
 
+<<<<<<<
 	apply_microcode_early(&uci, bsp);
+=======
+	apply_microcode_early(&uci, true);
+}
+
+static struct microcode_intel *find_patch(struct ucode_cpu_info *uci)
+{
+	struct microcode_header_intel *phdr;
+	struct ucode_patch *iter, *tmp;
+
+	list_for_each_entry_safe(iter, tmp, &microcode_cache, plist) {
+
+		phdr = (struct microcode_header_intel *)iter->data;
+
+#ifndef CONFIG_SVOS
+		if (phdr->rev <= uci->cpu_sig.rev)
+			continue;
+#endif
+
+		if (!intel_find_matching_signature(phdr,
+						   uci->cpu_sig.sig,
+						   uci->cpu_sig.pf))
+			continue;
+
+		return iter->data;
+	}
+	return NULL;
+>>>>>>>
 }
 
 void reload_ucode_intel(void)
@@ -1030,10 +1109,16 @@ static enum ucode_state apply_microcode_intel(int cpu)
 	 * already.
 	 */
 	rev = intel_get_microcode_revision();
+<<<<<<<
 	if (rev >= mc->hdr.rev && !ucode_load_same) {
+=======
+#ifndef CONFIG_SVOS
+	if (rev >= mc->hdr.rev) {
+>>>>>>>
 		ret = UCODE_OK;
 		goto out;
 	}
+#endif
 
 	/* write microcode via MSR 0x79 */
 	prof_wrmsrl((unsigned long)mc->bits);
@@ -1057,7 +1142,9 @@ static enum ucode_state apply_microcode_intel(int cpu)
 
 	ret = UCODE_UPDATED;
 
+#ifndef CONFIG_SVOS
 out:
+#endif
 	uci->cpu_sig.rev = rev;
 	c->microcode	 = rev;
 
@@ -1120,7 +1207,12 @@ static enum ucode_state generic_load_microcode(int cpu, struct iov_iter *iter, e
 
 		csig = uci->cpu_sig.sig;
 		cpf = uci->cpu_sig.pf;
+#ifdef CONFIG_SVOS
+		// SVOS supports user microcode load without enforcing version rules
+		if (intel_find_matching_signature(mc, csig, cpf)) {
+#else
 		if (has_newer_microcode(mc, csig, cpf, new_rev)) {
+#endif
 			vfree(new_mc);
 			new_rev = mc_header.rev;
 			new_mc  = mc;
