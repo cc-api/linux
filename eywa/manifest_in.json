@@ -531,7 +531,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00054.html",
-            "platforms": "EMR,GNR,SPR,SRF",
+            "platforms": "MTL.LNL,PNL",
             "feature_jiras": ""
         },
         {
