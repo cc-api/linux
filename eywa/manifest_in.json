@@ -5272,7 +5272,7 @@
                 }
             ],
             "description": "Uniform Microcode Loading and Microcode Staging Support ,Enable In Field Scan device driver",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Chandrasekaran, Avinash",
