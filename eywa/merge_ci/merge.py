@@ -448,14 +448,14 @@ def gen_manifest_blurb(project,branch,print_repo_branch):
         f.write("#Topic Branch JIRA: N/A\n")
 
     if "maillist" in branch and branch["maillist"] != "":
-        f.write("#Pull request: {}\n".format(branch["maillist"]))
+        f.write("#Pull Request: {}\n".format(branch["maillist"]))
     else:
-        f.write("#Pull request: N/A\n")
+        f.write("#Pull Request: N/A\n")
 
     if "platforms" in branch and branch["platforms"] != "":
-        f.write("#Targeted platforms: {}\n".format(branch["platforms"]))
+        f.write("#Targeted Platforms: {}\n".format(branch["platforms"]))
     else:
-        f.write("#Targeted platforms: N/A\n")
+        f.write("#Targeted Platforms: N/A\n")
 
     if "feature_jiras" in branch and branch["feature_jiras"] != "":
         f.write("#Feature JIRAs: \n")
