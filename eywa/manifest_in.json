@@ -1235,7 +1235,7 @@
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00043.html",
             "platforms": "MTL-M",
-            "feature_jiras": ""
+            "feature_jiras": "LFE-3922,LFE-5007,LFE-6281"
         },
         {
             "branch": "intel-sst",
@@ -2065,7 +2065,7 @@
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00046.html",
             "platforms": "EMR",
-            "feature_jiras": ""
+            "feature_jiras": "LFE-646,LFE-688,LFE-714"
         },
         {
             "branch": "for-intel-next-tpmi",
