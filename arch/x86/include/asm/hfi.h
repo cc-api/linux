@@ -3,6 +3,7 @@
 #define _ASM_X86_HFI_H
 
 #include <linux/cpumask.h>
+#include <linux/notifier.h>
 #include <linux/spinlock.h>
 #include <linux/workqueue.h>
 
@@ -92,21 +93,23 @@ struct hfi_features {
  * @cpus:		CPUs represented in this HFI table instance
  * @hw_table:		Pointer to the HFI table of this instance
  * @update_work:	Delayed work to process HFI updates
+ * @notifier_chain:	Notification chain dedicated to this instance
  * @table_lock:		Lock to protect acceses to the table of this instance
  * @event_lock:		Lock to process HFI interrupts
  *
  * A set of parameters to parse and navigate a specific HFI table.
  */
 struct hfi_instance {
-	struct hfi_table	local_table;
-	cpumask_var_t		cpus;
-	void			*hw_table;
-	struct delayed_work	update_work;
-	raw_spinlock_t		table_lock;
-	raw_spinlock_t		event_lock;
+	struct hfi_table		local_table;
+	cpumask_var_t			cpus;
+	void				*hw_table;
+	struct delayed_work		update_work;
+	struct blocking_notifier_head	notifier_chain;
+	raw_spinlock_t			table_lock;
+	raw_spinlock_t			event_lock;
 #ifdef CONFIG_DEBUG_FS
-	struct hfi_hdr		*cap_upd_hist;
-	unsigned int		cap_upd_hist_idx;
+	struct hfi_hdr			*cap_upd_hist;
+	unsigned int			cap_upd_hist_idx;
 #endif
 };
 
@@ -117,6 +120,11 @@ int intel_hfi_build_virt_features(struct hfi_features *features, unsigned int nr
 int intel_hfi_build_virt_table(struct hfi_table *table, struct hfi_features *features,
 			       unsigned int nr_classes, unsigned int hfi_index,
 			       unsigned int cpu);
+struct hfi_instance *intel_hfi_instance(unsigned int cpu);
+int intel_hfi_notifier_register(struct notifier_block *notifier,
+				struct hfi_instance *hfi_instance);
+int intel_hfi_notifier_unregister(struct notifier_block *notifier,
+				  struct hfi_instance *hfi_instance);
 #else
 static inline bool intel_hfi_enabled(void) { return false; }
 static inline int intel_hfi_max_instances(void) { return 0; }
@@ -126,6 +134,13 @@ static inline int intel_hfi_build_virt_table(struct hfi_table *table,
 					     struct hfi_features *features,
 					     unsigned int nr_classes, unsigned int hfi_index,
 					     unsigned int cpu) { return 0; }
+static inline struct hfi_instance *intel_hfi_instance(unsigned int cpu) { return NULL; }
+static inline int intel_hfi_notifier_register(struct notifier_block *notifier,
+					      struct hfi_instance *hfi_instance)
+					      { return -ENODEV; }
+static inline int intel_hfi_notifier_unregister(struct notifier_block *notifier,
+						struct hfi_instance *hfi_instance)
+						{ return -ENODEV; }
 #endif
 
 #endif /* _ASM_X86_HFI_H */

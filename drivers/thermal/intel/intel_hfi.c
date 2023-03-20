@@ -1123,6 +1123,7 @@ static void hfi_update_work_fn(struct work_struct *work)
 #endif
 
 	update_capabilities(hfi_instance);
+	blocking_notifier_call_chain(&hfi_instance->notifier_chain, 0, NULL);
 }
 
 void intel_hfi_process_event(__u64 pkg_therm_status_msr_val)
@@ -1492,6 +1493,7 @@ void intel_hfi_online(unsigned int cpu)
 	init_hfi_instance(hfi_instance);
 
 	INIT_DELAYED_WORK(&hfi_instance->update_work, hfi_update_work_fn);
+	BLOCKING_INIT_NOTIFIER_HEAD(&hfi_instance->notifier_chain);
 	raw_spin_lock_init(&hfi_instance->table_lock);
 	raw_spin_lock_init(&hfi_instance->event_lock);
 
@@ -1928,3 +1930,61 @@ int intel_hfi_build_virt_table(struct hfi_table *table,
 	return table_changed;
 }
 EXPORT_SYMBOL_GPL(intel_hfi_build_virt_table);
+
+/**
+ * intel_hfi_instance - Get the hfi instances of @cpu.
+ *
+ * @cpu:		CPU whose HFI instance pointer needs to be obtained
+ *
+ * Return: the pointer of the hfi_instance structure of @cpu if successful,
+ *	   otherwise NULL.
+ */
+struct hfi_instance *intel_hfi_instance(unsigned int cpu)
+{
+	if (cpu >= nr_cpu_ids)
+		return NULL;
+
+	return per_cpu(hfi_cpu_info, cpu).hfi_instance;
+}
+EXPORT_SYMBOL_GPL(intel_hfi_instance);
+
+/**
+ * intel_hfi_notifier_register() - Register @notifier hook at @hfi_instance.
+ *
+ * @notifier:		HFI notifier hook to be registered
+ * @hfi_instance:	HFI instance that HFI notifier is registered at
+ *
+ * When @cpus receive HFI interrupt and update its HFI table (of its HFI instance),
+ * the registered HFI notifier will be called.
+ *
+ * Return: 0 if successful, otherwise error.
+ */
+int intel_hfi_notifier_register(struct notifier_block *notifier,
+				struct hfi_instance *hfi_instance)
+{
+	if (!notifier || !hfi_instance)
+		return -EINVAL;
+
+	return blocking_notifier_chain_register(&hfi_instance->notifier_chain,
+						notifier);
+}
+EXPORT_SYMBOL_GPL(intel_hfi_notifier_register);
+
+/**
+ * intel_hfi_notifier_unregister() - Unregister @notifier hook at @hfi_instance
+ *
+ * @notifier:		HFI notifier hook to be unregistered
+ * @hfi_instance:	HFI instance that HFI notifier is unregistered at
+ *
+ * Return: 0 if successful, otherwise error.
+ */
+int intel_hfi_notifier_unregister(struct notifier_block *notifier,
+				  struct hfi_instance *hfi_instance)
+{
+	if (!notifier || !hfi_instance)
+		return -EINVAL;
+
+	return blocking_notifier_chain_unregister(&hfi_instance->notifier_chain,
+						  notifier);
+}
+EXPORT_SYMBOL_GPL(intel_hfi_notifier_unregister);
