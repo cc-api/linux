@@ -220,7 +220,7 @@
             "repourl": "https://git.kernel.org/pub/scm/linux/kernel/git/jarkko/linux-tpmdd.git",
             "sdl_contact": [],
             "status": "public",
-            "stuck_at_ref": "",
+            "stuck_at_ref": "3dc8b8b705a7ad8c6938cd90453fa474c668703d",
             "last_enabled": "v6.3",
             "maillist": "",
             "platforms": "",
