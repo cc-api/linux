@@ -944,7 +944,7 @@
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00057.html",
             "platforms": "SPR,TGL",
-            "feature_jiras": ""
+            "feature_jiras": "LFE-4945,LFE-631"
         },
         {
             "branch": "pmc_core_intel_next",
