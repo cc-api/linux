@@ -82,4 +82,20 @@ struct hfi_features {
 	unsigned int	hdr_size;
 };
 
+#if defined(CONFIG_INTEL_HFI_THERMAL)
+bool intel_hfi_enabled(void);
+int intel_hfi_build_virt_features(struct hfi_features *features, unsigned int nr_classes);
+int intel_hfi_build_virt_table(struct hfi_table *table, struct hfi_features *features,
+			       unsigned int nr_classes, unsigned int hfi_index,
+			       unsigned int cpu);
+#else
+static inline bool intel_hfi_enabled(void) { return false; }
+static inline int intel_hfi_build_virt_features(struct hfi_features *features,
+						unsigned int nr_classes) { return 0; }
+static inline int intel_hfi_build_virt_table(struct hfi_table *table,
+					     struct hfi_features *features,
+					     unsigned int nr_classes, unsigned int hfi_index,
+					     unsigned int cpu) { return 0; }
+#endif
+
 #endif /* _ASM_X86_HFI_H */
