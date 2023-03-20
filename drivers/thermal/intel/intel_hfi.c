@@ -1799,3 +1799,145 @@ err_nomem:
 	kfree(hfi_instances);
 	hfi_instances = NULL;
 }
+
+/**
+ * intel_hfi_enabled() - Check if intel_hfi driver enables HFI function.
+ *
+ * Return: True iff intel_hfi driver enables HFI function.
+ */
+bool intel_hfi_enabled(void)
+{
+	return hfi_instances;
+}
+EXPORT_SYMBOL_GPL(intel_hfi_enabled);
+
+/**
+ * intel_hfi_build_virt_features() - Build a virtual hfi_features structure.
+ *
+ * @features:		Feature structure need to be filled
+ * @nr_classes:		Maximum number of classes supported. 1 class indicates
+ *			only HFI feature is configured and 4 classes indicates
+ *			both HFI and ITD features.
+ *
+ * Fill a virtual hfi_features structure which is used for HFI/ITD virtualization.
+ * HFI and ITD have different feature information, and the virtual feature
+ * structure is based on the corresponding configured number of classes (in Guest
+ * CPUID) to be built.
+ *
+ * Return: -EINVAL if there's the error for the parameters, otherwise 0.
+ */
+int intel_hfi_build_virt_features(struct hfi_features *features,
+				  unsigned int nr_classes)
+{
+	if (!features)
+		return -EINVAL;
+
+	/*
+	 * The virtual feature must be based on the Host's feature; when Host
+	 * enables both HFI and ITD, it is allowed for Guest to create only the
+	 * HFI feature structure which has fewer classes than ITD.
+	 */
+	if (nr_classes > hfi_features.nr_classes)
+		return -EINVAL;
+
+	features->nr_classes = nr_classes;
+	features->nr_table_pages = hfi_features.nr_table_pages;
+	features->class_stride = hfi_features.class_stride;
+	/*
+	 * For the meaning of these two calculations, please refer to the comments
+	 * in hfi_parse_features().
+	 */
+	features->hdr_size =
+		round_up(features->class_stride * hfi_features.nr_classes, 8);
+	features->cpu_stride =
+		round_up(features->class_stride * hfi_features.nr_classes, 8);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(intel_hfi_build_virt_features);
+
+/**
+ * intel_hfi_build_virt_table() - Fill the data of @hfi_index in virtual HFI table.
+ *
+ * @table:		HFI table to be filled
+ * @features:		Configured feature information of the HFI table
+ * @nr_classes:		Number of classes to be updated for @table. This field is
+ *			based on the enabled feature, which may be different with
+ *			the feature information configured in @features.
+ * @hfi_index:		Index of the HFI data in HFI table to be filled
+ * @cpu:		CPU whose real HFI data is used to fill the @hfi_index
+ *
+ * Fill the row data of hfi_index in a virtual HFI table which is used for HFI/ITD
+ * virtualization. The size of the virtual HFI table is decided by the configured
+ * feature information in @features, and the filled HFI data range is decided by
+ * specified number of classes @nr_classes.
+ *
+ * Virtual machine may disable ITD at runtime through MSR_IA32_HW_FEEDBACK_CONFIG,
+ * in this case, only 1 class data (class 0) can be dynamically updated in virtual
+ * HFI table (class 0).
+ *
+ * Return: 1 if the @table is changed, 0 if the @table isn't changed, and
+ * -EINVAL/-ENOMEM if there's the error for the parameters.
+ */
+int intel_hfi_build_virt_table(struct hfi_table *table,
+			       struct hfi_features *features,
+			       unsigned int nr_classes,
+			       unsigned int hfi_index,
+			       unsigned int cpu)
+{
+	struct hfi_instance *hfi_instance;
+	struct hfi_hdr *hfi_hdr = table->hdr;
+	s16 host_hfi_index;
+	void *src_ptr, *dst_ptr;
+	int table_changed = 0;
+
+	if (!table || !features)
+		return -EINVAL;
+
+	if (nr_classes > features->nr_classes ||
+	    nr_classes > hfi_features.nr_classes)
+		return -EINVAL;
+
+	/*
+	 * Make sure that this raw that will be filled doesn't cause overflow.
+	 * features->nr_classes indicates the maximum number of possible
+	 * classes.
+	 */
+	if (features->hdr_size + (hfi_index + 1) * features->cpu_stride >
+	    features->nr_table_pages << PAGE_SHIFT)
+		return -ENOMEM;
+
+	if (cpu >= nr_cpu_ids)
+		return -EINVAL;
+
+	if (features->class_stride != hfi_features.class_stride)
+		return -EINVAL;
+
+	hfi_instance = per_cpu(hfi_cpu_info, cpu).hfi_instance;
+	host_hfi_index = per_cpu(hfi_cpu_info, cpu).index;
+
+	src_ptr = hfi_instance->local_table.data +
+		  host_hfi_index * hfi_features.cpu_stride;
+	dst_ptr = table->data + hfi_index * features->cpu_stride;
+
+	raw_spin_lock_irq(&hfi_instance->table_lock);
+	for (int i = 0; i < nr_classes; i++) {
+		struct hfi_cpu_data *src = src_ptr + i * hfi_features.class_stride;
+		struct hfi_cpu_data *dst = dst_ptr + i * features->class_stride;
+
+		if (dst->perf_cap != src->perf_cap) {
+			dst->perf_cap = src->perf_cap;
+			hfi_hdr->perf_updated = 1;
+		}
+		if (dst->ee_cap != src->ee_cap) {
+			dst->ee_cap = src->ee_cap;
+			hfi_hdr->ee_updated = 1;
+		}
+		if (hfi_hdr->perf_updated || hfi_hdr->ee_updated)
+			table_changed = 1;
+		hfi_hdr++;
+	}
+	raw_spin_unlock_irq(&hfi_instance->table_lock);
+
+	return table_changed;
+}
+EXPORT_SYMBOL_GPL(intel_hfi_build_virt_table);
