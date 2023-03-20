@@ -1478,8 +1478,8 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00056.html",
-            "platforms": "",
-            "feature_jiras": ""
+            "platforms": "ADL,ARL,LKF,LNL,MTL,RPL",
+            "feature_jiras": "LFE-3935,LFE-3936,LFE-6953"
         },
         {
             "branch": "lass-6.2-rc2",
