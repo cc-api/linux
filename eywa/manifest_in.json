@@ -3258,7 +3258,7 @@
             "status": "public",
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
-            "maillist": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00096.html",
             "platforms": "",
             "feature_jiras": ""
         },
