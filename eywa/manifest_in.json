@@ -5806,7 +5806,7 @@
                     "email": "tony.luck@intel.com"
                 }
             ],
-            "description": "Fix #MC recovery on Sierra Forest",
+            "description": "Fix #MC recovery on Sierra Forest https://hsdes.intel.com/resource/22016966908",
             "enabled": true,
             "ip_owner": [
                 {
