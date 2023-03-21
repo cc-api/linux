@@ -1084,7 +1084,7 @@ static int guc_engine_init(struct xe_engine *e)
 
 	timeout = xe_vm_no_dma_fences(e->vm) ? MAX_SCHEDULE_TIMEOUT : HZ * 5;
 
-	if (IS_PRESILICON(guc_to_xe(guc)) && (timeout != MAX_SCHEDULE_TIMEOUT))
+	if (timeout != MAX_SCHEDULE_TIMEOUT)
 		timeout *= XE_PRESI_TIMEOUT_MULTIPLIER(guc_to_xe(guc));
 
 	err = drm_sched_init(&ge->sched, &drm_sched_ops,

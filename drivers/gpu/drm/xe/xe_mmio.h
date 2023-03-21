@@ -87,7 +87,7 @@ static inline int xe_mmio_wait32(struct xe_gt *gt, u32 reg, u32 val, u32 mask,
 	s64 wait = 10;
 	u32 read;
 
-	if (IS_PRESILICON(gt_to_xe(gt)) && (timeout_us != MAX_SCHEDULE_TIMEOUT))
+	if (timeout_us != MAX_SCHEDULE_TIMEOUT)
 		timeout_us *= XE_PRESI_TIMEOUT_MULTIPLIER(gt_to_xe(gt));
 
 	end = ktime_add_us(cur, timeout_us);
