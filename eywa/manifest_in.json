@@ -5795,6 +5795,40 @@
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00079.html",
             "platforms": "LNL",
             "feature_jiras": "LFE-3896,LFE-3909"
+        },
+        {
+            "branch": "virtual_addr_srar",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Tony Luck",
+                    "email": "tony.luck@intel.com"
+                }
+            ],
+            "description": "Fix #MC recovery on Sierra Forest",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Samuel Mattord",
+                    "email": "samuel.a.mattord@intel.com"
+                }
+            ],
+            "jira": "NEXT-3325",
+            "name": "mc_recovery",
+            "repourl": "https://github.com/intel-sandbox/agluck-linux.git",
+            "sdl_contact": [
+                {
+                    "name": "Tony Luck",
+                    "email": ""
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00099.html",
+            "platforms": "SRF",
+            "feature_jiras": "",
+            "last_enabled": "v6.3"
         }
     ]
 }
