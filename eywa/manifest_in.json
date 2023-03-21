@@ -3225,7 +3225,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "user_shstk_on_v6.2-rc4",
+            "branch": "user_shstk_v8.5",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -3244,9 +3244,9 @@
                 }
             ],
             "description": "Shadow stack feature",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3324",
             "name": "shadow_stacks",
             "repourl": "https://github.com/intel-sandbox/rpedgeco.linux.git",
             "sdl_contact": [
@@ -3257,7 +3257,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2",
+            "last_enabled": "v6.3",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
