@@ -427,13 +427,6 @@ def merge_commit(manifest, project,config_options,branding):
         print(generate_table(manifest), file=f)
     run_shell_cmd("git add README.md")
 
-    # Kernel versioning - match date based on branding
-    localversion = branding.strip()
-    localversion = localversion.lower().replace(" ","-")
-    with open("localversion-intel", "w") as f:
-        print(f"-{localversion}-{datetime.date.today()}", file=f)
-    run_shell_cmd("git add localversion-intel")
-
     run_shell_cmd("git commit -s -m '{}'".format(commit_msg))
 
 def gen_manifest_blurb(project,branch,print_repo_branch):
