@@ -54,12 +54,6 @@
 
 #include "../thermal_netlink.h"
 
-/* Hardware Feedback Interface MSR configuration bits */
-#define HW_FEEDBACK_PTR_VALID_BIT		BIT(0)
-#define HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT	BIT(0)
-#define HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT	BIT(1)
-#define HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT	BIT(0)
-
 /* CPUID detection and enumeration definitions for HFI */
 
 #define CPUID_HFI_LEAF 6
@@ -1275,7 +1269,7 @@ void intel_hfi_online(unsigned int cpu)
 	init_hfi_cpu_index(info);
 
 	if (cpu_feature_enabled(X86_FEATURE_ITD)) {
-		msr_val = HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT;
+		msr_val = HW_FEEDBACK_THREAD_CONFIG_ENABLE;
 		wrmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
 	}
 
@@ -1353,7 +1347,7 @@ void intel_hfi_online(unsigned int cpu)
 	 * the pages allocated for the table or reprogram the hardware with a
 	 * new base address. Namely, program the hardware only once.
 	 */
-	msr_val = hw_table_pa | HW_FEEDBACK_PTR_VALID_BIT;
+	msr_val = hw_table_pa | HW_FEEDBACK_PTR_VALID;
 	wrmsrl(MSR_IA32_HW_FEEDBACK_PTR, msr_val);
 
 	init_hfi_instance(hfi_instance);
@@ -1371,10 +1365,10 @@ void intel_hfi_online(unsigned int cpu)
 	 * comment on programming the address of the table.
 	 */
 	rdmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
-	msr_val |= HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT;
+	msr_val |= HW_FEEDBACK_CONFIG_HFI_ENABLE;
 
 	if (cpu_feature_enabled(X86_FEATURE_ITD))
-		msr_val |= HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT;
+		msr_val |= HW_FEEDBACK_CONFIG_ITD_ENABLE;
 
 	wrmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
 
