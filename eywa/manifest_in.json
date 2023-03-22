@@ -1798,7 +1798,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "socwatch_linux_6_3",
+            "branch": "socwatch_linux_6_3-rc3",
             "branch_type": "expiring",
             "config_options": [
                 {
