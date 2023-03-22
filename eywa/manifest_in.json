@@ -5863,6 +5863,40 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.3"
+        },
+        {
+            "branch": "next-6.3-cpuid",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Tony Luck",
+                    "email": "tony.luck@intel.com"
+                }
+            ],
+            "description": "Add CPU model number for Arrow Lake",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Tony Luck",
+                    "email": "tony.luck@intel.com"
+                }
+            ],
+            "jira": "NEXT-3327",
+            "name": "next_cpuid",
+            "repourl": "https://github.com/intel-sandbox/agluck-linux.git",
+            "sdl_contact": [
+                {
+                    "name": "Tony Luck",
+                    "email": ""
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00105.html",
+            "platforms": "ARL",
+            "feature_jiras": "LFE-7388",
+            "last_enabled": "v6.3"
         }
     ]
 }
