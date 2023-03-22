@@ -62,13 +62,6 @@
 
 #include "../thermal_netlink.h"
 
-
-/* Hardware Feedback Interface MSR configuration bits */
-#define HW_FEEDBACK_PTR_VALID_BIT		BIT(0)
-#define HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT	BIT(0)
-#define HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT	BIT(1)
-#define HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT	BIT(0)
-
 /* CPUID detection and enumeration definitions for HFI */
 
 #define CPUID_HFI_LEAF 6
@@ -1420,10 +1413,10 @@ static void hfi_enable(void)
 	u64 msr_val;
 
 	rdmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
-	msr_val |= HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT;
+	msr_val |= HW_FEEDBACK_CONFIG_HFI_ENABLE;
 
 	if (cpu_feature_enabled(X86_FEATURE_ITD))
-		msr_val |= HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT;
+		msr_val |= HW_FEEDBACK_CONFIG_ITD_ENABLE;
 
 	wrmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
 }
@@ -1434,7 +1427,7 @@ static void hfi_set_hw_table(struct hfi_instance *hfi_instance)
 	phys_addr_t hw_table_pa;
 
 	hw_table_pa = virt_to_phys(hfi_instance->hw_table);
-	msr_val = hw_table_pa | HW_FEEDBACK_PTR_VALID_BIT;
+	msr_val = hw_table_pa | HW_FEEDBACK_PTR_VALID;
 	wrmsrl(MSR_IA32_HW_FEEDBACK_PTR, msr_val);
 }
 
@@ -1443,10 +1436,10 @@ static void hfi_disable(void)
 	u64 msr_val;
 
 	rdmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
-	msr_val &= ~HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT;
+	msr_val &= ~HW_FEEDBACK_CONFIG_HFI_ENABLE;
 
 	if (cpu_feature_enabled(X86_FEATURE_ITD))
-		msr_val &= ~HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT;
+		msr_val &= ~HW_FEEDBACK_CONFIG_ITD_ENABLE;
 
 	wrmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
 }
@@ -1459,7 +1452,7 @@ static void hfi_enable_itd_classification(void)
 		return;
 
 	rdmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
-	msr_val |= HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT;
+	msr_val |= HW_FEEDBACK_THREAD_CONFIG_ENABLE;
 	wrmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
 }
 
@@ -1471,7 +1464,7 @@ static void hfi_disable_itd_classification(void)
 		return;
 
 	rdmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
-	msr_val &= ~HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT;
+	msr_val &= ~HW_FEEDBACK_THREAD_CONFIG_ENABLE;
 	wrmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
 }
 
