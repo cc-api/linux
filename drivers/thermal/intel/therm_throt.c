@@ -191,7 +191,6 @@ static const struct attribute_group thermal_attr_group = {
 #endif /* CONFIG_SYSFS */
 
 #define THERM_THROT_POLL_INTERVAL	HZ
-#define THERM_STATUS_PROCHOT_LOG	BIT(1)
 
 static u64 therm_intr_core_clear_mask;
 static u64 therm_intr_pkg_clear_mask;
