@@ -1849,7 +1849,7 @@
                 }
             ],
             "description": "SoCWatch drivers",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Benmlih, Faycal",
