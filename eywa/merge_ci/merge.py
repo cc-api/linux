@@ -431,7 +431,7 @@ def merge_commit(manifest, project,config_options,branding):
     localversion = branding.strip()
     localversion = localversion.lower().replace(" ","-")
     with open("localversion-intel", "w") as f:
-        print(f"-{localversion}-{datetime.date.today()}", file=f)
+        print(f"-{datetime.date.today()}-{localversion}", file=f)
     run_shell_cmd("git add localversion-intel")
 
     run_shell_cmd("git commit -s -m '{}'".format(commit_msg))
