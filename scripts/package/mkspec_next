@@ -37,13 +37,16 @@ intel_next_packageversion() {
         fi
 }
 
-PROVIDES="$PROVIDES kernel-next"
+PROVIDES="$PROVIDES kernel-next$RPM_NEXT_PACKAGE_ADDITION"
 
 RELEASE=$(cat .version 2>/dev/null || echo 1)
 if [ -n "$INTEL_NEXT" ]; then
         packageversion=$(intel_next_packageversion | sed -e "s/-//g")
 	#strip out date of $KERNELVERSION to avoid duplicate date since we use YYYYMMDD
 	__KERNELRELEASE=$(echo $packageversion-$KERNELRELEASE | sed "s/[0-9][0-9][0-9][0-9]-[0-9]\+-[0-9]\+-//g" | sed -e "s/-/_/g")
+	RELEASE="0"
+elif [ -n "$CUSTOM_TAG" ]; then
+	__KERNELRELEASE=$(echo $CUSTOM_TAG-$KERNELRELEASE | sed -e "s/-/_/g")
 	RELEASE="0"
 else
 	__KERNELRELEASE=$(echo $KERNELRELEASE | sed -e "s/-/_/g")
@@ -58,7 +61,7 @@ EXCLUDES="$RCS_TAR_IGNORE --exclude=.tmp_versions --exclude=*vmlinux* \
 #  $S: this line is enabled only when building source package
 #  $M: this line is enabled only when CONFIG_MODULES is enabled
 sed -e '/^DEL/d' -e 's/^\t*//' <<EOF
-	Name: kernel-next
+	Name: kernel-next$RPM_NEXT_PACKAGE_ADDITION
 	Summary: The Intel Next Linux Kernel
 	Version: $__KERNELRELEASE
 	Release: $RELEASE
