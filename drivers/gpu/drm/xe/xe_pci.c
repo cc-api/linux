@@ -331,7 +331,14 @@ static const struct xe_device_desc lnl_desc = {
 	/* FIXME: These need to come from GMD_ID */
 	.graphics_ver = 20,
 	.graphics_rel = 4,
-	.media_ver = 20,
+
+	/*
+	 * FIXME: Following features temporarily disabled until full driver
+	 * support is added
+	 */
+	.has_flat_ccs = false,
+	.supports_usm = false,
+	.media_ver = 0, /* Media GT probe is incomplete */
 	.media_rel = 0,
 };
 
