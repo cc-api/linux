@@ -249,8 +249,6 @@ int xe_device_probe(struct xe_device *xe)
 	if (err)
 		return err;
 
-	xe_presi_init(xe);
-
 	for_each_gt(gt, xe, id) {
 		err = xe_gt_alloc(xe, gt);
 		if (err)
