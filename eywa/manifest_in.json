@@ -5295,7 +5295,7 @@
             "status": "intel confidential",
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
-            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00072.html",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00069.html",
             "platforms": "EMR,GNR,SPR,SRF",
             "feature_jiras": "LFE-547,LFE-718,LFE-726"
         },
