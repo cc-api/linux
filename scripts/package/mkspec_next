@@ -42,7 +42,8 @@ PROVIDES="$PROVIDES kernel-next"
 RELEASE=$(cat .version 2>/dev/null || echo 1)
 if [ -n "$INTEL_NEXT" ]; then
         packageversion=$(intel_next_packageversion | sed -e "s/-//g")
-	__KERNELRELEASE=$(echo $packageversion-$KERNELRELEASE | sed -e "s/-/_/g")
+	#strip out date of $KERNELVERSION to avoid duplicate date since we use YYYYMMDD
+	__KERNELRELEASE=$(echo $packageversion-$KERNELRELEASE | sed "s/[0-9][0-9][0-9][0-9]-[0-9]\+-[0-9]\+-//g" | sed -e "s/-/_/g")
 	RELEASE="0"
 else
 	__KERNELRELEASE=$(echo $KERNELRELEASE | sed -e "s/-/_/g")
