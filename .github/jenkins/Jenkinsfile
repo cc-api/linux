@@ -1,0 +1,53 @@
+pipeline {
+  agent { label 'DOCKER' }
+  environment {
+    ARTIFACTORY = credentials('4d1d91a3-af3f-4750-bfdc-926a67e8307d')
+    GH = credentials('sys_igkgfxci-github-token')
+  }
+  
+  stages {
+    stage('Prepare') {
+      steps {
+        sh 'git clone --depth 1 https://${GH_PSW}@github.com/intel-innersource/drivers.gpu.i915.ci.pipelines pipelines'
+        sh 'make -C ./pipelines/docker ubuntu2004'
+        script {
+          if (env.CHANGE_ID != null) {
+            BUILDNAME = "pr-${env.CHANGE_ID}-${env.GIT_COMMIT[0..6]}"
+          } else {
+            BUILDNAME = "${currentBuild.number}-${env.GIT_COMMIT[0..6]}"
+          }
+          currentBuild.displayName = "$BUILDNAME"
+        }
+      }
+    }
+
+    stage('KUnit') {
+      steps {
+        sh "docker run --tmpfs /dev/shm:rw,exec --rm -v \$(pwd):/kernel gfx-osgc-docker-ci-igk.gfx-assets.intel.com/lgci-ubuntu2004:latest /common/xe/kunit.sh"
+      }
+    }
+
+    stage('Build & AF Push') {
+      steps {
+        script {
+          if (env.CHANGE_ID != null) {
+            DEPLOY_DIR = "premerge"
+          } else {
+            DEPLOY_DIR = "postmerge"
+          }
+        }
+        sh "docker run --rm -v \$(pwd):/kernel gfx-osgc-docker-ci-igk.gfx-assets.intel.com/lgci-ubuntu2004:latest /common/xe/build.sh"
+        sh """
+          docker run --rm -v \$(pwd):/kernel gfx-osgc-docker-ci-igk.gfx-assets.intel.com/lgci-ubuntu2004:latest \
+          gta-asset push gfx-osgc-assets-igk/builds/kernel-xe-internal ${DEPLOY_DIR} ${BUILDNAME} /kernel/archive/kernel.tar.gz -u ${ARTIFACTORY_USR} -p ${ARTIFACTORY_PSW} -v --no-archive
+        """
+      }
+    }
+  }
+
+  post {
+    always {
+      deleteDir()
+    }
+  }
+}
