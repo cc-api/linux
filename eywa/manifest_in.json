@@ -1645,8 +1645,8 @@
                     "value": "y"
                 },
                 {
-                    "name": "CONFIG_USB4_DEBUGFS_MARGINING",
-                    "value": "y"
+                    "name": "CONFIG_USB4_DMA_TEST",
+                    "value": "m"
                 }
             ],
             "contributor": [
