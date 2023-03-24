@@ -1,0 +1,95 @@
+pipeline {
+  agent { label 'DOCKER' }
+  environment {
+    ARTIFACTORY = credentials('4d1d91a3-af3f-4750-bfdc-926a67e8307d')
+    GH = credentials('sys_igkgfxci-github-token')
+  }
+
+  stages {
+    stage('Prepare') {
+      steps {
+        sh 'git clone --depth 1 https://${GH_PSW}@github.com/intel-innersource/drivers.gpu.i915.ci.pipelines pipelines'
+        sh 'make -C ./pipelines/docker ubuntu2004'
+        script {
+	  GITHUBCOMMITSHA = sh(script: "git rev-parse refs/remotes/origin/${env.BRANCH_NAME}", returnStdout: true).trim()
+          if (env.CHANGE_ID != null) {
+            BUILDNAME = "pr-${env.CHANGE_ID}-${GITHUBCOMMITSHA[0..11]}-${env.BUILD_ID}"
+            sh "curl -X POST 'https://build-data.lgci.intel.com/api/build?name=xe-${BUILDNAME}&component=xe'"
+          } else {
+            ID = sh(script: 'docker run --rm registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest redis-cli -h intel-gfx-ci-internal incr xe-kernel-build-id', returnStdout: true).trim()
+            BUILDNAME = "${ID}-${GITHUBCOMMITSHA[0..11]}"
+            sh "curl -X POST 'https://build-data.lgci.intel.com/api/component?component=xe&latest_build=xe-${BUILDNAME}'"
+          }
+          currentBuild.displayName = "$BUILDNAME"
+        }
+      }
+    }
+
+    stage('KUnit') {
+      steps {
+        sh "docker run --tmpfs /dev/shm:rw,exec --rm -v \$(pwd):/kernel registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest /common/xe/kunit.sh"
+      }
+    }
+
+    stage('Build & AF Push') {
+      steps {
+        script {
+          if (env.CHANGE_ID != null) {
+            DEPLOY_DIR = "premerge"
+          } else {
+            DEPLOY_DIR = "postmerge"
+          }
+        }
+        sh "docker run --rm -v \$(pwd):/kernel registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest /common/xe/build.sh"
+        sh """
+          docker run --rm -v \$(pwd):/kernel registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest \
+          gta-asset push gfx-osgc-assets-igk/builds/kernel-xe-internal ${DEPLOY_DIR} ${BUILDNAME} /kernel/kernel.tar.gz -u ${ARTIFACTORY_USR} -p ${ARTIFACTORY_PSW} -v --no-archive
+        """
+        script {
+          if (env.CHANGE_ID != null) {
+            // Premerge
+            sh "python3 ./pipelines/scripts/cancel_gta_run.py --component kernel --pr-num ${env.CHANGE_ID} --keep-sha ${GITHUBCOMMITSHA[0..11]} --gta-user ${ARTIFACTORY_USR} --gta-pass ${ARTIFACTORY_PSW}"
+          }
+          if (env.CHANGE_ID == null) {
+            // Postmerge
+            sh """
+              docker run --rm -v \$(pwd):/kernel registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest \
+              gta-asset push gfx-osgc-assets-igk/builds/kernel-xe-internal ${DEPLOY_DIR}-nodebug ${BUILDNAME} /kernel/kernel-nodebug.tar.gz -u ${ARTIFACTORY_USR} -p ${ARTIFACTORY_PSW} -v --no-archive
+            """
+          }
+        }
+      }
+      post {
+        success {
+          script {
+            def ghUrl = sh(script: "git config --get remote.origin.url", returnStdout: true).trim()
+            def ghUrlParts = ghUrl.split('/')
+            def ghUrlIndex = ghUrlParts.findIndexOf({ it == "github.com" })
+
+            def githubOrg = ghUrlParts[ghUrlIndex + 1]
+            def githubRepo = ghUrlParts[ghUrlIndex + 2]
+            if (githubRepo.endsWith('.git')) {
+              def lastDot = githubRepo.lastIndexOf('.')
+              githubRepo = githubRepo[0..lastDot-1]
+            }
+
+            sh("""curl -L \
+              -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GH_PSW" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/${githubOrg}/${githubRepo}/statuses/${GITHUBCOMMITSHA} \
+              -d '{"state":"pending","target_url":null,"description":"Build uploaded for testing on GTA, please wait...","context":"gta-bat-test-suite"}'
+            """)
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      deleteDir()
+    }
+  }
+}

@@ -1,0 +1,50 @@
+pipeline {
+  agent { label "DOCKER" }
+  options {
+    buildDiscarder(logRotator(daysToKeepStr: '14'))
+  }
+
+  environment {
+    COVAUTHKEY = credentials('sys_igkgfxci_coverity_auth_key')
+    STREAM = "xe.kernel.internal"
+  }
+
+  stages {
+    stage('Prepare') {
+      steps {
+        script {
+          BUILDNAME = sh(script: "git rev-parse refs/remotes/origin/${env.BRANCH_NAME}", returnStdout: true).trim()
+          currentBuild.displayName = "${env.GIT_COMMIT[0..11]}"
+        }
+      }
+    }
+
+    stage('Coverity Scan') {
+      steps {
+        script {
+          sh """
+            docker run --rm --pull=always \
+              -v \$(pwd):/kernel:z \
+              -v ${COVAUTHKEY}:/tmp/cov_auth.key:ro,z \
+              -e BUILDNAME=${BUILDNAME} \
+              -e STREAM=${STREAM} \
+              registry.lgci.intel.com/build-infra/lgci-coverity:latest /common/xe/coverity_scan.sh
+          """
+        }
+      }
+    }
+  }
+
+  post {
+    unsuccessful {
+      mail (
+        to: "lgci@intel.com",
+        subject: "[Jenkins] Coverity Analysis xe-internal-kernel unsuccessful",
+        body: "coverity_xe-internal-kernel_scan unsuccessful.\n\nSee $BUILD_URL for more details."
+      )
+    }
+    cleanup {
+      deleteDir()
+    }
+  }
+}
