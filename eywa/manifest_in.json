@@ -4252,6 +4252,10 @@
                 {
                     "name": "CONFIG_INTEL_TDX_HOST",
                     "value": "y"
+                },
+                {
+                    "name": "CONFIG_KVM_PROTECTED_VM",
+                    "value": "y"
                 }
             ],
             "contributor": [
