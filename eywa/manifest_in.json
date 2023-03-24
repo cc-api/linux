@@ -5134,40 +5134,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "hybrid_virt_fixup",
-            "branch_type": "expiring",
-            "config_options": [],
-            "contributor": [
-                {
-                    "name": "Michael Bottini",
-                    "email": "michael.a.bottini@intel.com"
-                }
-            ],
-            "description": "Patch is needed in order for tdx/thread_director to merge",
-            "enabled": true,
-            "ip_owner": [
-                {
-                    "name": "Kyle Pelton",
-                    "email": "kyle.d.pelton@intel.com"
-                }
-            ],
-            "jira": "NEXT-3331",
-            "name": "thread_director_kvm_tdx_fixup",
-            "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
-            "sdl_contact": [
-                {
-                    "name": "Majid Awad",
-                    "email": "majid.awad@intel.com"
-                }
-            ],
-            "status": "intel confidential",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.3",
-            "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
-        },
-        {
             "branch": "hybrid-virtual-for-intel-next",
             "branch_type": "expiring",
             "config_options": [
@@ -5215,6 +5181,40 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00114.html",
+            "platforms": "",
+            "feature_jiras": ""
+        },
+        {
+            "branch": "hybrid_virt_fixup",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Michael Bottini",
+                    "email": "michael.a.bottini@intel.com"
+                }
+            ],
+            "description": "Patch is needed in order for tdx/thread_director to merge",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Kyle Pelton",
+                    "email": "kyle.d.pelton@intel.com"
+                }
+            ],
+            "jira": "NEXT-3331",
+            "name": "thread_director_kvm_tdx_fixup",
+            "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
+            "sdl_contact": [
+                {
+                    "name": "Majid Awad",
+                    "email": "majid.awad@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.3",
+            "maillist": "",
             "platforms": "",
             "feature_jiras": ""
         },
