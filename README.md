@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V6.3
+------------
+29. dmaengine: idxd: Fix default allowed read buffers value in group
+    picked up from upstream: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=601bdadadb505a72d9a76cc20cdfa252cba7ddc0
+
 GNR-BKC-V6.2
 ------------
 28. enumerate architectural bit 5 for split lock
