@@ -1747,7 +1747,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "prm_v6.2_for_intel_next",
+            "branch": "prm_v6.3_for_intel_next",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -1757,6 +1757,10 @@
                 {
                     "name": "CONFIG_ACPI_DEBUGGER_USER",
                     "value": "m"
+                },
+                {
+                    "name": "CONFIG_ACPI_PRMT",
+                    "value": "y"
                 }
             ],
             "contributor": [
@@ -1765,15 +1769,15 @@
                     "email": "aubrey.li@intel.com"
                 }
             ],
-            "description": "PRM runtime update support for Intel PRM-capable platform",
-            "enabled": false,
+            "description": "PRM runtime update support for Intel PRM-capable platforms",
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Sinha, Ankit",
                     "email": "ankit.sinha@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3329",
             "name": "prm_linux_support",
             "repourl": "https://github.com/intel-sandbox/aubrey-linux.git",
             "sdl_contact": [
@@ -1792,10 +1796,10 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2",
-            "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
+            "last_enabled": "v6.3",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00112.html",
+            "platforms": "EMR,GNR",
+            "feature_jiras": "LFE-745"
         },
         {
             "branch": "socwatch_linux_6_3-rc3",
