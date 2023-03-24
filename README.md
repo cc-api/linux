@@ -15,6 +15,13 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V6.2
+------------
+28. enumerate architectural bit 5 for split lock
+    https://jira.devtools.intel.com/browse/LFE-7448
+    https://jira.devtools.intel.com/browse/LFE-3635
+    x86/split_lock: Enumerate architectural split lock
+
 GNR-BKC-V6.1
 ------------
 27. Fix a IOMMU perfmon warning when CPU hotplug
