@@ -3263,7 +3263,7 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00096.html",
-            "platforms": "SPR,TGL",
+            "platforms": "EMR,GNR,SPR,TGL",
             "feature_jiras": "LFE-3784"
         },
         {
