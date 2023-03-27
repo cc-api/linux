@@ -2660,7 +2660,8 @@ static int intel_compute_min_cdclk(struct intel_cdclk_state *cdclk_state)
 	struct intel_crtc_state *crtc_state;
 	int min_cdclk, i;
 	enum pipe pipe;
-	struct intel_dbuf_state *dbuf_state;
+	struct intel_dbuf_state *new_dbuf_state;
+	struct intel_dbuf_state *old_dbuf_state;
 
 	for_each_new_intel_crtc_in_state(state, crtc, crtc_state, i) {
 		int ret;
@@ -2694,10 +2695,20 @@ static int intel_compute_min_cdclk(struct intel_cdclk_state *cdclk_state)
 		}
 	}
 
-	dbuf_state = intel_atomic_get_new_dbuf_state(state);
-	if (dbuf_state)
-		dbuf_state->mdclk_cdclk_ratio =
+	new_dbuf_state = intel_atomic_get_new_dbuf_state(state);
+	old_dbuf_state = intel_atomic_get_old_dbuf_state(state);
+	if (new_dbuf_state && old_dbuf_state) {
+		new_dbuf_state->mdclk_cdclk_ratio =
 			get_mdclk_cdclk_ratio(dev_priv, &cdclk_state->actual);
+
+		if (new_dbuf_state->mdclk_cdclk_ratio != old_dbuf_state->mdclk_cdclk_ratio) {
+			int ret;
+
+			ret = intel_atomic_serialize_global_state(&new_dbuf_state->base);
+			if (ret)
+				return ret;
+		}
+	}
 
 	min_cdclk = max(cdclk_state->force_min_cdclk,
 			cdclk_state->bw_min_cdclk);
