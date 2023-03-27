@@ -281,6 +281,99 @@ unsigned int has_misc_feature_control;
 unsigned int first_counter_read = 1;
 int ignore_stdin;
 
+/*
+ * Framework for feature based platform probing.
+ *
+ * Turbostat supports a series of features that may diverge among different platforms. In order to
+ * better describe the different behavior for each feature on different platforms, introduce two
+ * concepts below
+ * 1. Feature ID	: a unique value to represnet a specific feature.
+ * 2. Feature value	: defines the behavior of a specific Feature ID. It can be
+ * 			  bool		: describes if a Feature ID is supported or not
+ * 			  unique value	: describes a specific behavior of a Feature ID
+ * 			  bitmap	: describes one or several subfeatures supported for a
+ * 			  		  Feature ID.
+ * The whole platform probing is done based on these two concepts.
+ */
+
+/* unique Feature IDs */
+enum feature_id {
+	FID_MIN,
+	FID_MAX,
+};
+
+/* an array to cache the Feature value for each Feature ID */
+int pm_features[FID_MAX];
+
+/*
+ * a bitmask of Feature IDs.
+ * When adding support for a new platform, the Feature Value must be assigned explcitly, even if
+ * the feature is not supported. When doing this, the coresponding bit is set in this bitmask.
+ * Missing a single bit in this bitmask means the platform support is not completed.
+ */
+int fid_mask;
+
+/* Get the Feature value for a Feature ID */
+int get_feature(int fid)
+{
+	if (!genuine_intel)
+		return 0;
+
+	if (!(fid_mask & (1 << fid))) {
+		fprintf(stderr, "Support for feature %d not initialized\n", fid);
+		return 0;
+	}
+	return pm_features[fid];
+}
+
+/* Set the Feature value for a Feature ID */
+void set_feature(int fid, int val)
+{
+	if (fid >= FID_MAX) {
+		fprintf(stderr, "Feature ID %d invalid\n", fid);
+		return;
+	}
+
+	if ((fid_mask & (1ULL << fid))) {
+		fprintf(stderr, "Support for feature %d already set\n", fid);
+		return;
+	}
+	pm_features[fid] = val;
+	fid_mask |= 1 << fid;
+}
+
+/* Enable the support for a Feature ID */
+void enable_feature(int fid)
+{
+	set_feature(fid, 1);
+}
+
+/* Disable the support for a Feature ID */
+void disable_feature(int fid)
+{
+	set_feature(fid, 0);
+}
+
+/*
+ * Set the Feature Value for each Feature ID based on CPU model number.
+ * Intel CPU model checks are allowed inside intel_check_model() only.
+ */
+void intel_check_model(unsigned int family, unsigned int model)
+{
+	if (!genuine_intel)
+		return;
+
+	if (family != 6)
+		return;
+
+	switch (model) {
+	default:
+		return;
+	}
+}
+
+ /* Model specific support End */
+
 #define RAPL_PKG		(1 << 0)
 					/* 0x610 MSR_PKG_POWER_LIMIT */
 					/* 0x611 MSR_PKG_ENERGY_STATUS */
@@ -5558,6 +5651,7 @@ void process_cpuid()
 			edx_flags & (1 << 28) ? "HT" : "-", edx_flags & (1 << 29) ? "TM" : "-");
 	}
 
+	intel_check_model(family, model);
 	model = intel_model_duplicates(model);
 
 	if (!(edx_flags & (1 << 5)))
