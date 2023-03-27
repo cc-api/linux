@@ -5663,9 +5663,6 @@ void decode_misc_pwr_mgmt_msr(void)
 {
 	unsigned long long msr;
 
-	if (!get_feature(FID_MISC_MSRS))
-		return;
-
 	if (!get_feature(FID_MSR_MISC_PWR_MGMT))
 		return;
 
