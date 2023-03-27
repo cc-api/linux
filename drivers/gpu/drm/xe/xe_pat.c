@@ -14,6 +14,7 @@
 #define _PAT_INDEX(index)			_PICK_EVEN_2RANGES(index, 8, \
 								   0x4800, 0x4804, \
 								   0x4848, 0x484c)
+#define _PAT_PTA				0x4820
 
 #define XE2_NO_PROMOTE				REG_BIT(10)
 #define XE2_COMP_EN				REG_BIT(9)
@@ -122,6 +123,7 @@ static const u32 xe2_pat_table[] = {
 
 /* Special PAT values programmed outside the main table */
 #define XE2_PAT_ATS	XE2_PAT ( 0, 0, 0, 0, 0, 3 )
+#define XE2_PAT_PTA	XE2_PAT ( 0, 0, 0, 0, 0, 0 )
 
 static void program_pat(struct xe_gt *gt, const u32 table[], int n_entries)
 {
@@ -155,6 +157,8 @@ void xe_pat_init(struct xe_gt *gt)
 		if (GRAPHICS_VER(xe) >= 20) {
 			program_pat(gt, xe2_pat_table, ARRAY_SIZE(xe2_pat_table));
 			xe_mmio_write32(gt, XE_REG(_PAT_ATS), XE2_PAT_ATS);
+			if (IS_DGFX(xe))
+				xe_mmio_write32(gt, XE_REG(_PAT_PTA), XE2_PAT_PTA);
 		} else if (xe->info.platform == XE_METEORLAKE) {
 			program_pat(gt, mtl_pat_table, ARRAY_SIZE(mtl_pat_table));
 		} else {
@@ -168,6 +172,8 @@ void xe_pat_init(struct xe_gt *gt)
 	if (GRAPHICS_VER(xe) >= 20) {
 		program_pat_mcr(gt, xe2_pat_table, ARRAY_SIZE(xe2_pat_table));
 		xe_gt_mcr_multicast_write(gt, XE_REG_MCR(_PAT_ATS), XE2_PAT_ATS);
+		if (IS_DGFX(xe))
+			xe_gt_mcr_multicast_write(gt, XE_REG_MCR(_PAT_PTA), XE2_PAT_PTA);
 	} else if (xe->info.platform == XE_METEORLAKE) {
 		program_pat_mcr(gt, mtl_pat_table, ARRAY_SIZE(mtl_pat_table));
 	} else if (xe->info.platform == XE_PVC || xe->info.platform == XE_DG2) {
