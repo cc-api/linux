@@ -5181,8 +5181,8 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00114.html",
-            "platforms": "",
-            "feature_jiras": ""
+            "platforms": "ADL,LNL,MTL,RPL",
+            "feature_jiras": "CROSVT-1327"
         },
         {
             "branch": "hybrid_virt_fixup",
