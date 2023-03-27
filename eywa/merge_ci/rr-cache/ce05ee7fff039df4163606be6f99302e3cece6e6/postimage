@@ -2532,6 +2532,7 @@ int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
 			return 1;
 		msr_info->data = kvm_vmx->pkg_therm.msr_ia32_hfi_ptr;
+		break;
 	case MSR_VIRTUAL_ENUMERATION:
 		if (!msr_info->host_initiated &&
 		    !(vcpu->arch.arch_capabilities & ARCH_CAP_VIRTUAL_ENUM))
@@ -3230,6 +3231,7 @@ int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 
 		if (ret)
 			return ret;
+		break;
 	case MSR_VIRTUAL_ENUMERATION:
 		if (!msr_info->host_initiated)
 			return 1;
