@@ -4303,6 +4303,10 @@
                 {
                     "name": "CONFIG_TDX_GUEST_DRIVER",
                     "value": "y"
+                },
+                {
+                    "name": "CONFIG_VIRT_DRIVERS",
+                    "value": "y"
                 }
             ],
             "contributor": [
