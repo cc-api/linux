@@ -15,6 +15,10 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V6.5
+------------
+31. Enable Ceph File System and Ceph Core Library (request from Deepak Kumar and Cluster Team)
+
 GNR-BKC-V6.4
 ------------
 30. Fix a bug in https://hsdes.intel.com/appstore/article/#/14018798758 by moving IO RDT enabling from boot time to resctrl FS mount time
