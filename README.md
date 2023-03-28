@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V6.4
+------------
+30. Fix a bug in https://hsdes.intel.com/appstore/article/#/14018798758 by moving IO RDT enabling from boot time to resctrl FS mount time
+    x86/resctrl: Move IO RDT enabling from boot time to resctrl FS mount time
+
 GNR-BKC-V6.3
 ------------
 29. dmaengine: idxd: Fix default allowed read buffers value in group
