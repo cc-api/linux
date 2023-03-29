@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V6.6
+------------
+32. Fix the issue reported in https://hsdes.intel.com/appstore/article/#/14016951426 and etc that TSC rolls back to HPET when the system is under heavy load, by suspending the clocksource watchdog for 300 seconds (5 minutes) when high read latency is detected.
+    clocksource: Suspend the watchdog temporarily when high read latency detected
+
 GNR-BKC-V6.5
 ------------
 31. Enable Ceph File System and Ceph Core Library (request from Deepak Kumar and Cluster Team)
