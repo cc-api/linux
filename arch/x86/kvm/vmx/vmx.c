@@ -484,7 +484,6 @@ noinline void invept_error(unsigned long ext, u64 eptp, gpa_t gpa)
 			ext, eptp, gpa);
 }
 
-static DEFINE_PER_CPU(struct vmcs *, vmxarea);
 DEFINE_PER_CPU(struct vmcs *, current_vmcs);
 /*
  * We maintain a per-CPU linked-list of VMCS loaded on that CPU. This is needed
@@ -2662,21 +2661,9 @@ static int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 		_vmexit_control &= ~x_ctrl;
 	}
 
-	rdmsrl(MSR_IA32_VMX_BASIC, basic_msr);
-
-	/* IA-32 SDM Vol 3B: VMCS size is never greater than 4kB. */
-	if (vmx_basic_vmcs_size(basic_msr) > PAGE_SIZE)
-		return -EIO;
-
-#ifdef CONFIG_X86_64
-	/* IA-32 SDM Vol 3B: 64-bit CPUs always have VMX_BASIC_MSR[48]==0. */
-	if (basic_msr & VMX_BASIC_64)
-		return -EIO;
-#endif
-
-	/* Require Write-Back (WB) memory type for VMCS accesses. */
-	if (((basic_msr & VMX_BASIC_MEM_TYPE_MASK) >> VMX_BASIC_MEM_TYPE_SHIFT)
-			!= VMX_BASIC_MEM_TYPE_WB)
+	basic_msr = this_cpu_read(vmx_basic);
+	/* A vaild MSR_IA32_VMX_BASIC value cannot be 0 */
+	if (!basic_msr)
 		return -EIO;
 
 	rdmsrl(MSR_IA32_VMX_MISC, misc_msr);
@@ -2771,7 +2758,6 @@ EXPORT_SYMBOL_GPL(vmxoff_put);
 int vmx_hardware_enable(void)
 {
 	int cpu = raw_smp_processor_id();
-	u64 phys_addr = __pa(per_cpu(vmxarea, cpu));
 	int r;
 
 	/*
@@ -2781,16 +2767,9 @@ int vmx_hardware_enable(void)
 	if (kvm_is_using_evmcs() && !hv_get_vp_assist_page(cpu))
 		return -EFAULT;
 
-	if (cr4_read_shadow() & X86_CR4_VMXE)
-		return -EBUSY;
-
-	intel_pt_handle_vmx(1);
-
-	r = cpu_vmxon(phys_addr);
-	if (r) {
-		intel_pt_handle_vmx(0);
+	r = cpu_vmxop_get();
+	if (r)
 		return r;
-	}
 
 	if (enable_ept)
 		ept_sync_global();
@@ -2812,10 +2791,8 @@ void vmx_hardware_disable(void)
 {
 	vmclear_local_loaded_vmcss();
 
-	if (cpu_vmxoff())
+	if (cpu_vmxop_put())
 		kvm_spurious_fault();
-
-	intel_pt_handle_vmx(0);
 
 	hv_reset_evmcs();
 }
@@ -2903,34 +2880,6 @@ int alloc_loaded_vmcs(struct loaded_vmcs *loaded_vmcs)
 out_vmcs:
 	free_loaded_vmcs(loaded_vmcs);
 	return -ENOMEM;
-}
-
-static void free_kvm_area(void)
-{
-	int cpu;
-
-	for_each_possible_cpu(cpu) {
-		free_vmcs(per_cpu(vmxarea, cpu));
-		per_cpu(vmxarea, cpu) = NULL;
-	}
-}
-
-static __init int alloc_kvm_area(void)
-{
-	int cpu;
-
-	for_each_possible_cpu(cpu) {
-		struct vmcs *vmcs;
-
-		vmcs = __alloc_vmcs_cpu(cpu, GFP_KERNEL);
-		if (!vmcs) {
-			free_kvm_area();
-			return -ENOMEM;
-		}
-
-		per_cpu(vmxarea, cpu) = vmcs;
-	}
-	return 0;
 }
 
 static void fix_pmode_seg(struct kvm_vcpu *vcpu, int seg,
@@ -8042,8 +7991,6 @@ void vmx_hardware_unsetup(void)
 
 	if (nested)
 		nested_vmx_hardware_unsetup();
-
-	free_kvm_area();
 }
 
 #define VMX_REQUIRED_APICV_INHIBITS			\
@@ -8469,10 +8416,6 @@ __init int vmx_hardware_setup(void)
 	}
 
 	vmx_set_cpu_caps();
-
-	r = alloc_kvm_area();
-	if (r && nested)
-		nested_vmx_hardware_unsetup();
 
 	kvm_set_posted_intr_wakeup_handler(pi_wakeup_handler);
 
