@@ -2099,10 +2099,15 @@ static const struct intel_c20pll_state * const mtl_c20_hdmi_tables[] = {
 	NULL,
 };
 
-static int intel_c10_phy_check_hdmi_link_rate(int clock)
+static int intel_c10_phy_check_hdmi_link_rate(struct drm_i915_private *i915, int clock)
 {
-	const struct intel_c10pll_state * const *tables = mtl_c10_hdmi_tables;
+	const struct intel_c10pll_state * const *tables;
 	int i;
+
+	if (DISPLAY_VER(i915) >= 20)
+		tables = lnl_c10_hdmi_tables;
+	else
+		tables = mtl_c10_hdmi_tables;
 
 	for (i = 0; tables[i]; i++) {
 		if (clock == tables[i]->clock)
@@ -2304,7 +2309,7 @@ int intel_cx0_phy_check_hdmi_link_rate(struct intel_hdmi *hdmi, int clock)
 	enum phy phy = intel_port_to_phy(i915, dig_port->base.port);
 
 	if (intel_is_c10phy(i915, phy))
-		return intel_c10_phy_check_hdmi_link_rate(clock);
+		return intel_c10_phy_check_hdmi_link_rate(i915, clock);
 	return intel_c20_phy_check_hdmi_link_rate(clock);
 }
 
