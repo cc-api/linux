@@ -356,16 +356,24 @@ static void get_hfi_caps(struct hfi_instance *hfi_instance,
 	raw_spin_unlock_irq(&hfi_instance->table_lock);
 }
 
+#define HFI_HEADER_BIT_FORCED_IDLE	BIT(1)
+
 /*
  * Call update_capabilities() when there are changes in the HFI table.
  */
 static void update_capabilities(struct hfi_instance *hfi_instance)
 {
 	struct thermal_genl_cpu_caps *cpu_caps;
+	bool forced_idle = false;
+	struct hfi_hdr *hfi_hdr;
 	int i = 0, cpu_count;
 
 	/* CPUs may come online/offline while processing an HFI update. */
 	mutex_lock(&hfi_instance_lock);
+
+	hfi_hdr = hfi_instance->hdr;
+	if (hfi_hdr->perf_updated & HFI_HEADER_BIT_FORCED_IDLE)
+		forced_idle = true;
 
 	cpu_count = cpumask_weight(hfi_instance->cpus);
 
@@ -385,16 +393,25 @@ static void update_capabilities(struct hfi_instance *hfi_instance)
 	/* Process complete chunks of HFI_MAX_THERM_NOTIFY_COUNT capabilities. */
 	for (i = 0;
 	     (i + HFI_MAX_THERM_NOTIFY_COUNT) <= cpu_count;
-	     i += HFI_MAX_THERM_NOTIFY_COUNT)
-		thermal_genl_cpu_capability_event(HFI_MAX_THERM_NOTIFY_COUNT,
-						  &cpu_caps[i]);
+	     i += HFI_MAX_THERM_NOTIFY_COUNT) {
+		if (forced_idle)
+			thermal_genl_cpu_forced_idle_event(HFI_MAX_THERM_NOTIFY_COUNT,
+							   &cpu_caps[i]);
+		else
+			thermal_genl_cpu_capability_event(HFI_MAX_THERM_NOTIFY_COUNT,
+							  &cpu_caps[i]);
+	}
 
 	cpu_count = cpu_count - i;
 
 last_cmd:
 	/* Process the remaining capabilities if any. */
-	if (cpu_count)
-		thermal_genl_cpu_capability_event(cpu_count, &cpu_caps[i]);
+	if (cpu_count) {
+		if (forced_idle)
+			thermal_genl_cpu_forced_idle_event(cpu_count, &cpu_caps[i]);
+		else
+			thermal_genl_cpu_capability_event(cpu_count, &cpu_caps[i]);
+	}
 
 	kfree(cpu_caps);
 
