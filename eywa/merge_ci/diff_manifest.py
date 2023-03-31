@@ -64,6 +64,9 @@ def merge_branch_dicts(old_branches, new_branches, rev_length=7):
     the rev values are concatenated together, separated by an arrow string.
     Additionally, values are only added to the result dictionary if the revision
     changed.  This is for presenting updates to branches.
+
+    Lastly, if the branch name has changed, we change the branch to the new dict's
+    branch.
     """
     result_dict = {}
     for name, old_branch in old_branches.items():
@@ -72,6 +75,7 @@ def merge_branch_dicts(old_branches, new_branches, rev_length=7):
             old_branch_rev = old_branch["rev"][:rev_length]
             new_branch_rev = new_branches[name]["rev"][:rev_length]
             new_dict["rev"] = f"{old_branch_rev} -> {new_branch_rev}"
+            new_dict["branch"] = new_branches[name]["branch"]
             result_dict[name] = new_dict
     return result_dict.values()
     
