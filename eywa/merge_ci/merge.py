@@ -105,7 +105,7 @@ def reconcile_shas(repo, credentials, manifest, debug=False):
     local_sha_list = [local_shas[b] for b in branch_names]
     if debug:
         print_and_log(tabulate.tabulate(
-            zip(topic_branch_names, map(lambda s: s[-10:], remote_sha_list), map(lambda s: s[-10:] if s is not None else "", local_sha_list),
+            zip(topic_branch_names, map(lambda s: s[:10], remote_sha_list), map(lambda s: s[:10] if s is not None else "", local_sha_list),
                 (sha1 != sha2 for sha1, sha2 in zip(remote_sha_list, local_sha_list))),
             headers=["Branch Name", "Remote SHA", "Local SHA", "Fetch Needed?"],
             tablefmt="psql"))
