@@ -82,7 +82,7 @@ def branches_changed(m_new,m_old):
     """
     branch_dict_new = create_branch_dict(m_new)
     branch_dict_old = create_branch_dict(m_old)
-    return merge_branch_dicts(branch_dict_new, branch_dict_old)
+    return merge_branch_dicts(branch_dict_old, branch_dict_new)
 
 def main():
     if len(sys.argv) != 3:
