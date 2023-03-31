@@ -5943,6 +5943,40 @@
             "platforms": "SPR",
             "feature_jiras": "LFE-120",
             "last_enabled": "v6.3"
+        },
+        {
+            "branch": "tdx_guest_pm_testing_fixup",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Kyle Pelton",
+                    "email": "kyle.d.pelton@intel.com"
+                }
+            ],
+            "description": "Fixup patch is needed in order for TDX-guest to compile with latest pm-testing",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Kyle Pelton",
+                    "email": "kyle.d.pelton@intel.com"
+                }
+            ],
+            "jira": "NEXT-3338",
+            "name": "tdx_guest_pm_testing_fixup",
+            "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
+            "sdl_contact": [
+                {
+                    "name": "Majid Awad",
+                    "email": "majid.awad@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         }
     ]
 }
