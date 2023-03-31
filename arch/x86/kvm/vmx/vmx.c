@@ -2731,9 +2731,7 @@ int vmx_check_processor_compat(void)
 
 static int __vmxon_get(void)
 {
-	if (cr4_read_shadow() & X86_CR4_VMXE)
-		return -EBUSY;
-	return kvm_cpu_vmxon(__pa(this_cpu_read(vmxarea)));
+	return cpu_vmxop_get();
 }
 
 int vmxon_get(void)
@@ -2750,7 +2748,7 @@ EXPORT_SYMBOL_GPL(vmxon_get);
 
 void vmxoff_put(void)
 {
-	WARN_ON_ONCE(cpu_vmxoff());
+	WARN_ON_ONCE(cpu_vmxop_put());
 	preempt_enable();
 }
 EXPORT_SYMBOL_GPL(vmxoff_put);
