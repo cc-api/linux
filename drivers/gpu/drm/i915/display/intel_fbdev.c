@@ -247,6 +247,9 @@ static int intelfb_create(struct drm_fb_helper *helper,
 	void __iomem *vaddr;
 	struct drm_i915_gem_object *obj;
 	int ret;
+#ifdef I915
+	struct i915_gem_ww_ctx ww;
+#endif
 
 	mutex_lock(&ifbdev->hpd_lock);
 	ret = ifbdev->hpd_suspended ? -EAGAIN : 0;
@@ -321,7 +324,22 @@ static int intelfb_create(struct drm_fb_helper *helper,
 			(unsigned long)(ggtt->gmadr.start + i915_ggtt_offset(vma));
 		info->fix.smem_len = vma->size;
 	}
-	vaddr = i915_vma_pin_iomap(vma);
+
+	for_i915_gem_ww(&ww, ret, false) {
+		ret = i915_gem_object_lock(vma->obj, &ww);
+
+		if (ret)
+			continue;
+
+		vaddr = i915_vma_pin_iomap(vma);
+		if (IS_ERR(vaddr)) {
+			drm_err(&dev_priv->drm,
+				"Failed to remap framebuffer into virtual memory (%pe)\n", vaddr);
+			ret = PTR_ERR(vaddr);
+			continue;
+		}
+	}
+
 #else
 	if (!(obj->flags & XE_BO_CREATE_SYSTEM_BIT)) {
 		bool lmem;
@@ -343,13 +361,16 @@ static int intelfb_create(struct drm_fb_helper *helper,
 	XE_WARN_ON(iosys_map_is_null(&obj->vmap));
 	vaddr = obj->vmap.vaddr_iomem;
 #endif
-
 	if (IS_ERR(vaddr)) {
 		drm_err(&dev_priv->drm,
 			"Failed to remap framebuffer into virtual memory (%pe)\n", vaddr);
 		ret = PTR_ERR(vaddr);
 		goto out_unpin;
 	}
+
+	if (ret)
+		goto out_unpin;
+
 	info->screen_base = vaddr;
 	info->screen_size = obj->ttm.base.size;
 

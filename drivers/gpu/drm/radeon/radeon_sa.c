@@ -46,7 +46,8 @@
 
 int radeon_sa_bo_manager_init(struct radeon_device *rdev,
 			      struct radeon_sa_manager *sa_manager,
-			      unsigned size, u32 sa_align, u32 domain, u32 flags)
+			      unsigned int size, u32 sa_align, u32 domain,
+			      u32 flags)
 {
 	int r;
 
@@ -119,9 +120,10 @@ int radeon_sa_bo_manager_suspend(struct radeon_device *rdev,
 
 int radeon_sa_bo_new(struct radeon_sa_manager *sa_manager,
 		     struct drm_suballoc **sa_bo,
-		     unsigned size)
+		     unsigned int size, unsigned int align)
 {
-	struct drm_suballoc *sa = drm_suballoc_new(&sa_manager->base, size, GFP_KERNEL, true);
+	struct drm_suballoc *sa = drm_suballoc_new(&sa_manager->base, size,
+						   GFP_KERNEL, true, align);
 
 	if (IS_ERR(sa)) {
 		*sa_bo = NULL;

@@ -17,6 +17,8 @@
 #define XE_BO_CREATE_SYSTEM_BIT		BIT(1)
 #define XE_BO_CREATE_VRAM0_BIT		BIT(2)
 #define XE_BO_CREATE_VRAM1_BIT		BIT(3)
+#define XE_BO_CREATE_VRAM_MASK		(XE_BO_CREATE_VRAM0_BIT | \
+					 XE_BO_CREATE_VRAM1_BIT)
 /* -- */
 #define XE_BO_CREATE_STOLEN_BIT		BIT(4)
 #define XE_BO_CREATE_VRAM_IF_DGFX(gt) \
@@ -104,6 +106,8 @@ struct xe_bo *xe_bo_create_from_data(struct xe_device *xe, struct xe_gt *gt,
 
 int xe_bo_placement_for_flags(struct xe_device *xe, struct xe_bo *bo,
 			      u32 bo_flags);
+
+struct xe_gt *xe_bo_to_gt(struct xe_bo *bo);
 
 static inline struct xe_bo *ttm_to_xe_bo(const struct ttm_buffer_object *bo)
 {

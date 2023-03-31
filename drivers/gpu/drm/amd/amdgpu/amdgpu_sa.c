@@ -46,12 +46,13 @@
 
 int amdgpu_sa_bo_manager_init(struct amdgpu_device *adev,
 			      struct amdgpu_sa_manager *sa_manager,
-			      unsigned size, u32 suballoc_align, u32 domain)
+			      unsigned int size, u32 suballoc_align, u32 domain)
 {
 	int r;
 
-	r = amdgpu_bo_create_kernel(adev, size, AMDGPU_GPU_PAGE_SIZE, domain, &sa_manager->bo,
-				&sa_manager->gpu_addr, &sa_manager->cpu_ptr);
+	r = amdgpu_bo_create_kernel(adev, size, AMDGPU_GPU_PAGE_SIZE, domain,
+				    &sa_manager->bo, &sa_manager->gpu_addr,
+				    &sa_manager->cpu_ptr);
 	if (r) {
 		dev_err(adev->dev, "(%d) failed to allocate bo for manager\n", r);
 		return r;
@@ -77,9 +78,10 @@ void amdgpu_sa_bo_manager_fini(struct amdgpu_device *adev,
 
 int amdgpu_sa_bo_new(struct amdgpu_sa_manager *sa_manager,
 		     struct drm_suballoc **sa_bo,
-		     unsigned size)
+		     unsigned int size)
 {
-	struct drm_suballoc *sa = drm_suballoc_new(&sa_manager->base, size, GFP_KERNEL, true);
+	struct drm_suballoc *sa = drm_suballoc_new(&sa_manager->base, size,
+						   GFP_KERNEL, true, 0);
 
 	if (IS_ERR(sa)) {
 		*sa_bo = NULL;

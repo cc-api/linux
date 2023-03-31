@@ -126,6 +126,27 @@ struct amdgpu_bo_vm {
 	struct amdgpu_vm_bo_base        entries[];
 };
 
+struct amdgpu_mem_stats {
+	/* current VRAM usage, includes visible VRAM */
+	uint64_t vram;
+	/* current visible VRAM usage */
+	uint64_t visible_vram;
+	/* current GTT usage */
+	uint64_t gtt;
+	/* current system memory usage */
+	uint64_t cpu;
+	/* sum of evicted buffers, includes visible VRAM */
+	uint64_t evicted_vram;
+	/* sum of evicted buffers due to CPU access */
+	uint64_t evicted_visible_vram;
+	/* how much userspace asked for, includes vis.VRAM */
+	uint64_t requested_vram;
+	/* how much userspace asked for */
+	uint64_t requested_visible_vram;
+	/* how much userspace asked for */
+	uint64_t requested_gtt;
+};
+
 static inline struct amdgpu_bo *ttm_to_amdgpu_bo(struct ttm_buffer_object *tbo)
 {
 	return container_of(tbo, struct amdgpu_bo, tbo);
@@ -325,8 +346,8 @@ int amdgpu_bo_sync_wait_resv(struct amdgpu_device *adev, struct dma_resv *resv,
 int amdgpu_bo_sync_wait(struct amdgpu_bo *bo, void *owner, bool intr);
 u64 amdgpu_bo_gpu_offset(struct amdgpu_bo *bo);
 u64 amdgpu_bo_gpu_offset_no_check(struct amdgpu_bo *bo);
-void amdgpu_bo_get_memory(struct amdgpu_bo *bo, uint64_t *vram_mem,
-				uint64_t *gtt_mem, uint64_t *cpu_mem);
+void amdgpu_bo_get_memory(struct amdgpu_bo *bo,
+			  struct amdgpu_mem_stats *stats);
 void amdgpu_bo_add_to_shadow_list(struct amdgpu_bo_vm *vmbo);
 int amdgpu_bo_restore_shadow(struct amdgpu_bo *shadow,
 			     struct dma_fence **fence);
@@ -348,7 +369,7 @@ static inline uint64_t amdgpu_sa_bo_gpu_addr(struct drm_suballoc *sa_bo)
 		drm_suballoc_soffset(sa_bo);
 }
 
-static inline void * amdgpu_sa_bo_cpu_addr(struct drm_suballoc *sa_bo)
+static inline void *amdgpu_sa_bo_cpu_addr(struct drm_suballoc *sa_bo)
 {
 	return to_amdgpu_sa_manager(sa_bo->manager)->cpu_ptr +
 		drm_suballoc_soffset(sa_bo);
@@ -363,7 +384,7 @@ int amdgpu_sa_bo_manager_start(struct amdgpu_device *adev,
 				      struct amdgpu_sa_manager *sa_manager);
 int amdgpu_sa_bo_new(struct amdgpu_sa_manager *sa_manager,
 		     struct drm_suballoc **sa_bo,
-		     unsigned size);
+		     unsigned int size);
 void amdgpu_sa_bo_free(struct amdgpu_device *adev,
 		       struct drm_suballoc **sa_bo,
 		       struct dma_fence *fence);

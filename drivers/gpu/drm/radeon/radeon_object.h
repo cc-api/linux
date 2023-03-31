@@ -181,7 +181,7 @@ static inline uint64_t radeon_sa_bo_gpu_addr(struct drm_suballoc *sa_bo)
 		drm_suballoc_soffset(sa_bo);
 }
 
-static inline void * radeon_sa_bo_cpu_addr(struct drm_suballoc *sa_bo)
+static inline void *radeon_sa_bo_cpu_addr(struct drm_suballoc *sa_bo)
 {
 	return to_radeon_sa_manager(sa_bo->manager)->cpu_ptr +
 		drm_suballoc_soffset(sa_bo);
@@ -199,7 +199,7 @@ extern int radeon_sa_bo_manager_suspend(struct radeon_device *rdev,
 					struct radeon_sa_manager *sa_manager);
 extern int radeon_sa_bo_new(struct radeon_sa_manager *sa_manager,
 			    struct drm_suballoc **sa_bo,
-			    unsigned size);
+			    unsigned int size, unsigned int align);
 extern void radeon_sa_bo_free(struct drm_suballoc **sa_bo,
 			      struct radeon_fence *fence);
 #if defined(CONFIG_DEBUG_FS)

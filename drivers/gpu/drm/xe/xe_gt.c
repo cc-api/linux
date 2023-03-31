@@ -23,12 +23,14 @@
 #include "xe_gt_sysfs.h"
 #include "xe_gt_tlb_invalidation.h"
 #include "xe_gt_topology.h"
+#include "xe_guc_engine_types.h"
 #include "xe_hw_fence.h"
 #include "xe_irq.h"
 #include "xe_lrc.h"
 #include "xe_map.h"
 #include "xe_migrate.h"
 #include "xe_mmio.h"
+#include "xe_pat.h"
 #include "xe_mocs.h"
 #include "xe_reg_sr.h"
 #include "xe_ring_ops.h"
@@ -90,83 +92,6 @@ int xe_gt_alloc(struct xe_device *xe, struct xe_gt *gt)
 	gt->ordered_wq = alloc_ordered_workqueue("gt-ordered-wq", 0);
 
 	return 0;
-}
-
-/* FIXME: These should be in a common file */
-#define CHV_PPAT_SNOOP			REG_BIT(6)
-#define GEN8_PPAT_AGE(x)		((x)<<4)
-#define GEN8_PPAT_LLCeLLC		(3<<2)
-#define GEN8_PPAT_LLCELLC		(2<<2)
-#define GEN8_PPAT_LLC			(1<<2)
-#define GEN8_PPAT_WB			(3<<0)
-#define GEN8_PPAT_WT			(2<<0)
-#define GEN8_PPAT_WC			(1<<0)
-#define GEN8_PPAT_UC			(0<<0)
-#define GEN8_PPAT_ELLC_OVERRIDE		(0<<2)
-#define GEN8_PPAT(i, x)			((u64)(x) << ((i) * 8))
-#define GEN12_PPAT_CLOS(x)              ((x)<<2)
-
-static void tgl_setup_private_ppat(struct xe_gt *gt)
-{
-	/* TGL doesn't support LLC or AGE settings */
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(0).reg, GEN8_PPAT_WB);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(1).reg, GEN8_PPAT_WC);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(2).reg, GEN8_PPAT_WT);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(3).reg, GEN8_PPAT_UC);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(4).reg, GEN8_PPAT_WB);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(5).reg, GEN8_PPAT_WB);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(6).reg, GEN8_PPAT_WB);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(7).reg, GEN8_PPAT_WB);
-}
-
-static void pvc_setup_private_ppat(struct xe_gt *gt)
-{
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(0).reg, GEN8_PPAT_UC);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(1).reg, GEN8_PPAT_WC);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(2).reg, GEN8_PPAT_WT);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(3).reg, GEN8_PPAT_WB);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(4).reg,
-			GEN12_PPAT_CLOS(1) | GEN8_PPAT_WT);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(5).reg,
-			GEN12_PPAT_CLOS(1) | GEN8_PPAT_WB);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(6).reg,
-			GEN12_PPAT_CLOS(2) | GEN8_PPAT_WT);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(7).reg,
-			GEN12_PPAT_CLOS(2) | GEN8_PPAT_WB);
-}
-
-#define MTL_PPAT_L4_CACHE_POLICY_MASK   REG_GENMASK(3, 2)
-#define MTL_PAT_INDEX_COH_MODE_MASK     REG_GENMASK(1, 0)
-#define MTL_PPAT_3_UC   REG_FIELD_PREP(MTL_PPAT_L4_CACHE_POLICY_MASK, 3)
-#define MTL_PPAT_1_WT   REG_FIELD_PREP(MTL_PPAT_L4_CACHE_POLICY_MASK, 1)
-#define MTL_PPAT_0_WB   REG_FIELD_PREP(MTL_PPAT_L4_CACHE_POLICY_MASK, 0)
-#define MTL_3_COH_2W    REG_FIELD_PREP(MTL_PAT_INDEX_COH_MODE_MASK, 3)
-#define MTL_2_COH_1W    REG_FIELD_PREP(MTL_PAT_INDEX_COH_MODE_MASK, 2)
-#define MTL_0_COH_NON   REG_FIELD_PREP(MTL_PAT_INDEX_COH_MODE_MASK, 0)
-
-static void mtl_setup_private_ppat(struct xe_gt *gt)
-{
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(0).reg, MTL_PPAT_0_WB);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(1).reg,
-			MTL_PPAT_1_WT | MTL_2_COH_1W);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(2).reg,
-			MTL_PPAT_3_UC | MTL_2_COH_1W);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(3).reg,
-			MTL_PPAT_0_WB | MTL_2_COH_1W);
-	xe_mmio_write32(gt, GEN12_PAT_INDEX(4).reg,
-			MTL_PPAT_0_WB | MTL_3_COH_2W);
-}
-
-static void setup_private_ppat(struct xe_gt *gt)
-{
-	struct xe_device *xe = gt_to_xe(gt);
-
-	if (xe->info.platform == XE_METEORLAKE)
-		mtl_setup_private_ppat(gt);
-	else if (xe->info.platform == XE_PVC)
-		pvc_setup_private_ppat(gt);
-	else
-		tgl_setup_private_ppat(gt);
 }
 
 static int gt_ttm_mgr_init(struct xe_gt *gt)
@@ -234,7 +159,7 @@ static int emit_nop_job(struct xe_gt *gt, struct xe_engine *e)
 	job = xe_bb_create_wa_job(e, bb, batch_ofs);
 	if (IS_ERR(job)) {
 		xe_bb_free(bb, NULL);
-		return PTR_ERR(bb);
+		return PTR_ERR(job);
 	}
 
 	xe_sched_job_arm(job);
@@ -280,14 +205,12 @@ static int emit_wa_job(struct xe_gt *gt, struct xe_engine *e)
 			bb->cs[bb->len++] = entry->set_bits;
 		}
 	}
-	bb->cs[bb->len++] = MI_NOOP;
-	bb->cs[bb->len++] = MI_BATCH_BUFFER_END;
 
 	batch_ofs = xe_bo_ggtt_addr(gt->kernel_bb_pool.bo);
 	job = xe_bb_create_wa_job(e, bb, batch_ofs);
 	if (IS_ERR(job)) {
 		xe_bb_free(bb, NULL);
-		return PTR_ERR(bb);
+		return PTR_ERR(job);
 	}
 
 	xe_sched_job_arm(job);
@@ -338,30 +261,43 @@ int xe_gt_record_default_lrcs(struct xe_gt *gt)
 				     hwe, ENGINE_FLAG_WA);
 		if (IS_ERR(e)) {
 			err = PTR_ERR(e);
+			drm_err(&xe->drm, "gt%d, hwe %s, xe_engine_create,e failed=%d",
+				gt->info.id, hwe->name, err);
 			goto put_vm;
 		}
 
 		/* Prime golden LRC with known good state */
 		err = emit_wa_job(gt, e);
-		if (err)
+		if (err) {
+			drm_err(&xe->drm, "gt%d, hwe %s, guc_id=%d, emit_wa_job,e failed=%d",
+				gt->info.id, hwe->name, e->guc->id, err);
 			goto put_engine;
+		}
 
 		nop_e = xe_engine_create(xe, vm, BIT(hwe->logical_instance),
 					 1, hwe, ENGINE_FLAG_WA);
 		if (IS_ERR(nop_e)) {
 			err = PTR_ERR(nop_e);
+			drm_err(&xe->drm, "gt%d, hwe %s, xe_engine_create,nop_e failed=%d",
+				gt->info.id, hwe->name, err);
 			goto put_engine;
 		}
 
 		/* Switch to different LRC */
 		err = emit_nop_job(gt, nop_e);
-		if (err)
+		if (err) {
+			drm_err(&xe->drm, "gt%d, hwe %s, guc_id=%d, emit_nop_job,nop_e failed=%d",
+				gt->info.id, hwe->name, nop_e->guc->id, err);
 			goto put_nop_e;
+		}
 
 		/* Reload golden LRC to record the effect of any indirect W/A */
 		err = emit_nop_job(gt, e);
-		if (err)
+		if (err) {
+			drm_err(&xe->drm, "gt%d, hwe %s, guc_id=%d, emit_nop_job,e failed=%d",
+				gt->info.id, hwe->name, e->guc->id, err);
 			goto put_nop_e;
+		}
 
 		xe_map_memcpy_from(xe, default_lrc,
 				   &e->lrc[0].bo->vmap,
@@ -452,7 +388,7 @@ static int gt_fw_domain_init(struct xe_gt *gt)
 	if (err)
 		goto err_hw_fence_irq;
 
-	setup_private_ppat(gt);
+	xe_pat_init(gt);
 
 	if (!xe_gt_is_media_type(gt)) {
 		err = xe_ggtt_init(gt, gt->mem.ggtt);
@@ -460,9 +396,9 @@ static int gt_fw_domain_init(struct xe_gt *gt)
 			goto err_force_wake;
 	}
 
-	/* Allow driver to load if uC init fails (likely missing firmware) */
 	err = xe_uc_init(&gt->uc);
-	XE_WARN_ON(err);
+	if (err)
+		goto err_force_wake;
 
 	err = xe_uc_init_hwconfig(&gt->uc);
 	if (err)
@@ -550,8 +486,10 @@ static int all_fw_domain_init(struct xe_gt *gt)
 
 	if (!xe_gt_is_media_type(gt)) {
 		gt->migrate = xe_migrate_init(gt);
-		if (IS_ERR(gt->migrate))
+		if (IS_ERR(gt->migrate)) {
+			err = PTR_ERR(gt->migrate);
 			goto err_force_wake;
+		}
 	} else {
 		gt->migrate = xe_find_full_gt(gt)->migrate;
 	}
@@ -636,7 +574,7 @@ static int do_gt_restart(struct xe_gt *gt)
 	enum xe_hw_engine_id id;
 	int err;
 
-	setup_private_ppat(gt);
+	xe_pat_init(gt);
 
 	xe_gt_mcr_set_implicit_defaults(gt);
 	xe_reg_sr_apply_mmio(&gt->reg_sr, gt);

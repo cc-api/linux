@@ -8,10 +8,25 @@
 #include "regs/xe_gpu_commands.h"
 #include "xe_device.h"
 #include "xe_engine_types.h"
+#include "xe_gt.h"
 #include "xe_hw_fence.h"
 #include "xe_sa.h"
 #include "xe_sched_job.h"
 #include "xe_vm_types.h"
+
+static int bb_prefetch(struct xe_gt *gt)
+{
+	struct xe_device *xe = gt->xe;
+
+	if (GRAPHICS_VERx100(xe) >= 1250 && !xe_gt_is_media_type(gt))
+		/*
+		 * RCS and CCS require 1K, although other engines would be
+		 * okay with 512.
+		 */
+		return SZ_1K;
+	else
+		return SZ_512;
+}
 
 struct xe_bb *xe_bb_new(struct xe_gt *gt, u32 dwords, bool usm)
 {
@@ -21,8 +36,14 @@ struct xe_bb *xe_bb_new(struct xe_gt *gt, u32 dwords, bool usm)
 	if (!bb)
 		return ERR_PTR(-ENOMEM);
 
-	bb->bo = xe_sa_bo_new(!usm ? &gt->kernel_bb_pool :
-			      &gt->usm.bb_pool, 4 * dwords + 4);
+	/*
+	 * We need to allocate space for the requested number of dwords,
+	 * one additional MI_BATCH_BUFFER_END dword, and additional buffer
+	 * space to accomodate the platform-specific hardware prefetch
+	 * requirements.
+	 */
+	bb->bo = xe_sa_bo_new(!usm ? &gt->kernel_bb_pool : &gt->usm.bb_pool,
+			      4 * (dwords + 1) + bb_prefetch(gt));
 	if (IS_ERR(bb->bo)) {
 		err = PTR_ERR(bb->bo);
 		goto err;
@@ -42,9 +63,9 @@ __xe_bb_create_job(struct xe_engine *kernel_eng, struct xe_bb *bb, u64 *addr)
 {
 	u32 size = drm_suballoc_size(bb->bo);
 
-	XE_BUG_ON((bb->len * 4 + 1) > size);
-
 	bb->cs[bb->len++] = MI_BATCH_BUFFER_END;
+
+	WARN_ON(bb->len * 4 + bb_prefetch(kernel_eng->gt) > size);
 
 	xe_sa_bo_flush_write(bb->bo);
 

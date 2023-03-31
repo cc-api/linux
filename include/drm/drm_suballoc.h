@@ -1,5 +1,6 @@
-/* SPDX-License-Identifier: MIT */
+/* SPDX-License-Identifier: GPL-2.0 OR MIT */
 /*
+ * Copyright 2011 Red Hat Inc.
  * Copyright © 2022 Intel Corporation
  */
 #ifndef _DRM_SUBALLOC_H_
@@ -10,58 +11,51 @@
 #include <linux/dma-fence.h>
 #include <linux/types.h>
 
+#define DRM_SUBALLOC_MAX_QUEUES 32
 /**
- * struct drm_suballoc_manager - Wrapper for fenced range allocations
- * @mm: The range manager. Protected by @lock.
- * @range_size: The total size of the range.
- * @alignment: Range alignment.
+ * struct drm_suballoc_manager - fenced range allocations
  * @wq: Wait queue for sleeping allocations on contention.
- * @idle_list: List of idle but not yet freed allocations. Protected by
- * @idle_list_lock.
- * @task: Task waiting for allocation. Protected by @lock.
+ * @hole: Pointer to first hole node.
+ * @olist: List of allocated ranges.
+ * @flist: Array[fence context hash] of queues of fenced allocated ranges.
+ * @size: Size of the managed range.
+ * @align: Default alignment for the managed range.
  */
 struct drm_suballoc_manager {
-	/** @lock: Manager lock. Protects @mm. */
-	spinlock_t lock;
-	/**
-	 * @idle_list_lock: Lock to protect the idle_list.
-	 * Disable irqs when locking.
-	 */
-	spinlock_t idle_list_lock;
-	/** @alloc_mutex: Mutex to protect against stavation. */
-	struct mutex alloc_mutex;
-	struct drm_mm mm;
-	u64 range_size;
-	u64 alignment;
 	wait_queue_head_t wq;
-	struct list_head idle_list;
+	struct list_head *hole;
+	struct list_head olist;
+	struct list_head flist[DRM_SUBALLOC_MAX_QUEUES];
+	size_t size;
+	size_t align;
 };
 
 /**
- * struct drm_suballoc: Suballocated range.
- * @node: The drm_mm representation of the range.
- * @fence: dma-fence indicating whether allocation is active or idle.
- * Assigned on call to free the allocation so doesn't need protection.
- * @cb: dma-fence callback structure. Used for callbacks when the fence signals.
- * @manager: The struct drm_suballoc_manager the range belongs to. Immutable.
- * @idle_link: Link for the manager idle_list. Progected by the
- * drm_suballoc_manager::idle_lock.
+ * struct drm_suballoc - Sub-allocated range
+ * @olist: List link for list of allocated ranges.
+ * @flist: List linkk for the manager fenced allocated ranges queues.
+ * @manager: The drm_suballoc_manager.
+ * @soffset: Start offset.
+ * @eoffset: End offset + 1 so that @eoffset - @soffset = size.
+ * @dma_fence: The fence protecting the allocation.
  */
 struct drm_suballoc {
-	struct drm_mm_node node;
-	struct dma_fence *fence;
-	struct dma_fence_cb cb;
+	struct list_head olist;
+	struct list_head flist;
 	struct drm_suballoc_manager *manager;
-	struct list_head idle_link;
+	size_t soffset;
+	size_t eoffset;
+	struct dma_fence *fence;
 };
 
 void drm_suballoc_manager_init(struct drm_suballoc_manager *sa_manager,
-			       u64 size, u64 align);
+			       size_t size, size_t align);
 
 void drm_suballoc_manager_fini(struct drm_suballoc_manager *sa_manager);
 
-struct drm_suballoc *drm_suballoc_new(struct drm_suballoc_manager *sa_manager,
-				      u64 size, gfp_t gfp, bool intr);
+struct drm_suballoc *
+drm_suballoc_new(struct drm_suballoc_manager *sa_manager, size_t size,
+		 gfp_t gfp, bool intr, size_t align);
 
 void drm_suballoc_free(struct drm_suballoc *sa, struct dma_fence *fence);
 
@@ -71,9 +65,9 @@ void drm_suballoc_free(struct drm_suballoc *sa, struct dma_fence *fence);
  *
  * Return: The start of the allocated range.
  */
-static inline u64 drm_suballoc_soffset(struct drm_suballoc *sa)
+static inline size_t drm_suballoc_soffset(struct drm_suballoc *sa)
 {
-	return sa->node.start;
+	return sa->soffset;
 }
 
 /**
@@ -82,9 +76,9 @@ static inline u64 drm_suballoc_soffset(struct drm_suballoc *sa)
  *
  * Return: The end of the allocated range + 1.
  */
-static inline u64 drm_suballoc_eoffset(struct drm_suballoc *sa)
+static inline size_t drm_suballoc_eoffset(struct drm_suballoc *sa)
 {
-	return sa->node.start + sa->node.size;
+	return sa->eoffset;
 }
 
 /**
@@ -93,18 +87,20 @@ static inline u64 drm_suballoc_eoffset(struct drm_suballoc *sa)
  *
  * Return: The size of the allocated range.
  */
-static inline u64 drm_suballoc_size(struct drm_suballoc *sa)
+static inline size_t drm_suballoc_size(struct drm_suballoc *sa)
 {
-	return sa->node.size;
+	return sa->eoffset - sa->soffset;
 }
 
 #ifdef CONFIG_DEBUG_FS
 void drm_suballoc_dump_debug_info(struct drm_suballoc_manager *sa_manager,
-				  struct drm_printer *p, u64 suballoc_base);
+				  struct drm_printer *p,
+				  unsigned long long suballoc_base);
 #else
 static inline void
 drm_suballoc_dump_debug_info(struct drm_suballoc_manager *sa_manager,
-			     struct drm_printer *p, u64 suballoc_base)
+			     struct drm_printer *p,
+			     unsigned long long suballoc_base)
 { }
 
 #endif

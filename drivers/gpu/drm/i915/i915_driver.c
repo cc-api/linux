@@ -252,7 +252,6 @@ static int i915_driver_early_probe(struct drm_i915_private *dev_priv)
 	/* This must be called before any calls to HAS_PCH_* */
 	intel_detect_pch(dev_priv);
 
-	intel_pm_setup(dev_priv);
 	intel_irq_init(dev_priv);
 	intel_init_display_hooks(dev_priv);
 	intel_init_clock_gating_hooks(dev_priv);
@@ -472,7 +471,9 @@ static int i915_driver_hw_probe(struct drm_i915_private *dev_priv)
 	if (ret)
 		return ret;
 
-	i915_perf_init(dev_priv);
+	ret = i915_perf_init(dev_priv);
+	if (ret)
+		return ret;
 
 	ret = i915_ggtt_probe_hw(dev_priv);
 	if (ret)
@@ -486,13 +487,17 @@ static int i915_driver_hw_probe(struct drm_i915_private *dev_priv)
 	if (ret)
 		goto err_ggtt;
 
-	ret = intel_memory_regions_hw_probe(dev_priv);
+	/*
+	 * Make sure we probe lmem before we probe stolen-lmem. The BAR size
+	 * might be different due to bar resizing.
+	 */
+	ret = intel_gt_tiles_init(dev_priv);
 	if (ret)
 		goto err_ggtt;
 
-	ret = intel_gt_tiles_init(dev_priv);
+	ret = intel_memory_regions_hw_probe(dev_priv);
 	if (ret)
-		goto err_mem_regions;
+		goto err_ggtt;
 
 	ret = i915_ggtt_enable_hw(dev_priv);
 	if (ret) {
@@ -534,7 +539,7 @@ static int i915_driver_hw_probe(struct drm_i915_private *dev_priv)
 
 	ret = i915_pcode_init(dev_priv);
 	if (ret)
-		goto err_msi;
+		goto err_opregion;
 
 	/*
 	 * Fill the dram structure to get the system dram info. This will be
@@ -555,6 +560,8 @@ static int i915_driver_hw_probe(struct drm_i915_private *dev_priv)
 
 	return 0;
 
+err_opregion:
+	intel_opregion_cleanup(dev_priv);
 err_msi:
 	if (pdev->msi_enabled)
 		pci_disable_msi(pdev);
@@ -579,6 +586,8 @@ static void i915_driver_hw_remove(struct drm_i915_private *dev_priv)
 	struct pci_dev *root_pdev;
 
 	i915_perf_fini(dev_priv);
+
+	intel_opregion_cleanup(dev_priv);
 
 	if (pdev->msi_enabled)
 		pci_disable_msi(pdev);
@@ -1077,8 +1086,6 @@ static int i915_drm_suspend(struct drm_device *dev)
 	intel_hpd_cancel_work(dev_priv);
 
 	intel_suspend_encoders(dev_priv);
-
-	intel_suspend_hw(dev_priv);
 
 	/* Must be called before GGTT is suspended. */
 	intel_dpt_suspend(dev_priv);

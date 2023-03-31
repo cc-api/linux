@@ -102,6 +102,8 @@ struct xe_device {
 		bool has_4tile;
 		/** @has_range_tlb_invalidation: Has range based TLB invalidations */
 		bool has_range_tlb_invalidation;
+		/** @has_link_copy_engines: Whether the platform has link copy engines */
+		bool has_link_copy_engine;
 		/** @enable_display: display enabled */
 		bool enable_display;
 
@@ -250,10 +252,8 @@ struct xe_device {
 	 * triggering additional actions when they occur.
 	 */
 	struct {
-		/** @lock: protect the ref count */
-		struct mutex lock;
 		/** @ref: ref count of memory accesses */
-		s32 ref;
+		atomic_t ref;
 		/** @hold_rpm: need to put rpm ref back at the end */
 		bool hold_rpm;
 	} mem_access;
@@ -320,8 +320,10 @@ struct xe_device {
 		const char *dmc_firmware_path;
 		s32 enable_dpcd_backlight;
 		s32 enable_dp_mst;
+		bool enable_dpt;
 		s32 enable_fbc;
 		s32 enable_psr;
+		bool enable_sagv;
 		bool psr_safest_params;
 		s32 enable_psr2_sel_fetch;
 

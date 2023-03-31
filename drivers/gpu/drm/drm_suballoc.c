@@ -1,42 +1,54 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-2.0 OR MIT
 /*
- * Copyright © 2022 Intel Corporation
+ * Copyright 2011 Red Hat Inc.
+ * Copyright 2023 Intel Corporation.
+ * All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sub license, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portions
+ * of the Software.
+ *
+ */
+/* Algorithm:
+ *
+ * We store the last allocated bo in "hole", we always try to allocate
+ * after the last allocated bo. Principle is that in a linear GPU ring
+ * progression was is after last is the oldest bo we allocated and thus
+ * the first one that should no longer be in use by the GPU.
+ *
+ * If it's not the case we skip over the bo after last to the closest
+ * done bo if such one exist. If none exist and we are not asked to
+ * block we report failure to allocate.
+ *
+ * If we are asked to block we wait on all the oldest fence of all
+ * rings. We just wait for any of those fence to complete.
  */
 
 #include <drm/drm_suballoc.h>
+#include <drm/drm_print.h>
+#include <linux/slab.h>
+#include <linux/sched.h>
+#include <linux/wait.h>
+#include <linux/dma-fence.h>
 
-/**
- * DOC:
- * This suballocator intends to be a wrapper around a range allocator
- * that is aware also of deferred range freeing with fences. Currently
- * we hard-code the drm_mm as the range allocator.
- * The approach, while rather simple, suffers from three performance
- * issues that can all be fixed if needed at the tradeoff of more and / or
- * more complex code:
- *
- * 1) It's cpu-hungry, the drm_mm allocator is overkill. Either code a
- * much simpler range allocator, or let the caller decide by providing
- * ops that wrap any range allocator. Also could avoid waking up unless
- * there is a reasonable chance of enough space in the range manager.
- *
- * 2) We unnecessarily install the fence callbacks too early, forcing
- * enable_signaling() too early causing extra driver effort. This is likely
- * not an issue if used with the drm_scheduler since it calls
- * enable_signaling() early anyway.
- *
- * 3) Long processing in irq (disabled) context. We've mostly worked around
- * that already by using the idle_list. If that workaround is deemed to
- * complex for little gain, we can remove it and use spin_lock_irq()
- * throughout the manager. If we want to shorten processing in irq context
- * even further, we can skip the spin_trylock in __drm_suballoc_free() and
- * avoid freeing allocations from irq context altogeher. However drm_mm
- * should be quite fast at freeing ranges.
- *
- * 4) Shrinker that starts processing the list items in 2) and 3) to play
- * better with the system.
- */
-
-static void drm_suballoc_process_idle(struct drm_suballoc_manager *sa_manager);
+static void drm_suballoc_remove_locked(struct drm_suballoc *sa);
+static void drm_suballoc_try_free(struct drm_suballoc_manager *sa_manager);
 
 /**
  * drm_suballoc_manager_init() - Initialise the drm_suballoc_manager
@@ -47,16 +59,26 @@ static void drm_suballoc_process_idle(struct drm_suballoc_manager *sa_manager);
  * Prepares the suballocation manager for suballocations.
  */
 void drm_suballoc_manager_init(struct drm_suballoc_manager *sa_manager,
-			       u64 size, u64 align)
+			       size_t size, size_t align)
 {
-	spin_lock_init(&sa_manager->lock);
-	spin_lock_init(&sa_manager->idle_list_lock);
-	mutex_init(&sa_manager->alloc_mutex);
-	drm_mm_init(&sa_manager->mm, 0, size);
+	unsigned int i;
+
+	BUILD_BUG_ON(!is_power_of_2(DRM_SUBALLOC_MAX_QUEUES));
+
+	if (!align)
+		align = 1;
+
+	/* alignment must be a power of 2 */
+	if (WARN_ON_ONCE(align & (align - 1)))
+		align = roundup_pow_of_two(align);
+
 	init_waitqueue_head(&sa_manager->wq);
-	sa_manager->range_size = size;
-	sa_manager->alignment = align;
-	INIT_LIST_HEAD(&sa_manager->idle_list);
+	sa_manager->size = size;
+	sa_manager->align = align;
+	sa_manager->hole = &sa_manager->olist;
+	INIT_LIST_HEAD(&sa_manager->olist);
+	for (i = 0; i < DRM_SUBALLOC_MAX_QUEUES; ++i)
+		INIT_LIST_HEAD(&sa_manager->flist[i]);
 }
 EXPORT_SYMBOL(drm_suballoc_manager_init);
 
@@ -70,232 +92,366 @@ EXPORT_SYMBOL(drm_suballoc_manager_init);
  */
 void drm_suballoc_manager_fini(struct drm_suballoc_manager *sa_manager)
 {
-	drm_suballoc_process_idle(sa_manager);
-	drm_mm_takedown(&sa_manager->mm);
-	mutex_destroy(&sa_manager->alloc_mutex);
+	struct drm_suballoc *sa, *tmp;
+
+	if (!sa_manager->size)
+		return;
+
+	if (!list_empty(&sa_manager->olist)) {
+		sa_manager->hole = &sa_manager->olist;
+		drm_suballoc_try_free(sa_manager);
+		if (!list_empty(&sa_manager->olist))
+			DRM_ERROR("sa_manager is not empty, clearing anyway\n");
+	}
+	list_for_each_entry_safe(sa, tmp, &sa_manager->olist, olist) {
+		drm_suballoc_remove_locked(sa);
+	}
+
+	sa_manager->size = 0;
 }
 EXPORT_SYMBOL(drm_suballoc_manager_fini);
 
-static void __drm_suballoc_free(struct drm_suballoc *sa)
+static void drm_suballoc_remove_locked(struct drm_suballoc *sa)
 {
 	struct drm_suballoc_manager *sa_manager = sa->manager;
-	struct dma_fence *fence;
 
-	/*
-	 * In order to avoid protecting the potentially lengthy drm_mm manager
-	 * *allocation* processing with an irq-disabling lock,
-	 * defer touching the drm_mm for freeing until we're in task context,
-	 * with no irqs disabled, or happen to succeed in taking the manager
-	 * lock.
-	 */
-	if (!in_task() || irqs_disabled()) {
-		unsigned long irqflags;
+	if (sa_manager->hole == &sa->olist)
+		sa_manager->hole = sa->olist.prev;
 
-		if (spin_trylock(&sa_manager->lock))
-			goto locked;
-
-		spin_lock_irqsave(&sa_manager->idle_list_lock, irqflags);
-		list_add_tail(&sa->idle_link, &sa_manager->idle_list);
-		spin_unlock_irqrestore(&sa_manager->idle_list_lock, irqflags);
-		wake_up(&sa_manager->wq);
-		return;
-	}
-
-	spin_lock(&sa_manager->lock);
-locked:
-	drm_mm_remove_node(&sa->node);
-
-	fence = sa->fence;
-	sa->fence = NULL;
-	spin_unlock(&sa_manager->lock);
-	/* Maybe only wake if first mm hole is sufficiently large? */
-	wake_up(&sa_manager->wq);
-	dma_fence_put(fence);
+	list_del_init(&sa->olist);
+	list_del_init(&sa->flist);
+	dma_fence_put(sa->fence);
 	kfree(sa);
 }
 
-/* Free all deferred idle allocations */
-static void drm_suballoc_process_idle(struct drm_suballoc_manager *sa_manager)
+static void drm_suballoc_try_free(struct drm_suballoc_manager *sa_manager)
 {
-	/*
-	 * prepare_to_wait() / wake_up() semantics ensure that any list
-	 * addition that was done before wake_up() is visible when
-	 * this code is called from the wait loop.
-	 */
-	if (!list_empty_careful(&sa_manager->idle_list)) {
-		struct drm_suballoc *sa, *next;
-		unsigned long irqflags;
-		LIST_HEAD(list);
+	struct drm_suballoc *sa, *tmp;
 
-		spin_lock_irqsave(&sa_manager->idle_list_lock, irqflags);
-		list_splice_init(&sa_manager->idle_list, &list);
-		spin_unlock_irqrestore(&sa_manager->idle_list_lock, irqflags);
+	if (sa_manager->hole->next == &sa_manager->olist)
+		return;
 
-		list_for_each_entry_safe(sa, next, &list, idle_link)
-			__drm_suballoc_free(sa);
+	sa = list_entry(sa_manager->hole->next, struct drm_suballoc, olist);
+	list_for_each_entry_safe_from(sa, tmp, &sa_manager->olist, olist) {
+		if (!sa->fence || !dma_fence_is_signaled(sa->fence))
+			return;
+
+		drm_suballoc_remove_locked(sa);
 	}
 }
 
-static void
-drm_suballoc_fence_signaled(struct dma_fence *fence, struct dma_fence_cb *cb)
+static size_t drm_suballoc_hole_soffset(struct drm_suballoc_manager *sa_manager)
 {
-	struct drm_suballoc *sa = container_of(cb, typeof(*sa), cb);
+	struct list_head *hole = sa_manager->hole;
 
-	__drm_suballoc_free(sa);
+	if (hole != &sa_manager->olist)
+		return list_entry(hole, struct drm_suballoc, olist)->eoffset;
+
+	return 0;
 }
 
-static int drm_suballoc_tryalloc(struct drm_suballoc *sa, u64 size)
+static size_t drm_suballoc_hole_eoffset(struct drm_suballoc_manager *sa_manager)
 {
-	struct drm_suballoc_manager *sa_manager = sa->manager;
-	int err;
+	struct list_head *hole = sa_manager->hole;
 
-	drm_suballoc_process_idle(sa_manager);
-	spin_lock(&sa_manager->lock);
-	err = drm_mm_insert_node_generic(&sa_manager->mm, &sa->node, size,
-					 sa_manager->alignment, 0,
-					 DRM_MM_INSERT_EVICT);
-	spin_unlock(&sa_manager->lock);
-	return err;
+	if (hole->next != &sa_manager->olist)
+		return list_entry(hole->next, struct drm_suballoc, olist)->soffset;
+	return sa_manager->size;
+}
+
+static bool drm_suballoc_try_alloc(struct drm_suballoc_manager *sa_manager,
+				   struct drm_suballoc *sa,
+				   size_t size, size_t align)
+{
+	size_t soffset, eoffset, wasted;
+
+	soffset = drm_suballoc_hole_soffset(sa_manager);
+	eoffset = drm_suballoc_hole_eoffset(sa_manager);
+	wasted = round_up(soffset, align) - soffset;
+
+	if ((eoffset - soffset) >= (size + wasted)) {
+		soffset += wasted;
+
+		sa->manager = sa_manager;
+		sa->soffset = soffset;
+		sa->eoffset = soffset + size;
+		list_add(&sa->olist, sa_manager->hole);
+		INIT_LIST_HEAD(&sa->flist);
+		sa_manager->hole = &sa->olist;
+		return true;
+	}
+	return false;
+}
+
+static bool __drm_suballoc_event(struct drm_suballoc_manager *sa_manager,
+				 size_t size, size_t align)
+{
+	size_t soffset, eoffset, wasted;
+	unsigned int i;
+
+	for (i = 0; i < DRM_SUBALLOC_MAX_QUEUES; ++i)
+		if (!list_empty(&sa_manager->flist[i]))
+			return true;
+
+	soffset = drm_suballoc_hole_soffset(sa_manager);
+	eoffset = drm_suballoc_hole_eoffset(sa_manager);
+	wasted = round_up(soffset, align) - soffset;
+
+	return ((eoffset - soffset) >= (size + wasted));
+}
+
+/**
+ * drm_suballoc_event() - Check if we can stop waiting
+ * @sa_manager: pointer to the sa_manager
+ * @size: number of bytes we want to allocate
+ * @align: alignment we need to match
+ *
+ * Return: true if either there is a fence we can wait for or
+ * enough free memory to satisfy the allocation directly.
+ * false otherwise.
+ */
+static bool drm_suballoc_event(struct drm_suballoc_manager *sa_manager,
+			       size_t size, size_t align)
+{
+	bool ret;
+
+	spin_lock(&sa_manager->wq.lock);
+	ret = __drm_suballoc_event(sa_manager, size, align);
+	spin_unlock(&sa_manager->wq.lock);
+	return ret;
+}
+
+static bool drm_suballoc_next_hole(struct drm_suballoc_manager *sa_manager,
+				   struct dma_fence **fences,
+				   unsigned int *tries)
+{
+	struct drm_suballoc *best_bo = NULL;
+	unsigned int i, best_idx;
+	size_t soffset, best, tmp;
+
+	/* if hole points to the end of the buffer */
+	if (sa_manager->hole->next == &sa_manager->olist) {
+		/* try again with its beginning */
+		sa_manager->hole = &sa_manager->olist;
+		return true;
+	}
+
+	soffset = drm_suballoc_hole_soffset(sa_manager);
+	/* to handle wrap around we add sa_manager->size */
+	best = sa_manager->size * 2;
+	/* go over all fence list and try to find the closest sa
+	 * of the current last
+	 */
+	for (i = 0; i < DRM_SUBALLOC_MAX_QUEUES; ++i) {
+		struct drm_suballoc *sa;
+
+		fences[i] = NULL;
+
+		if (list_empty(&sa_manager->flist[i]))
+			continue;
+
+		sa = list_first_entry(&sa_manager->flist[i],
+				      struct drm_suballoc, flist);
+
+		if (!dma_fence_is_signaled(sa->fence)) {
+			fences[i] = sa->fence;
+			continue;
+		}
+
+		/* limit the number of tries each freelist gets */
+		if (tries[i] > 2)
+			continue;
+
+		tmp = sa->soffset;
+		if (tmp < soffset) {
+			/* wrap around, pretend it's after */
+			tmp += sa_manager->size;
+		}
+		tmp -= soffset;
+		if (tmp < best) {
+			/* this sa bo is the closest one */
+			best = tmp;
+			best_idx = i;
+			best_bo = sa;
+		}
+	}
+
+	if (best_bo) {
+		++tries[best_idx];
+		sa_manager->hole = best_bo->olist.prev;
+
+		/*
+		 * We know that this one is signaled,
+		 * so it's safe to remove it.
+		 */
+		drm_suballoc_remove_locked(best_bo);
+		return true;
+	}
+	return false;
 }
 
 /**
  * drm_suballoc_new() - Make a suballocation.
  * @sa_manager: pointer to the sa_manager
  * @size: number of bytes we want to suballocate.
- * @gfp: Allocation context.
- * @intr: Whether to sleep interruptibly if sleeping.
+ * @gfp: gfp flags used for memory allocation. Typically GFP_KERNEL but
+ *       the argument is provided for suballocations from reclaim context or
+ *       where the caller wants to avoid pipelining rather than wait for
+ *       reclaim.
+ * @intr: Whether to perform waits interruptible. This should typically
+ *        always be true, unless the caller needs to propagate a
+ *        non-interruptible context from above layers.
+ * @align: Alignment. Must not exceed the default manager alignment.
+ *         If @align is zero, then the manager alignment is used.
  *
  * Try to make a suballocation of size @size, which will be rounded
  * up to the alignment specified in specified in drm_suballoc_manager_init().
  *
- * Returns a new suballocated bo, or an ERR_PTR.
+ * Return: a new suballocated bo, or an ERR_PTR.
  */
-struct drm_suballoc*
-drm_suballoc_new(struct drm_suballoc_manager *sa_manager, u64 size,
-		 gfp_t gfp, bool intr)
+struct drm_suballoc *
+drm_suballoc_new(struct drm_suballoc_manager *sa_manager, size_t size,
+		 gfp_t gfp, bool intr, size_t align)
 {
+	struct dma_fence *fences[DRM_SUBALLOC_MAX_QUEUES];
+	unsigned int tries[DRM_SUBALLOC_MAX_QUEUES];
+	unsigned int count;
+	int i, r;
 	struct drm_suballoc *sa;
-	DEFINE_WAIT(wait);
-	int err = 0;
 
-	if (size > sa_manager->range_size)
-		return ERR_PTR(-ENOSPC);
+	if (WARN_ON_ONCE(align > sa_manager->align))
+		return ERR_PTR(-EINVAL);
+	if (WARN_ON_ONCE(size > sa_manager->size || !size))
+		return ERR_PTR(-EINVAL);
 
-	sa = kzalloc(sizeof(*sa), gfp);
+	if (!align)
+		align = sa_manager->align;
+
+	sa = kmalloc(sizeof(*sa), gfp);
 	if (!sa)
 		return ERR_PTR(-ENOMEM);
-
-	/* Avoid starvation using the alloc_mutex */
-	if (intr)
-		err = mutex_lock_interruptible(&sa_manager->alloc_mutex);
-	else
-		mutex_lock(&sa_manager->alloc_mutex);
-	if (err) {
-		kfree(sa);
-		return ERR_PTR(err);
-	}
-
 	sa->manager = sa_manager;
-	err = drm_suballoc_tryalloc(sa, size);
-	if (err != -ENOSPC)
-		goto out;
+	sa->fence = NULL;
+	INIT_LIST_HEAD(&sa->olist);
+	INIT_LIST_HEAD(&sa->flist);
 
-	for (;;) {
-		prepare_to_wait(&sa_manager->wq, &wait,
-				intr ? TASK_INTERRUPTIBLE :
-				TASK_UNINTERRUPTIBLE);
+	spin_lock(&sa_manager->wq.lock);
+	do {
+		for (i = 0; i < DRM_SUBALLOC_MAX_QUEUES; ++i)
+			tries[i] = 0;
 
-		err = drm_suballoc_tryalloc(sa, size);
-		if (err != -ENOSPC)
-			break;
+		do {
+			drm_suballoc_try_free(sa_manager);
 
-		if (intr && signal_pending(current)) {
-			err = -ERESTARTSYS;
-			break;
+			if (drm_suballoc_try_alloc(sa_manager, sa,
+						   size, align)) {
+				spin_unlock(&sa_manager->wq.lock);
+				return sa;
+			}
+
+			/* see if we can skip over some allocations */
+		} while (drm_suballoc_next_hole(sa_manager, fences, tries));
+
+		for (i = 0, count = 0; i < DRM_SUBALLOC_MAX_QUEUES; ++i)
+			if (fences[i])
+				fences[count++] = dma_fence_get(fences[i]);
+
+		if (count) {
+			long t;
+
+			spin_unlock(&sa_manager->wq.lock);
+			t = dma_fence_wait_any_timeout(fences, count, intr,
+						       MAX_SCHEDULE_TIMEOUT,
+						       NULL);
+			for (i = 0; i < count; ++i)
+				dma_fence_put(fences[i]);
+
+			r = (t > 0) ? 0 : t;
+			spin_lock(&sa_manager->wq.lock);
+		} else if (intr) {
+			/* if we have nothing to wait for block */
+			r = wait_event_interruptible_locked
+				(sa_manager->wq,
+				 __drm_suballoc_event(sa_manager, size, align));
+		} else {
+			spin_unlock(&sa_manager->wq.lock);
+			wait_event(sa_manager->wq,
+				   drm_suballoc_event(sa_manager, size, align));
+			r = 0;
+			spin_lock(&sa_manager->wq.lock);
 		}
+	} while (!r);
 
-		io_schedule();
-	}
-	finish_wait(&sa_manager->wq, &wait);
-
-out:
-	mutex_unlock(&sa_manager->alloc_mutex);
-	if (!sa->node.size) {
-		kfree(sa);
-		WARN_ON(!err);
-		sa = ERR_PTR(err);
-	}
-
-	return sa;
+	spin_unlock(&sa_manager->wq.lock);
+	kfree(sa);
+	return ERR_PTR(r);
 }
 EXPORT_SYMBOL(drm_suballoc_new);
 
 /**
- * drm_suballoc_free() - Free a suballocation
+ * drm_suballoc_free - Free a suballocation
  * @suballoc: pointer to the suballocation
  * @fence: fence that signals when suballocation is idle
- * @queue: the index to which queue the suballocation will be placed on the free list.
  *
- * Free the suballocation. The suballocation can be re-used after @fence
- * signals.
+ * Free the suballocation. The suballocation can be re-used after @fence signals.
  */
-void
-drm_suballoc_free(struct drm_suballoc *sa, struct dma_fence *fence)
+void drm_suballoc_free(struct drm_suballoc *suballoc,
+		       struct dma_fence *fence)
 {
-	if (!sa)
+	struct drm_suballoc_manager *sa_manager;
+
+	if (!suballoc)
 		return;
 
-	if (!fence || dma_fence_is_signaled(fence)) {
-		__drm_suballoc_free(sa);
-		return;
+	sa_manager = suballoc->manager;
+
+	spin_lock(&sa_manager->wq.lock);
+	if (fence && !dma_fence_is_signaled(fence)) {
+		u32 idx;
+
+		suballoc->fence = dma_fence_get(fence);
+		idx = fence->context & (DRM_SUBALLOC_MAX_QUEUES - 1);
+		list_add_tail(&suballoc->flist, &sa_manager->flist[idx]);
+	} else {
+		drm_suballoc_remove_locked(suballoc);
 	}
-
-	sa->fence = dma_fence_get(fence);
-	if (dma_fence_add_callback(fence, &sa->cb, drm_suballoc_fence_signaled))
-		__drm_suballoc_free(sa);
+	wake_up_all_locked(&sa_manager->wq);
+	spin_unlock(&sa_manager->wq.lock);
 }
 EXPORT_SYMBOL(drm_suballoc_free);
 
 #ifdef CONFIG_DEBUG_FS
-
-/**
- * drm_suballoc_dump_debug_info() - Dump the suballocator state
- * @sa_manager: The suballoc manager.
- * @p: Pointer to a drm printer for output.
- * @suballoc_base: Constant to add to the suballocated offsets on printout.
- *
- * This function dumps the suballocator state. Note that the caller has
- * to explicitly order frees and calls to this function in order for the
- * freed node to show up as protected by a fence.
- */
 void drm_suballoc_dump_debug_info(struct drm_suballoc_manager *sa_manager,
-				  struct drm_printer *p, u64 suballoc_base)
+				  struct drm_printer *p,
+				  unsigned long long suballoc_base)
 {
-	const struct drm_mm_node *entry;
+	struct drm_suballoc *i;
 
-	spin_lock(&sa_manager->lock);
-	drm_mm_for_each_node(entry, &sa_manager->mm) {
-		struct drm_suballoc *sa =
-			container_of(entry, typeof(*sa), node);
+	spin_lock(&sa_manager->wq.lock);
+	list_for_each_entry(i, &sa_manager->olist, olist) {
+		unsigned long long soffset = i->soffset;
+		unsigned long long eoffset = i->eoffset;
 
-		drm_printf(p, " ");
+		if (&i->olist == sa_manager->hole)
+			drm_puts(p, ">");
+		else
+			drm_puts(p, " ");
+
 		drm_printf(p, "[0x%010llx 0x%010llx] size %8lld",
-			   (unsigned long long)suballoc_base + entry->start,
-			   (unsigned long long)suballoc_base + entry->start +
-			   entry->size, (unsigned long long)entry->size);
+			   suballoc_base + soffset, suballoc_base + eoffset,
+			   eoffset - soffset);
 
-		if (sa->fence)
+		if (i->fence)
 			drm_printf(p, " protected by 0x%016llx on context %llu",
-				   (unsigned long long)sa->fence->seqno,
-				   (unsigned long long)sa->fence->context);
+				   (unsigned long long)i->fence->seqno,
+				   (unsigned long long)i->fence->context);
 
-		drm_printf(p, "\n");
+		drm_puts(p, "\n");
 	}
-	spin_unlock(&sa_manager->lock);
+	spin_unlock(&sa_manager->wq.lock);
 }
 EXPORT_SYMBOL(drm_suballoc_dump_debug_info);
 #endif
-
-MODULE_AUTHOR("Intel Corporation");
-MODULE_DESCRIPTION("Simple range suballocator helper");
-MODULE_LICENSE("GPL and additional rights");
+MODULE_AUTHOR("Multiple");
+MODULE_DESCRIPTION("Range suballocator helper");
+MODULE_LICENSE("Dual MIT/GPL");

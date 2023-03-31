@@ -75,7 +75,7 @@ int xe_sa_bo_manager_init(struct xe_gt *gt,
 struct drm_suballoc *xe_sa_bo_new(struct xe_sa_manager *sa_manager,
 				  unsigned size)
 {
-	return drm_suballoc_new(&sa_manager->base, size, GFP_KERNEL, true);
+	return drm_suballoc_new(&sa_manager->base, size, GFP_KERNEL, true, 0);
 }
 
 void xe_sa_bo_flush_write(struct drm_suballoc *sa_bo)

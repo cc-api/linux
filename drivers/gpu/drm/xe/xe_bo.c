@@ -79,6 +79,19 @@ mem_type_to_gt(struct xe_device *xe, u32 mem_type)
 	return xe_device_get_gt(xe, mem_type == XE_PL_STOLEN ? 0 : (mem_type - XE_PL_VRAM0));
 }
 
+/**
+ * xe_bo_to_gt() - Get a GT from a BO's memory location
+ * @bo: The buffer object
+ *
+ * Get a GT from a BO's memory location, should be called on BOs in VRAM only.
+ *
+ * Return: xe_gt object which is closest to the BO
+ */
+struct xe_gt *xe_bo_to_gt(struct xe_bo *bo)
+{
+	return mem_type_to_gt(xe_bo_device(bo), bo->ttm.resource->mem_type);
+}
+
 static void try_add_system(struct xe_bo *bo, struct ttm_place *places,
 			   u32 bo_flags, u32 *c)
 {
@@ -93,55 +106,42 @@ static void try_add_system(struct xe_bo *bo, struct ttm_place *places,
 	}
 }
 
-static void try_add_vram0(struct xe_device *xe, struct xe_bo *bo,
-			  struct ttm_place *places, u32 bo_flags, u32 *c)
+static void add_vram(struct xe_device *xe, struct xe_bo *bo,
+		     struct ttm_place *places, u32 bo_flags, u32 mem_type, u32 *c)
 {
-	struct xe_gt *gt;
+	struct xe_gt *gt = mem_type_to_gt(xe, mem_type);
 
-	if (bo_flags & XE_BO_CREATE_VRAM0_BIT) {
-		gt = mem_type_to_gt(xe, XE_PL_VRAM0);
-		XE_BUG_ON(!gt->mem.vram.size);
+	XE_BUG_ON(!gt->mem.vram.size);
 
-		places[*c] = (struct ttm_place) {
-			.mem_type = XE_PL_VRAM0,
-			/*
-			 * For eviction / restore on suspend / resume objects
-			 * pinned in VRAM must be contiguous
-			 */
-			.flags = bo_flags & (XE_BO_CREATE_PINNED_BIT |
-					     XE_BO_CREATE_GGTT_BIT) ?
-				TTM_PL_FLAG_CONTIGUOUS : 0,
-		};
-		*c += 1;
+	places[*c] = (struct ttm_place) {
+		.mem_type = mem_type,
+		/*
+		 * For eviction / restore on suspend / resume objects
+		 * pinned in VRAM must be contiguous
+		 */
+		.flags = bo_flags & (XE_BO_CREATE_PINNED_BIT |
+				     XE_BO_CREATE_GGTT_BIT) ?
+			TTM_PL_FLAG_CONTIGUOUS : 0,
+	};
+	*c += 1;
 
-		if (bo->props.preferred_mem_type == XE_BO_PROPS_INVALID)
-			bo->props.preferred_mem_type = XE_PL_VRAM0;
-	}
+	if (bo->props.preferred_mem_type == XE_BO_PROPS_INVALID)
+		bo->props.preferred_mem_type = mem_type;
 }
 
-static void try_add_vram1(struct xe_device *xe, struct xe_bo *bo,
-			  struct ttm_place *places, u32 bo_flags, u32 *c)
+static void try_add_vram(struct xe_device *xe, struct xe_bo *bo,
+			 struct ttm_place *places, u32 bo_flags, u32 *c)
 {
-	struct xe_gt *gt;
-
-	if (bo_flags & XE_BO_CREATE_VRAM1_BIT) {
-		gt = mem_type_to_gt(xe, XE_PL_VRAM1);
-		XE_BUG_ON(!gt->mem.vram.size);
-
-		places[*c] = (struct ttm_place) {
-			.mem_type = XE_PL_VRAM1,
-			/*
-			 * For eviction / restore on suspend / resume objects
-			 * pinned in VRAM must be contiguous
-			 */
-			.flags = bo_flags & (XE_BO_CREATE_PINNED_BIT |
-					     XE_BO_CREATE_GGTT_BIT) ?
-				TTM_PL_FLAG_CONTIGUOUS : 0,
-		};
-		*c += 1;
-
-		if (bo->props.preferred_mem_type == XE_BO_PROPS_INVALID)
-			bo->props.preferred_mem_type = XE_PL_VRAM1;
+	if (bo->props.preferred_gt == XE_GT1) {
+		if (bo_flags & XE_BO_CREATE_VRAM1_BIT)
+			add_vram(xe, bo, places, bo_flags, XE_PL_VRAM1, c);
+		if (bo_flags & XE_BO_CREATE_VRAM0_BIT)
+			add_vram(xe, bo, places, bo_flags, XE_PL_VRAM0, c);
+	} else {
+		if (bo_flags & XE_BO_CREATE_VRAM0_BIT)
+			add_vram(xe, bo, places, bo_flags, XE_PL_VRAM0, c);
+		if (bo_flags & XE_BO_CREATE_VRAM1_BIT)
+			add_vram(xe, bo, places, bo_flags, XE_PL_VRAM1, c);
 	}
 }
 
@@ -171,20 +171,9 @@ static int __xe_bo_placement_for_flags(struct xe_device *xe, struct xe_bo *bo,
 
 	if (bo->props.preferred_mem_class == XE_MEM_REGION_CLASS_SYSMEM) {
 		try_add_system(bo, places, bo_flags, &c);
-		if (bo->props.preferred_gt == XE_GT1) {
-			try_add_vram1(xe, bo, places, bo_flags, &c);
-			try_add_vram0(xe, bo, places, bo_flags, &c);
-		} else {
-			try_add_vram0(xe, bo, places, bo_flags, &c);
-			try_add_vram1(xe, bo, places, bo_flags, &c);
-		}
-	} else if (bo->props.preferred_gt == XE_GT1) {
-		try_add_vram1(xe, bo, places, bo_flags, &c);
-		try_add_vram0(xe, bo, places, bo_flags, &c);
-		try_add_system(bo, places, bo_flags, &c);
+		try_add_vram(xe, bo, places, bo_flags, &c);
 	} else {
-		try_add_vram0(xe, bo, places, bo_flags, &c);
-		try_add_vram1(xe, bo, places, bo_flags, &c);
+		try_add_vram(xe, bo, places, bo_flags, &c);
 		try_add_system(bo, places, bo_flags, &c);
 	}
 	try_add_stolen(xe, bo, places, bo_flags, &c);
@@ -672,6 +661,12 @@ static int xe_bo_move(struct ttm_buffer_object *ttm_bo, bool evict,
 				void *new_addr = gt->mem.vram.mapping +
 					(new_mem->start << PAGE_SHIFT);
 
+				if (XE_WARN_ON(new_mem->start == XE_BO_INVALID_OFFSET)) {
+					ret = -EINVAL;
+					xe_device_mem_access_put(xe);
+					goto out;
+				}
+
 				XE_BUG_ON(new_mem->start !=
 					  bo->placements->fpfn);
 
@@ -680,7 +675,7 @@ static int xe_bo_move(struct ttm_buffer_object *ttm_bo, bool evict,
 		}
 	} else {
 		if (move_lacks_source)
-			fence = xe_migrate_clear(gt->migrate, bo, new_mem, 0);
+			fence = xe_migrate_clear(gt->migrate, bo, new_mem);
 		else
 			fence = xe_migrate_copy(gt->migrate, bo, old_mem, new_mem);
 		if (IS_ERR(fence)) {
@@ -981,8 +976,7 @@ struct xe_bo *__xe_bo_create_locked(struct xe_device *xe, struct xe_bo *bo,
 	}
 
 	bo->requested_size = size;
-	if (flags & (XE_BO_CREATE_VRAM0_BIT | XE_BO_CREATE_VRAM1_BIT |
-		     XE_BO_CREATE_STOLEN_BIT) &&
+	if (flags & (XE_BO_CREATE_VRAM_MASK | XE_BO_CREATE_STOLEN_BIT) &&
 	    !(flags & XE_BO_CREATE_IGNORE_MIN_PAGE_SIZE_BIT) &&
 	    xe->info.vram_flags & XE_VRAM_FLAGS_NEED64K) {
 		size = ALIGN(size, SZ_64K);
@@ -1046,8 +1040,7 @@ static int __xe_bo_fixed_placement(struct xe_device *xe,
 	place->fpfn = start >> PAGE_SHIFT;
 	place->lpfn = end >> PAGE_SHIFT;
 
-	switch (flags & (XE_BO_CREATE_STOLEN_BIT |
-		XE_BO_CREATE_VRAM0_BIT |XE_BO_CREATE_VRAM1_BIT)) {
+	switch (flags & (XE_BO_CREATE_STOLEN_BIT | XE_BO_CREATE_VRAM_MASK)) {
 	case XE_BO_CREATE_VRAM0_BIT:
 		place->mem_type = XE_PL_VRAM0;
 		break;
@@ -1753,7 +1746,7 @@ bool xe_bo_needs_ccs_pages(struct xe_bo *bo)
 {
 	return bo->ttm.type == ttm_bo_type_device &&
 		!(bo->flags & XE_BO_CREATE_SYSTEM_BIT) &&
-		(bo->flags & (XE_BO_CREATE_VRAM0_BIT | XE_BO_CREATE_VRAM1_BIT));
+		(bo->flags & XE_BO_CREATE_VRAM_MASK);
 }
 
 /**
