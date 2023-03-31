@@ -4008,7 +4008,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "svos-next-tdx-pull-6.2",
+            "branch": "svos-next-tdx-pull-6.3",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -4026,27 +4026,27 @@
                     "email": "rodolfo.gomez.zurita@intel.com"
                 }
             ],
-            "description": "SVOS TDX Modifications for v6.1",
-            "enabled": false,
+            "description": "SVOS TDX Modifications for v6.3",
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Sergio Perez Gonzalez",
                     "email": "sergio.perez.gonzalez@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3340",
             "name": "svos_tdx",
             "repourl": "https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next.git",
             "sdl_contact": [
                 {
-                    "name": "Sergio Perez Gonzalez",
-                    "email": "sergio.perez.gonzalez@intel.com"
+                    "name": "Rodolfo Gomez Zurita",
+                    "email": "rodolfo.gomez.zurita@intel.com"
                 }
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2",
-            "maillist": "",
+            "last_enabled": "v6.3",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00129.html",
             "platforms": "",
             "feature_jiras": ""
         },
