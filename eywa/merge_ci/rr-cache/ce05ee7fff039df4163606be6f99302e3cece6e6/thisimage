@@ -2383,6 +2383,21 @@ int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		else
 			msr_info->data = to_vmx(vcpu)->guest_spec_ctrl;
 		break;
+	case MSR_KVM_SPEC_CTRL_SHADOW:
+		if (!guest_has_spec_ctrl_msr(vcpu))
+			return 1;
+
+		if (cpu_has_virt_spec_ctrl())
+			msr_info->data = vmcs_read64(IA32_SPEC_CTRL_SHADOW);
+		else
+			msr_info->data = vmx->guest_spec_ctrl;
+		break;
+	case MSR_KVM_SPEC_CTRL_EFFECTIVE:
+		if (!guest_has_spec_ctrl_msr(vcpu))
+			return 1;
+
+		msr_info->data = to_vmx(vcpu)->spec_ctrl;
+		break;
 	case MSR_IA32_SYSENTER_CS:
 		msr_info->data = vmcs_read32(GUEST_SYSENTER_CS);
 		break;

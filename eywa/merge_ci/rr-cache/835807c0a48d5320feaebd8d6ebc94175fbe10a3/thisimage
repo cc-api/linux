@@ -32,6 +32,7 @@
 #include <linux/cpu.h>
 #include <linux/uio.h>
 #include <linux/mm.h>
+#include <linux/bitops.h>
 
 #include <asm/microcode_intel.h>
 #include <asm/intel-family.h>
@@ -131,6 +132,7 @@ union svn_commit {
  * @mboxes    : Array of per package staging mailbox instances
  * @work      : Work to stage microcode
  * @scheduled : Whether the work to stage microcode is scheduled
+ * @creating  : Whether the mailbox instance is being created
  * @result    : Result of microcode staging by @work
  * @mbox_num  : Number of staging mailbox instances
  */
@@ -139,6 +141,7 @@ struct mcu_staging {
 		struct uc_doe_mbox *mbox;
 		struct work_struct work;
 		bool scheduled;
+		unsigned long creating;
 		enum ucode_state result;
 	} *mboxes;
 	int mbox_num;
@@ -1029,18 +1032,25 @@ static void collect_staging_mailbox(int cpu)
 		return;
 
 	i = topology_physical_package_id(cpu);
-	if (mcu_staging.mboxes[i].mbox)
+
+	/* Avoid multiple mailbox instances per package */
+	if (test_and_set_bit(0, &mcu_staging.mboxes[i].creating))
 		return;
+
+	if (mcu_staging.mboxes[i].mbox)
+		goto out;
 
 	rdmsrl(MSR_MCU_MBOX_ADDR, mbox_addr);
 	if (!mbox_addr)
-		return;
+		goto out;
 
 	mbox = uc_doe_create_mbox(mbox_addr);
 	if (!mbox)
-		return;
+		goto out;
 
 	mcu_staging.mboxes[i].mbox = mbox;
+out:
+	clear_bit(0, &mcu_staging.mboxes[i].creating);
 }
 
 static int collect_cpu_info(int cpu_num, struct cpu_signature *csig)

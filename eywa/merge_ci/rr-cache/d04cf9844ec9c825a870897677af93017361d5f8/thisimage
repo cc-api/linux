@@ -597,6 +597,7 @@ wait_for_siblings:
 	if (cpumask_first(topology_sibling_cpumask(cpu)) != cpu) {
 		uci = ucode_cpu_info + cpu;
 		microcode_ops->collect_cpu_info(cpu, &uci->cpu_sig);
+		pr_debug("CPU %d invoked collect_cpu_info(CPUID + read revision)\n", cpu);
 	}
 
 	this_cpu_info = &cpu_data(cpu);
