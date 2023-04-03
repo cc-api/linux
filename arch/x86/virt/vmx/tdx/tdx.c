@@ -1951,3 +1951,67 @@ static int tdx_sysfs_init(void)
 	return ret;
 }
 #endif
+
+/* These derive from arch/x86/kvm/vmx/tdx.c */
+#include <asm/vmx.h>
+static void vmx_tdx_on(void *_vmx_tdx)
+{
+	struct vmx_tdx_enabled *vmx_tdx = _vmx_tdx;
+	int r;
+
+	r = cpu_vmxop_get();
+	if (!r) {
+		cpumask_set_cpu(smp_processor_id(), vmx_tdx->vmx_enabled);
+		r = tdx_cpu_enable();
+	}
+	if (r)
+		atomic_set(&vmx_tdx->err, r);
+}
+
+static void vmx_off(void *_vmx_enabled)
+{
+	cpumask_var_t *vmx_enabled = (cpumask_var_t *)_vmx_enabled;
+
+	if (cpumask_test_cpu(smp_processor_id(), *vmx_enabled))
+		cpu_vmxop_put();
+}
+
+int vmxon_all(struct vmx_tdx_enabled *vmx_tdx)
+{
+	int r = 0;
+
+	atomic_set(&vmx_tdx->err, 0);
+
+	if (!zalloc_cpumask_var(&vmx_tdx->vmx_enabled, GFP_KERNEL))
+		return -ENOMEM;
+
+	/* tdx_enable() in tdx_module_setup() requires cpus lock. */
+	cpus_read_lock();
+	/*
+	 * REVERTME: The current TDX module requires TDH_SYS_LP_INIT for all
+	 * LPs to initialize.  It requires all present LPs to be online.
+	 * Once the TDX module is updated to allow offline LPs, remove this
+	 * warning.
+	 */
+	if (!cpumask_equal(cpu_online_mask, cpu_present_mask))
+		pr_warn("The old TDX module requires all present CPUs to be online to initialize.\n");
+	on_each_cpu(vmx_tdx_on, vmx_tdx, true);	/* TDX requires vmxon. */
+	r = atomic_read(&vmx_tdx->err);
+	if (r) {
+		on_each_cpu(vmx_off, &vmx_tdx->vmx_enabled, true);
+		cpus_read_unlock();
+		free_cpumask_var(vmx_tdx->vmx_enabled);
+		return -EIO;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(vmxon_all);
+
+void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx)
+{
+	on_each_cpu(vmx_off, &vmx_tdx->vmx_enabled, true);
+	cpus_read_unlock();
+	free_cpumask_var(vmx_tdx->vmx_enabled);
+}
+EXPORT_SYMBOL_GPL(vmxoff_all);

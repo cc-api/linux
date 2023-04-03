@@ -5355,11 +5355,6 @@ static int tdx_write_guest_memory(struct kvm *kvm, struct kvm_rw_memory *rw_memo
 	return ret;
 }
 
-struct vmx_tdx_enabled {
-	cpumask_var_t vmx_enabled;
-	atomic_t err;
-};
-
 static void __init vmx_tdx_on(void *_vmx_tdx)
 {
 	struct vmx_tdx_enabled *vmx_tdx = _vmx_tdx;

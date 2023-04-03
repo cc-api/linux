@@ -197,6 +197,16 @@ u64 __seamcall(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9, u64 r10,
 #define DEBUGCONFIG_TRACE_CUSTOM	1000
 #define DEBUGCONFIG_TRACE_NONE		-1ULL
 void tdx_trace_seamcalls(u64 level);
+
+/* tdxio related */
+#include <linux/percpu.h>
+struct vmx_tdx_enabled {
+	cpumask_var_t vmx_enabled;
+	atomic_t err;
+};
+
+int vmxon_all(struct vmx_tdx_enabled *vmx_tdx);
+void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx);
 #else	/* !CONFIG_INTEL_TDX_HOST */
 struct tdsysinfo_struct;
 static inline const struct tdsysinfo_struct *tdx_get_sysinfo(void) { return NULL; }
@@ -214,6 +224,11 @@ static inline u64 __seamcall(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
 static inline u32 tdx_get_nr_guest_keyids(void) { return 0; }
 static inline int tdx_guest_keyid_alloc(void) { return -EOPNOTSUPP; }
 static inline void tdx_guest_keyid_free(int keyid) { }
+
+/* tdxio related */
+struct vmx_tdx_enabled;
+static inline int vmxon_all(struct vmx_tdx_enabled *vmx_tdx) { return -EOPNOTSUPP; }
+static inline void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx) {}
 #endif	/* CONFIG_INTEL_TDX_HOST */
 
 #endif /* !__ASSEMBLY__ */
