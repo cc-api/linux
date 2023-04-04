@@ -4990,30 +4990,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "cet_fixup",
-            "branch_type": "expiring",
-            "config_options": [],
-            "contributor": [
-                {
-                    "name": "Mike Bottini",
-                    "email": "michael.a.bottini@intel.com"
-                }
-            ],
-            "description": "Fix kvm_lbr_cet conflict with kvm_lam.",
-            "enabled": false,
-            "ip_owner": [],
-            "jira": "",
-            "name": "cet_fixup",
-            "repourl": "https://github.com/intel-sandbox/otc_power_kernel.git",
-            "sdl_contact": [],
-            "status": "public",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.0",
-            "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
-        },
-        {
             "branch": "rtcfix",
             "branch_type": "expiring",
             "config_options": [],
@@ -5356,7 +5332,7 @@
                 }
             ],
             "description": "KVM: Arch LBR and CET features",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Weijiang Yang",
@@ -5971,6 +5947,30 @@
                     "email": "majid.awad@intel.com"
                 }
             ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
+        },
+        {
+            "branch": "kvm_cet_fixup",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Mike Bottini",
+                    "email": "michael.a.bottini@intel.com"
+                }
+            ],
+            "description": "Provide fixup branch of arch_kvm_lbr_cet thanks to conflicts with shadow_stacks.",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3343",
+            "name": "kvm_cet_fixup",
+            "repourl": "https://github.com/intel-sandbox/otc_power_kernel.git",
+            "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
