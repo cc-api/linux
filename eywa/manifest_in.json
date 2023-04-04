@@ -4489,7 +4489,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "v6.1-rc8-ucode",
+            "branch": "araj-ucode-for-intel-next",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -4512,14 +4512,14 @@
                 }
             ],
             "description": "Ashok Raj's microcode patches",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Ashok Raj",
                     "email": "ashok.raj@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3345",
             "name": "microcode",
             "repourl": "https://github.com/intel-sandbox/microcode.git",
             "sdl_contact": [
@@ -4530,7 +4530,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.1",
+            "last_enabled": "v6.3",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
