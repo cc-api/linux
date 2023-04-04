@@ -5965,7 +5965,7 @@
                 }
             ],
             "description": "Provide fixup branch of arch_kvm_lbr_cet thanks to conflicts with shadow_stacks.",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3343",
             "name": "kvm_cet_fixup",
