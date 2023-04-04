@@ -5346,7 +5346,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "v6.2-rc4-kvm-arch-lbr-cet-rebase",
+            "branch": "v6.3-rc5-kvm-cet-rebase-4-4",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
@@ -5356,14 +5356,14 @@
                 }
             ],
             "description": "KVM: Arch LBR and CET features",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Weijiang Yang",
                     "email": "weijiang.yang@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3342",
             "name": "kvm_arch_lbr_cet",
             "repourl": "https://github.com/intel-sandbox/weijiang.linux.kvm.git",
             "sdl_contact": [
@@ -5374,8 +5374,8 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2",
-            "maillist": "",
+            "last_enabled": "v6.3",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-04/msg00002.html",
             "platforms": "",
             "feature_jiras": ""
         },
