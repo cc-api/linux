@@ -71,9 +71,6 @@
 #include "x86_ops.h"
 #include "smm.h"
 
-static int complete_userspace_rdmsrlist(struct kvm_vcpu *);
-static int complete_userspace_wrmsrlist(struct kvm_vcpu *);
-
 MODULE_AUTHOR("Qumranet");
 MODULE_LICENSE("GPL");
 
@@ -1633,7 +1630,11 @@ static void vmx_update_hfi_from_cpu(struct kvm_vcpu *vcpu, int cpu)
 		vmx_inject_hfi_interrupt(vcpu->kvm);
 }
 
+<<<<<<<
+static void vmx_update_vcpu_hfi(struct kvm_vcpu *vcpu)
+=======
 void vmx_update_vcpu_hfi(struct kvm_vcpu *vcpu)
+>>>>>>>
 {
 	struct kvm_vmx *vmx = to_kvm_vmx(vcpu->kvm);
 	if (!intel_hfi_capable())
@@ -2308,29 +2309,13 @@ static inline bool is_vmx_feature_control_msr_valid(struct vcpu_vmx *vmx,
 	return !(msr->data & ~valid_bits);
 }
 
-<<<<<<<
-#define VIRTUAL_ENUMERATION_VALID_BITS	VIRT_ENUM_MITIGATION_CTRL_SUPPORT
-#define MITI_ENUM_VALID_BITS		(MITI_ENUM_RETPOLINE_S_SUPPORT | \
-					 MITI_ENUM_BHB_CLEAR_SEQ_S_SUPPORT)
-#define MITI_CTRL_VALID_BITS		(MITI_CTRL_RETPOLINE_S_USED | \
-					 MITI_CTRL_BHB_CLEAR_SEQ_S_USED)
-
-static int vmx_get_msr_feature(struct kvm_msr_entry *msr)
-=======
 int vmx_get_msr_feature(struct kvm_msr_entry *msr)
->>>>>>>
 {
 	switch (msr->index) {
 	case MSR_IA32_VMX_BASIC ... MSR_IA32_VMX_VMFUNC:
 		if (!nested)
 			return 1;
 		return vmx_get_vmx_msr(&vmcs_config.nested, msr->index, &msr->data);
-	case MSR_VIRTUAL_ENUMERATION:
-		msr->data = VIRTUAL_ENUMERATION_VALID_BITS;
-		return 0;
-	case MSR_VIRTUAL_MITIGATION_ENUM:
-		msr->data = MITI_ENUM_VALID_BITS;
-		return 0;
 	default:
 		return KVM_MSR_RET_INVALID;
 	}
@@ -2376,24 +2361,6 @@ int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	case MSR_IA32_SPEC_CTRL:
 		if (!msr_info->host_initiated &&
 		    !guest_has_spec_ctrl_msr(vcpu))
-			return 1;
-
-		if (cpu_has_virt_spec_ctrl())
-			msr_info->data = vmcs_read64(IA32_SPEC_CTRL_SHADOW);
-		else
-			msr_info->data = to_vmx(vcpu)->guest_spec_ctrl;
-		break;
-	case MSR_KVM_SPEC_CTRL_SHADOW:
-		if (!guest_has_spec_ctrl_msr(vcpu))
-			return 1;
-
-		if (cpu_has_virt_spec_ctrl())
-			msr_info->data = vmcs_read64(IA32_SPEC_CTRL_SHADOW);
-		else
-			msr_info->data = vmx->guest_spec_ctrl;
-		break;
-	case MSR_KVM_SPEC_CTRL_EFFECTIVE:
-		if (!guest_has_spec_ctrl_msr(vcpu))
 			return 1;
 
 		msr_info->data = to_vmx(vcpu)->spec_ctrl;
@@ -2496,7 +2463,6 @@ int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	case MSR_IA32_DEBUGCTLMSR:
 		msr_info->data = vmcs_read64(GUEST_IA32_DEBUGCTL);
 		break;
-<<<<<<<
 	case MSR_IA32_THERM_CONTROL:
 		if (!msr_info->host_initiated &&
 		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
@@ -2552,25 +2518,6 @@ int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
 			return 1;
 		msr_info->data = kvm_vmx->pkg_therm.msr_ia32_hfi_ptr;
-=======
-	case MSR_VIRTUAL_ENUMERATION:
-		if (!msr_info->host_initiated &&
-		    !(vcpu->arch.arch_capabilities & ARCH_CAP_VIRTUAL_ENUM))
-			return 1;
-		msr_info->data = vmx->msr_virtual_enumeration;
-		break;
-	case MSR_VIRTUAL_MITIGATION_ENUM:
-		if (!msr_info->host_initiated &&
-		    !(vmx->msr_virtual_enumeration & VIRT_ENUM_MITIGATION_CTRL_SUPPORT))
-			return 1;
-		msr_info->data = vmx->msr_virtual_mitigation_enum;
-		break;
-	case MSR_VIRTUAL_MITIGATION_CTRL:
-		if (!msr_info->host_initiated &&
-		    !(vmx->msr_virtual_enumeration & VIRT_ENUM_MITIGATION_CTRL_SUPPORT))
-			return 1;
-		msr_info->data = vmx->msr_virtual_mitigation_ctrl;
->>>>>>>
 		break;
 	default:
 	find_uret_msr:
@@ -2610,7 +2557,6 @@ static u64 vmx_get_supported_debugctl(struct kvm_vcpu *vcpu, bool host_initiated
 	return debugctl;
 }
 
-<<<<<<<
 static int vmx_set_pkg_therm_int_msr(struct kvm_vcpu *vcpu,
 				     struct msr_data *msr_info)
 {
@@ -2786,14 +2732,6 @@ static int vmx_set_hfi_ptr_msr(struct kvm_vcpu *vcpu,
 		vmx_hfi_notifier_unregister(vcpu->kvm);
 
 	return 0;
-=======
-static u64 vmx_get_spec_ctrl_mask(struct kvm_vcpu *vcpu)
-{
-	if (cpu_has_virt_spec_ctrl())
-		return vmcs_read64(IA32_SPEC_CTRL_MASK);
-
-	return to_vmx(vcpu)->guest_spec_ctrl_mask;
->>>>>>>
 }
 
 /*
@@ -2808,7 +2746,7 @@ int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	struct vmx_uret_msr *msr;
 	int ret = 0;
 	u32 msr_index = msr_info->index;
-	u64 data = msr_info->data, arch_msr = 0, spec_ctrl_mask = 0;
+	u64 data = msr_info->data;
 	u32 index;
 
 	switch (msr_index) {
@@ -2919,30 +2857,11 @@ int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		    !guest_has_spec_ctrl_msr(vcpu))
 			return 1;
 
-		spec_ctrl_mask = vmx_get_spec_ctrl_mask(vcpu);
-		if (kvm_spec_ctrl_test_value(data | spec_ctrl_mask))
+		if (kvm_spec_ctrl_test_value(data))
 			return 1;
 
-		if (cpu_has_virt_spec_ctrl())
-			vmcs_write64(IA32_SPEC_CTRL_SHADOW, data);
-		else
-			vmx->guest_spec_ctrl = data;
-
-		/*
-		 * Update the effective value of IA32_SPEC_CTRL to
-		 * reflect changes done by this wrmsr. But keep
-		 * bits in the mask always set.
-		 */
-		vmx->spec_ctrl = data | spec_ctrl_mask;
-
+		vmx->spec_ctrl = data;
 		if (!data)
-			break;
-
-		/*
-		 * Need to prevent some bits from changing by guest without
-		 * "virtualize IA32_SPEC_CTRL". Intercept the MSR.
-		 */
-		if (!cpu_has_virt_spec_ctrl() && spec_ctrl_mask)
 			break;
 
 		/*
@@ -3137,7 +3056,6 @@ int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		}
 		ret = kvm_set_msr_common(vcpu, msr_info);
 		break;
-<<<<<<<
 	case MSR_IA32_THERM_CONTROL:
 		if (!msr_info->host_initiated &&
 		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
@@ -3254,59 +3172,6 @@ int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 
 		if (ret)
 			return ret;
-=======
-	case MSR_VIRTUAL_ENUMERATION:
-		if (!msr_info->host_initiated)
-			return 1;
-		if (data & ~VIRTUAL_ENUMERATION_VALID_BITS)
-			return 1;
-
-		vmx->msr_virtual_enumeration = data;
-		break;
-	case MSR_VIRTUAL_MITIGATION_ENUM:
-		if (!msr_info->host_initiated)
-			return 1;
-		if (data & ~MITI_ENUM_VALID_BITS)
-			return 1;
-
-		vmx->msr_virtual_mitigation_enum = data;
-		break;
-	case MSR_VIRTUAL_MITIGATION_CTRL:
-		if (!msr_info->host_initiated &&
-		    !(vmx->msr_virtual_enumeration & VIRT_ENUM_MITIGATION_CTRL_SUPPORT))
-			return 1;
-		if (data & ~MITI_CTRL_VALID_BITS)
-			return 1;
-
-		if (boot_cpu_has(X86_FEATURE_ARCH_CAPABILITIES))
-			rdmsrl(MSR_IA32_ARCH_CAPABILITIES, arch_msr);
-
-		if (data & MITI_CTRL_RETPOLINE_S_USED &&
-		    boot_cpu_has(X86_FEATURE_RRSBA_CTRL) &&
-		    arch_msr & ARCH_CAP_RRSBA)
-			spec_ctrl_mask |= SPEC_CTRL_RRSBA_DIS_S;
-
-		if (data & MITI_CTRL_BHB_CLEAR_SEQ_S_USED &&
-		    kvm_cpu_cap_has(X86_FEATURE_BHI_CTRL) &&
-		    !(arch_msr & ARCH_CAP_BHI_NO))
-			spec_ctrl_mask |= SPEC_CTRL_BHI_DIS_S;
-
-		if (cpu_has_virt_spec_ctrl()) {
-			vmcs_write64(IA32_SPEC_CTRL_MASK, spec_ctrl_mask);
-		} else if (spec_ctrl_mask) {
-			/*
-			 * Intercept IA32_SPEC_CTRL to disallow guest from
-			 * changing certain bits.
-			 */
-			vmx_enable_intercept_for_msr(vcpu,
-						     MSR_IA32_SPEC_CTRL,
-						     MSR_TYPE_RW);
-			vmx->guest_spec_ctrl_mask = spec_ctrl_mask;
-		}
-		vmx->spec_ctrl |= spec_ctrl_mask;
-
-		vmx->msr_virtual_mitigation_ctrl = data;
->>>>>>>
 		break;
 	default:
 	find_uret_msr:
@@ -5311,9 +5176,6 @@ static u64 vmx_tertiary_exec_control(struct vcpu_vmx *vmx)
 	if (!enable_ipiv || !kvm_vcpu_apicv_active(&vmx->vcpu))
 		exec_control &= ~TERTIARY_EXEC_IPI_VIRT;
 
-	if (!cpu_has_vmx_msrlist() || !guest_cpuid_has(&vmx->vcpu, X86_FEATURE_MSRLIST))
-		exec_control &= ~TERTIARY_EXEC_MSRLIST;
-
 	return exec_control;
 }
 
@@ -5630,11 +5492,6 @@ static void init_vmcs(struct vcpu_vmx *vmx)
 	if (cpu_has_vmx_xsaves())
 		vmcs_write64(XSS_EXIT_BITMAP, VMX_XSS_EXIT_BITMAP);
 
-	if (cpu_has_virt_spec_ctrl()) {
-		vmcs_write64(IA32_SPEC_CTRL_SHADOW, 0);
-		vmcs_write64(IA32_SPEC_CTRL_MASK, 0);
-	}
-
 	if (enable_pml) {
 		vmcs_write64(PML_ADDRESS, page_to_phys(vmx->pml_pg));
 		vmcs_write16(GUEST_PML_INDEX, PML_ENTITY_NUM - 1);
@@ -5700,14 +5557,6 @@ void vmx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 		__vmx_vcpu_reset(vcpu);
 
 	vmx->rmode.vm86_active = 0;
-	vmx->msr_virtual_mitigation_ctrl = 0;
-
-	if (cpu_has_virt_spec_ctrl()) {
-		vmcs_write64(IA32_SPEC_CTRL_MASK, 0);
-		vmcs_write64(IA32_SPEC_CTRL_SHADOW, 0);
-	}
-	vmx->guest_spec_ctrl = 0;
-	vmx->guest_spec_ctrl_mask = 0;
 	vmx->spec_ctrl = 0;
 
 	vmx->msr_ia32_umwait_control = 0;
@@ -6922,207 +6771,6 @@ static int handle_notify(struct kvm_vcpu *vcpu)
 	return 1;
 }
 
-static int handle_help_rdmsrlist(int num, struct kvm_vcpu *vcpu)
-{
-	u64 rcx = kvm_rcx_read(vcpu);
-	u64 rsi = kvm_rsi_read(vcpu);
-	u64 rdi = kvm_rdi_read(vcpu);
-	struct x86_exception e;
-	u64 data;
-	u64 index;
-	int p, q, r, i;
-
-	for (i = num; i < 64; i++) {
-		if (rcx & (1 << i)) {
-			p = kvm_read_guest_virt(vcpu, rsi + i * sizeof(index), &index, sizeof(index), &e);
-			if (p != X86EMUL_CONTINUE) {
-				return kvm_handle_memory_failure(vcpu, p, &e);
-			}
-
-			r = kvm_get_msr_with_filter(vcpu, index, &data);
-
-			if (!r) {
-				q = kvm_write_guest_virt_system(vcpu, rdi + i * sizeof(index), &data, sizeof(index), &e);
-				if (q != X86EMUL_CONTINUE) {
-					return kvm_handle_memory_failure(vcpu, q, &e);
-				}
-
-				rcx &= ~(1 << i);
-				kvm_rcx_write(vcpu, rcx);
-			} else {
-				if (kvm_msr_user_space(vcpu, index, KVM_EXIT_X86_RDMSR, 0,
-						complete_userspace_rdmsrlist, r))
-					return 0;
-			}
-		}
-	}
-
-	if (i == 64) {
-		return kvm_complete_insn_gp(vcpu,r);
-	}
-
-	return 1;
-}
-
-static int handle_help_wrmsrlist(int num, struct kvm_vcpu *vcpu)
-{
-	u64 rcx = kvm_rcx_read(vcpu);
-	u64 rsi = kvm_rsi_read(vcpu);
-	u64 rdi = kvm_rdi_read(vcpu);
-	struct x86_exception e;
-	u64 data;
-	u64 index;
-	int p, q, r, i;
-
-	for (i = num; i < 64; i++) {
-
-		if (rcx & (1 << i)) {
-			q = kvm_read_guest_virt(vcpu, rdi + i * sizeof(data), &data, sizeof(data), &e);
-			if (q != X86EMUL_CONTINUE) {
-				return kvm_handle_memory_failure(vcpu, q, &e);
-			}
-
-			p = kvm_read_guest_virt(vcpu, rsi + i * sizeof(index), &index, sizeof(index), &e);
-			if (p != X86EMUL_CONTINUE) {
-					return kvm_handle_memory_failure(vcpu, p, &e);
-			}
-
-			r = kvm_set_msr_with_filter(vcpu, index, data);
-
-			if (!r) {
-				rcx &= ~(1 << i);
-				kvm_rcx_write(vcpu, rcx);
-			} else {
-				if (kvm_msr_user_space(vcpu, index, KVM_EXIT_X86_WRMSR, data,
-								complete_userspace_wrmsrlist, r))
-					return 0;
-				if (r < 0)
-					return r;
-			}
-		}
-	}
-
-	if (i == 64) {
-		return kvm_complete_insn_gp(vcpu,r);
-	}
-
-	return 1;
-}
-
-static int complete_userspace_rdmsrlist(struct kvm_vcpu *vcpu)
-{
-	u64 rcx = kvm_rcx_read(vcpu);
-	u64 rdi = kvm_rdi_read(vcpu);
-	u64 rsi = kvm_rsi_read(vcpu);
-	struct x86_exception e;
-	u32 index = vcpu->run->msr.index;
-	u64 data = vcpu->run->msr.data;
-	u64 value;
-	int num, p, q;
-
-	if (!vcpu->run->msr.error) {
-		for (num = 0; num < 64; num++) {
-
-			if (rcx & (1 << num)) {
-				p = kvm_read_guest_virt(vcpu, rsi + num * sizeof(value), &value, sizeof(value), &e);
-				if (p != X86EMUL_CONTINUE) {
-					return kvm_handle_memory_failure(vcpu, p, &e);
-				}
-				break;
-			}
-		}
-		WARN_ON_ONCE(index != (u32)value);
-
-		if (rcx & (1 << num)) {
-			q = kvm_write_guest_virt_system(vcpu, rdi + num * sizeof(data), &data, sizeof(data) , &e);
-
-			if (q != X86EMUL_CONTINUE) {
-				return kvm_handle_memory_failure(vcpu, q, &e);
-			}
-			rcx &= ~(1 << num);
-			kvm_rcx_write(vcpu, rcx);
-		}
-	}
-
-	return handle_help_rdmsrlist(num + 1, vcpu);
-}
-
-static int handle_rdmsrlist(struct kvm_vcpu *vcpu)
-{
-	u64 rcx = kvm_rcx_read(vcpu);
-	u64 rsi = kvm_rsi_read(vcpu);
-	unsigned long exit_qual = vmx_get_exit_qual(vcpu);
-	struct x86_exception e;
-	u64 index;
-	int num, p;
-
-	for (num = 0; num < 64; num++) {
-		if(rcx & (1 << num)) {
-			p = kvm_read_guest_virt(vcpu, rsi + num * sizeof(index), &index, sizeof(index), &e);
-			if (p != X86EMUL_CONTINUE) {
-				return kvm_handle_memory_failure(vcpu, p, &e);
-			}
-			break;
-		}
-	}
-	WARN_ON_ONCE(index != exit_qual);
-
-	return handle_help_rdmsrlist(num, vcpu);
-}
-
-static int complete_userspace_wrmsrlist(struct kvm_vcpu *vcpu)
-{
-	u64 rcx = kvm_rcx_read(vcpu);
-	u64 rsi = kvm_rsi_read(vcpu);
-	struct x86_exception e;
-	u32 index = vcpu->run->msr.index;
-	u64 value;
-	int num, p;
-
-	if (!vcpu->run->msr.error) {
-
-		for (num = 0; num < 64; num++) {
-			if (rcx & (1 << num)) {
-				p = kvm_read_guest_virt(vcpu, rsi + num * sizeof(value), &value, sizeof(value), &e);
-				if (p != X86EMUL_CONTINUE) {
-					return kvm_handle_memory_failure(vcpu, p, &e);
-				}
-				break;
-			}
-		}
-		WARN_ON_ONCE(index != (u32)value);
-
-		rcx &= ~(1 << num);
-		kvm_rcx_write(vcpu, rcx);
-	}
-
-	return handle_help_wrmsrlist(num + 1, vcpu);
-}
-
-static int handle_wrmsrlist(struct kvm_vcpu *vcpu)
-{
-	u64 rcx = kvm_rcx_read(vcpu);
-	u64 rsi = kvm_rsi_read(vcpu);
-	unsigned long exit_qual = vmx_get_exit_qual(vcpu);
-	struct x86_exception e;
-	u64 index;
-	int num, p;
-
-	for (num = 0; num < 64; num++) {
-
-		if (rcx & (1 << num)) {
-			p = kvm_read_guest_virt(vcpu, rsi + num * sizeof(index), &index, sizeof(index), &e);
-			if (p != X86EMUL_CONTINUE) {
-				return kvm_handle_memory_failure(vcpu, p, &e);
-			}
-			break;
-		}
-	}
-	WARN_ON_ONCE(index != exit_qual);
-
-	return handle_help_wrmsrlist(num, vcpu);
-}
-
 /*
  * The exit handlers return 1 if the exit was handled fully and guest execution
  * may resume.  Otherwise they set the kvm_run parameter to indicate what needs
@@ -7181,8 +6829,6 @@ static int (*kvm_vmx_exit_handlers[])(struct kvm_vcpu *vcpu) = {
 	[EXIT_REASON_ENCLS]		      = handle_encls,
 	[EXIT_REASON_BUS_LOCK]                = handle_bus_lock_vmexit,
 	[EXIT_REASON_NOTIFY]		      = handle_notify,
-	[EXIT_REASON_MSRLIST_READ]            = handle_rdmsrlist,
-	[EXIT_REASON_MSRLIST_WRITE]           = handle_wrmsrlist,
 };
 
 static const int kvm_vmx_max_exit_handlers =
@@ -8156,17 +7802,8 @@ void noinstr vmx_spec_ctrl_restore_host(struct vcpu_vmx *vmx,
 	if (!cpu_feature_enabled(X86_FEATURE_MSR_SPEC_CTRL))
 		return;
 
-	if (flags & VMX_RUN_SAVE_SPEC_CTRL) {
+	if (flags & VMX_RUN_SAVE_SPEC_CTRL)
 		vmx->spec_ctrl = __rdmsr(MSR_IA32_SPEC_CTRL);
-		/*
-		 * If no "virtualize IA32_SPEC_CTRL" support,
-		 * vmx->guest_spec_ctrl stores the value of IA32_SPEC_CTRL MSR
-		 * guest should see. It may be out-of-sync with guest's value
-		 * if the MSR isn't intercepted.
-		 */
-		if (!cpu_has_virt_spec_ctrl())
-			vmx->guest_spec_ctrl = vmx->spec_ctrl;
-	}
 
 	/*
 	 * If the guest/host SPEC_CTRL values differ, restore the host value.
@@ -8755,7 +8392,11 @@ static void update_intel_pt_cfg(struct kvm_vcpu *vcpu)
 		vmx->pt_desc.ctl_bitmask &= ~(0xfULL << (32 + i * 4));
 }
 
+<<<<<<<
 int vmx_check_cpuid(struct kvm_vcpu *vcpu,
+=======
+static int vmx_check_cpuid(struct kvm_vcpu *vcpu,
+>>>>>>>
 			   struct kvm_cpuid_entry2 *entries,
 			   int nent)
 {
@@ -8813,10 +8454,6 @@ void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
 	if (cpu_has_secondary_exec_ctrls())
 		vmcs_set_secondary_exec_control(vmx,
 						vmx_secondary_exec_control(vmx));
-
-	if (cpu_has_tertiary_exec_ctrls())
-        tertiary_exec_controls_set(vmx,
-						vmx_tertiary_exec_control(vmx));
 
 	if (nested_vmx_allowed(vcpu))
 		vmx->msr_ia32_feature_control_valid_bits |=
@@ -8931,8 +8568,6 @@ static __init void vmx_set_cpu_caps(void)
 		kvm_cpu_cap_check_and_set(X86_FEATURE_DS);
 		kvm_cpu_cap_check_and_set(X86_FEATURE_DTES64);
 	}
-	if (!cpu_has_vmx_msrlist())
-		kvm_cpu_cap_clear(X86_FEATURE_MSRLIST);
 
 	if (!enable_pmu)
 		kvm_cpu_cap_clear(X86_FEATURE_PDCM);

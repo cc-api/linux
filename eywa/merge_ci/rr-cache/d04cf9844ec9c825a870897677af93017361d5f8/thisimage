@@ -480,6 +480,9 @@ static int prepare_for_update(void)
 	int ret, cpu, first_cpu;
 	struct core_rendez *pcpu_core;
 
+	atomic_set(&late_cpus_in,  0);
+	atomic_set(&late_cpus_out, 0);
+
 	if (!microcode_ops->need_nmi_lateload)
 		return 0;
 
@@ -500,9 +503,6 @@ static int prepare_for_update(void)
 		atomic_set(&pcpu_core->core_done, 0);
 		atomic_set(&pcpu_core->failed, 0);
 	}
-
-	atomic_set(&late_cpus_in,  0);
-	atomic_set(&late_cpus_out, 0);
 
 	return 0;
 }
@@ -594,7 +594,7 @@ wait_for_siblings:
 	 * For siblings, collect the cpuinfo and update the
 	 * per-cpu cpuinfo with the current microcode revision.
 	 */
-	if (cpumask_first(topology_sibling_cpumask(cpu)) != cpu) {
+	if (cpu != first_cpu) {
 		uci = ucode_cpu_info + cpu;
 		microcode_ops->collect_cpu_info(cpu, &uci->cpu_sig);
 		pr_debug("CPU %d invoked collect_cpu_info(CPUID + read revision)\n", cpu);
@@ -602,7 +602,7 @@ wait_for_siblings:
 
 	this_cpu_info = &cpu_data(cpu);
 	if (this_cpu_info->microcode != bsp_info->microcode)
-		panic("Microcode Revision for CPU %d = 0x%x doesn't match BSP rev 0x%x\n",
+		pr_err("Microcode Revision for CPU %d = 0x%x doesn't match BSP rev 0x%x\n",
 		      cpu, this_cpu_info->microcode, bsp_info->microcode);
 
 	return ret;
