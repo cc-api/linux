@@ -816,6 +816,9 @@ int xe_guc_pc_start(struct xe_guc_pc *pc)
 	u32 size = PAGE_ALIGN(sizeof(struct slpc_shared_data));
 	int ret;
 
+	if (GRAPHICS_VERx100(xe) >= 2000)
+		return 0;
+
 	xe_gt_assert(gt, xe_device_uc_enabled(xe));
 
 	xe_device_mem_access_get(pc_to_xe(pc));
@@ -864,6 +867,9 @@ int xe_guc_pc_stop(struct xe_guc_pc *pc)
 {
 	int ret;
 
+	if (GRAPHICS_VERx100(pc_to_xe(pc)) >= 2000)
+		return 0;
+
 	xe_device_mem_access_get(pc_to_xe(pc));
 
 	mutex_lock(&pc->freq_lock);
@@ -905,6 +911,9 @@ int xe_guc_pc_init(struct xe_guc_pc *pc)
 	struct xe_bo *bo;
 	u32 size = PAGE_ALIGN(sizeof(struct slpc_shared_data));
 	int err;
+
+	if (GRAPHICS_VERx100(xe) >= 2000)
+		return 0;
 
 	mutex_init(&pc->freq_lock);
 
