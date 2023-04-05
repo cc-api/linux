@@ -171,6 +171,13 @@ static const struct xe_graphics_desc graphics_xe2 = {
 	.name = "Xe2_LPG",
 
 	XE2_GFX_FEATURES,
+
+	/*
+	 * FIXME: Following features temporarily disabled until full driver
+	 * support is added
+	 */
+	.has_flat_ccs = false,
+	.supports_usm = false,
 };
 
 static const struct xe_media_desc media_xem = {
