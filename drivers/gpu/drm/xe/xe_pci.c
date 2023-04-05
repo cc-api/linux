@@ -170,6 +170,13 @@ static const struct xe_graphics_desc graphics_xe2 = {
 	.name = "Xe2_HPG / Xe2_LPG",
 
 	XE2_GFX_FEATURES,
+
+	/*
+	 * FIXME: Following features temporarily disabled until full driver
+	 * support is added
+	 */
+	.has_flat_ccs = false,
+	.supports_usm = false,
 };
 
 static const struct xe_media_desc media_xem = {
@@ -501,6 +508,12 @@ static void handle_gmdid(struct xe_device *xe,
 		if (ver == media_ip_map[i].ver) {
 			xe->info.media_verx100 = ver;
 			*media = media_ip_map[i].ip;
+
+			/* FIXME: Remove once standalone media is ready */
+			drm_info(&xe->drm, "Detected %s media, but leaving disabled until support is ready.\n", (*media)->name);
+			*media = NULL;
+			xe->info.media_verx100 = 0;
+			return;
 
 			break;
 		}
