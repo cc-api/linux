@@ -166,6 +166,13 @@ static const struct xe_graphics_desc graphics_xe2 = {
 	.name = "Xe2_HPG / Xe2_LPG",
 
 	XE2_GFX_FEATURES,
+
+	/*
+	 * FIXME: Following features temporarily disabled until full driver
+	 * support is added
+	 */
+	.has_flat_ccs = false,
+	.supports_usm = false,
 };
 
 static const struct xe_media_desc media_xem = {
@@ -318,9 +325,12 @@ static struct gmdid_map graphics_ip_map[] = {
 /* Map of GMD_ID values to media IP */
 static struct gmdid_map media_ip_map[] = {
 	{ 1300, &media_xelpmp },
+#if 0
+	/* Don't match until SA media is working */
 	{ 1301, &media_xe2 },
 	{ 1302, &media_xe2 },
 	{ 2000, &media_xe2 },
+#endif
 };
 
 #define INTEL_VGA_DEVICE(id, info) {			\
