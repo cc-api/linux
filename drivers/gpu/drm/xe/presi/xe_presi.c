@@ -85,6 +85,7 @@ static void xe_presi_init_disabled_features(struct xe_device *xe)
 				pvc_sim_init_disabled_features(xe);
 				break;
 			case XE_LUNARLAKE:
+			case XE_BATTLEMAGE:
 				lnl_sim_init_disabled_features(xe);
 				break;
 			default:
