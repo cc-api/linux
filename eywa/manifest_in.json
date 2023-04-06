@@ -5322,7 +5322,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "v6.3-rc5-kvm-cet-rebase-4-4",
+            "branch": "v6.3-rc5-kvm-cet-rebase-4-6",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
@@ -5332,7 +5332,7 @@
                 }
             ],
             "description": "KVM: Arch LBR and CET features",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Weijiang Yang",
