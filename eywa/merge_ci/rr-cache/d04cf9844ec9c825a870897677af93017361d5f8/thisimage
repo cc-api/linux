@@ -750,6 +750,9 @@ static ssize_t reload_store_common(struct device *dev,
 	if (!ret)
 		ret = microcode_reload_late();
 
+	if (microcode_ops->post_apply)
+		microcode_ops->post_apply(type, !ret);
+
 	mutex_unlock(&microcode_mutex);
 
 	if (ret == 0) {
@@ -821,6 +824,7 @@ static int microcode_commit(void)
 {
 	if (microcode_ops->perform_commit)
 		return microcode_ops->perform_commit();
+
 	return 0;
 }
 
@@ -839,13 +843,18 @@ static ssize_t commit_store(struct device *dev,
 	if (val != 1)
 		return size;
 
-	mutex_lock(&microcode_mutex);
 	cpus_read_lock();
-
-	rv = microcode_commit();
-
+	ret = check_online_cpus();
 	cpus_read_unlock();
+
+	if (ret)
+		goto ret;
+
+	mutex_lock(&microcode_mutex);
+	rv = microcode_commit();
 	mutex_unlock(&microcode_mutex);
+
+ret:
 
 	return size;
 }
