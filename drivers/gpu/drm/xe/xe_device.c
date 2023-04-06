@@ -392,9 +392,20 @@ static void xe_device_remove_display(struct xe_device *xe)
 	xe_display_driver_remove(xe);
 }
 
+static void xe_hw_error_fini(struct xe_device *xe)
+{
+	struct xe_tile *tile;
+	int i;
+
+	for_each_tile(tile, xe, i)
+		xa_destroy(&tile->errors.hw_error);
+}
+
 void xe_device_remove(struct xe_device *xe)
 {
 	xe_psmi_cleanup(xe);
+
+	xe_hw_error_fini(xe);
 
 	xe_device_remove_display(xe);
 

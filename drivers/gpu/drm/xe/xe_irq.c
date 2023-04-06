@@ -444,6 +444,7 @@ static irqreturn_t dg1_irq_handler(int irq, void *arg)
 		xe_mmio_write32(mmio, GFX_MSTR_IRQ, master_ctl);
 
 		gt_irq_handler(tile, master_ctl, intr_dw, identity);
+		xe_hw_error_irq_handler(tile, master_ctl);
 
 		/*
 		 * Display interrupts (including display backlight operations
@@ -618,6 +619,9 @@ int xe_irq_install(struct xe_device *xe)
 		drm_err(&xe->drm, "No supported interrupt handler");
 		return -EINVAL;
 	}
+
+	xe_assign_hw_err_regs(xe);
+	xe_process_hw_errors(xe);
 
 	xe_irq_reset(xe);
 

@@ -84,6 +84,8 @@ int xe_tile_alloc(struct xe_tile *tile)
 {
 	struct drm_device *drm = &tile_to_xe(tile)->drm;
 
+	xa_init(&tile->errors.hw_error);
+
 	tile->mem.ggtt = drmm_kzalloc(drm, sizeof(*tile->mem.ggtt),
 				      GFP_KERNEL);
 	if (!tile->mem.ggtt)

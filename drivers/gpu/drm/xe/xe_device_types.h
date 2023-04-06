@@ -15,6 +15,7 @@
 #include "xe_devcoredump_types.h"
 #include "xe_heci_gsc.h"
 #include "xe_gt_types.h"
+#include "xe_hw_error.h"
 #include "xe_platform_types.h"
 #include "xe_pt_types.h"
 #include "xe_pmu.h"
@@ -192,6 +193,11 @@ struct xe_tile {
 
 	/** @sysfs: sysfs' kobj used by xe_tile_sysfs */
 	struct kobject *sysfs;
+
+	/** @errors: count of hardware errors reported for the tile */
+	struct tile_hw_errors {
+		struct xarray hw_error;
+	} errors;
 };
 
 /**
@@ -415,6 +421,11 @@ struct xe_device {
 		struct xe_bo *capture_obj[XE_MAX_TILES_PER_DEVICE + 1];
 		u8 region_mask;
 	} psmi;
+
+	/** @hw_err_regs: list of hw error regs*/
+	struct hardware_errors_regs {
+		const struct err_name_index_pair *dev_err_stat[HARDWARE_ERROR_MAX];
+	} hw_err_regs;
 
 	/* private: */
 
