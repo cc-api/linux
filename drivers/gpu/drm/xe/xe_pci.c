@@ -318,13 +318,20 @@ static const struct xe_device_desc bmg_desc = {
 	/* FIXME: These need to come from GMD_ID */
 	.graphics_ver = 20,
 	.graphics_rel = 0,
-	.media_ver = 13,
-	.media_rel = 1,
 	.subplatforms = (const struct xe_subplatform_desc[]) {
 		{ XE_SUBPLATFORM_BMG_G10, "G10", bmg_g10_ids },
 		{ XE_SUBPLATFORM_BMG_G21, "G21", bmg_g21_ids },
 		{ }
 	},
+
+	/*
+	 * FIXME: Following features temporarily disabled until full driver
+	 * support is added
+	 */
+	.has_flat_ccs = false,
+	.supports_usm = false,
+	.media_ver = 0, /* Media GT probe is incomplete */
+	.media_rel = 0,
 };
 
 static const struct xe_device_desc lnl_desc = {
