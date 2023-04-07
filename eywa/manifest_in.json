@@ -4529,7 +4529,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "",
+            "stuck_at_ref": "c34f4d1bd257329c0d5180e4009c835ffa531070",
             "last_enabled": "v6.3",
             "maillist": "",
             "platforms": "",
