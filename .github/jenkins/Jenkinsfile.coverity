@@ -1,0 +1,55 @@
+pipeline {
+  agent { label "DOCKER" }
+  options {
+    buildDiscarder(logRotator(daysToKeepStr: '14'))
+  }
+
+  environment {
+    GH = credentials('sys_igkgfxci-github-token')
+    COVAUTHKEY = credentials('sys_igkgfxci_coverity_auth_key')
+    BUILDNAME = "xe-kernel"
+    STREAM = "xe.kernel.internal"
+  }
+
+  stages {
+    stage('Prepare') {
+      steps {
+        sh "git clone --depth 1 https://${GH_PSW}@github.com/intel-innersource/drivers.gpu.i915.ci.pipelines pipelines"
+        sh "make -C ./pipelines/docker ubuntu2004"
+        script {
+          BUILDNAME = "${env.GIT_COMMIT[0..6]}"
+          currentBuild.displayName = "$BUILDNAME"
+        }
+      }
+    }
+
+    stage('Coverity Scan') {
+      steps {
+        script {
+          sh """
+            docker run --rm \
+              -v \$(pwd):/kernel:z \
+              -v ${COVAUTHKEY}:/tmp/cov_auth.key:ro,z \
+              -e GH_TOKEN=${GH_PSW} \
+              -e BUILDNAME=${BUILDNAME} \
+              -e STREAM=${STREAM} \
+              gfx-osgc-docker-ci-igk.gfx-assets.intel.com/lgci-ubuntu2004:latest /common/xe/coverity_scan.sh
+          """
+        }
+      }
+    }
+  }
+
+  post {
+    unsuccessful {
+      mail (
+        to: "lgci@intel.com",
+        subject: "[Jenkins] Coverity Analysis xe-internal-kernel unsuccessful",
+        body: "coverity_xe-internal-kernel_scan unsuccessful.\n\nSee $BUILD_URL for more details."
+      )
+    }
+    cleanup {
+      deleteDir()
+    }
+  }
+}
