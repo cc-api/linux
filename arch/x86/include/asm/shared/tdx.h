@@ -18,6 +18,7 @@
 #define TDX_ACCEPT_PAGE			6
 #define TDX_WR				8
 #define TDX_VERIFYREPORT		22
+#define TDX_MMIO_ACCEPT			71
 
 /* TDCS fields. To be used by TDG.VM.WR and TDG.VM.RD module calls */
 #define TDCS_NOTIFY_ENABLES		0x9100000000000010

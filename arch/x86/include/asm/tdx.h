@@ -89,6 +89,7 @@ int tdx_mcall_extend_rtmr(u8 *data, u8 index);
 
 int tdx_hcall_get_quote(void *tdquote, int size);
 
+int tdx_map_private_mmio(phys_addr_t gpa, u64 offset, int numpages);
 #else
 
 static inline void tdx_early_init(void) { };
@@ -96,6 +97,9 @@ static inline void tdx_safe_halt(void) { };
 static inline void tdx_filter_init(void) { };
 
 static inline bool tdx_early_handle_ve(struct pt_regs *regs) { return false; }
+
+static inline int tdx_map_private_mmio(phys_addr_t gpa, u64 offset, int numpages)
+			{ return -EOPNOTSUPP; }
 
 #endif /* CONFIG_INTEL_TDX_GUEST */
 
