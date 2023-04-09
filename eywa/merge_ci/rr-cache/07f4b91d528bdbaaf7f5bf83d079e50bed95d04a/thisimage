@@ -230,7 +230,7 @@ static int check_pending(void)
 
 	atomic_set(&pending_commits, 0);
 
-	rv = schedule_on_each_cpu(read_commit_status);
+	rv = schedule_on_each_cpu_locked(read_commit_status);
 
 	if (!rv && atomic_read(&pending_commits))
 		rv = -EBUSY;
@@ -271,7 +271,7 @@ static int perform_commit(void)
 {
 	int rv;
 
-	rv = schedule_on_each_cpu(do_commit);
+	rv = schedule_on_each_cpu_locked(do_commit);
 
 	if (!rv && !atomic_read(&commit_status))
 		return rv;
@@ -323,7 +323,7 @@ static int switch_to_auto_commit(void)
 		return -EBUSY;
 	}
 
-	rv = schedule_on_each_cpu(write_auto_commit);
+	rv = schedule_on_each_cpu_locked(write_auto_commit);
 
 	pr_info("Switching to auto commit %s\n", rv ? "Failed" : "Succeeded");
 
@@ -371,7 +371,7 @@ static int switch_to_manual_commit(void)
 		return -EBUSY;
 	}
 
-	rv = schedule_on_each_cpu(write_manual_commit);
+	rv = schedule_on_each_cpu_locked(write_manual_commit);
 
 	pr_info("Switching to manual commit %s\n", rv ? "Failed" : "Succeeded");
 
@@ -1341,7 +1341,7 @@ static enum ucode_state generic_load_microcode(int cpu, struct iov_iter *iter, e
 	return ret;
 }
 
-void post_apply_intel(enum reload_type type, bool apply_state)
+static void post_apply_intel(enum reload_type type, bool apply_state)
 {
 	switch (type) {
 		case RELOAD_COMMIT:
@@ -1484,13 +1484,27 @@ static int prepare_to_apply_intel(enum reload_type type)
 	enum ucode_state ret;
 	int rv = -EINVAL;
 
-	if (type == RELOAD_ROLLBACK) {
-		if (rollback_ucode.ucode) {
-			intel_ucode = rollback_ucode;
-			rollback_ucode.ucode = NULL;
-			rollback_ucode.size = 0;
-		} else
-			return 0;
+	switch (type) {
+		case RELOAD_COMMIT:
+			if (!mcu_cap.rollback)
+				return 0;
+			rv = switch_to_auto_commit();
+			break;
+		case RELOAD_NO_COMMIT:
+			if (!mcu_cap.rollback)
+				return rv;
+			rv = switch_to_manual_commit();
+			break;
+		case RELOAD_ROLLBACK:
+			if (!mcu_cap.rollback)
+				return rv;
+			if (rollback_ucode.ucode) {
+				intel_ucode = rollback_ucode;
+				rollback_ucode.ucode = NULL;
+				rollback_ucode.size = 0;
+			} else
+				return 0;
+			break;
 	}
 
 	ret = perform_staging();
@@ -1498,22 +1512,6 @@ static int prepare_to_apply_intel(enum reload_type type)
 	    (ret == UCODE_NFOUND && !ucode_load_same)) {
 		pr_err("Error staging microcode\n");
 		return -EINVAL;
-	}
-
-	if (type == RELOAD_COMMIT) {
-		/*
-		 * This is a legacy CPU so nothing to prepare. Otherwise
-		 * check if the configuration is currently in manual commit
-		 * then switch to auto-commit.
-		 */
-		if (!mcu_cap.rollback)
-			return 0;
-		rv = switch_to_auto_commit();
-	}
-	else if (type == RELOAD_NO_COMMIT) {
-		if (!mcu_cap.rollback)
-			return rv;
-		rv = switch_to_manual_commit();
 	}
 
 	return rv;
