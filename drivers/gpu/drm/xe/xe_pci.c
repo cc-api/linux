@@ -180,6 +180,24 @@ static const struct xe_graphics_desc graphics_xe2 = {
 	.supports_usm = false,
 };
 
+#define XE3_GFX_FEATURES \
+	.dma_mask_size = 46, \
+	.has_asid = 1, \
+	.has_flat_ccs = 1, \
+	.has_range_tlb_invalidation = 1, \
+	.supports_usm = 1, \
+	.va_bits = 48, \
+	.vm_max_level = 4, \
+	.hw_engine_mask = \
+		BIT(XE_HW_ENGINE_RCS0) | \
+		BIT(XE_HW_ENGINE_BCS8) | BIT(XE_HW_ENGINE_BCS0) | \
+		GENMASK(XE_HW_ENGINE_CCS3, XE_HW_ENGINE_CCS0)
+
+static const struct xe_graphics_desc graphics_xe3 = {
+	.name = "Xe3_LPG",
+	XE3_GFX_FEATURES,
+};
+
 static const struct xe_media_desc media_xem = {
 	.name = "Xe_M",
 	.ver = 12,
@@ -211,6 +229,13 @@ static const struct xe_media_desc media_xe2 = {
 	.name = "Xe2_LPM / Xe2_HPM",
 	.hw_engine_mask =
 		BIT(XE_HW_ENGINE_VCS0) | BIT(XE_HW_ENGINE_VECS0), /* TODO: GSC0 */
+};
+
+static const struct xe_media_desc media_xe3 = {
+	.name = "Xe3_LPM",
+	.hw_engine_mask =
+		BIT(XE_HW_ENGINE_VCS0) | BIT(XE_HW_ENGINE_VCS2) |
+		BIT(XE_HW_ENGINE_VECS0),        /* TODO: add GSC0 */
 };
 
 static const struct xe_device_desc tgl_desc = {
@@ -355,6 +380,8 @@ static struct gmdid_map graphics_ip_map[] = {
 	{ 2000, &graphics_xe2 },
 	{ 2001, &graphics_xe2 },
 	{ 2004, &graphics_xe2 },
+	{ 3000, &graphics_xe3 },
+	{ 3001, &graphics_xe3 },
 };
 
 /* Map of GMD_ID values to media IP */
@@ -363,6 +390,7 @@ static struct gmdid_map media_ip_map[] = {
 	{ 1301, &media_xe2 },
 	{ 1302, &media_xe2 },
 	{ 2000, &media_xe2 },
+	{ 3000, &media_xe3 },
 };
 
 #define INTEL_VGA_DEVICE(id, info) {			\
