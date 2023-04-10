@@ -226,4 +226,14 @@
         MACRO__(0xE20D, ## __VA_ARGS__), \
         MACRO__(0xE212, ## __VA_ARGS__)
 
+#define XE_PTL_P_IDS(MACRO__, ...) \
+	MACRO__(0xB080, ## __VA_ARGS__)
+
+#define XE_PTL_U_IDS(MACRO__, ...) \
+	MACRO__(0xB090, ## __VA_ARGS__)
+
+#define XE_PTL_IDS(MACRO__, ...) \
+	XE_PTL_P_IDS(MACRO__, ## __VA_ARGS__), \
+	XE_PTL_U_IDS(MACRO__, ## __VA_ARGS__)
+
 #endif
