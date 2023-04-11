@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V7.1
+------------
+34. intel_idle: add initial GNR support
+    https://jira.devtools.intel.com/browse/LFE-7137
+
 GNR-BKC-V6.7
 ------------
 33. Fix multiple submitters issue in https://hsdes.intel.com/appstore/article/#/14018730416
