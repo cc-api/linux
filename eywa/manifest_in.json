@@ -2472,40 +2472,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "dev-queue",
-            "branch_type": "expiring",
-            "config_options": [],
-            "contributor": [
-                {
-                    "name": "Sasha Neftin",
-                    "email": "sasha.neftin@intel.com"
-                }
-            ],
-            "description": "Add handshake with the CSME to support s0ix",
-            "enabled": false,
-            "ip_owner": [
-                {
-                    "name": "Sasha Neftin",
-                    "email": "sasha.neftin@intel.com"
-                }
-            ],
-            "jira": "",
-            "name": "e1000e",
-            "repourl": "https://git.kernel.org/pub/scm/linux/kernel/git/tnguy/next-queue.git",
-            "sdl_contact": [
-                {
-                    "name": "Sasha Neftin",
-                    "email": "sasha.neftin@intel.com"
-                }
-            ],
-            "status": "public",
-            "stuck_at_ref": "",
-            "last_enabled": "v5.13",
-            "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
-        },
-        {
             "branch": "t7xx_intel_next",
             "branch_type": "expiring",
             "config_options": [
