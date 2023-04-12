@@ -1041,6 +1041,24 @@ int vt_move_enc_context_from(struct kvm *kvm, unsigned int source_fd)
 	return tdx_vm_move_enc_context_from(kvm, source_fd);
 }
 
+/* tdx connect stuff */
+int vt_bind_tdi(struct kvm *kvm, struct pci_tdi *tdi)
+{
+	if (!is_td(kvm))
+		return -ENOTTY;
+
+	return tdx_bind_tdi(kvm, tdi);
+}
+
+int vt_unbind_tdi(struct kvm *kvm, struct pci_tdi *tdi)
+{
+	if (!is_td(kvm))
+		return -ENOTTY;
+
+	return tdx_unbind_tdi(kvm, tdi);
+}
+/* tdx connect stuff end */
+
 struct kvm_x86_init_ops vt_init_ops __initdata = {
 	.hardware_setup = vt_hardware_setup,
 	.handle_intel_pt_intr = NULL,
