@@ -4673,7 +4673,7 @@
                     "email": "kirill.shutemov@linux.intel.com"
                 }
             ],
-            "description": "Linear Address Masking",
+            "description": "Linear Address Masking for Loganville (Grand Ridge), Lunar Lake, Sierra Forest",
             "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3352",
@@ -4684,8 +4684,8 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-04/msg00018.html",
-            "platforms": "",
-            "feature_jiras": ""
+            "platforms": "GRR,LNL,SRF",
+            "feature_jiras": "LFE-692"
         },
         {
             "branch": "t7xx_intel_next",
