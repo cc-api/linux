@@ -210,6 +210,8 @@ int tdx_vm_move_enc_context_from(struct kvm *kvm, unsigned int source_fd);
 /* TDX connect stuff */
 int tdx_bind_tdi(struct kvm *kvm, struct pci_tdi *tdi);
 int tdx_unbind_tdi(struct kvm *kvm, struct pci_tdi *tdi);
+int tdx_tdi_get_info(struct kvm *kvm, struct kvm_tdi_info *info);
+int tdx_tdi_user_request(struct kvm *kvm, struct kvm_tdi_user_request *req);
 /* TDX connect stuff end */
 #else
 static inline int tdx_hardware_setup(struct kvm_x86_ops *x86_ops) { return -EOPNOTSUPP; }
@@ -296,6 +298,10 @@ static inline int tdx_vm_move_enc_context_from(struct kvm *kvm, unsigned int sou
 /* TDX connect stuff */
 static inline int tdx_bind_tdi(struct kvm *kvm, struct pci_tdi *tdi) { return -EOPNOTSUPP; }
 static inline int tdx_unbind_tdi(struct kvm *kvm, struct pci_tdi *tdi) { return -EOPNOTSUPP; }
+static inline int tdx_tdi_get_info(struct kvm *kvm, struct kvm_tdi_info *info)
+				  { return -EOPNOTSUPP; }
+static inline int tdx_tdi_user_request(struct kvm *kvm, struct kvm_tdi_user_request *req)
+				      { return -EOPNOTSUPP; }
 /* TDX connect stuff end */
 #endif
 
@@ -455,6 +461,8 @@ int vt_move_enc_context_from(struct kvm *kvm, unsigned int source_fd);
 /* tdx connect stuff */
 int vt_bind_tdi(struct kvm *kvm, struct pci_tdi *tdi);
 int vt_unbind_tdi(struct kvm *kvm, struct pci_tdi *tdi);
+int vt_tdi_get_info(struct kvm *kvm, struct kvm_tdi_info *info);
+int vt_tdi_user_request(struct kvm *kvm, struct kvm_tdi_user_request *req);
 /* tdx connect stuff end */
 
 #endif /* __KVM_X86_VMX_X86_OPS_H */
