@@ -4937,7 +4937,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "lam-kvm",
+            "branch": "v6.3-rc6-kvm-lam-new",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
