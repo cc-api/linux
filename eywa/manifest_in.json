@@ -4903,30 +4903,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "v6.3-rc6-kvm-lam-new",
-            "branch_type": "expiring",
-            "config_options": [],
-            "contributor": [
-                {
-                    "name": "Binbin Wu",
-                    "email": "binbin.wu@intel.com"
-                }
-            ],
-            "description": "Linear Address Masking KVM Enabling",
-            "enabled": true,
-            "ip_owner": [],
-            "jira": "NEXT-3353",
-            "name": "lam_kvm",
-            "repourl": "https://github.com/binbinwu1/linux",
-            "sdl_contact": [],
-            "status": "public",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.3",
-            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-04/msg00022.html",
-            "platforms": "GRR,LNL,SRF",
-            "feature_jiras": "LFE-28,LFE-843"
-        },
-        {
             "branch": "rtcfix",
             "branch_type": "expiring",
             "config_options": [],
@@ -5914,6 +5890,30 @@
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
+        },
+        {
+            "branch": "v6.3-rc6-kvm-lam-new",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Binbin Wu",
+                    "email": "binbin.wu@intel.com"
+                }
+            ],
+            "description": "Linear Address Masking KVM Enabling",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3353",
+            "name": "lam_kvm",
+            "repourl": "https://github.com/binbinwu1/linux",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.3",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-04/msg00022.html",
+            "platforms": "GRR,LNL,SRF",
+            "feature_jiras": "LFE-28,LFE-843"
         },
         {
             "branch": "lam_fixup",
