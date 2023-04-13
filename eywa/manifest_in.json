@@ -5925,7 +5925,7 @@
                     "email": "kyle.d.pelton@intel.com"
                 }
             ],
-            "description": "Revert lam changes to v4l after 6647e76ab623 in v6.1-rc8 in order for lam/lam-kvm to merge",
+            "description": "Allow lam_kvm to merge with tdx_kvm_support",
             "enabled": true,
             "ip_owner": [
                 {
