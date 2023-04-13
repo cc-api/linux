@@ -4625,40 +4625,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "lam_fixup",
-            "branch_type": "expiring",
-            "config_options": [],
-            "contributor": [
-                {
-                    "name": "Kyle Pelton",
-                    "email": "kyle.d.pelton@intel.com"
-                }
-            ],
-            "description": "Revert lam changes to v4l after 6647e76ab623 in v6.1-rc8 in order for lam/lam-kvm to merge",
-            "enabled": false,
-            "ip_owner": [
-                {
-                    "name": "Kyle Pelton",
-                    "email": "kyle.d.pelton@intel.com"
-                }
-            ],
-            "jira": "",
-            "name": "lam_fixup",
-            "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
-            "sdl_contact": [
-                {
-                    "name": "Majid Awad",
-                    "email": "majid.awad@intel.com"
-                }
-            ],
-            "status": "intel confidential",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.1",
-            "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
-        },
-        {
             "branch": "lam",
             "branch_type": "expiring",
             "config_options": [
@@ -5942,6 +5908,40 @@
             "name": "kvm_cet_fixup",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel.git",
             "sdl_contact": [],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.3",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
+        },
+        {
+            "branch": "lam_fixup",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Kyle Pelton",
+                    "email": "kyle.d.pelton@intel.com"
+                }
+            ],
+            "description": "Revert lam changes to v4l after 6647e76ab623 in v6.1-rc8 in order for lam/lam-kvm to merge",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Kyle Pelton",
+                    "email": "kyle.d.pelton@intel.com"
+                }
+            ],
+            "jira": "NEXT-3354",
+            "name": "lam_fixup",
+            "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
+            "sdl_contact": [
+                {
+                    "name": "Majid Awad",
+                    "email": "majid.awad@intel.com"
+                }
+            ],
             "status": "intel confidential",
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
