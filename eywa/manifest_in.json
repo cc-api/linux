@@ -1231,7 +1231,7 @@
                 }
             ],
             "status": "public",
-            "stuck_at_ref": "",
+            "stuck_at_ref": "de8a0af6ca8029d2ac86c4b4a8b2ae1c6757f54a",
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00043.html",
             "platforms": "MTL-M",
