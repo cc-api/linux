@@ -489,7 +489,6 @@ static void save_microcode_patch(struct ucode_info *info, struct ucode_cpu_info 
 {
 	struct microcode_header_intel *mc_hdr, *p;
 
-<<<<<<<
 	if (!(info && data))
 		return;
 
@@ -499,56 +498,6 @@ static void save_microcode_patch(struct ucode_info *info, struct ucode_cpu_info 
 		kfree(info->ucode);
 		info->ucode = NULL;
 		info->size = 0;
-=======
-	p = kzalloc(sizeof(struct ucode_patch), GFP_KERNEL);
-	if (!p)
-		return NULL;
-
-	p->data = kmemdup(data, size, GFP_KERNEL);
-	if (!p->data) {
-		kfree(p);
-		return NULL;
-	}
-
-	return p;
-}
-
-static void save_microcode_patch(struct ucode_cpu_info *uci, void *data, unsigned int size)
-{
-	struct microcode_header_intel *mc_hdr, *mc_saved_hdr;
-	struct ucode_patch *iter, *tmp, *p = NULL;
-	bool prev_found = false;
-	unsigned int sig, pf;
-#ifdef CONFIG_SVOS
-	extern bool late_load;
-#endif
-
-	mc_hdr = (struct microcode_header_intel *)data;
-
-	list_for_each_entry_safe(iter, tmp, &microcode_cache, plist) {
-		mc_saved_hdr = (struct microcode_header_intel *)iter->data;
-		sig	     = mc_saved_hdr->sig;
-		pf	     = mc_saved_hdr->pf;
-
-		if (intel_find_matching_signature(data, sig, pf)) {
-			prev_found = true;
-
-#ifdef CONFIG_SVOS
-			if (!late_load)
-#endif
-			if (mc_hdr->rev <= mc_saved_hdr->rev)
-				continue;
-
-			p = memdup_patch(data, size);
-			if (!p)
-				pr_err("Error allocating buffer %p\n", data);
-			else {
-				list_replace(&iter->plist, &p->plist);
-				kfree(iter->data);
-				kfree(iter);
-			}
-		}
->>>>>>>
 	}
 
 	p = kmemdup(data, size, GFP_KERNEL);
@@ -1041,30 +990,10 @@ void load_ucode_intel(bool bsp)
 {
 	pr_info("Load ucode for %s\n", bsp ? "BSP" : "AP");
 
-<<<<<<<
 	if (bsp)
 		load_ucode_intel_bsp();
 	else
 		load_ucode_intel_ap();
-=======
-	list_for_each_entry_safe(iter, tmp, &microcode_cache, plist) {
-
-		phdr = (struct microcode_header_intel *)iter->data;
-
-#ifndef CONFIG_SVOS
-		if (phdr->rev <= uci->cpu_sig.rev)
-			continue;
-#endif
-
-		if (!intel_find_matching_signature(phdr,
-						   uci->cpu_sig.sig,
-						   uci->cpu_sig.pf))
-			continue;
-
-		return iter->data;
-	}
-	return NULL;
->>>>>>>
 }
 
 void reload_ucode_intel(void)
@@ -1100,8 +1029,30 @@ static void collect_staging_mailbox(int cpu)
 		goto out;
 
 	rdmsrl(MSR_MCU_MBOX_ADDR, mbox_addr);
+<<<<<<<
 	if (!mbox_addr)
 		goto out;
+=======
+	if (!mbox_addr) {
+		/*
+		 * REVERTME: If the 0x7a5 MSR enumeration isn't officially
+		 *           supported, hardcode it for testing purpose.
+		 */
+		if (i == 0) {
+			/* The 1st package DOE mailbox address */
+			mbox_addr = 0x90110000;
+		} else if (i == 1) {
+			/* The 2nd package DOE mailbox address */
+			mbox_addr = 0xc3910000;
+		} else {
+			pr_err("No hardcoded DOE mailbox address for package %d\n", i);
+			goto out;
+		}
+
+		pr_debug("Temporarily hardcode DOE mailbox address 0x%llx for package %d\n", mbox_addr, i);
+		/* goto out; */
+	}
+>>>>>>>
 
 	mbox = uc_doe_create_mbox(mbox_addr);
 	if (!mbox)
@@ -1194,16 +1145,10 @@ static enum ucode_state apply_microcode_intel(int cpu)
 	 * already.
 	 */
 	rev = intel_get_microcode_revision();
-<<<<<<<
 	if (rev >= mc->hdr.rev && !ucode_load_same) {
-=======
-#ifndef CONFIG_SVOS
-	if (rev >= mc->hdr.rev) {
->>>>>>>
 		ret = UCODE_OK;
 		goto out;
 	}
-#endif
 
 	/* write microcode via MSR 0x79 */
 	prof_wrmsrl((unsigned long)mc->bits);
@@ -1227,9 +1172,7 @@ static enum ucode_state apply_microcode_intel(int cpu)
 
 	ret = UCODE_UPDATED;
 
-#ifndef CONFIG_SVOS
 out:
-#endif
 	uci->cpu_sig.rev = rev;
 	c->microcode	 = rev;
 
@@ -1292,12 +1235,7 @@ static enum ucode_state generic_load_microcode(int cpu, struct iov_iter *iter, e
 
 		csig = uci->cpu_sig.sig;
 		cpf = uci->cpu_sig.pf;
-#ifdef CONFIG_SVOS
-		// SVOS supports user microcode load without enforcing version rules
-		if (intel_find_matching_signature(mc, csig, cpf)) {
-#else
 		if (has_newer_microcode(mc, csig, cpf, new_rev)) {
-#endif
 			vfree(new_mc);
 			new_rev = mc_header.rev;
 			new_mc  = mc;
@@ -1368,6 +1306,9 @@ static void post_apply_intel(enum reload_type type, bool apply_state)
 		case RELOAD_ROLLBACK:
 			break;
 	}
+<<<<<<<
+	kfree(unapplied_ucode.ucode);
+=======
 
 	/*
 	 * Free if microcode didn't apply successfully
@@ -1375,6 +1316,7 @@ static void post_apply_intel(enum reload_type type, bool apply_state)
 	if (!apply_state)
 		kfree(unapplied_ucode.ucode);
 
+>>>>>>>
 	unapplied_ucode.ucode = NULL;
 	unapplied_ucode.size = 0;
 }
@@ -1488,11 +1430,36 @@ static enum ucode_state perform_staging(void)
 static int prepare_to_apply_intel(enum reload_type type)
 {
 	enum ucode_state ret;
+<<<<<<<
 	int rv = -EINVAL;
+=======
+	int rv;
+>>>>>>>
 
 	switch (type) {
 		case RELOAD_COMMIT:
 			if (!mcu_cap.rollback)
+<<<<<<<
+				break;
+
+			rv = switch_to_auto_commit();
+			if (rv)
+				return rv;
+			break;
+		case RELOAD_NO_COMMIT:
+			if (!mcu_cap.rollback)
+				return -EINVAL;
+
+			rv = switch_to_manual_commit();
+			if (rv)
+				return rv;
+			break;
+		case RELOAD_ROLLBACK:
+			if (!mcu_cap.rollback)
+				return -EINVAL;
+
+			if (rollback_ucode.ucode) {
+=======
 				return 0;
 			rv = switch_to_auto_commit();
 			break;
@@ -1513,6 +1480,7 @@ static int prepare_to_apply_intel(enum reload_type type)
 				if (intel_ucode.ucode)
 					kfree (intel_ucode.ucode);
 
+>>>>>>>
 				intel_ucode = rollback_ucode;
 				rollback_ucode.ucode = NULL;
 				rollback_ucode.size = 0;
@@ -1528,7 +1496,11 @@ static int prepare_to_apply_intel(enum reload_type type)
 		return -EINVAL;
 	}
 
+<<<<<<<
+	return 0;
+=======
 	return rv;
+>>>>>>>
 }
 
 static enum ucode_state request_microcode_fw(int cpu, struct device *device, enum reload_type type)
