@@ -5172,7 +5172,7 @@
                     "email": "jithu.joseph@intel.com"
                 }
             ],
-            "description": "Uniform Microcode Loading and Microcode Staging Support ,Enable In Field Scan device driver",
+            "description": "Uniform Microcode Loading and Microcode Staging Support, Enable In Field Scan device driver",
             "enabled": true,
             "ip_owner": [
                 {
