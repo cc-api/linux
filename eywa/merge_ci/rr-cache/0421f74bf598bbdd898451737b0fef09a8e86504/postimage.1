@@ -4,14 +4,10 @@ include $(srctree)/scripts/Kbuild.include
 include $(srctree)/scripts/Makefile.lib
 
 KERNELPATH := kernel-$(subst -,_,$(KERNELRELEASE))
-<<<<<<<
-KBUILD_PKG_ROOTCMD ?="fakeroot -u"
-=======
 KDEB_SOURCENAME ?= linux-intel-next
 KDEB_FLAVOR ?= generic
 KDEB_CHANGELOG_DIST ?= unstable
 export KDEB_SOURCENAME KDEB_FLAVOR KDEB_CHANGELOG_DIST
->>>>>>>
 # Include only those top-level files that are needed by make, plus the GPL copy
 TAR_CONTENT := Documentation LICENSES arch block certs crypto drivers fs \
                include init io_uring ipc kernel lib mm net rust \
@@ -24,17 +20,11 @@ MKSPEC_NEXT     := $(srctree)/scripts/package/mkspec_next
 quiet_cmd_src_tar = TAR     $(2).tar.gz
       cmd_src_tar = \
 if test "$(objtree)" != "$(srctree)"; then \
-<<<<<<<
-	echo "Building source tarball is not possible outside the"; \
-	echo "kernel source tree. Don't set KBUILD_OUTPUT, or use the"; \
-	echo "binrpm-pkg or bindeb-pkg target instead."; \
-=======
 	echo >&2; \
 	echo >&2 "  ERROR:"; \
 	echo >&2 "  Building source tarball is not possible outside the"; \
 	echo >&2 "  kernel source tree. Don't set KBUILD_OUTPUT"; \
 	echo >&2; \
->>>>>>>
 	false; \
 fi ; \
 tar -I $(KGZIP) -c $(RCS_TAR_IGNORE) -f $(2).tar.gz \
@@ -77,17 +67,9 @@ $(linux-tarballs): .tmp_HEAD FORCE
 # rpm-pkg
 # ---------------------------------------------------------------------------
 PHONY += rpm-pkg
-<<<<<<<
-rpm-pkg:
-	$(MAKE) clean
-	$(CONFIG_SHELL) $(MKSPEC) >$(objtree)/kernel.spec
-	$(call cmd,src_tar,$(KERNELPATH),kernel.spec)
-	+rpmbuild --nodeps $(RPMOPTS) --target $(UTS_MACHINE) -ta $(KERNELPATH).tar.gz \
-=======
 rpm-pkg: srpm = $(shell rpmspec --srpm --query --queryformat='%{name}-%{VERSION}-%{RELEASE}.src.rpm' kernel.spec)
 rpm-pkg: srcrpm-pkg
-	+rpmbuild $(RPMOPTS) --target $(UTS_MACHINE)-linux -rb $(srpm) \
->>>>>>>
+	+rpmbuild --nodeps $(RPMOPTS) --target $(UTS_MACHINE)-linux -rb $(srpm) \
 	--define='_smp_mflags %{nil}'
 
 # srcrpm-pkg
@@ -106,24 +88,6 @@ binrpm-pkg:
 	$(CONFIG_SHELL) $(MKSPEC) prebuilt > $(objtree)/binkernel.spec
 	+rpmbuild $(RPMOPTS) --define "_builddir $(objtree)" --target \
 		$(UTS_MACHINE)-linux -bb $(objtree)/binkernel.spec
-
-quiet_cmd_debianize = GEN     $@
-      cmd_debianize = $(srctree)/scripts/package/mkdebian $(mkdebian-opts)
-
-debian: FORCE
-	$(call cmd,debianize)
-
-PHONY += debian-orig
-debian-orig: private source = $(shell dpkg-parsechangelog -S Source)
-debian-orig: private version = $(shell dpkg-parsechangelog -S Version | sed 's/-[^-]*$$//')
-debian-orig: private orig-name = $(source)_$(version).orig.tar.gz
-debian-orig: mkdebian-opts = --need-source
-debian-orig: linux.tar.gz debian
-	$(Q)if [ "$(df  --output=target .. 2>/dev/null)" = "$(df --output=target $< 2>/dev/null)" ]; then \
-		ln -f $< ../$(orig-name); \
-	else \
-		cp $< ../$(orig-name); \
-	fi
 
 # nextrpm-pkg
 # ---------------------------------------------------------------------------
@@ -154,7 +118,6 @@ quiet_cmd_builddeb = BUILDDEB
 		$(srctree)/scripts/package/builddeb $@
 
 PHONY += deb-pkg
-<<<<<<<
 deb-pkg:
 	$(MAKE) clean
 	$(call cmd,src_tar,$(KDEB_SOURCENAME))
@@ -166,27 +129,6 @@ bindeb-pkg:
 	$(MAKE) KBUILD_SRC=
 	+$(call cmd,builddeb)
 
-# tarball targets
-# ---------------------------------------------------------------------------
-tar-pkgs := tar-pkg targz-pkg tarbz2-pkg tarxz-pkg
-PHONY += $(tar-pkgs)
-$(tar-pkgs):
-	$(MAKE) KBUILD_SRC=
-	$(CONFIG_SHELL) $(srctree)/scripts/package/buildtar $@
-
-# perf-pkg - generate a source tarball with perf source
-=======
-deb-pkg: debian-orig
-	+dpkg-buildpackage -r$(KBUILD_PKG_ROOTCMD) -a$$(cat debian/arch) $(DPKG_FLAGS) \
-		--build=source,binary -nc -us -uc
-
-PHONY += bindeb-pkg
-bindeb-pkg: debian
-	+dpkg-buildpackage -r$(KBUILD_PKG_ROOTCMD) -a$$(cat debian/arch) $(DPKG_FLAGS) -b -nc -uc
-
-PHONY += intdeb-pkg
-intdeb-pkg:
-	+$(CONFIG_SHELL) $(srctree)/scripts/package/builddeb
 
 # snap-pkg
 # ---------------------------------------------------------------------------
@@ -204,7 +146,6 @@ snap-pkg:
 	snapcraft --target-arch=$(UTS_MACHINE)
 
 # dir-pkg tar*-pkg - tarball targets
->>>>>>>
 # ---------------------------------------------------------------------------
 
 tar-install: FORCE
