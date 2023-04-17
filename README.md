@@ -15,6 +15,11 @@ Use at your own risk.
 
 Release History
 ===============
+GNR-BKC-V7.2
+------------
+35. Fix the issue reported in https://jira.devtools.intel.com/browse/LFE-7082 that kernel panic is observed when restarting QAT device after VM terminates
+    vtd: iommu: Skip invalid list node when flush device iotlb
+
 GNR-BKC-V7.1
 ------------
 34. intel_idle: add initial GNR support
