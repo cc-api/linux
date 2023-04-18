@@ -678,7 +678,7 @@ void kvm_set_cpu_caps(void)
 		F(AVX_VNNI) | F(AVX512_BF16) | F(CMPCCXADD) |
 		F(FZRM) | F(FSRS) | F(FSRC) |
 		F(AMX_FP16) | F(AVX_IFMA) | F(SHA512) |
-		F(SM3)
+		F(SM3) | F(SM4)
 	);
 
 	kvm_cpu_cap_init_kvm_defined(CPUID_7_1_EDX,
