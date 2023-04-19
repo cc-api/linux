@@ -367,6 +367,94 @@ void intel_check_model(unsigned int family, unsigned int model)
 		return;
 
 	switch (model) {
+	case INTEL_FAM6_NEHALEM:
+	case INTEL_FAM6_NEHALEM_EP:
+	case INTEL_FAM6_NEHALEM_G:
+	case INTEL_FAM6_WESTMERE:
+	case INTEL_FAM6_WESTMERE_EP:
+		break;
+	case INTEL_FAM6_NEHALEM_EX:
+	case INTEL_FAM6_WESTMERE_EX:
+		break;
+	case INTEL_FAM6_SANDYBRIDGE:
+		break;
+	case INTEL_FAM6_SANDYBRIDGE_X:
+		break;
+	case INTEL_FAM6_IVYBRIDGE:
+		break;
+	case INTEL_FAM6_IVYBRIDGE_X:
+		break;
+	case INTEL_FAM6_HASWELL:
+		break;
+	case INTEL_FAM6_HASWELL_X:
+		break;
+	case INTEL_FAM6_HASWELL_L:
+		break;
+	case INTEL_FAM6_HASWELL_G:
+		break;
+	case INTEL_FAM6_BROADWELL:
+		break;
+	case INTEL_FAM6_BROADWELL_G:
+		break;
+	case INTEL_FAM6_BROADWELL_X:
+	case INTEL_FAM6_BROADWELL_D:
+		break;
+	case INTEL_FAM6_SKYLAKE_L:
+	case INTEL_FAM6_SKYLAKE:
+	case INTEL_FAM6_KABYLAKE_L:
+	case INTEL_FAM6_KABYLAKE:
+	case INTEL_FAM6_COMETLAKE_L:
+	case INTEL_FAM6_COMETLAKE:
+		break;
+	case INTEL_FAM6_CANNONLAKE_L:
+	case INTEL_FAM6_ICELAKE_L:
+	case INTEL_FAM6_ICELAKE_NNPI:
+	case INTEL_FAM6_LAKEFIELD:
+	case INTEL_FAM6_ROCKETLAKE:
+	case INTEL_FAM6_TIGERLAKE_L:
+	case INTEL_FAM6_TIGERLAKE:
+	case INTEL_FAM6_ALDERLAKE:
+	case INTEL_FAM6_ALDERLAKE_L:
+	case INTEL_FAM6_ALDERLAKE_N:
+	case INTEL_FAM6_RAPTORLAKE:
+	case INTEL_FAM6_RAPTORLAKE_P:
+	case INTEL_FAM6_RAPTORLAKE_S:
+	case INTEL_FAM6_METEORLAKE:
+	case INTEL_FAM6_METEORLAKE_L:
+		break;
+	case INTEL_FAM6_SKYLAKE_X:
+		break;
+	case INTEL_FAM6_ICELAKE_D:
+	case INTEL_FAM6_ICELAKE_X:
+		break;
+	case INTEL_FAM6_EMERALDRAPIDS_X:
+	case INTEL_FAM6_SAPPHIRERAPIDS_X:
+		break;
+	case INTEL_FAM6_ATOM_SILVERMONT:
+		break;
+	case INTEL_FAM6_ATOM_SILVERMONT_D:
+		break;
+	case INTEL_FAM6_ATOM_AIRMONT:
+		break;
+	case INTEL_FAM6_ATOM_GOLDMONT:
+		break;
+	case INTEL_FAM6_ATOM_GOLDMONT_D:
+		break;
+	case INTEL_FAM6_ATOM_GOLDMONT_PLUS:
+		break;
+	case INTEL_FAM6_ATOM_TREMONT_D:
+		break;
+	case INTEL_FAM6_ATOM_TREMONT_L:
+	case INTEL_FAM6_ATOM_TREMONT:
+		break;
+	case INTEL_FAM6_XEON_PHI_KNM:
+	case INTEL_FAM6_XEON_PHI_KNL:
+		break;
+	/* Missing support for below platforms */
+	case INTEL_FAM6_ATOM_SILVERMONT_MID:
+	case INTEL_FAM6_ATOM_AIRMONT_MID:
+	case INTEL_FAM6_ICELAKE:
+		/* fallthrough */
 	default:
 		return;
 	}
