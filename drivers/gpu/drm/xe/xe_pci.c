@@ -530,7 +530,7 @@ static void handle_gmdid(struct xe_device *xe,
 		}
 
 		if (!xe->info.media_verx100) {
-			drm_err(&xe->drm, "Hardware reports unknown graphics version %u.%02u\n",
+			drm_err(&xe->drm, "Hardware reports unknown media version %u.%02u\n",
 				ver / 100, ver % 100);
 		}
 	}
