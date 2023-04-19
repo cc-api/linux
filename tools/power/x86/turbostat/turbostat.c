@@ -277,7 +277,6 @@ unsigned int has_hwp_notify;	/* IA32_HWP_INTERRUPT */
 unsigned int has_hwp_activity_window;	/* IA32_HWP_REQUEST[bits 41:32] */
 unsigned int has_hwp_epp;	/* IA32_HWP_REQUEST[bits 31:24] */
 unsigned int has_hwp_pkg;	/* IA32_HWP_REQUEST_PKG */
-unsigned int has_misc_feature_control;
 unsigned int first_counter_read = 1;
 int ignore_stdin;
 
@@ -298,7 +297,7 @@ int ignore_stdin;
 
 /* unique Feature IDs */
 enum feature_id {
-	FID_MIN,
+	FID_MSR_MISC_FEATURE_CONTROL,	/* MSR_MISC_FEATURE_CONTROL */
 	FID_MAX,
 };
 
@@ -372,32 +371,45 @@ void intel_check_model(unsigned int family, unsigned int model)
 	case INTEL_FAM6_NEHALEM_G:
 	case INTEL_FAM6_WESTMERE:
 	case INTEL_FAM6_WESTMERE_EP:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_NEHALEM_EX:
 	case INTEL_FAM6_WESTMERE_EX:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE_X:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_IVYBRIDGE:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_IVYBRIDGE_X:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_HASWELL:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_HASWELL_X:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_HASWELL_L:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_HASWELL_G:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_BROADWELL:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_BROADWELL_G:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_BROADWELL_X:
 	case INTEL_FAM6_BROADWELL_D:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_SKYLAKE_L:
 	case INTEL_FAM6_SKYLAKE:
@@ -405,6 +417,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 	case INTEL_FAM6_KABYLAKE:
 	case INTEL_FAM6_COMETLAKE_L:
 	case INTEL_FAM6_COMETLAKE:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_CANNONLAKE_L:
 	case INTEL_FAM6_ICELAKE_L:
@@ -421,34 +434,47 @@ void intel_check_model(unsigned int family, unsigned int model)
 	case INTEL_FAM6_RAPTORLAKE_S:
 	case INTEL_FAM6_METEORLAKE:
 	case INTEL_FAM6_METEORLAKE_L:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_SKYLAKE_X:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_ICELAKE_D:
 	case INTEL_FAM6_ICELAKE_X:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_EMERALDRAPIDS_X:
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT_D:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_ATOM_AIRMONT:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_D:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_PLUS:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_D:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_L:
 	case INTEL_FAM6_ATOM_TREMONT:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	case INTEL_FAM6_XEON_PHI_KNM:
 	case INTEL_FAM6_XEON_PHI_KNL:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		break;
 	/* Missing support for below platforms */
 	case INTEL_FAM6_ATOM_SILVERMONT_MID:
@@ -456,6 +482,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 	case INTEL_FAM6_ICELAKE:
 		/* fallthrough */
 	default:
+		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		return;
 	}
 }
@@ -3869,7 +3896,6 @@ void check_permissions(void)
  *
  * Side effect:
  * sets global pkg_cstate_limit to decode MSR_PKG_CST_CONFIG_CONTROL
- * sets has_misc_feature_control
  */
 int probe_nhm_msrs(unsigned int family, unsigned int model)
 {
@@ -3895,7 +3921,6 @@ int probe_nhm_msrs(unsigned int family, unsigned int model)
 	case INTEL_FAM6_IVYBRIDGE:	/* IVB */
 	case INTEL_FAM6_IVYBRIDGE_X:	/* IVB Xeon */
 		pkg_cstate_limits = snb_pkg_cstate_limits;
-		has_misc_feature_control = 1;
 		break;
 	case INTEL_FAM6_HASWELL:	/* HSW */
 	case INTEL_FAM6_HASWELL_G:	/* HSW */
@@ -3907,16 +3932,13 @@ int probe_nhm_msrs(unsigned int family, unsigned int model)
 	case INTEL_FAM6_SKYLAKE_L:	/* SKL */
 	case INTEL_FAM6_CANNONLAKE_L:	/* CNL */
 		pkg_cstate_limits = hsw_pkg_cstate_limits;
-		has_misc_feature_control = 1;
 		break;
 	case INTEL_FAM6_SKYLAKE_X:	/* SKX */
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:	/* SPR */
 		pkg_cstate_limits = skx_pkg_cstate_limits;
-		has_misc_feature_control = 1;
 		break;
 	case INTEL_FAM6_ICELAKE_X:	/* ICX */
 		pkg_cstate_limits = icx_pkg_cstate_limits;
-		has_misc_feature_control = 1;
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT:	/* BYT */
 		no_MSR_MISC_PWR_MGMT = 1;
@@ -5527,7 +5549,7 @@ void decode_misc_feature_control(void)
 {
 	unsigned long long msr;
 
-	if (!has_misc_feature_control)
+	if (!get_feature(FID_MSR_MISC_FEATURE_CONTROL))
 		return;
 
 	if (!get_msr(base_cpu, MSR_MISC_FEATURE_CONTROL, &msr))
