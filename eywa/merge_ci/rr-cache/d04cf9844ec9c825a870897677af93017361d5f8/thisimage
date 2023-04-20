@@ -597,7 +597,6 @@ wait_for_siblings:
 	if (cpu != first_cpu) {
 		uci = ucode_cpu_info + cpu;
 		microcode_ops->collect_cpu_info(cpu, &uci->cpu_sig);
-		pr_debug("CPU %d invoked collect_cpu_info(CPUID + read revision)\n", cpu);
 	}
 
 	this_cpu_info = &cpu_data(cpu);
@@ -688,7 +687,6 @@ static ssize_t reload_store_common(struct device *dev,
 	enum ucode_state tmp_ret = UCODE_OK;
 	int bsp = boot_cpu_data.cpu_index;
 	enum ucode_load_scope load_scope;
-	unsigned long val;
 	bool safe_late_load = false;
 	ssize_t ret;
 
