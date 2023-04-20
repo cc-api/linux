@@ -577,24 +577,6 @@ static int is_lateload_safe(struct microcode_header_intel *mc_header)
 	return 0;
 }
 
-static bool is_ucode_listed(struct ucode_meta *umeta)
-{
-	int i, cpu = raw_smp_processor_id();
-	struct ucode_cpu_info *uci;
-	int rev;
-
-	uci = ucode_cpu_info + cpu;
-	rev = uci->cpu_sig.rev;
-
-	for (i = 0; i < NUM_RB_INFO; i++) {
-		if (!umeta->rollback_id[i])
-			return false;
-		if (umeta->rollback_id[i] == rev)
-			return true;
-	}
-	return false;
-}
-
 /*
  * Get microcode matching with BSP's model. Only CPUs with the same model as
  * BSP can stay in the platform.
