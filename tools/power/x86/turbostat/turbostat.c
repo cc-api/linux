@@ -299,6 +299,7 @@ enum feature_id {
 	FID_BCLK,			/* CPU Base clock */
 	FID_MSR_PKG_CST_CONFIG_CONTROL,	/* MSR_PKG_CST_CONFIG_CONTROL */
 	FID_MISC_MSRS,			/* MSR_PLATFORM_INFO, MSR_IA32_TEMPERATURE_TARGET, MSR_SMI_COUNT, TRL MSRs */
+	FID_TRL_MSRS,			/* MSR_TURBO_RATIO_LIMIT/LIMIT1/LIMIT2/SECONDARY, Atom TRL MSRs */
 	FID_MAX,
 };
 
@@ -394,6 +395,14 @@ int slm_bclk(void)
 #define FEATURE_CST_KNL	BIT(8)
 #define FEATURE_CST_GMT	BIT(9)
 
+/* FID_TRL_MSRS */
+#define FEATURE_TRL_BASE	BIT(1)
+#define FEATURE_TRL_LIMIT1	BIT(2)
+#define FEATURE_TRL_LIMIT2	BIT(3)
+#define FEATURE_TRL_ATOM	BIT(4)
+#define FEATURE_TRL_KNL		BIT(5)
+#define FEATURE_TRL_CORECOUNT	BIT(6)
+
 /*
  * Set the Feature Value for each Feature ID based on CPU model number.
  * Intel CPU model checks are allowed inside intel_check_model() only.
@@ -417,6 +426,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 13333);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_NHM);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_NEHALEM_EX:
 	case INTEL_FAM6_WESTMERE_EX:
@@ -425,6 +435,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 13333);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_NHM);
 		enable_feature(FID_MISC_MSRS);
+		disable_feature(FID_TRL_MSRS);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -432,6 +443,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_SNB);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -439,6 +451,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_SNB);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_IVYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -446,6 +459,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_SNB);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_IVYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -453,6 +467,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_SNB);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_LIMIT1);
 		break;
 	case INTEL_FAM6_HASWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -460,6 +475,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_HSW);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_HASWELL_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -467,6 +483,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_HSW);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_LIMIT1 | FEATURE_TRL_LIMIT2);
 		break;
 	case INTEL_FAM6_HASWELL_L:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -474,6 +491,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_HSW);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_HASWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -481,6 +499,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_HSW);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_BROADWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -488,6 +507,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_HSW);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_BROADWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -495,6 +515,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_HSW);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_BROADWELL_X:
 	case INTEL_FAM6_BROADWELL_D:
@@ -503,6 +524,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_HSW);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_SKYLAKE_L:
 	case INTEL_FAM6_SKYLAKE:
@@ -515,6 +537,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_HSW);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_CANNONLAKE_L:
 	case INTEL_FAM6_ICELAKE_L:
@@ -536,6 +559,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_HSW);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_SKYLAKE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -543,6 +567,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_SKX);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		break;
 	case INTEL_FAM6_ICELAKE_D:
 	case INTEL_FAM6_ICELAKE_X:
@@ -551,6 +576,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_SKX);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		break;
 	case INTEL_FAM6_EMERALDRAPIDS_X:
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:
@@ -559,6 +585,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_SKX);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -566,6 +593,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, slm_bclk());
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_SLM);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_ATOM);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -573,6 +601,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, slm_bclk());
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_SLM);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_ATOM_AIRMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -580,6 +609,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 13333);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_AMT);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -587,6 +617,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_GMT);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -594,6 +625,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_GMT);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_PLUS:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -601,6 +633,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_GMT);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -608,6 +641,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_GMT);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_L:
 	case INTEL_FAM6_ATOM_TREMONT:
@@ -616,6 +650,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_GMT);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		break;
 	case INTEL_FAM6_XEON_PHI_KNM:
 	case INTEL_FAM6_XEON_PHI_KNL:
@@ -624,6 +659,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_KNL);
 		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_KNL);
 		break;
 	/* Missing support for below platforms */
 	case INTEL_FAM6_ATOM_SILVERMONT_MID:
@@ -636,6 +672,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_BCLK, 10000);
 		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_DEFAULT);
 		disable_feature(FID_MISC_MSRS);
+		disable_feature(FID_TRL_MSRS);
 		return;
 	}
 }
@@ -2917,29 +2954,7 @@ static void dump_ivt_turbo_ratio_limits(void)
 	return;
 }
 
-int has_turbo_ratio_group_limits(int family, int model)
-{
-
-	if (!genuine_intel)
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-	case INTEL_FAM6_ATOM_GOLDMONT:
-	case INTEL_FAM6_SKYLAKE_X:
-	case INTEL_FAM6_ICELAKE_X:
-	case INTEL_FAM6_SAPPHIRERAPIDS_X:
-	case INTEL_FAM6_ATOM_GOLDMONT_D:
-	case INTEL_FAM6_ATOM_TREMONT_D:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
-static void dump_turbo_ratio_limits(int trl_msr_offset, int family, int model)
+static void dump_turbo_ratio_limits(int trl_msr_offset, int dump_corecount)
 {
 	unsigned long long msr, core_counts;
 	int shift;
@@ -2948,7 +2963,7 @@ static void dump_turbo_ratio_limits(int trl_msr_offset, int family, int model)
 	fprintf(outf, "cpu%d: MSR_%sTURBO_RATIO_LIMIT: 0x%08llx\n",
 		base_cpu, trl_msr_offset == MSR_SECONDARY_TURBO_RATIO_LIMIT ? "SECONDARY_" : "", msr);
 
-	if (has_turbo_ratio_group_limits(family, model)) {
+	if (dump_corecount) {
 		get_msr(base_cpu, MSR_TURBO_RATIO_LIMIT1, &core_counts);
 		fprintf(outf, "cpu%d: MSR_TURBO_RATIO_LIMIT1: 0x%08llx\n", base_cpu, core_counts);
 	} else {
@@ -4234,100 +4249,6 @@ int is_jvl(unsigned int family, unsigned int model)
 	return 0;
 }
 
-int has_turbo_ratio_limit(unsigned int family, unsigned int model)
-{
-	if (has_slv_msrs(family, model))
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-		/* Nehalem compatible, but do not include turbo-ratio limit support */
-	case INTEL_FAM6_NEHALEM_EX:	/* Nehalem-EX Xeon - Beckton */
-	case INTEL_FAM6_XEON_PHI_KNL:	/* PHI - Knights Landing (different MSR definition) */
-		return 0;
-	default:
-		return 1;
-	}
-}
-
-int has_atom_turbo_ratio_limit(unsigned int family, unsigned int model)
-{
-	if (has_slv_msrs(family, model))
-		return 1;
-
-	return 0;
-}
-
-int has_ivt_turbo_ratio_limit(unsigned int family, unsigned int model)
-{
-	if (!genuine_intel)
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-	case INTEL_FAM6_IVYBRIDGE_X:	/* IVB Xeon */
-	case INTEL_FAM6_HASWELL_X:	/* HSW Xeon */
-		return 1;
-	default:
-		return 0;
-	}
-}
-
-int has_hsw_turbo_ratio_limit(unsigned int family, unsigned int model)
-{
-	if (!genuine_intel)
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-	case INTEL_FAM6_HASWELL_X:	/* HSW Xeon */
-		return 1;
-	default:
-		return 0;
-	}
-}
-
-int has_knl_turbo_ratio_limit(unsigned int family, unsigned int model)
-{
-	if (!genuine_intel)
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-	case INTEL_FAM6_XEON_PHI_KNL:	/* Knights Landing */
-		return 1;
-	default:
-		return 0;
-	}
-}
-
-int has_glm_turbo_ratio_limit(unsigned int family, unsigned int model)
-{
-	if (!genuine_intel)
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-	case INTEL_FAM6_ATOM_GOLDMONT:
-	case INTEL_FAM6_SKYLAKE_X:
-	case INTEL_FAM6_ICELAKE_X:
-	case INTEL_FAM6_SAPPHIRERAPIDS_X:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
 int has_config_tdp(unsigned int family, unsigned int model)
 {
 	if (!genuine_intel)
@@ -4399,26 +4320,30 @@ static void remove_underbar(char *s)
 
 static void dump_turbo_ratio_info(unsigned int family, unsigned int model)
 {
+	int feature_trl = get_feature(FID_TRL_MSRS);
+
 	if (!has_turbo)
 		return;
 
-	if (has_hsw_turbo_ratio_limit(family, model))
+	if (feature_trl & FEATURE_TRL_LIMIT2)
 		dump_hsw_turbo_ratio_limits();
 
-	if (has_ivt_turbo_ratio_limit(family, model))
+	if (feature_trl & FEATURE_TRL_LIMIT1)
 		dump_ivt_turbo_ratio_limits();
 
-	if (has_turbo_ratio_limit(family, model)) {
-		dump_turbo_ratio_limits(MSR_TURBO_RATIO_LIMIT, family, model);
+	if (feature_trl & FEATURE_TRL_BASE) {
+		int dump_corecount = feature_trl & FEATURE_TRL_CORECOUNT;
+
+		dump_turbo_ratio_limits(MSR_TURBO_RATIO_LIMIT, dump_corecount);
 
 		if (is_hybrid)
-			dump_turbo_ratio_limits(MSR_SECONDARY_TURBO_RATIO_LIMIT, family, model);
+			dump_turbo_ratio_limits(MSR_SECONDARY_TURBO_RATIO_LIMIT, dump_corecount);
 	}
 
-	if (has_atom_turbo_ratio_limit(family, model))
+	if (feature_trl & FEATURE_TRL_ATOM)
 		dump_atom_turbo_ratio_limits();
 
-	if (has_knl_turbo_ratio_limit(family, model))
+	if (feature_trl & FEATURE_TRL_KNL)
 		dump_knl_turbo_ratio_limits();
 
 	if (has_config_tdp(family, model))
