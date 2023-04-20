@@ -687,7 +687,6 @@ static ssize_t reload_store_common(struct device *dev,
 	enum ucode_state tmp_ret = UCODE_OK;
 	int bsp = boot_cpu_data.cpu_index;
 	enum ucode_load_scope load_scope;
-	unsigned long val;
 	bool safe_late_load = false;
 	ssize_t ret;
 
