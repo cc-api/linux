@@ -196,6 +196,12 @@ static const struct xe_graphics_desc graphics_xe2 = {
 static const struct xe_graphics_desc graphics_xe3 = {
 	.name = "Xe3_LPG",
 	XE3_GFX_FEATURES,
+	/*
+	 * FIXME: Following features temporarily disabled until full driver
+	 * support is added
+	 */
+	.has_flat_ccs = false,
+	.supports_usm = false,
 };
 
 static const struct xe_media_desc media_xem = {
