@@ -45,7 +45,7 @@ intel_de_write(struct drm_i915_private *i915, i915_reg_t reg, u32 val)
 static inline u32
 intel_de_rmw(struct drm_i915_private *i915, i915_reg_t reg, u32 clear, u32 set)
 {
-	return xe_mmio_rmw32(to_gt(i915), reg.reg, ~clear, set);
+	return xe_mmio_rmw32(to_gt(i915), reg.reg, clear, set);
 }
 
 static inline int
