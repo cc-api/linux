@@ -346,12 +346,9 @@ static struct gmdid_map graphics_ip_map[] = {
 /* Map of GMD_ID values to media IP */
 static struct gmdid_map media_ip_map[] = {
 	{ 1300, &media_xelpmp },
-#if 0
-	/* Don't match until SA media is working */
 	{ 1301, &media_xe2 },
 	{ 1302, &media_xe2 },
 	{ 2000, &media_xe2 },
-#endif
 };
 
 #define INTEL_VGA_DEVICE(id, info) {			\
@@ -525,12 +522,18 @@ static void handle_gmdid(struct xe_device *xe,
 				xe->info.media_verx100 = ver;
 				*media = media_ip_map[i].ip;
 
+				/* FIXME: Remove once standalone media is ready */
+				drm_info(&xe->drm, "Detected %s media, but leaving disabled until support is ready.\n", (*media)->name);
+				*media = NULL;
+				xe->info.media_verx100 = 0;
+				return;
+
 				break;
 			}
 		}
 
 		if (!xe->info.media_verx100) {
-			drm_err(&xe->drm, "Hardware reports unknown graphics version %u.%02u\n",
+			drm_err(&xe->drm, "Hardware reports unknown media version %u.%02u\n",
 				ver / 100, ver % 100);
 		}
 	}
