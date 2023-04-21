@@ -5948,6 +5948,40 @@
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
+        },
+        {
+            "branch": "arl_rapl",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Sumeet Pawnikar",
+                    "email": "sumeet.r.pawnikar@intel.com"
+                }
+            ],
+            "description": "Add Arrow Lake to the list of supported processor models in the Intel RAPL power capping driver.",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Sumeet Pawnikar",
+                    "email": "sumeet.r.pawnikar@intel.com"
+                }
+            ],
+            "jira": "NEXT-3359",
+            "name": "arl_rapl",
+            "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
+            "sdl_contact": [
+                {
+                    "name": "Sumeet Pawnikar",
+                    "email": "sumeet.r.pawnikar@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-04/msg00044.html",
+            "platforms": "ARL",
+            "feature_jiras": "",
+            "last_enabled": "v6.3"
         }
     ]
 }
