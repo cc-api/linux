@@ -327,6 +327,7 @@ static const struct xe_device_desc bmg_desc = {
 static const struct xe_device_desc lnl_desc = {
 	PLATFORM(XE_LUNARLAKE),
 	.has_4tile = true,
+	.require_force_probe = true,
 };
 
 #undef PLATFORM
