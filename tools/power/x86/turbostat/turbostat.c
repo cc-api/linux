@@ -303,6 +303,7 @@ enum feature_id {
 	FID_RAPL,			/* RAPL MSRs for different RAPL Domains */
 	FID_RAPL_DIVISOR,		/* Divisor for Energy unit raw value from MSR_RAPL_POWER_UNIT */
 	FID_RAPL_FIXED_UNIT,		/* Fixed Energy Unit used for DRAM RAPL Domain */
+	FID_RAPL_QUIRK_TDP,		/* Hardcoded TDP value when cannot be retrieved from RAPL_PKG_POWER_INFO */
 	FID_MAX,
 };
 
@@ -454,6 +455,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_NEHALEM_EX:
 	case INTEL_FAM6_WESTMERE_EX:
@@ -471,6 +473,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -487,6 +490,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -503,6 +507,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SNX);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_IVYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -519,6 +524,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_IVYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -535,6 +541,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SNX);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_HASWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -551,6 +558,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_HASWELL_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -567,6 +575,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
 		disable_feature(FID_RAPL_DIVISOR);
 		enable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_HASWELL_L:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -583,6 +592,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_HASWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -599,6 +609,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_BROADWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -615,6 +626,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_BROADWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -631,6 +643,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_BROADWELL_X:
 	case INTEL_FAM6_BROADWELL_D:
@@ -648,6 +661,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
 		disable_feature(FID_RAPL_DIVISOR);
 		enable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_SKYLAKE_L:
 	case INTEL_FAM6_SKYLAKE:
@@ -669,6 +683,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SKL);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_CANNONLAKE_L:
 	case INTEL_FAM6_ICELAKE_L:
@@ -699,6 +714,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SKL);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_SKYLAKE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -715,6 +731,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
 		disable_feature(FID_RAPL_DIVISOR);
 		enable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_ICELAKE_D:
 	case INTEL_FAM6_ICELAKE_X:
@@ -732,6 +749,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
 		disable_feature(FID_RAPL_DIVISOR);
 		enable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_EMERALDRAPIDS_X:
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:
@@ -749,6 +767,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -765,6 +784,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SLM);
 		enable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		enable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -781,6 +801,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_SLM);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		enable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_ATOM_AIRMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -797,6 +818,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -813,6 +835,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_GMT);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -829,6 +852,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_GMTD);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_PLUS:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -845,6 +869,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_GMT);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -861,6 +886,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_GMTD);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_L:
 	case INTEL_FAM6_ATOM_TREMONT:
@@ -878,6 +904,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_TMT);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	case INTEL_FAM6_XEON_PHI_KNM:
 	case INTEL_FAM6_XEON_PHI_KNL:
@@ -895,6 +922,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		break;
 	/* Missing support for below platforms */
 	case INTEL_FAM6_ATOM_SILVERMONT_MID:
@@ -916,6 +944,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL);
 		disable_feature(FID_RAPL_DIVISOR);
 		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
 		return;
 	}
 }
@@ -4961,7 +4990,7 @@ int print_perf_limit(struct thread_data *t, struct core_data *c, struct pkg_data
 #define	RAPL_POWER_GRANULARITY	0x7FFF	/* 15 bit power granularity */
 #define	RAPL_TIME_GRANULARITY	0x3F	/* 6 bit time granularity */
 
-double get_tdp_intel(unsigned int model)
+double get_tdp_intel(void)
 {
 	unsigned long long msr;
 
@@ -4969,13 +4998,10 @@ double get_tdp_intel(unsigned int model)
 		if (!get_msr(base_cpu, MSR_PKG_POWER_INFO, &msr))
 			return ((msr >> 0) & RAPL_POWER_GRANULARITY) * rapl_power_units;
 
-	switch (model) {
-	case INTEL_FAM6_ATOM_SILVERMONT:
-	case INTEL_FAM6_ATOM_SILVERMONT_D:
+	if (get_feature(FID_RAPL_QUIRK_TDP))
 		return 30.0;
-	default:
-		return 135.0;
-	}
+
+	return 135.0;
 }
 
 double get_tdp_amd(unsigned int family)
@@ -4986,7 +5012,7 @@ double get_tdp_amd(unsigned int family)
 	return 280.0;
 }
 
-void rapl_probe_intel(unsigned int family, unsigned int model)
+void rapl_probe_intel(unsigned int family)
 {
 	unsigned long long msr;
 	unsigned int time_unit;
@@ -5139,7 +5165,7 @@ void rapl_probe_intel(unsigned int family, unsigned int model)
 
 	rapl_time_units = 1.0 / (1 << (time_unit));
 
-	tdp = get_tdp_intel(model);
+	tdp = get_tdp_intel();
 
 	rapl_joule_counter_range = 0xFFFFFFFF * rapl_energy_units / tdp;
 	if (!quiet)
@@ -5195,7 +5221,7 @@ void rapl_probe_amd(unsigned int family, unsigned int model)
 void rapl_probe(unsigned int family, unsigned int model)
 {
 	if (genuine_intel)
-		rapl_probe_intel(family, model);
+		rapl_probe_intel(family);
 	if (authentic_amd || hygon_genuine)
 		rapl_probe_amd(family, model);
 }
