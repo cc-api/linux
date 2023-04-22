@@ -301,6 +301,7 @@ enum feature_id {
 	FID_CST_AUTO_CONVERSION,	/* AUTOMATIC_CSTATE_CONVERSION bit in MSR_PKG_CST_CONFIG_CONTROL */
 	FID_CRYSTAL_FREQ,		/* Crystal clock to use when not available from CPUID.15 */
 	FID_RAPL,			/* RAPL MSRs for different RAPL Domains */
+	FID_RAPL_DIVISOR,		/* Divisor for Energy unit raw value from MSR_RAPL_POWER_UNIT */
 	FID_MAX,
 };
 
@@ -450,6 +451,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		disable_feature(FID_RAPL);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_NEHALEM_EX:
 	case INTEL_FAM6_WESTMERE_EX:
@@ -465,6 +467,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		disable_feature(FID_RAPL);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -479,6 +482,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -493,6 +497,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SNX);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_IVYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -507,6 +512,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_IVYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -521,6 +527,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SNX);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_HASWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -535,6 +542,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_HASWELL_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -549,6 +557,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_HASWELL_L:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -563,6 +572,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_HASWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -577,6 +587,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_BROADWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -591,6 +602,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_BROADWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -605,6 +617,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SNB);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_BROADWELL_X:
 	case INTEL_FAM6_BROADWELL_D:
@@ -620,6 +633,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		enable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_SKYLAKE_L:
 	case INTEL_FAM6_SKYLAKE:
@@ -639,6 +653,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		set_feature(FID_CRYSTAL_FREQ, 24000000);
 		set_feature(FID_RAPL, FEATURE_RAPL_SKL);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_CANNONLAKE_L:
 	case INTEL_FAM6_ICELAKE_L:
@@ -667,6 +682,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SKL);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_SKYLAKE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -681,6 +697,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		enable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_ICELAKE_D:
 	case INTEL_FAM6_ICELAKE_X:
@@ -696,6 +713,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_EMERALDRAPIDS_X:
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:
@@ -711,6 +729,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -725,6 +744,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SLM);
+		enable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -739,6 +759,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_SLM);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_ATOM_AIRMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -753,6 +774,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		disable_feature(FID_RAPL);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -767,6 +789,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		set_feature(FID_CRYSTAL_FREQ, 19200000);
 		set_feature(FID_RAPL, FEATURE_RAPL_GMT);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -781,6 +804,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		set_feature(FID_CRYSTAL_FREQ, 25000000);
 		set_feature(FID_RAPL, FEATURE_RAPL_GMTD);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_PLUS:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -795,6 +819,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		set_feature(FID_CRYSTAL_FREQ, 19200000);
 		set_feature(FID_RAPL, FEATURE_RAPL_GMT);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -809,6 +834,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_GMTD);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_L:
 	case INTEL_FAM6_ATOM_TREMONT:
@@ -824,6 +850,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_TMT);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	case INTEL_FAM6_XEON_PHI_KNM:
 	case INTEL_FAM6_XEON_PHI_KNL:
@@ -839,6 +866,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		set_feature(FID_RAPL, FEATURE_RAPL_HSX);
+		disable_feature(FID_RAPL_DIVISOR);
 		break;
 	/* Missing support for below platforms */
 	case INTEL_FAM6_ATOM_SILVERMONT_MID:
@@ -858,6 +886,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_AUTO_CONVERSION);
 		disable_feature(FID_CRYSTAL_FREQ);
 		disable_feature(FID_RAPL);
+		disable_feature(FID_RAPL_DIVISOR);
 		return;
 	}
 }
@@ -5085,7 +5114,7 @@ void rapl_probe_intel(unsigned int family, unsigned int model)
 		return;
 
 	rapl_power_units = 1.0 / (1 << (msr & 0xF));
-	if (model == INTEL_FAM6_ATOM_SILVERMONT)
+	if (get_feature(FID_RAPL_DIVISOR))
 		rapl_energy_units = 1.0 * (1 << (msr >> 8 & 0x1F)) / 1000000;
 	else
 		rapl_energy_units = 1.0 / (1 << (msr >> 8 & 0x1F));
