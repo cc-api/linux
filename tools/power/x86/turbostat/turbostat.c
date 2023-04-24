@@ -836,7 +836,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL_FIXED_UNIT);
 		enable_feature(FID_RAPL_QUIRK_TDP);
 		disable_feature(FID_TSC_TWEAK);
-		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
+		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC6);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -6168,10 +6168,6 @@ void process_cpuid()
 
 	do_irtl_snb = has_snb_msrs(family, model);
 	if (has_slv_msrs(family, model)) {
-		BIC_NOT_PRESENT(BIC_Pkgpc2);
-		BIC_NOT_PRESENT(BIC_Pkgpc3);
-		BIC_PRESENT(BIC_Pkgpc6);
-		BIC_NOT_PRESENT(BIC_Pkgpc7);
 		BIC_PRESENT(BIC_Mod_c6);
 		use_c1_residency_msr = 1;
 	}
