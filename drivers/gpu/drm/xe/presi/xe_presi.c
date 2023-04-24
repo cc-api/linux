@@ -3,6 +3,9 @@
  * Copyright © 2022 Intel Corporation
  */
 
+#include <linux/timer.h>
+#include <drm/drm_vblank.h>
+
 #include "regs/xe_guc_regs.h"
 #include "xe_device_types.h"
 #include "xe_mmio.h"
@@ -175,3 +178,42 @@ bool xe_presi_setup_guc_wopcm_region(struct xe_gt *gt, u32 *guc_wopcm_base,
 
 	return true;
 }
+
+#define XE_PRESI_TIMER_INTERVAL_MSECS 30
+
+#if IS_ENABLED(CONFIG_DRM_XE_DISPLAY)
+#include "i915_drv.h"
+#include "intel_display.h"
+
+static void xe_presi_irq_timer(struct timer_list *t)
+{
+	struct xe_device *xe = from_timer(xe, t, presi_info.irq_timer);
+	struct drm_device *drm_dev = &xe->drm;
+	int pipe;
+
+	for_each_pipe(xe, pipe)
+		if (pipe < drm_dev->num_crtcs)
+			drm_handle_vblank(drm_dev, pipe);
+
+	mod_timer(&xe->presi_info.irq_timer,
+		  jiffies + msecs_to_jiffies(XE_PRESI_TIMER_INTERVAL_MSECS));
+}
+
+void xe_presi_irq_timer_start(struct xe_device *xe)
+{
+	if (!IS_SIMULATOR(xe))
+		return;
+
+	timer_setup(&xe->presi_info.irq_timer, xe_presi_irq_timer, 0);
+	mod_timer(&xe->presi_info.irq_timer,
+		  jiffies + msecs_to_jiffies(XE_PRESI_TIMER_INTERVAL_MSECS));
+}
+
+void xe_presi_irq_timer_stop(struct xe_device *xe)
+{
+	if (!IS_SIMULATOR(xe))
+		return;
+
+	del_timer_sync(&xe->presi_info.irq_timer);
+}
+#endif
