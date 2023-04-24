@@ -221,8 +221,6 @@ unsigned int rapl_joules;
 unsigned int summary_only;
 unsigned int list_header_only;
 unsigned int dump_only;
-unsigned int do_knl_cstates;
-unsigned int do_slm_cstates;
 unsigned int has_aperf;
 unsigned int has_epb;
 unsigned int has_turbo;
@@ -306,6 +304,8 @@ enum feature_id {
 	FID_CST_C1_RES,			/* MSR_CORE_C1_RES */
 	FID_CST_MC6_RES,		/* MSR_MODULE_C6_RES_MS */
 	FID_CST_C6_DEMOTION,		/* MSR_CC6_DEMOTION_POLICY_CONFIG/MSR_MC6_DEMOTION_POLICY_CONFIG */
+	FID_CST_ATOM_PC6_RES,		/* MSR_ATOM_PKG_C6_RESIDENCY */
+	FID_CST_KNL_CC6_RES,		/* MSR_KNL_CORE_C6_RESIDENCY */
 	FID_MAX,
 };
 
@@ -477,6 +477,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_NEHALEM_EX:
 	case INTEL_FAM6_WESTMERE_EX:
@@ -501,6 +503,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -524,6 +528,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -547,6 +553,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_IVYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -570,6 +578,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_IVYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -593,6 +603,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_HASWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -616,6 +628,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_HASWELL_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -639,6 +653,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_HASWELL_L:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -662,6 +678,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_HASWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -685,6 +703,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_BROADWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -708,6 +728,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_BROADWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -731,6 +753,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_BROADWELL_X:
 	case INTEL_FAM6_BROADWELL_D:
@@ -755,6 +779,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_SKYLAKE_L:
 	case INTEL_FAM6_SKYLAKE:
@@ -783,6 +809,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_CANNONLAKE_L:
 	case INTEL_FAM6_ICELAKE_L:
@@ -820,6 +848,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_SKYLAKE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -843,6 +873,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_ICELAKE_D:
 	case INTEL_FAM6_ICELAKE_X:
@@ -867,6 +899,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_EMERALDRAPIDS_X:
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:
@@ -891,6 +925,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -914,6 +950,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		enable_feature(FID_CST_C1_RES);
 		enable_feature(FID_CST_MC6_RES);
 		enable_feature(FID_CST_C6_DEMOTION);
+		enable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -937,6 +975,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		enable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_ATOM_AIRMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -960,6 +1000,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -983,6 +1025,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -1006,6 +1050,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		enable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_PLUS:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -1029,6 +1075,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -1052,6 +1100,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_L:
 	case INTEL_FAM6_ATOM_TREMONT:
@@ -1076,6 +1126,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	case INTEL_FAM6_XEON_PHI_KNM:
 	case INTEL_FAM6_XEON_PHI_KNL:
@@ -1100,6 +1152,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		enable_feature(FID_CST_KNL_CC6_RES);
 		break;
 	/* Missing support for below platforms */
 	case INTEL_FAM6_ATOM_SILVERMONT_MID:
@@ -1128,6 +1182,8 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
 		return;
 	}
 }
@@ -3027,10 +3083,10 @@ retry:
 			return -6;
 	}
 
-	if ((DO_BIC(BIC_CPU_c6) || soft_c1_residency_display(BIC_CPU_c6)) && !do_knl_cstates) {
+	if ((DO_BIC(BIC_CPU_c6) || soft_c1_residency_display(BIC_CPU_c6)) && !get_feature(FID_CST_KNL_CC6_RES)) {
 		if (get_msr(cpu, MSR_CORE_C6_RESIDENCY, &c->c6))
 			return -7;
-	} else if (do_knl_cstates && soft_c1_residency_display(BIC_CPU_c6)) {
+	} else if (get_feature(FID_CST_KNL_CC6_RES) && soft_c1_residency_display(BIC_CPU_c6)) {
 		if (get_msr(cpu, MSR_KNL_CORE_C6_RESIDENCY, &c->c6))
 			return -7;
 	}
@@ -3097,7 +3153,7 @@ retry:
 		if (get_msr(cpu, MSR_PKG_C3_RESIDENCY, &p->pc3))
 			return -9;
 	if (DO_BIC(BIC_Pkgpc6)) {
-		if (do_slm_cstates) {
+		if (get_feature(FID_CST_ATOM_PC6_RES)) {
 			if (get_msr(cpu, MSR_ATOM_PKG_C6_RESIDENCY, &p->pc6))
 				return -10;
 		} else {
@@ -5537,22 +5593,6 @@ int has_skl_msrs(unsigned int family, unsigned int model)
 	return 0;
 }
 
-int is_slm(unsigned int family, unsigned int model)
-{
-	if (!genuine_intel)
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-	case INTEL_FAM6_ATOM_SILVERMONT:	/* BYT */
-	case INTEL_FAM6_ATOM_SILVERMONT_D:	/* AVN */
-		return 1;
-	}
-	return 0;
-}
-
 int is_knl(unsigned int family, unsigned int model)
 {
 	if (!genuine_intel)
@@ -6103,8 +6143,6 @@ void process_cpuid()
 		BIC_PRESENT(BIC_GFX_c0);
 		BIC_PRESENT(BIC_CPUGFX);
 	}
-	do_slm_cstates = is_slm(family, model);
-	do_knl_cstates = is_knl(family, model);
 
 	if (!quiet)
 		decode_misc_pwr_mgmt_msr();
