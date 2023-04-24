@@ -889,7 +889,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		enable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		enable_feature(FID_CST_IRTL);
-		disable_feature(FID_CST_C1_RES);
+		enable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
 		disable_feature(FID_CST_C6_DEMOTION);
 		disable_feature(FID_CST_ATOM_PC6_RES);
