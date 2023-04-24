@@ -223,7 +223,6 @@ unsigned int list_header_only;
 unsigned int dump_only;
 unsigned int do_knl_cstates;
 unsigned int do_slm_cstates;
-unsigned int use_c1_residency_msr;
 unsigned int has_aperf;
 unsigned int has_epb;
 unsigned int has_turbo;
@@ -304,6 +303,7 @@ enum feature_id {
 	FID_TSC_TWEAK,			/* Use CPU Base freq instead of TSC freq for aperf/mperf counter */
 	FID_CSTATES,			/* Core cstates and Package cstates supported */
 	FID_CST_IRTL,			/* IRTL MSRs for PC3/PC6/PC7/PC8/PC9/PC10 */
+	FID_CST_C1_RES,			/* MSR_CORE_C1_RES */
 	FID_MAX,
 };
 
@@ -472,6 +472,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
 		disable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_NEHALEM_EX:
 	case INTEL_FAM6_WESTMERE_EX:
@@ -493,6 +494,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
 		disable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -513,6 +515,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -533,6 +536,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_IVYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -553,6 +557,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_IVYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -573,6 +578,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_HASWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -593,6 +599,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_HASWELL_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -613,6 +620,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_HASWELL_L:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -633,6 +641,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_HASWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -653,6 +662,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_BROADWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -673,6 +683,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_BROADWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -693,6 +704,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_BROADWELL_X:
 	case INTEL_FAM6_BROADWELL_D:
@@ -714,6 +726,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_SKYLAKE_L:
 	case INTEL_FAM6_SKYLAKE:
@@ -739,6 +752,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		enable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_CANNONLAKE_L:
 	case INTEL_FAM6_ICELAKE_L:
@@ -773,6 +787,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		enable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_SKYLAKE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -793,6 +808,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC6);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_ICELAKE_D:
 	case INTEL_FAM6_ICELAKE_X:
@@ -814,6 +830,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC6);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_EMERALDRAPIDS_X:
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:
@@ -835,6 +852,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC6);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -855,6 +873,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC6);
 		disable_feature(FID_CST_IRTL);
+		enable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -875,6 +894,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
 		disable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_ATOM_AIRMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -895,6 +915,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
 		disable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -915,6 +936,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -935,6 +957,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		enable_feature(FID_CST_IRTL);
+		enable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_PLUS:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -955,6 +978,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -975,6 +999,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_L:
 	case INTEL_FAM6_ATOM_TREMONT:
@@ -996,6 +1021,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		enable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		enable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	case INTEL_FAM6_XEON_PHI_KNM:
 	case INTEL_FAM6_XEON_PHI_KNL:
@@ -1017,6 +1043,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
 		disable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		break;
 	/* Missing support for below platforms */
 	case INTEL_FAM6_ATOM_SILVERMONT_MID:
@@ -1042,6 +1069,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TSC_TWEAK);
 		disable_feature(FID_CSTATES);
 		disable_feature(FID_CST_IRTL);
+		disable_feature(FID_CST_C1_RES);
 		return;
 	}
 }
@@ -2291,7 +2319,7 @@ void delta_core(struct core_data *new, struct core_data *old)
 
 int soft_c1_residency_display(int bic)
 {
-	if (!DO_BIC(BIC_CPU_c1) || use_c1_residency_msr)
+	if (!DO_BIC(BIC_CPU_c1) || get_feature(FID_CST_C1_RES))
 		return 0;
 
 	return DO_BIC_READ(bic);
@@ -2340,7 +2368,7 @@ int delta_thread(struct thread_data *new, struct thread_data *old, struct core_d
 		}
 	}
 
-	if (use_c1_residency_msr) {
+	if (get_feature(FID_CST_C1_RES)) {
 		/*
 		 * Some models have a dedicated C1 residency MSR,
 		 * which should be more accurate than the derivation below.
@@ -2922,7 +2950,7 @@ retry:
 			return -5;
 		t->smi_count = msr & 0xFFFFFFFF;
 	}
-	if (DO_BIC(BIC_CPU_c1) && use_c1_residency_msr) {
+	if (DO_BIC(BIC_CPU_c1) && get_feature(FID_CST_C1_RES)) {
 		if (get_msr(cpu, MSR_CORE_C1_RES, &t->c1))
 			return -6;
 	}
@@ -4513,22 +4541,6 @@ int has_slv_msrs(unsigned int family, unsigned int model)
 	return 0;
 }
 
-int is_dnv(unsigned int family, unsigned int model)
-{
-
-	if (!genuine_intel)
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-	case INTEL_FAM6_ATOM_GOLDMONT_D:
-		return 1;
-	}
-	return 0;
-}
-
 int is_icx(unsigned int family, unsigned int model)
 {
 
@@ -6045,10 +6057,6 @@ void process_cpuid()
 
 	if (has_slv_msrs(family, model)) {
 		BIC_PRESENT(BIC_Mod_c6);
-		use_c1_residency_msr = 1;
-	}
-	if (is_dnv(family, model)) {
-		use_c1_residency_msr = 1;
 	}
 	if (has_skl_msrs(family, model)) {
 		BIC_PRESENT(BIC_Totl_c0);
