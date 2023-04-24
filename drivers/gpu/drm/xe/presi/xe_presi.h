@@ -47,6 +47,8 @@ struct xe_presi_info {
 	} mode;
 	u64 disabled_features;
 	int timeout_multiplier;
+
+	struct timer_list irq_timer; /* Timer to fake periordic interrupt */
 };
 
 #define MODPARAM_TO_PRESI_MODE(x) ({ \
