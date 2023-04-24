@@ -863,12 +863,6 @@ void intel_check_model(unsigned int family, unsigned int model)
 	case INTEL_FAM6_ROCKETLAKE:
 	case INTEL_FAM6_TIGERLAKE_L:
 	case INTEL_FAM6_TIGERLAKE:
-	case INTEL_FAM6_ALDERLAKE:
-	case INTEL_FAM6_ALDERLAKE_L:
-	case INTEL_FAM6_ALDERLAKE_N:
-	case INTEL_FAM6_RAPTORLAKE:
-	case INTEL_FAM6_RAPTORLAKE_P:
-	case INTEL_FAM6_RAPTORLAKE_S:
 	case INTEL_FAM6_METEORLAKE:
 	case INTEL_FAM6_METEORLAKE_L:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -888,6 +882,39 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL_QUIRK_TDP);
 		enable_feature(FID_TSC_TWEAK);
 		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
+		enable_feature(FID_CST_IRTL);
+		enable_feature(FID_CST_C1_RES);
+		disable_feature(FID_CST_MC6_RES);
+		disable_feature(FID_CST_C6_DEMOTION);
+		disable_feature(FID_CST_ATOM_PC6_RES);
+		disable_feature(FID_CST_KNL_CC6_RES);
+		enable_feature(FID_CST_EXTENDED_C0);
+		disable_feature(FID_CST_PREWAKE);
+		disable_feature(FID_PERF_MULTIPLIER);
+		break;
+	case INTEL_FAM6_ALDERLAKE:
+	case INTEL_FAM6_ALDERLAKE_L:
+	case INTEL_FAM6_ALDERLAKE_N:
+	case INTEL_FAM6_RAPTORLAKE:
+	case INTEL_FAM6_RAPTORLAKE_P:
+	case INTEL_FAM6_RAPTORLAKE_S:
+		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
+		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
+		set_feature(FID_MSR_PKG_CST_CONFIG_CONTROL, FEATURE_CST_HSW);
+		enable_feature(FID_MISC_MSRS);
+		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
+		enable_feature(FID_CONFIG_TDP_MSRS);
+		set_feature(FID_TCC_OFFSET, 6);
+		disable_feature(FID_PERF_LIMIT_REASONS);
+		disable_feature(FID_CST_AUTO_CONVERSION);
+		disable_feature(FID_CRYSTAL_FREQ);
+		set_feature(FID_RAPL, FEATURE_RAPL_SKL);
+		disable_feature(FID_RAPL_DIVISOR);
+		disable_feature(FID_RAPL_FIXED_UNIT);
+		disable_feature(FID_RAPL_QUIRK_TDP);
+		enable_feature(FID_TSC_TWEAK);
+		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC10);
 		enable_feature(FID_CST_IRTL);
 		enable_feature(FID_CST_C1_RES);
 		disable_feature(FID_CST_MC6_RES);
