@@ -777,7 +777,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		enable_feature(FID_RAPL_FIXED_UNIT);
 		disable_feature(FID_RAPL_QUIRK_TDP);
 		disable_feature(FID_TSC_TWEAK);
-		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
+		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC6);
 		break;
 	case INTEL_FAM6_ICELAKE_D:
 	case INTEL_FAM6_ICELAKE_X:
@@ -797,7 +797,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		enable_feature(FID_RAPL_FIXED_UNIT);
 		disable_feature(FID_RAPL_QUIRK_TDP);
 		disable_feature(FID_TSC_TWEAK);
-		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
+		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC6);
 		break;
 	case INTEL_FAM6_EMERALDRAPIDS_X:
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:
@@ -817,7 +817,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL_FIXED_UNIT);
 		disable_feature(FID_RAPL_QUIRK_TDP);
 		disable_feature(FID_TSC_TWEAK);
-		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7);
+		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC6);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -4514,22 +4514,6 @@ int is_bdx(unsigned int family, unsigned int model)
 	return 0;
 }
 
-int is_skx(unsigned int family, unsigned int model)
-{
-
-	if (!genuine_intel)
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-	case INTEL_FAM6_SKYLAKE_X:
-		return 1;
-	}
-	return 0;
-}
-
 int is_icx(unsigned int family, unsigned int model)
 {
 
@@ -6158,12 +6142,6 @@ void process_cpuid()
 	}
 	if (is_dnv(family, model)) {
 		use_c1_residency_msr = 1;
-	}
-	if (is_skx(family, model) || is_icx(family, model) || is_spr(family, model)) {
-		BIC_NOT_PRESENT(BIC_CPU_c3);
-		BIC_NOT_PRESENT(BIC_Pkgpc3);
-		BIC_NOT_PRESENT(BIC_CPU_c7);
-		BIC_NOT_PRESENT(BIC_Pkgpc7);
 	}
 	if (is_bdx(family, model)) {
 		BIC_NOT_PRESENT(BIC_CPU_c7);
