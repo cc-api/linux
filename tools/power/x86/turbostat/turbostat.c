@@ -758,7 +758,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL_FIXED_UNIT);
 		disable_feature(FID_RAPL_QUIRK_TDP);
 		enable_feature(FID_TSC_TWEAK);
-		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
+		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		break;
 	case INTEL_FAM6_SKYLAKE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -836,7 +836,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL_FIXED_UNIT);
 		enable_feature(FID_RAPL_QUIRK_TDP);
 		disable_feature(FID_TSC_TWEAK);
-		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC6);
+		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC6);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -855,7 +855,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL_FIXED_UNIT);
 		enable_feature(FID_RAPL_QUIRK_TDP);
 		disable_feature(FID_TSC_TWEAK);
-		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
+		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
 		break;
 	case INTEL_FAM6_ATOM_AIRMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -970,7 +970,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL_FIXED_UNIT);
 		disable_feature(FID_RAPL_QUIRK_TDP);
 		enable_feature(FID_TSC_TWEAK);
-		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
+		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_CC7 | FEATURE_CSTATE_PC2 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6 | FEATURE_CSTATE_PC7 | FEATURE_CSTATE_PC8 | FEATURE_CSTATE_PC9 | FEATURE_CSTATE_PC10);
 		break;
 	case INTEL_FAM6_XEON_PHI_KNM:
 	case INTEL_FAM6_XEON_PHI_KNL:
@@ -990,7 +990,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_RAPL_FIXED_UNIT);
 		disable_feature(FID_RAPL_QUIRK_TDP);
 		disable_feature(FID_TSC_TWEAK);
-		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC3 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
+		set_feature(FID_CSTATES, FEATURE_CSTATE_CC1 | FEATURE_CSTATE_CC6 | FEATURE_CSTATE_PC3 | FEATURE_CSTATE_PC6);
 		break;
 	/* Missing support for below platforms */
 	case INTEL_FAM6_ATOM_SILVERMONT_MID:
@@ -4530,21 +4530,6 @@ int is_spr(unsigned int family, unsigned int model)
 	return 0;
 }
 
-int is_ehl(unsigned int family, unsigned int model)
-{
-	if (!genuine_intel)
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-	case INTEL_FAM6_ATOM_TREMONT:
-		return 1;
-	}
-	return 0;
-}
-
 static void remove_underbar(char *s)
 {
 	char *to = s;
@@ -5580,22 +5565,6 @@ int is_knl(unsigned int family, unsigned int model)
 	return 0;
 }
 
-int is_cnl(unsigned int family, unsigned int model)
-{
-	if (!genuine_intel)
-		return 0;
-
-	if (family != 6)
-		return 0;
-
-	switch (model) {
-	case INTEL_FAM6_CANNONLAKE_L:	/* CNL */
-		return 1;
-	}
-
-	return 0;
-}
-
 unsigned int get_aperf_mperf_multiplier(unsigned int family, unsigned int model)
 {
 	if (is_knl(family, model))
@@ -6136,9 +6105,6 @@ void process_cpuid()
 	}
 	do_slm_cstates = is_slm(family, model);
 	do_knl_cstates = is_knl(family, model);
-
-	if (do_slm_cstates || do_knl_cstates || is_cnl(family, model) || is_ehl(family, model))
-		BIC_NOT_PRESENT(BIC_CPU_c3);
 
 	if (!quiet)
 		decode_misc_pwr_mgmt_msr();
