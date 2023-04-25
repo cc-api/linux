@@ -4252,7 +4252,7 @@
                 }
             ],
             "status": "public",
-            "stuck_at_ref": "694338d50183e3371330efb5291e044153c7c615",
+            "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-03/msg00062.html",
             "platforms": "EMR,GNR,SPR,SRF",
