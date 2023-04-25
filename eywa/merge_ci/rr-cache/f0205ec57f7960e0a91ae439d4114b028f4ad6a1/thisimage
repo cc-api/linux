@@ -1863,7 +1863,7 @@ static void vmx_dynamic_update_hfi_table(struct kvm_vcpu *vcpu)
 	 * so that one vCPU can update the HFI table for the whole VM.
 	 *
 	 * And note, this vmx_dynamic_update_hfi_table() will update all vCPUs
-	 * even they belongs to differnet HFI instances. During the notification
+	 * even they belongs to different HFI instances. During the notification
 	 * handling of other HFI instances, if no change is found in the virtual
 	 * HFI table, the Guest memory write/interrupt injection will not be
 	 * repeated.
