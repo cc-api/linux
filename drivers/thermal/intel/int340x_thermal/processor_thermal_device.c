@@ -26,6 +26,18 @@ static ssize_t power_limit_##index##_##suffix##_show(struct device *dev, \
 	(unsigned long)proc_dev->power_limits[index].suffix * 1000); \
 }
 
+static ssize_t power_floor_status_show(struct device *dev,
+				       struct device_attribute *attr,
+				       char *buf)
+{
+	struct proc_thermal_device *proc_dev = dev_get_drvdata(dev);
+	int ret;
+
+	ret = proc_thermal_read_power_floor_status(proc_dev);
+
+	return sysfs_emit(buf, "%d\n", ret);
+}
+
 POWER_LIMIT_SHOW(0, min_uw)
 POWER_LIMIT_SHOW(0, max_uw)
 POWER_LIMIT_SHOW(0, step_uw)
@@ -50,6 +62,8 @@ static DEVICE_ATTR_RO(power_limit_1_step_uw);
 static DEVICE_ATTR_RO(power_limit_1_tmin_us);
 static DEVICE_ATTR_RO(power_limit_1_tmax_us);
 
+static DEVICE_ATTR_RO(power_floor_status);
+
 static struct attribute *power_limit_attrs[] = {
 	&dev_attr_power_limit_0_min_uw.attr,
 	&dev_attr_power_limit_1_min_uw.attr,
@@ -61,12 +75,24 @@ static struct attribute *power_limit_attrs[] = {
 	&dev_attr_power_limit_1_tmin_us.attr,
 	&dev_attr_power_limit_0_tmax_us.attr,
 	&dev_attr_power_limit_1_tmax_us.attr,
+	&dev_attr_power_floor_status.attr,
 	NULL
 };
 
+static bool power_floor_support;
+
+static umode_t	power_limit_attr_visible(struct kobject *kobj, struct attribute *attr, int unused)
+{
+	if (attr == &dev_attr_power_floor_status.attr && !power_floor_support)
+		return 0;
+
+	return  attr->mode;
+}
+
 static const struct attribute_group power_limit_attribute_group = {
 	.attrs = power_limit_attrs,
-	.name = "power_limits"
+	.name = "power_limits",
+	.is_visible = power_limit_attr_visible,
 };
 
 static ssize_t tcc_offset_degree_celsius_show(struct device *dev,
@@ -346,22 +372,33 @@ int proc_thermal_mmio_add(struct pci_dev *pdev,
 		}
 	}
 
+	if (feature_mask & PROC_THERMAL_FEATURE_POWER_FLOOR) {
+		ret = proc_thermal_power_floor_add(pdev, proc_priv);
+		if (ret) {
+			dev_err(&pdev->dev, "failed to add WLT Hint\n");
+			goto err_rem_rfim;
+		}
+		power_floor_support = true;
+	}
+
 	if (feature_mask & PROC_THERMAL_FEATURE_WT_REQ) {
 		ret = proc_thermal_wt_req_add(pdev, proc_priv);
 		if (ret) {
 			dev_err(&pdev->dev, "failed to add MBOX interface\n");
-			goto err_rem_rfim;
+			goto err_rem_power_floor;
 		}
 	} else if (feature_mask & PROC_THERMAL_FEATURE_WT_HINT) {
 		ret = proc_thermal_wt_hint_add(pdev, proc_priv);
 		if (ret) {
 			dev_err(&pdev->dev, "failed to add WT Hint\n");
-			goto err_rem_rfim;
+			goto err_rem_power_floor;
 		}
 	}
 
 	return 0;
 
+err_rem_power_floor:
+	proc_thermal_power_floor_remove(pdev);
 err_rem_rfim:
 	proc_thermal_rfim_remove(pdev);
 err_rem_rapl:
@@ -379,6 +416,9 @@ void proc_thermal_mmio_remove(struct pci_dev *pdev, struct proc_thermal_device *
 	if (proc_priv->mmio_feature_mask & PROC_THERMAL_FEATURE_FIVR ||
 	    proc_priv->mmio_feature_mask & PROC_THERMAL_FEATURE_DVFS)
 		proc_thermal_rfim_remove(pdev);
+
+	if (proc_priv->mmio_feature_mask & PROC_THERMAL_FEATURE_POWER_FLOOR)
+		proc_thermal_power_floor_remove(pdev);
 
 	if (proc_priv->mmio_feature_mask & PROC_THERMAL_FEATURE_WT_REQ)
 		proc_thermal_wt_req_remove(pdev);

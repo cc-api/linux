@@ -127,6 +127,7 @@ static irqreturn_t proc_thermal_irq_thread_handler(int irq, void *devid)
 	struct proc_thermal_pci *pci_info = devid;
 
 	proc_thermal_wt_intr_callback(pci_info->pdev, pci_info->proc_priv);
+	proc_thermal_power_floor_intr_callback(pci_info->pdev, pci_info->proc_priv);
 
 	return IRQ_HANDLED;
 }
@@ -142,6 +143,11 @@ static irqreturn_t proc_thermal_irq_handler(int irq, void *devid)
 
 	if (proc_priv->mmio_feature_mask & PROC_THERMAL_FEATURE_WT_HINT) {
 		if (proc_thermal_check_wt_intr(pci_info->proc_priv))
+			ret = IRQ_WAKE_THREAD;
+	}
+
+	if (proc_priv->mmio_feature_mask & PROC_THERMAL_FEATURE_POWER_FLOOR) {
+		if (proc_thermal_check_power_floor_intr(pci_info->proc_priv))
 			ret = IRQ_WAKE_THREAD;
 	}
 
@@ -252,19 +258,19 @@ static int proc_thermal_pci_probe(struct pci_dev *pdev, const struct pci_device_
 
 	INIT_DELAYED_WORK(&pci_info->work, proc_thermal_threshold_work_fn);
 
-	ret = proc_thermal_add(&pdev->dev, proc_priv);
-	if (ret) {
-		dev_err(&pdev->dev, "error: proc_thermal_add, will continue\n");
-		pci_info->no_legacy = 1;
-	}
-
 	proc_priv->priv_data = pci_info;
 	pci_info->proc_priv = proc_priv;
 	pci_set_drvdata(pdev, proc_priv);
 
 	ret = proc_thermal_mmio_add(pdev, proc_priv, id->driver_data);
 	if (ret)
-		goto err_ret_thermal;
+		return ret;
+
+	ret = proc_thermal_add(&pdev->dev, proc_priv);
+	if (ret) {
+		dev_err(&pdev->dev, "error: proc_thermal_add, will continue\n");
+		pci_info->no_legacy = 1;
+	}
 
 	psv_trip.temperature = get_trip_temp(pci_info);
 
@@ -313,7 +319,6 @@ err_ret_tzone:
 	thermal_zone_device_unregister(pci_info->tzone);
 err_ret_mmio:
 	proc_thermal_mmio_remove(pdev, proc_priv);
-err_ret_thermal:
 	if (!pci_info->no_legacy)
 		proc_thermal_remove(proc_priv);
 	pci_disable_device(pdev);
@@ -389,7 +394,7 @@ static const struct pci_device_id proc_thermal_pci_ids[] = {
 	  PROC_THERMAL_FEATURE_FIVR | PROC_THERMAL_FEATURE_DVFS | PROC_THERMAL_FEATURE_WT_REQ) },
 	{ PCI_DEVICE_DATA(INTEL, MTLP_THERMAL, PROC_THERMAL_FEATURE_RAPL |
 	  PROC_THERMAL_FEATURE_FIVR | PROC_THERMAL_FEATURE_DVFS | PROC_THERMAL_FEATURE_DLVR |
-	  PROC_THERMAL_FEATURE_WT_HINT) },
+	  PROC_THERMAL_FEATURE_WT_HINT | PROC_THERMAL_FEATURE_POWER_FLOOR) },
 	{ PCI_DEVICE_DATA(INTEL, RPL_THERMAL, PROC_THERMAL_FEATURE_RAPL |
 	  PROC_THERMAL_FEATURE_FIVR | PROC_THERMAL_FEATURE_DVFS | PROC_THERMAL_FEATURE_WT_REQ) },
 	{ },
