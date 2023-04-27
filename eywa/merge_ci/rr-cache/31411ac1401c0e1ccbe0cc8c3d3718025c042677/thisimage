@@ -2,7 +2,6 @@
 #include <linux/moduleparam.h>
 
 #include "x86_ops.h"
-#include "mmu.h"
 #include "vmx.h"
 #include "nested.h"
 #include "common.h"
