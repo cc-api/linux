@@ -8879,7 +8879,8 @@ int vmx_check_cpuid(struct kvm_vcpu *vcpu,
 	union cpuid6_edx edx;
 	unsigned int data_size;
 
-	if (!guest_cpuid_has(vcpu, X86_FEATURE_HFI))
+	if (!guest_cpuid_has(vcpu, X86_FEATURE_HFI) &&
+	    !guest_cpuid_has(vcpu, X86_FEATURE_ITD))
 		return 0;
 
 	/* Guest's HFI must base on Host's HFI enablement. */
