@@ -4498,8 +4498,8 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.3",
             "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
+            "platforms": "GNR,SRF",
+            "feature_jiras": "LFE-697"
         },
         {
             "branch": "thp-for-intel-next",
