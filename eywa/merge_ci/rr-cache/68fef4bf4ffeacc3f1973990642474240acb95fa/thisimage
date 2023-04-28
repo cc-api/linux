@@ -8894,14 +8894,14 @@ int vmx_check_cpuid(struct kvm_vcpu *vcpu,
 	    guest_cpuid_has(vcpu, X86_FEATURE_ITD))
 		return -EINVAL;
 
+	best = kvm_find_cpuid_entry_index(vcpu, 0x6, 0);
+	if (guest_cpuid_has(vcpu, X86_FEATURE_HFI) && !best)
+		return -EINVAL;
+
 	if (cpuid_entry_has(best, X86_FEATURE_ITD))
 		intel_hfi_build_features(&features, HFI_FEATURE_TYPE_ITD);
 	else
 		intel_hfi_build_features(&features, HFI_FEATURE_TYPE_HFI);
-
-	best = kvm_find_cpuid_entry_index(vcpu, 0x6, 0);
-	if (guest_cpuid_has(vcpu, X86_FEATURE_HFI) && !best)
-		return -EINVAL;
 
 	ecx.full = best->ecx;
 	edx.full = best->edx;
