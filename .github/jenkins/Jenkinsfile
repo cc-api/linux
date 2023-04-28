@@ -14,7 +14,8 @@ pipeline {
           if (env.CHANGE_ID != null) {
             BUILDNAME = "pr-${env.CHANGE_ID}-${env.GIT_COMMIT[0..6]}"
           } else {
-            BUILDNAME = "${currentBuild.number}-${env.GIT_COMMIT[0..6]}"
+            ID = sh(script: 'docker run --rm gfx-osgc-docker-ci-igk.gfx-assets.intel.com/lgci-ubuntu2004:latest redis-cli -h intel-gfx-ci-internal incr xe-kernel-build-id', returnStdout: true).trim()
+            BUILDNAME = "${ID}-${env.GIT_COMMIT[0..6]}"
           }
           currentBuild.displayName = "$BUILDNAME"
         }
