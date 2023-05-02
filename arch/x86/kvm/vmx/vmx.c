@@ -7460,6 +7460,7 @@ static noinstr void vmx_vcpu_enter_exit(struct kvm_vcpu *vcpu,
 				   flags);
 
 	vcpu->arch.cr2 = native_read_cr2();
+
 	vcpu->arch.regs_avail &= ~VMX_REGS_LAZY_LOAD_SET;
 
 	vmx->idt_vectoring_info = 0;
@@ -7474,6 +7475,35 @@ static noinstr void vmx_vcpu_enter_exit(struct kvm_vcpu *vcpu,
 	vmx->exit_reason.full = vmcs_read32(VM_EXIT_REASON);
 	if (likely(!vmx->exit_reason.failed_vmentry))
 		vmx->idt_vectoring_info = vmcs_read32(IDT_VECTORING_INFO_FIELD);
+
+	if (unlikely((vmx->idt_vectoring_info & VECTORING_INFO_VALID_MASK) &&
+		     ((vmx->idt_vectoring_info & VECTORING_INFO_TYPE_MASK) ==
+		      INTR_TYPE_HARD_EXCEPTION) &&
+		     kvm_is_fred_enabled(vcpu))) {
+		u8 vector = vmx->idt_vectoring_info & VECTORING_INFO_VECTOR_MASK;
+		u64 original_event_data = vmcs_read64(ORIGINAL_EVENT_DATA);
+
+		switch (vector) {
+		case DB_VECTOR:
+			get_debugreg(vcpu->arch.dr6, 6);
+			WARN_ON(original_event_data != (vcpu->arch.dr6 ^ DR6_RESERVED));
+			break;
+		case NM_VECTOR:
+			if (vcpu->arch.guest_fpu.fpstate->xfd) {
+				rdmsrl(MSR_IA32_XFD_ERR, vcpu->arch.guest_fpu.xfd_err);
+				WARN_ON(original_event_data != vcpu->arch.guest_fpu.xfd_err);
+			} else {
+				WARN_ON(original_event_data != 0);
+			}
+			break;
+		case PF_VECTOR:
+			WARN_ON(original_event_data != vcpu->arch.cr2);
+			break;
+		default:
+			WARN_ON(original_event_data != 0);
+			break;
+		}
+	}
 
 	if ((u16)vmx->exit_reason.basic == EXIT_REASON_EXCEPTION_NMI &&
 	    is_nmi(vmx_get_intr_info(vcpu))) {

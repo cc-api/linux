@@ -682,8 +682,10 @@ static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 			vcpu->arch.exception.nested = nested;
 			if (WARN_ON_ONCE(has_payload)) {
 				/*
-				 * A reinjected event has already
-				 * delivered its payload.
+				 * For a reinjected event, KVM delivers its
+				 * payload through saving %cr2 into arch.cr2
+				 * immediately after VM exits and %dr6 into
+				 * arch.dr6 in sync_dirty_debug_regs().
 				 */
 				has_payload = false;
 				payload = 0;
