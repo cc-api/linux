@@ -202,6 +202,13 @@ static const struct xe_graphics_desc graphics_xe3 = {
 	.supports_usm = false,
 };
 
+static const struct xe_graphics_desc graphics_xe3xpc = {
+	.name = "Xe3_XPC",
+	XE3_GFX_FEATURES,
+	.dma_mask_size = 52,
+	.va_bits = 57,
+};
+
 static const struct xe_media_desc media_xem = {
 	.name = "Xe_M",
 	.ver = 12,
@@ -393,6 +400,7 @@ static struct gmdid_map graphics_ip_map[] = {
 	{ 2004, &graphics_xe2 },
 	{ 3000, &graphics_xe3 },
 	{ 3001, &graphics_xe3 },
+	{ 3500, &graphics_xe3xpc },
 };
 
 /* Map of GMD_ID values to media IP */
