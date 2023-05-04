@@ -476,6 +476,7 @@ static const struct pci_device_id pciidlist[] = {
 	XE_LNL_IDS(INTEL_VGA_DEVICE, &lnl_desc),
 	XE_BMG_IDS(INTEL_VGA_DEVICE, &bmg_desc),
 	XE_PTL_IDS(INTEL_VGA_DEVICE, &ptl_desc),
+	XE_FSG_IDS(INTEL_VGA_DEVICE, &fsg_desc),
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, pciidlist);
