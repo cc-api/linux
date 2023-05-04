@@ -394,6 +394,12 @@ static const struct xe_device_desc ptl_desc = {
 	.require_force_probe = true,
 };
 
+static const struct xe_device_desc fsg_desc = {
+	PLATFORM(XE_FALCONSHORES),
+	.has_4tile = true,
+	.require_force_probe = true,
+};
+
 #undef PLATFORM
 __diag_pop();
 
