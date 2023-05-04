@@ -401,6 +401,14 @@ static const struct xe_device_desc ptl_desc = {
 	.require_force_probe = true,
 };
 
+static const struct xe_device_desc fsg_desc = {
+	DGFX_FEATURES,
+	PLATFORM(XE_FSG),
+	.has_4tile = true,
+	.has_display = false,
+	.require_force_probe = true,
+};
+
 #undef PLATFORM
 __diag_pop();
 
