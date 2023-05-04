@@ -2769,6 +2769,10 @@ static void tdx_track(struct kvm_tdx *kvm_tdx)
 	 * TDH_MEM_TRACK() can be issued concurrently by multiple vcpus.
 	 */
 	atomic_inc(&kvm_tdx->tdh_mem_track);
+
+	while (atomic_read(&kvm_tdx->tdh_mem_track) > 1)
+		cpu_relax();
+
 	/*
 	 * KVM_REQ_TLB_FLUSH waits for the empty IPI handler, ack_flush(), with
 	 * KVM_REQUEST_WAIT.
@@ -2781,13 +2785,14 @@ static void tdx_track(struct kvm_tdx *kvm_tdx)
 	 */
 	err = tdh_mem_track(kvm_tdx->tdr_pa);
 
-	/* Release remote vcpu waiting for TDH.MEM.TRACK in tdx_flush_tlb(). */
-	atomic_dec(&kvm_tdx->tdh_mem_track);
-
 	if (KVM_BUG_ON(err, &kvm_tdx->kvm))
 		pr_tdx_error(TDH_MEM_TRACK, err, NULL);
 	else
 		tdx_tdi_iq_inv_iotlb(kvm_tdx);
+
+	/* Release remote vcpu waiting for TDH.MEM.TRACK in tdx_flush_tlb(). */
+	atomic_dec(&kvm_tdx->tdh_mem_track);
+
 }
 
 static int tdx_sept_unzap_private_spte(struct kvm *kvm, gfn_t gfn,
