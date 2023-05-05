@@ -59,6 +59,17 @@ static int __init svos_enable_ras(char *str)
 }
 early_param("svos_enable_ras", svos_enable_ras);
 
+int svos_enable_intel_idle_extensions = 0;
+EXPORT_SYMBOL(svos_enable_intel_idle_extensions);
+
+static int __init svos_enable_intel_idle_ext(char * str)
+{
+	svos_enable_intel_idle_extensions = 1;
+	printk_once(KERN_INFO "Enabling svos intel_idle extensions\n");
+	return 0;
+}
+early_param("svos_enable_idle_ext", svos_enable_intel_idle_ext);
+
 __init unsigned long
 svos_adjgap(unsigned long gapsize)
 {
