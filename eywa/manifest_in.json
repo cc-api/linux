@@ -2415,7 +2415,7 @@
         },
         {
             "branch": "next",
-            "branch_type": "expiring",
+            "branch_type": "public",
             "config_options": [
                 {
                     "name": "CONFIG_CXL_BUS",
@@ -2453,9 +2453,9 @@
                 }
             ],
             "description": "CXL Memory Expander support ",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3366",
             "name": "cxl",
             "repourl": "https://git.kernel.org/pub/scm/linux/kernel/git/cxl/cxl",
             "sdl_contact": [
@@ -2466,8 +2466,8 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2",
-            "maillist": "",
+            "last_enabled": "v6.3",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00013.html",
             "platforms": "",
             "feature_jiras": ""
         },
