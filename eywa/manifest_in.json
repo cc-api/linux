@@ -4845,7 +4845,7 @@
                 }
             ],
             "description": "Merge SEP5.40 into Linux tree ",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Vishnu Naikawadi",
