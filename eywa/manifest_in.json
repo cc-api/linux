@@ -2450,6 +2450,10 @@
                 {
                     "name": "Dan J Williams",
                     "email": "dan.j.williams@intel.com"
+                },
+                {
+                    "name": "CXL list",
+                    "email": "cxl-linux@eclists.intel.com"
                 }
             ],
             "description": "CXL Memory Expander support ",
