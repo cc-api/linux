@@ -39,7 +39,11 @@ struct PMU_MSR_INFO_NODE_S {
 	U64 msr_id;
 	U64 mask;
 	U16 range;
-	U16 dynamic; // to be updated
+	U16 dynamic;
+	U16 msr_num_units;
+	U16 num_unit_mask;
+	U16 unit_multiplier;
+	U16 unit_length;
 };
 
 typedef struct PMU_PCI_INFO_NODE_S PMU_PCI_INFO_NODE;

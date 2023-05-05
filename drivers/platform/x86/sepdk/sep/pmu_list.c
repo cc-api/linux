@@ -395,8 +395,10 @@ pmu_list_Binary_Search_Range(PMU_SEARCH_NODE *node, U64 key)
 static OS_STATUS
 pmu_list_Create_MSR_Tree_Range(const PMU_INFO_NODE *pmu_list)
 {
-	S32                j = 0;
-	PMU_MSR_INFO_NODE *list;
+	S32			 j = 0;
+	PMU_MSR_INFO_NODE	*list;
+	U32			 num_entries = 0;
+	U16			 range;
 
 	if (pmu_info_index == -1) {
 		return -1;
@@ -410,9 +412,15 @@ pmu_list_Create_MSR_Tree_Range(const PMU_INFO_NODE *pmu_list)
 		while ((*list).msr_id != 0x0) {
 			SEP_DRV_LOG_TRACE("Incoming <key, range>:: <%x, %x> ",
 					  (*list).msr_id, (*list).range);
+			if ((*list).dynamic && (*list).msr_num_units) {
+				num_entries = (SYS_Read_MSR((*list).msr_num_units) & (*list).num_unit_mask);
+				range = (U16)(((num_entries - 1) * (*list).unit_multiplier) + (*list).unit_length);
+			} else {
+				range = (*list).range;
+			}
 			msr_root = pmu_list_Insert_Node_Range(msr_root,
 							      (*list).msr_id,
-							      (*list).range,
+							      range,
 							      (void *)list);
 			list++;
 		}

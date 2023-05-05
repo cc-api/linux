@@ -46,7 +46,6 @@ extern U64                      *read_counter_info;
 extern U64                      *prev_counter_data;
 extern DRV_CONFIG                drv_cfg;
 extern EMON_BUFFER_DRIVER_HELPER emon_buffer_driver_helper;
-U64                              regbar_physical_address = 0;
 #define MASK_32BIT 0xffffffff
 #define MASK_64BIT 0xffffffff00000000ULL
 
@@ -233,53 +232,6 @@ unc_mmio_single_bar_Write_PMU(VOID *param)
 
 	SEP_DRV_LOG_TRACE_OUT("");
 	return;
-}
-
-/*!
- * @fn          static VOID unc_mmio_mch_regbar_Write_PMU(VOID*)
- *
- * @brief       Initial write of PMU registers
- *              Walk through the enties and write the value of the register accordingly.
- *
- * @param       None
- *
- * @return      None
- *
- * <I>Special Notes:</I>
- */
-static VOID
-unc_mmio_mch_regbar_Write_PMU (
-    VOID  *param
-)
-{
-    U32              dev_idx          = 0;
-    U32              this_cpu         = 0;
-    DEV_UNC_CONFIG   pcfg_unc;
-    U64              regbar_reg_id    = 0;
-
-    SEP_DRV_LOG_TRACE_IN("Param: %p.", param);
-    dev_idx      = *((U32*)param);
-    this_cpu     = CONTROL_THIS_CPU();
-    pcfg_unc     = (DEV_UNC_CONFIG)LWPMU_DEVICE_pcfg(&devices[dev_idx]);
-    if (!IS_MASTER(DEV_UNC_CONFIG_device_type(pcfg_unc), this_cpu)) {
-        SEP_DRV_LOG_TRACE_OUT("Early exit (!is_master).");
-        return;
-    }
-
-    if (!regbar_physical_address) {
-        SEP_DRV_LOG_TRACE_OUT("Early exit (!regbar_physical_address).");
-        return;
-    }
-
-    FOR_EACH_REG_UNC_OPERATION(pecb, dev_idx, idx, PMU_OPERATION_WRITE) {
-
-        regbar_reg_id = regbar_physical_address + ECB_entries_reg_id(pecb, idx);
-        PCI_Write_To_Memory_Address_U64(regbar_reg_id, ECB_entries_reg_value(pecb, idx));
-        SEP_DRV_LOG_TRACE("va=0x%llx, ri=%u, rv=0x%llx", regbar_reg_id, ECB_entries_reg_id(pecb, idx), ECB_entries_reg_value(pecb, idx));
-    } END_FOR_EACH_REG_UNC_OPERATION;
-
-    SEP_DRV_LOG_TRACE_OUT("");
-    return;
 }
 
 /*!
@@ -631,60 +583,6 @@ unc_mmio_single_bar_Enable_PMU(PVOID param)
 }
 
 /*!
- * @fn         static VOID unc_mmio_mch_regbar_Enable_PMU(PVOID)
- *
- * @brief      Enable the PMU to start capturing sample
- *
- * @param      None
- *
- * @return     None
- *
- * <I>Special Notes:</I>
- */
-static void
-unc_mmio_mch_regbar_Enable_PMU (
-    PVOID  param
-)
-{
-    U32            this_cpu         = 0;
-    U32            dev_idx          = 0;
-    U32            package_num      = 0;
-    U32            cur_grp          = 0;
-    DEV_UNC_CONFIG pcfg_unc;
-    U64            regbar_reg_id    = 0;
-
-    SEP_DRV_LOG_TRACE_IN("Param: %p.", param);
-
-    dev_idx     = *((U32*)param);
-    this_cpu    = CONTROL_THIS_CPU();
-    pcfg_unc    = (DEV_UNC_CONFIG)LWPMU_DEVICE_pcfg(&devices[dev_idx]);
-    if (!IS_MASTER(DEV_UNC_CONFIG_device_type(pcfg_unc), this_cpu)) {
-        SEP_DRV_LOG_TRACE_OUT("Early exit (!IS_MASTER).");
-        return;
-    }
-
-    package_num = GET_PACKAGE_NUM(DEV_UNC_CONFIG_device_type(pcfg_unc), this_cpu);
-    cur_grp     = LWPMU_DEVICE_cur_group(&devices[(dev_idx)])[package_num];
-    SEP_DRV_LOG_TRACE("enable PMU for group %u", cur_grp);
-
-    if (!regbar_physical_address) {
-        SEP_DRV_LOG_TRACE_OUT("Early exit (!regbar_physical_address).");
-        return;
-    }
-
-    FOR_EACH_REG_UNC_OPERATION(pecb, dev_idx, idx, PMU_OPERATION_ENABLE) {
-        if (ECB_entries_reg_rw_type(pecb, idx)  == PMU_REG_RW_WRITE) {
-            regbar_reg_id = regbar_physical_address + ECB_entries_reg_id(pecb,idx);
-            PCI_Write_To_Memory_Address_U64(regbar_reg_id, ECB_entries_reg_value(pecb,idx));
-        }
-
-    } END_FOR_EACH_REG_UNC_OPERATION;
-
-    SEP_DRV_LOG_TRACE_OUT("");
-    return;
-}
-
-/*!
  * @fn         static VOID unc_mmio_multiple_bar_Enable_PMU(PVOID)
  *
  * @brief      Capture the previous values to calculate delta later.
@@ -934,58 +832,6 @@ unc_mmio_single_bar_Disable_PMU(PVOID param)
 
 	SEP_DRV_LOG_TRACE_OUT("");
 	return;
-}
-
-/*!
- * @fn         static VOID unc_mmio_mch_regbar_Disable_PMU(PVOID)
- *
- * @brief      Disable the PMU
- *
- * @param      None
- *
- * @return     None
- *
- * <I>Special Notes:</I>
- */
-static void
-unc_mmio_mch_regbar_Disable_PMU (
-    PVOID  param
-)
-{
-    U32            dev_idx          = 0;
-    U32            this_cpu         = 0;
-    U32            package_num      = 0;
-    U32            cur_grp          = 0;
-    DEV_UNC_CONFIG pcfg_unc;
-    U64            regbar_reg_id    = 0;
-
-    SEP_DRV_LOG_TRACE_IN("Param: %p.", param);
-
-    dev_idx     = *((U32*)param);
-    this_cpu    = CONTROL_THIS_CPU();
-    pcfg_unc    = (DEV_UNC_CONFIG)LWPMU_DEVICE_pcfg(&devices[dev_idx]);
-    if (!IS_MASTER(DEV_UNC_CONFIG_device_type(pcfg_unc), this_cpu)) {
-        SEP_DRV_LOG_TRACE_OUT("Early exit (!IS_MASTER).");
-        return;
-    }
-
-    package_num = GET_PACKAGE_NUM(DEV_UNC_CONFIG_device_type(pcfg_unc), this_cpu);
-    cur_grp     = LWPMU_DEVICE_cur_group(&devices[dev_idx])[package_num];
-
-    if (!regbar_physical_address) {
-        SEP_DRV_LOG_TRACE_OUT("Early exit (!regbar_physical_address).");
-        return;
-    }
-
-    FOR_EACH_REG_UNC_OPERATION(pecb, dev_idx, idx, PMU_OPERATION_DISABLE) {
-        if (ECB_entries_reg_rw_type(pecb, idx)  == PMU_REG_RW_WRITE) {
-            regbar_reg_id = regbar_physical_address + ECB_entries_reg_id(pecb,idx);
-            PCI_Write_To_Memory_Address_U64(regbar_reg_id, ECB_entries_reg_value(pecb,idx));
-        }
-    } END_FOR_EACH_REG_UNC_OPERATION;
-
-    SEP_DRV_LOG_TRACE_OUT("");
-    return;
 }
 
 /*!
@@ -1263,89 +1109,6 @@ unc_mmio_single_bar_Trigger_Read(PVOID param, U32 id, U32 read_from_intr)
 
 	SEP_DRV_LOG_TRACE_OUT("");
 	return;
-}
-
-/* ------------------------------------------------------------------------- */
-/*!
- * @fn       void unc_mmio_mch_regar_Trigger_Read(param, id, read_from_intr)
- *
- * @param    param          Pointer to populate read data
- * @param    id             Device index
- * @param    read_from_intr Read data from interrupt or timer
- *
- * @return   None     No return needed
- *
- * @brief    Read the Uncore data from counters and store into buffer
- */
-static  VOID
-unc_mmio_mch_regar_Trigger_Read (
-    PVOID  param,
-    U32    id,
-    U32    read_from_intr
-)
-{
-    U32             this_cpu            = 0;
-    U32             cur_grp             = 0;
-    U32             index               = 0;
-    U32             package_num         = 0;
-    U64             diff                = 0;
-    U64             value               = 0ULL;
-    U64            *data;
-    DEV_UNC_CONFIG  pcfg_unc;
-    U64             regbar_reg_id       = 0;
-
-    SEP_DRV_LOG_TRACE_IN("Param: %p, id: %u.", param, id);
-
-    this_cpu    = CONTROL_THIS_CPU();
-    pcfg_unc    = (DEV_UNC_CONFIG)LWPMU_DEVICE_pcfg(&devices[id]);
-
-    package_num = GET_PACKAGE_NUM(DEV_UNC_CONFIG_device_type(pcfg_unc), this_cpu);
-    cur_grp     = LWPMU_DEVICE_cur_group(&devices[id])[package_num];
-
-    //Read in the counts into temporary buffer
-    FOR_EACH_REG_UNC_OPERATION(pecb, id, idx, PMU_OPERATION_READ) {
-        // If the function is invoked from pmi, the event we are
-        // reading counts must be an unc intr event.
-        // If the function is invoked from timer, the event must not be
-        // an interrupt read event.
-        if ((read_from_intr && !ECB_entries_unc_evt_intr_read_get(pecb, idx)) ||
-            (!read_from_intr && ECB_entries_unc_evt_intr_read_get(pecb, idx))) {
-            index++;
-            continue;
-        }
-
-        // Write GroupID based on interrupt read event or timer event into
-        // the respective groupd id offsets
-        if (read_from_intr) {
-            data = (U64*)((S8*)param + ECB_group_id_offset_in_trigger_evt_desc(pecb));
-        }
-        else {
-            data = (U64*)((S8*)param + ECB_group_offset(pecb));
-        }
-        *data = cur_grp + 1;
-
-        regbar_reg_id = regbar_physical_address + ECB_entries_reg_offset(pecb, idx);
-
-        PCI_Read_From_Memory_Address_U64(regbar_reg_id, &value);
-        value &= (U64)ECB_entries_max_bits(pecb, idx);
-
-        data = (U64 *)((S8*)param + ECB_entries_counter_event_offset(pecb, idx));
-        //check for overflow if not a static counter
-        if (value < LWPMU_DEVICE_prev_value(&devices[id])[package_num][index]) {
-            diff = LWPMU_DEVICE_counter_mask(&devices[id]) - LWPMU_DEVICE_prev_value(&devices[id])[package_num][index];
-            diff += value;
-        }
-        else {
-            diff = value - LWPMU_DEVICE_prev_value(&devices[id])[package_num][index];
-        }
-        LWPMU_DEVICE_acc_value(&devices[id])[package_num][cur_grp][index] += diff;
-        LWPMU_DEVICE_prev_value(&devices[id])[package_num][index] = value;
-        *data = LWPMU_DEVICE_acc_value(&devices[id])[package_num][cur_grp][index];
-        index++;
-    } END_FOR_EACH_REG_UNC_OPERATION;
-
-    SEP_DRV_LOG_TRACE_OUT("");
-    return;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1639,72 +1402,6 @@ unc_mmio_single_bar_Read_PMU_Data(PVOID param, U32 dev_idx)
 
 /* ------------------------------------------------------------------------- */
 /*!
- * @fn unc_mmio_mch_regbar_Read_PMU_Data(param)
- *
- * @param    param    dummy parameter which is not used
- *
- * @return   None     No return needed
- *
- * @brief    Read all the data MSR's into a buffer.  Called by the interrupt handler.
- *
- */
-static VOID
-unc_mmio_mch_regbar_Read_PMU_Data (
-     PVOID   param,
-     U32     dev_idx
-)
-{
-    U32            j                = 0;
-    U32            cur_grp          = 0;
-    U32            package_num      = 0;
-    U32            this_cpu         = 0;
-    U64            tmp_value        = 0ULL;
-    U64           *buffer           = (U64 *)param;
-    U64           *prev_buffer      = prev_counter_data;
-    DEV_UNC_CONFIG pcfg_unc;
-    U64            regbar_reg_id    = 0;
-
-    SEP_DRV_LOG_TRACE_IN("Param: %p.", param);
-
-    this_cpu    = CONTROL_THIS_CPU();
-    pcfg_unc    = (DEV_UNC_CONFIG)LWPMU_DEVICE_pcfg(&devices[dev_idx]);
-    if (!IS_MASTER(DEV_UNC_CONFIG_device_type(pcfg_unc), this_cpu)) {
-        SEP_DRV_LOG_TRACE_OUT("Early exit (!IS_MASTER).");
-        return;
-    }
-
-    package_num = GET_PACKAGE_NUM(DEV_UNC_CONFIG_device_type(pcfg_unc), this_cpu);
-    cur_grp     = LWPMU_DEVICE_cur_group(&devices[(dev_idx)])[package_num];
-
-    if (!regbar_physical_address) {
-        SEP_DRV_LOG_TRACE_OUT("Early exit (!regbar_physical_address).");
-        return;
-    }
-
-    FOR_EACH_REG_UNC_OPERATION(pecb, dev_idx, idx, PMU_OPERATION_READ) {
-
-        regbar_reg_id = regbar_physical_address + ECB_entries_reg_offset(pecb, idx);
-
-        j = EMON_BUFFER_UNCORE_PACKAGE_EVENT_OFFSET(package_num, EMON_BUFFER_DRIVER_HELPER_num_entries_per_package(emon_buffer_driver_helper),
-                                                    ECB_entries_uncore_buffer_offset_in_package(pecb, idx));
-
-        PCI_Read_From_Memory_Address_U64(regbar_reg_id, &tmp_value);
-        tmp_value &= (U64)ECB_entries_max_bits(pecb, idx);
-        if (tmp_value >= prev_buffer[j]) {
-            buffer[j] = tmp_value - prev_buffer[j];
-        }
-        else {
-            buffer[j] = tmp_value + (ECB_entries_max_bits(pecb, idx) - prev_buffer[j]);
-        }
-        SEP_DRV_LOG_TRACE("j=%u, v=%llu", j, buffer[j]);
-    } END_FOR_EACH_REG_UNC_OPERATION;
-
-    SEP_DRV_LOG_TRACE_OUT("");
-    return;
-}
-
-/* ------------------------------------------------------------------------- */
-/*!
  * @fn unc_mmio_multiple_bar_Read_PMU_Data(param)
  *
  * @param    param    dummy parameter which is not used
@@ -1827,6 +1524,8 @@ unc_mmio_single_bar_Initialize(PVOID param)
 	U64           bar               = 0;
 	ECB           pecb              = NULL;
 	MMIO_BAR_INFO mmio_bar_info;
+	U64			  regbar_physical_address = 0;
+	U64			  map_physical_address    = 0;
 
 	SEP_DRV_LOG_TRACE_IN("Param: %p.", param);
 
@@ -1862,7 +1561,7 @@ unc_mmio_single_bar_Initialize(PVOID param)
 
 	// use busno found from topology scan if available
 	// otherwise use the default one
-	if (dev_node) {
+	if (dev_node && dev_node != UNCORE_TOPOLOGY_INFO_NODE_NOC) {
 		entries = GET_NUM_MAP_ENTRIES(dev_node);
 		SEP_DRV_LOG_TRACE("# if entries - %u", entries);
 		SEP_DRV_LOG_WARNING_TRACE_OUT("PCB node not available in group %u!",
@@ -1927,9 +1626,18 @@ unc_mmio_single_bar_Initialize(PVOID param)
 
 		SEP_DRV_LOG_TRACE("pa=0x%llx", physical_address);
 
+		if (MMIO_BAR_INFO_secondary_bar_mask(mmio_bar_info)) {		// REGBAR
+			PCI_Read_From_Memory_Address_U64(physical_address, &regbar_physical_address);
+			regbar_physical_address &= MMIO_BAR_INFO_secondary_bar_mask(mmio_bar_info);
+			map_physical_address = regbar_physical_address;
+		}
+		else {
+			map_physical_address = physical_address;
+		}
+
 		PCI_Map_Memory(&UNC_PCIDEV_mmio_map_entry(
 				       &(unc_pcidev_map[dev_node]), i),
-			       physical_address,
+			       map_physical_address,
 			       MMIO_BAR_INFO_map_size_for_mmio(mmio_bar_info));
 
 		SEP_DRV_LOG_TRACE("va=0x%llx",
@@ -1938,112 +1646,6 @@ unc_mmio_single_bar_Initialize(PVOID param)
 
 	SEP_DRV_LOG_TRACE_OUT("");
 	return;
-}
-
-/* ------------------------------------------------------------------------- */
-/*!
- * @fn unc_mmio_mch_regbar_Initialize(param)
- *
- * @param    param    dummy parameter which is not used
- *
- * @return   None     No return needed
- *
- * @brief    Obtain the base address of REGBAR
- *
- */
-static VOID
-unc_mmio_mch_regbar_Initialize (
-     PVOID   param
-)
-{
-    U32                        dev_idx           = 0;
-    U32                        cur_grp           = 0;
-    U32                        dev_node          = 0;
-    U32                        i                 = 0;
-    U32                        j                 = 0;
-    U32                        use_default_busno = 0;
-    U32                        entries           = 0;
-    U32                        domain_no         = 0;
-    U64                        physical_address  = 0;
-    U64                        bar               = 0;
-    ECB                        pecb              = NULL;
-    MMIO_BAR_INFO              mmio_bar_info;
-
-    SEP_DRV_LOG_TRACE_IN("Param: %p.", param);
-
-    dev_idx  = *((U32*)param);
-    cur_grp  = LWPMU_DEVICE_cur_group(&devices[(dev_idx)])[0];
-    pecb     = LWPMU_DEVICE_PMU_register_data(&devices[dev_idx])[cur_grp];
-
-    if (!pecb) {
-        for (j = 0; j < (U32)LWPMU_DEVICE_em_groups_count(&devices[dev_idx]); j++) {
-            pecb = LWPMU_DEVICE_PMU_register_data(&devices[dev_idx])[j];
-            if (!pecb) {
-                continue;
-            }
-            else {
-                break;
-            }
-        }
-    }
-
-    if (!pecb) {
-        SEP_DRV_LOG_TRACE_OUT("Early exit (!pecb).");
-        return;
-    }
-    dev_node = ECB_dev_node(pecb);
-
-    // use busno found from topology scan if available
-    // otherwise use the default one
-    if (dev_node) {
-        entries = GET_NUM_MAP_ENTRIES(dev_node);
-        SEP_DRV_LOG_TRACE("# if entries - %u", entries);
-        SEP_DRV_LOG_WARNING_TRACE_OUT("PCB node not available in group %u!", cur_grp);
-    }
-    if (entries == 0) {
-        use_default_busno = 1;
-        entries = 1;  // this could the client, does not through the scan
-    }
-
-    for (i = 0; i < entries; i++) {
-
-        mmio_bar_info = &ECB_mmio_bar_list(pecb, 0);
-
-        if  (!use_default_busno) {
-            if (IS_BUS_MAP_VALID(dev_node, i)) {
-                MMIO_BAR_INFO_bus_no(mmio_bar_info) = GET_BUS_MAP(dev_node, i);
-                domain_no = GET_DOMAIN_MAP(dev_node, i);
-            }
-            else {
-                SEP_DRV_LOG_TRACE_OUT("PCI device map not found. Early exit.");
-                return;
-            }
-        }
-        else {
-            domain_no = 0;
-        }
-
-        SEP_DRV_LOG_TRACE("D=0x%x, b=0x%lx, d=0x%x, f=0x%x, o=0x%llx", domain_no, MMIO_BAR_INFO_bus_no(mmio_bar_info), MMIO_BAR_INFO_dev_no(mmio_bar_info), MMIO_BAR_INFO_func_no(mmio_bar_info), MMIO_BAR_INFO_main_bar_offset(mmio_bar_info));
-        bar = PCI_Read_U64(domain_no, MMIO_BAR_INFO_bus_no(mmio_bar_info),
-                           MMIO_BAR_INFO_dev_no(mmio_bar_info),
-                           MMIO_BAR_INFO_func_no(mmio_bar_info),
-                           MMIO_BAR_INFO_main_bar_offset(mmio_bar_info));
-
-        bar &= MMIO_BAR_INFO_main_bar_mask(mmio_bar_info);
-
-        physical_address = bar + MMIO_BAR_INFO_base_offset_for_mmio(mmio_bar_info);
-
-        SEP_DRV_LOG_TRACE("pa=0x%llx", physical_address);
-
-        PCI_Read_From_Memory_Address_U64(physical_address, &regbar_physical_address);
-
-        regbar_physical_address &= MMIO_BAR_INFO_secondary_bar_mask(mmio_bar_info);
-
-        SEP_DRV_LOG_TRACE("REGBAR pa=0x%llx", regbar_physical_address);
-    }
-
-    SEP_DRV_LOG_TRACE_OUT("");
-    return;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -2689,119 +2291,95 @@ unc_mmio_Destroy(PVOID param)
  * Initialize the dispatch table
  */
 DISPATCH_NODE unc_mmio_single_bar_dispatch = {
-	.init = unc_mmio_single_bar_Initialize,    // initialize
-	.fini = unc_mmio_Destroy,                  // destroy
-	.write = unc_mmio_single_bar_Write_PMU,     // write
-	.freeze = unc_mmio_single_bar_Disable_PMU,   // freeze
-	.restart = unc_mmio_single_bar_Enable_PMU,    // restart
-	.read_data = unc_mmio_single_bar_Read_PMU_Data, // read
-	.check_overflow = NULL,                              // check for overflow
-	.swap_group = NULL,                              // swap group
-	.read_lbrs = NULL,                              // read lbrs
-	.cleanup = UNC_COMMON_Dummy_Func,             // cleanup
-	.hw_errata = NULL,                              // hw errata
-	.read_power = NULL,                              // read power
-	.check_overflow_errata = NULL,                              // check overflow errata
-	.read_counts = NULL,                              // read counts
-	.check_overflow_gp_errata = NULL,                              // check overflow gp errata
-	.read_ro = NULL,                              // read_ro
-	.platform_info = NULL,                              // platform info
-	.trigger_read = unc_mmio_single_bar_Trigger_Read,  // trigger read
-	.scan_for_uncore = NULL,                              // scan for uncore
-	.read_metrics = NULL                               // read metrics
-};
-
-DISPATCH_NODE  unc_mmio_mch_regbar_dispatch =
-{
-    .init = unc_mmio_mch_regbar_Initialize,    // initialize
-    .fini = unc_mmio_Destroy,                  // destroy
-    .write = unc_mmio_mch_regbar_Write_PMU,     // write
-    .freeze = unc_mmio_mch_regbar_Disable_PMU,   // freeze
-    .restart = unc_mmio_mch_regbar_Enable_PMU,    // restart
-    .read_data = unc_mmio_mch_regbar_Read_PMU_Data, // read
-    .check_overflow = NULL,                              // check for overflow
-    .swap_group = NULL,                              // swap group
-    .read_lbrs = NULL,                              // read lbrs
-    .cleanup = UNC_COMMON_Dummy_Func,             // cleanup
-    .hw_errata = NULL,                              // hw errata
-    .read_power = NULL,                              // read power
-    .check_overflow_errata = NULL,                              // check overflow errata
-    .read_counts = NULL,                              // read counts
-    .check_overflow_gp_errata = NULL,                              // check overflow gp errata
-    .read_ro = NULL,                              // read_ro
-    .platform_info = NULL,                              // platform info
-    .trigger_read = unc_mmio_mch_regar_Trigger_Read,   // trigger read
-    .scan_for_uncore = NULL,                              // scan for uncore
-    .read_metrics = NULL                               // read metrics
+	unc_mmio_single_bar_Initialize,    // initialize
+	unc_mmio_Destroy,                  // destroy
+	unc_mmio_single_bar_Write_PMU,     // write
+	unc_mmio_single_bar_Disable_PMU,   // freeze
+	unc_mmio_single_bar_Enable_PMU,    // restart
+	unc_mmio_single_bar_Read_PMU_Data, // read
+	NULL,                              // check for overflow
+	NULL,                              // swap group
+	NULL,                              // read lbrs
+	UNC_COMMON_Dummy_Func,             // cleanup
+	NULL,                              // hw errata
+	NULL,                              // read power
+	NULL,                              // check overflow errata
+	NULL,                              // read counts
+	NULL,                              // check overflow gp errata
+	NULL,                              // read_ro
+	NULL,                              // platform info
+	unc_mmio_single_bar_Trigger_Read,  // trigger read
+	NULL,                              // scan for uncore
+	NULL                               // read metrics
 };
 
 DISPATCH_NODE  unc_mmio_fpga_dispatch =
 {
-    .init = unc_mmio_fpga_Initialize,          // initialize
-    .fini = unc_mmio_Destroy,                  // destroy
-    .write = unc_mmio_single_bar_Write_PMU,     // write
-    .freeze = unc_mmio_single_bar_Disable_PMU,   // freeze
-    .restart = unc_mmio_single_bar_Enable_PMU,    // restart
-    .read_data = unc_mmio_single_bar_Read_PMU_Data, // read
-    .check_overflow = NULL,                              // check for overflow
-    .swap_group = NULL,                              // swap group
-    .read_lbrs = NULL,                              // read lbrs
-    .cleanup = UNC_COMMON_Dummy_Func,             // cleanup
-    .hw_errata = NULL,                              // hw errata
-    .read_power = NULL,                              // read power
-    .check_overflow_errata = NULL,                              // check overflow errata
-    .read_counts = NULL,                              // read counts
-    .check_overflow_gp_errata = NULL,                              // check overflow gp errata
-    .read_ro = NULL,                              // read_ro
-    .platform_info = NULL,                              // platform info
-    .trigger_read = unc_mmio_single_bar_Trigger_Read,  // trigger read
-    .scan_for_uncore = NULL,                              // scan for uncore
-    .read_metrics = NULL                               // read metrics
+    unc_mmio_fpga_Initialize,          // initialize
+    unc_mmio_Destroy,                  // destroy
+    unc_mmio_single_bar_Write_PMU,     // write
+    unc_mmio_single_bar_Disable_PMU,   // freeze
+    unc_mmio_single_bar_Enable_PMU,    // restart
+    unc_mmio_single_bar_Read_PMU_Data, // read
+    NULL,                              // check for overflow
+    NULL,                              // swap group
+    NULL,                              // read lbrs
+    UNC_COMMON_Dummy_Func,             // cleanup
+    NULL,                              // hw errata
+    NULL,                              // read power
+    NULL,                              // check overflow errata
+    NULL,                              // read counts
+    NULL,                              // check overflow gp errata
+    NULL,                              // read_ro
+    NULL,                              // platform info
+    unc_mmio_single_bar_Trigger_Read,  // trigger read
+    NULL,                              // scan for uncore
+    NULL                               // read metrics
 };
 
 DISPATCH_NODE unc_mmio_multiple_bar_dispatch = {
-	.init = unc_mmio_multiple_bar_Initialize,    // initialize
-	.fini = unc_mmio_Destroy,                    // destroy
-	.write = unc_mmio_multiple_bar_Write_PMU,     // write
-	.freeze = unc_mmio_multiple_bar_Disable_PMU,   // freeze
-	.restart = unc_mmio_multiple_bar_Enable_PMU,    // restart
-	.read_data = unc_mmio_multiple_bar_Read_PMU_Data, // read
-	.check_overflow = NULL,                                // check for overflow
-	.swap_group = NULL,                                // swap group
-	.read_lbrs = NULL,                                // read lbrs
-	.cleanup = UNC_COMMON_Dummy_Func,               // cleanup
-	.hw_errata = NULL,                                // hw errata
-	.read_power = NULL,                                // read power
-	.check_overflow_errata = NULL,                                // check overflow errata
-	.read_counts = NULL,                                // read counts
-	.check_overflow_gp_errata = NULL,                                // check overflow gp errata
-	.read_ro = NULL,                                // read_ro
-	.platform_info = NULL,                                // platform info
-	.trigger_read = unc_mmio_multiple_bar_Trigger_Read,  // trigger read
-	.scan_for_uncore = NULL,                                // scan for uncore
-	.read_metrics = NULL                                 // read metrics
+	unc_mmio_multiple_bar_Initialize,    // initialize
+	unc_mmio_Destroy,                    // destroy
+	unc_mmio_multiple_bar_Write_PMU,     // write
+	unc_mmio_multiple_bar_Disable_PMU,   // freeze
+	unc_mmio_multiple_bar_Enable_PMU,    // restart
+	unc_mmio_multiple_bar_Read_PMU_Data, // read
+	NULL,                                // check for overflow
+	NULL,                                // swap group
+	NULL,                                // read lbrs
+	UNC_COMMON_Dummy_Func,               // cleanup
+	NULL,                                // hw errata
+	NULL,                                // read power
+	NULL,                                // check overflow errata
+	NULL,                                // read counts
+	NULL,                                // check overflow gp errata
+	NULL,                                // read_ro
+	NULL,                                // platform info
+	unc_mmio_multiple_bar_Trigger_Read,  // trigger read
+	NULL,                                // scan for uncore
+	NULL                                 // read metrics
 };
 
 DISPATCH_NODE unc_mmio_pmm_dispatch = {
-	.init = unc_mmio_pmm_Initialize,             // initialize
-	.fini = unc_mmio_Destroy,                    // destroy
-	.write = unc_mmio_multiple_bar_Write_PMU,     // write
-	.freeze = unc_mmio_multiple_bar_Disable_PMU,   // freeze
-	.restart = unc_mmio_multiple_bar_Enable_PMU,    // restart
-	.read_data = unc_mmio_multiple_bar_Read_PMU_Data, // read
-	.check_overflow = NULL,                                // check for overflow
-	.swap_group = NULL,                                // swap group
-	.read_lbrs = NULL,                                // read lbrs
-	.cleanup = UNC_COMMON_Dummy_Func,               // cleanup
-	.hw_errata = NULL,                                // hw errata
-	.read_power = NULL,                                // read power
-	.check_overflow_errata = NULL,                                // check overflow errata
-	.read_counts = NULL,                                // read counts
-	.check_overflow_gp_errata = NULL,                                // check overflow gp errata
-	.read_ro = NULL,                                // read_ro
-	.platform_info = NULL,                                // platform info
-	.trigger_read = unc_mmio_multiple_bar_Trigger_Read,  // trigger read
-	.scan_for_uncore = NULL,                                // scan for uncore
-	.read_metrics = NULL                                 // read metrics
+	unc_mmio_pmm_Initialize,             // initialize
+	unc_mmio_Destroy,                    // destroy
+	unc_mmio_multiple_bar_Write_PMU,     // write
+	unc_mmio_multiple_bar_Disable_PMU,   // freeze
+	unc_mmio_multiple_bar_Enable_PMU,    // restart
+	unc_mmio_multiple_bar_Read_PMU_Data, // read
+	NULL,                                // check for overflow
+	NULL,                                // swap group
+	NULL,                                // read lbrs
+	UNC_COMMON_Dummy_Func,               // cleanup
+	NULL,                                // hw errata
+	NULL,                                // read power
+	NULL,                                // check overflow errata
+	NULL,                                // read counts
+	NULL,                                // check overflow gp errata
+	NULL,                                // read_ro
+	NULL,                                // platform info
+	unc_mmio_multiple_bar_Trigger_Read,  // trigger read
+	NULL,                                // scan for uncore
+	NULL                                 // read metrics
 };
 

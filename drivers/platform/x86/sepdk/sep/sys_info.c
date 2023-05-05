@@ -54,7 +54,6 @@ static U32            *cpuid_entry_count;
 static U32            *cpuid_total_count;
 U32                   *cpu_built_sysinfo;
 
-static U32 cpu_threads_per_core = 1;
 extern U64 max_rmid;
 
 #define VTSA_NA64 ((U64)-1)
@@ -337,6 +336,7 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 	U32         i, index, j;
 	U64         cpuid_function;
 	U64         rax, rbx, rcx, rdx;
+	U64			input_rcx;
 	VTSA_CPUID *cpuid_el;
 	U32         shift_nbits_core         = 0;
 	U32         shift_nbits_pkg          = 0;
@@ -373,6 +373,7 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 		if (cpuid_function == 0x4) {
 			for (j = 0, rax = (U64)-1; (rax & 0x1f) != 0; j++) {
 				rcx = j;
+				input_rcx = rcx;
 				UTILITY_Read_Cpuid(cpuid_function, &rax, &rbx,
 						   &rcx, &rdx);
 				cpuid_el = &current_cpuid[index];
@@ -383,8 +384,8 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 				       cpuid_buffer_limit);
 #endif
 
-				VTSA_CPUID_X86_cpuid_eax_input(cpuid_el) =
-					(U32)cpuid_function;
+				VTSA_CPUID_X86_cpuid_eax_input(cpuid_el) = (U32)cpuid_function;
+				VTSA_CPUID_X86_cpuid_ecx_input(cpuid_el) = (U32)input_rcx;
 				VTSA_CPUID_X86_cpuid_eax(cpuid_el) = (U32)rax;
 				VTSA_CPUID_X86_cpuid_ebx(cpuid_el) = (U32)rbx;
 				VTSA_CPUID_X86_cpuid_ecx(cpuid_el) = (U32)rcx;
@@ -451,6 +452,7 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 			j = 0;
 			do {
 				rcx = j;
+				input_rcx = rcx;
 				UTILITY_Read_Cpuid(cpuid_function, &rax, &rbx,
 						   &rcx, &rdx);
 				cpuid_el = &current_cpuid[index];
@@ -458,12 +460,12 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 
 #if defined(ALLOW_ASSERT)
 				ASSERT(((U8 *)cpuid_el +
-					sizeof(VTSA_CPUID_X86)) <=
+					sizeof(VTSA_CPUID)) <=
 				       cpuid_buffer_limit);
 #endif
 
-				VTSA_CPUID_X86_cpuid_eax_input(cpuid_el) =
-					(U32)cpuid_function;
+				VTSA_CPUID_X86_cpuid_eax_input(cpuid_el) = (U32)cpuid_function;
+				VTSA_CPUID_X86_cpuid_ecx_input(cpuid_el) = (U32)input_rcx;
 				VTSA_CPUID_X86_cpuid_eax(cpuid_el) = (U32)rax;
 				VTSA_CPUID_X86_cpuid_ebx(cpuid_el) = (U32)rbx;
 				VTSA_CPUID_X86_cpuid_ecx(cpuid_el) = (U32)rcx;
@@ -514,6 +516,7 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 
 			for (j = 0; j < num_sub_leafs; j++) {
 				rcx = j;
+				input_rcx = rcx;
 				UTILITY_Read_Cpuid(cpuid_function, &rax, &rbx,
 						   &rcx, &rdx);
 				cpuid_el = &current_cpuid[index];
@@ -523,8 +526,8 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 				       cpuid_buffer_limit);
 #endif
 
-				VTSA_CPUID_X86_cpuid_eax_input(cpuid_el) =
-					(U32)cpuid_function;
+				VTSA_CPUID_X86_cpuid_eax_input(cpuid_el) = (U32)cpuid_function;
+				VTSA_CPUID_X86_cpuid_ecx_input(cpuid_el) = (U32)input_rcx;
 				VTSA_CPUID_X86_cpuid_eax(cpuid_el) = (U32)rax;
 				VTSA_CPUID_X86_cpuid_ebx(cpuid_el) = (U32)rbx;
 				VTSA_CPUID_X86_cpuid_ecx(cpuid_el) = (U32)rcx;
@@ -536,6 +539,42 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 					"cpu=%u, leaf=0x%x, sleaf=0x%x - rax=0x%x, rbx=0x%x, rcx=0x%x, rdx=0x%x",
 					cpu, (U32)cpuid_function, j, (U32)rax,
 					(U32)rbx, (U32)rcx, (U32)rdx);
+			}
+		} else if (cpuid_function == 0x23) {
+			rcx = 0;
+			UTILITY_Read_Cpuid(cpuid_function, &rax, &rbx, &rcx,
+					&rdx);
+			num_sub_leafs = (U32)rax;
+			j = 0;
+			while (num_sub_leafs >> j) {
+				if (!((num_sub_leafs >> j) & 0x1)) {
+					j++;
+					continue;
+				}
+				rcx = j;
+				input_rcx = rcx;
+				UTILITY_Read_Cpuid(cpuid_function, &rax, &rbx, &rcx,
+						&rdx);
+				cpuid_el = &current_cpuid[index];
+				index++;
+
+				SEP_DRV_LOG_TRACE(
+					"Cpu %u: num_cpuids = %u i = %u index = %u.",
+					cpu, num_cpuids, i, index);
+
+				VTSA_CPUID_X86_cpuid_eax_input(cpuid_el) = (U32)cpuid_function;
+				VTSA_CPUID_X86_cpuid_ecx_input(cpuid_el) = (U32)input_rcx;
+				VTSA_CPUID_X86_cpuid_eax(cpuid_el) = (U32)rax;
+				VTSA_CPUID_X86_cpuid_ebx(cpuid_el) = (U32)rbx;
+				VTSA_CPUID_X86_cpuid_ecx(cpuid_el) = (U32)rcx;
+				VTSA_CPUID_X86_cpuid_edx(cpuid_el) = (U32)rdx;
+
+				SEP_DRV_LOG_TRACE(
+					"cpu=%u, func=0x%x - rax=0x%x, rbx=0x%x, rcx=0x%x, rdx=0x%x",
+					cpu, (U32)cpuid_function, (U32)rax, (U32)rbx,
+					(U32)rcx, (U32)rdx);
+
+				j++;
 			}
 		} else {
 			rcx = 0;
@@ -554,16 +593,16 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 				cpu, num_cpuids, i, index);
 
 #if defined(ALLOW_ASSERT)
-			ASSERT(((U8 *)cpuid_el + sizeof(VTSA_CPUID_X86)) <=
+			ASSERT(((U8 *)cpuid_el + sizeof(VTSA_CPUID)) <=
 			       cpuid_buffer_limit);
 
-			ASSERT(((U8 *)cpuid_el + sizeof(VTSA_CPUID_X86)) <=
+			ASSERT(((U8 *)cpuid_el + sizeof(VTSA_CPUID)) <=
 			       ((U8 *)current_cpuid +
-				(num_cpuids * sizeof(VTSA_CPUID_X86))));
+				(num_cpuids * sizeof(VTSA_CPUID))));
 #endif
 
-			VTSA_CPUID_X86_cpuid_eax_input(cpuid_el) =
-				(U32)cpuid_function;
+			VTSA_CPUID_X86_cpuid_eax_input(cpuid_el) = (U32)cpuid_function;
+			VTSA_CPUID_X86_cpuid_ecx_input(cpuid_el) = 0;
 			VTSA_CPUID_X86_cpuid_eax(cpuid_el) = (U32)rax;
 			VTSA_CPUID_X86_cpuid_ebx(cpuid_el) = (U32)rbx;
 			VTSA_CPUID_X86_cpuid_ecx(cpuid_el) = (U32)rcx;
@@ -614,13 +653,20 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 		VTSA_GEN_PER_CPU_cpu_cache_L2(local_gpc) = (U32)(rcx >> 16);
 	}
 
+	if (is_Knights_family(family, model)) {
+		threads_per_core[cpu] = 4;
+	} else {
+		if (!ht_supported || num_logical_per_physical == cores_per_die || VTSA_GEN_PER_CPU_cpu_core_type(local_gpc) == SEP_SMALL_CORE_TYPE) {
+			threads_per_core[cpu] = 1;
+		} else {
+			threads_per_core[cpu] = 2;
+		}
+	}
+
 	if (!ht_supported || num_logical_per_physical == cores_per_die) {
-		threads_per_core[cpu] = 1;
 		thread_id             = 0;
 	} else {
-		// each core has 4 threads for MIC system, otherwise, it has 2 threads when ht is enabled
-		threads_per_core[cpu] = cpu_threads_per_core;
-		thread_id = (U16)(apic_id & (cpu_threads_per_core - 1));
+		thread_id = (U16)(apic_id & (threads_per_core[cpu] - 1));
 	}
 
 	package_id = apic_id >> shift_nbits_pkg;
@@ -738,7 +784,7 @@ sys_info_Update_Hyperthreading_Info(VOID *buffer)
 	    GLOBAL_STATE_num_cpus(driver_state) == num_cores) {
 		// This is the case HT is off by BIOS
 		SEP_DRV_LOG_DETECTION("Hyperthreading OFF");
-		if (cpu_threads_per_core > 1 &&
+		if (threads_per_core[cpu] > 1 &&
 		    VTSA_GEN_PER_CPU_cpu_threads_per_core(local_gpc) != 1) {
 			SEP_DRV_LOG_DETECTION("Updating info");
 			threads_per_core[cpu] = 1;
@@ -889,50 +935,6 @@ sys_info_Build_Percpu(VOID *buffer)
 
 /* ------------------------------------------------------------------------- */
 /*!
- * @fn static void sys_info_Get_Processor_Info(NULL)
- *
- * @param    None
- * @return   None
- *
- * @brief  This routine is called to get global informaton on the processor in general,
- *         it include:
- *             cpu_thread_per_core
- *
- */
-static VOID
-sys_info_Get_Processor_Info(VOID *param)
-{
-	U64      rax;
-	U64      rbx;
-	U64      rcx;
-	U64      rdx;
-	U32      family;
-	U32      model;
-	DRV_BOOL ht_supported = FALSE;
-
-	SEP_DRV_LOG_TRACE_IN("");
-
-	// read cpuid with function 1 to find family/model
-	UTILITY_Read_Cpuid(1, &rax, &rbx, &rcx, &rdx);
-	family = (U32)(rax >> 8 & 0x0f);
-	model  = (U32)(rax >> 12 & 0xf0); /* extended model bits */
-	model |= (U32)(rax >> 4 & 0x0f);
-	if (is_Knights_family(family, model)) {
-		cpu_threads_per_core = 4;
-	} else {
-		ht_supported = (rdx >> 28) & 1 ? TRUE : FALSE;
-		if (ht_supported) {
-			cpu_threads_per_core = 2;
-		} else {
-			cpu_threads_per_core = 1;
-		}
-	}
-
-	SEP_DRV_LOG_TRACE_OUT("");
-}
-
-/* ------------------------------------------------------------------------- */
-/*!
  * @fn extern void SYS_Info_Build(void)
  *
  * @param    None
@@ -1003,8 +1005,6 @@ SYS_INFO_Build(VOID)
 		return 0;
 	}
 
-	// checking on family-model to set threads_per_core as 4: MIC,  2: ht-on; 1: rest
-	sys_info_Get_Processor_Info(NULL);
 	CONTROL_Invoke_Parallel(sys_info_Get_Cpuid_Entry_Count,
 				(VOID *)cpuid_entry_count);
 	total_cpuid_entries = 0;

@@ -48,6 +48,9 @@
 #include <linux/slab.h>
 #include <linux/fs.h>
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#include <linux/sched/task.h>	    /* init_task */
+#endif
 
 #include "lwpmudrv_defines.h"
 #include "lwpmudrv_types.h"
@@ -57,7 +60,7 @@
 #include "control.h"
 #include "pax_shared.h"
 
-MODULE_AUTHOR("Copyright (C) 2009-2021 Intel Corporation");
+MODULE_AUTHOR("Copyright (C) 2009 Intel Corporation");
 MODULE_VERSION(PAX_NAME"_"PAX_VERSION_STR);
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -189,7 +192,7 @@ pax_Disable_NMIWatchdog(PVOID data)
 
 	up(&pax_Disable_NMIWatchdog_Sem);
 
-	kcred = prepare_kernel_cred(NULL);
+	kcred = prepare_kernel_cred(&init_task);
 	if (kcred) {
 		commit_creds(kcred);
 	} else {
@@ -258,7 +261,7 @@ pax_Enable_NMIWatchdog(PVOID data)
 
 	up(&pax_Enable_NMIWatchdog_Sem);
 
-	kcred = prepare_kernel_cred(NULL);
+	kcred = prepare_kernel_cred(&init_task);
 	if (kcred) {
 		commit_creds(kcred);
 	} else {

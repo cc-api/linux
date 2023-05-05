@@ -114,7 +114,8 @@ struct DRV_CONFIG_NODE_S {
 			U64 rdt_auto_rmid : 1;
 			U64 enable_ipt : 1;
 			U64 enable_sideband : 1;
-			U64 reserved_field1 : 43;
+			U64 per_cpu_absolute_tsc : 1;
+			U64 reserved_field1 : 42;
 		} s1;
 	} u3;
 	U64      target_pid;
@@ -156,6 +157,7 @@ struct DRV_CONFIG_NODE_S {
 #define DRV_CONFIG_timer_based_counts(cfg)    ((cfg)->u3.s1.enable_tbc)
 #define DRV_CONFIG_ds_area_available(cfg)     ((cfg)->u3.s1.ds_area_available)
 #define DRV_CONFIG_per_cpu_tsc(cfg)           ((cfg)->u3.s1.per_cpu_tsc)
+#define DRV_CONFIG_per_cpu_absolute_tsc(cfg)  ((cfg)->u3.s1.per_cpu_absolute_tsc)
 #define DRV_CONFIG_mixed_ebc_available(cfg)   ((cfg)->u3.s1.mixed_ebc_available)
 #define DRV_CONFIG_hetero_supported(cfg)      ((cfg)->u3.s1.hetero_supported)
 #define DRV_CONFIG_rdt_auto_rmid(cfg)         ((cfg)->u3.s1.rdt_auto_rmid)
@@ -812,19 +814,37 @@ typedef struct __generic_array_header {
 #define VTSA_GEN_ARRAY_HDR_array_type(gah)        ((gah)->array_type)
 #define VTSA_GEN_ARRAY_HDR_array_subtype(gah)     ((gah)->array_subtype)
 
-typedef struct __cpuid_x86 {
+typedef struct __cpuid_x86_v1 {
 	U32 cpuid_eax_input;
 	U32 cpuid_eax;
 	U32 cpuid_ebx;
 	U32 cpuid_ecx;
 	U32 cpuid_edx;
+} VTSA_CPUID_X86_V1;
+
+#define VTSA_CPUID_X86_V1_cpuid_eax_input(cid) ((cid)->cpuid_eax_input)
+#define VTSA_CPUID_X86_V1_cpuid_eax(cid)       ((cid)->cpuid_eax)
+#define VTSA_CPUID_X86_V1_cpuid_ebx(cid)       ((cid)->cpuid_ebx)
+#define VTSA_CPUID_X86_V1_cpuid_ecx(cid)       ((cid)->cpuid_ecx)
+#define VTSA_CPUID_X86_V1_cpuid_edx(cid)       ((cid)->cpuid_edx)
+
+typedef struct __cpuid_x86 {
+	U32 cpuid_eax_input;
+	U32 cpuid_ecx_input;
+	U64 reserved1;
+	U32 cpuid_eax;
+	U32 cpuid_ebx;
+	U32 cpuid_ecx;
+	U32 cpuid_edx;
+	U64 reserved2;
 } VTSA_CPUID_X86;
 
-#define VTSA_CPUID_X86_cpuid_eax_input(cid) ((cid)->cpuid_eax_input)
-#define VTSA_CPUID_X86_cpuid_eax(cid)       ((cid)->cpuid_eax)
-#define VTSA_CPUID_X86_cpuid_ebx(cid)       ((cid)->cpuid_ebx)
-#define VTSA_CPUID_X86_cpuid_ecx(cid)       ((cid)->cpuid_ecx)
-#define VTSA_CPUID_X86_cpuid_edx(cid)       ((cid)->cpuid_edx)
+#define VTSA_CPUID_X86_cpuid_eax_input(cid)	((cid)->cpuid_eax_input)
+#define VTSA_CPUID_X86_cpuid_ecx_input(cid)	((cid)->cpuid_ecx_input)
+#define VTSA_CPUID_X86_cpuid_eax(cid)		((cid)->cpuid_eax)
+#define VTSA_CPUID_X86_cpuid_ebx(cid)		((cid)->cpuid_ebx)
+#define VTSA_CPUID_X86_cpuid_ecx(cid)		((cid)->cpuid_ecx)
+#define VTSA_CPUID_X86_cpuid_edx(cid)		((cid)->cpuid_edx)
 
 typedef struct __cpuid_ipf {
 	U64 cpuid_select;
@@ -1877,7 +1897,10 @@ typedef enum {
 	UNCORE_TOPOLOGY_INFO_NODE_PMEM_MC      = 23,
 	UNCORE_TOPOLOGY_INFO_NODE_CXLCM        = 24,
 	UNCORE_TOPOLOGY_INFO_NODE_CXLDP        = 25,
-	UNCORE_TOPOLOGY_INFO_NODE_OOBMSM       = 26
+	UNCORE_TOPOLOGY_INFO_NODE_OOBMSM       = 26,
+	UNCORE_TOPOLOGY_INFO_NODE_R2PCIE       = 27,
+	UNCORE_TOPOLOGY_INFO_NODE_NOC          = 28,
+	UNCORE_TOPOLOGY_INFO_NODE_MSE          = 29
 } UNCORE_TOPOLOGY_INFO_NODE_INDEX_TYPE;
 
 /**************************************************************
@@ -2016,7 +2039,8 @@ struct DRV_SETUP_INFO_NODE_S {
 			U64 process_exit_hook_unavailable : 1;
 			U64 munmap_hook_unavailable : 1;
 			U64 sched_switch_hook_unavailable : 1;
-			U64 reserved1 : 35;
+			U64 ibt_status : 2;
+			U64 reserved1 : 33;
 		} s1;
 	} u1;
 	U32 vmm_version;
@@ -2057,6 +2081,8 @@ struct DRV_SETUP_INFO_NODE_S {
 	((info)->u1.s1.munmap_hook_unavailable)
 #define DRV_SETUP_INFO_sched_switch_hook_unavailable(info)                     \
 	((info)->u1.s1.sched_switch_hook_unavailable)
+#define DRV_SETUP_INFO_ibt_status(info)                                        \
+	((info)->u1.s1.ibt_status)
 #define DRV_SETUP_INFO_vmm_version(info) ((info)->vmm_version)
 
 #define DRV_SETUP_INFO_PTI_DISABLED  0
@@ -2064,6 +2090,10 @@ struct DRV_SETUP_INFO_NODE_S {
 #define DRV_SETUP_INFO_PTI_KAISER    2
 #define DRV_SETUP_INFO_PTI_VA_SHADOW 3
 #define DRV_SETUP_INFO_PTI_UNKNOWN   4
+
+#define DRV_SETUP_INFO_IBT_UNAVAILABLE    0
+#define DRV_SETUP_INFO_IBT_AVAILABLE      1
+#define DRV_SETUP_INFO_IBT_ENABLED        2
 
 /*
   Type: task_info_t
@@ -2684,22 +2714,22 @@ struct DRV_IOCTL_STATUS_NODE_S {
 #define DRV_IOCTL_STATUS_counter_mask(x)  ((x)->counter_mask)
 
 /* common perf strutcures for platform picker and sampling components */
-#define MAXNAMELEN 256
 
 typedef struct PERF_DEVICE_CONFIG_INFO_NODE_S PERF_DEVICE_CONFIG_INFO_NODE;
 typedef PERF_DEVICE_CONFIG_INFO_NODE         *PERF_DEVICE_CONFIG_INFO;
 
 struct PERF_DEVICE_CONFIG_INFO_NODE_S {
-	S8  name[MAXNAMELEN]; // unit name
+	S8  name[MAX_EVENT_NAME_LENGTH]; // unit name
 	U32 device_type;      // device which unit belongs to
 	U32 unit_scope; // maps to socket level/ thread level/ system level  { enum EVENT_SCOPE_TYPES }
 	U32 unc_unit_type;     // freerun / programmable counters
 	U32 type_config_value; // type value in /sys/bus/event_source/devices/*/type
 	U32 mux_value;         // Multiplex value
 	U32 unc_unit_id;       // Index to identify different units
-	S8 cpu_mask[1024]; // cpumask value in /sys/bus/event_source/devices/*/cpumask
+	S8  cpu_mask[MAX_EVENT_NAME_LENGTH]; // cpumask value in /sys/bus/event_source/devices/*/cpumask
 	// dependent on unit_scope, {socket (entry for each socket) / thread level(no entry)/ system level (one entry)}
 	// We don't expect cpu_mask to over flow the specified size, but on event of overflow it goes into reserved fields
+	U32  perf_unit_id;               // Index to identify different units
 };
 
 #define PERF_DEVICE_CONFIG_INFO_name(x)              ((x)->name)
@@ -2710,6 +2740,7 @@ struct PERF_DEVICE_CONFIG_INFO_NODE_S {
 #define PERF_DEVICE_CONFIG_INFO_mux_value(x)         ((x)->mux_value)
 #define PERF_DEVICE_CONFIG_INFO_cpu_mask(x)          ((x)->cpu_mask)
 #define PERF_DEVICE_CONFIG_INFO_unc_unit_id(x)       ((x)->unc_unit_id)
+#define PERF_DEVICE_CONFIG_INFO_perf_unit_id(x)      ((x)->perf_unit_id)
 
 typedef struct PERF_SYS_DEVICES_NODE_S PERF_SYS_DEVICES_NODE;
 typedef PERF_SYS_DEVICES_NODE         *PERF_SYS_DEVICES;
@@ -2719,10 +2750,26 @@ struct PERF_SYS_DEVICES_NODE_S {
 	PERF_DEVICE_CONFIG_INFO_NODE device_list[];
 };
 
-#define PERF_SYS_DEVICES_num_sys_devices(x)  ((x)->num_sys_devices)
-#define PERF_SYS_DEVICES_size_of_alloc(x)    ((x)->size_of_alloc)
-#define PERF_SYS_DEVICES_device_list(x)      ((x)->device_list)
-#define PERF_SYS_DEVICES_device_config(x, i) ((x)->device_list[i])
+#define PERF_SYS_DEVICES_num_sys_devices(x)     ((x)->num_sys_devices)
+#define PERF_SYS_DEVICES_size_of_alloc(x)       ((x)->size_of_alloc)
+#define PERF_SYS_DEVICES_device_list(x)         ((x)->device_list)
+#define PERF_SYS_DEVICES_device_config(x, i)    ((x)->device_list[i])
+#define PERF_SYS_DEVICES_name(x, i)              \
+	PERF_DEVICE_CONFIG_INFO_name(&PERF_SYS_DEVICES_device_config(x, i))
+#define PERF_SYS_DEVICES_device_type(x, i)       \
+	PERF_DEVICE_CONFIG_INFO_device_type(&PERF_SYS_DEVICES_device_config(x, i))
+#define PERF_SYS_DEVICES_unit_scope(x, i)        \
+	PERF_DEVICE_CONFIG_INFO_unit_scope(&PERF_SYS_DEVICES_device_config(x, i))
+#define PERF_SYS_DEVICES_unc_unit_type(x, i)     \
+	PERF_DEVICE_CONFIG_INFO_unc_unit_type(&PERF_SYS_DEVICES_device_config(x, i))
+#define PERF_SYS_DEVICES_type_config_value(x, i) \
+	PERF_DEVICE_CONFIG_INFO_type_config_value(&PERF_SYS_DEVICES_device_config(x, i))
+#define PERF_SYS_DEVICES_mux_value(x, i)         \
+	PERF_DEVICE_CONFIG_INFO_mux_value(&PERF_SYS_DEVICES_device_config(x, i))
+#define PERF_SYS_DEVICES_cpu_mask(x, i)          \
+	PERF_DEVICE_CONFIG_INFO_cpu_mask(&PERF_SYS_DEVICES_device_config(x, i))
+#define PERF_SYS_DEVICES_unc_unit_id(x, i)       \
+	PERF_DEVICE_CONFIG_INFO_unc_unit_id(&PERF_SYS_DEVICES_device_config(x, i))
 
 typedef enum {
 	IPT_BUFFER_CAPTURE = 0,

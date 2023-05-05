@@ -272,6 +272,15 @@ extern U32          cur_devices;
 extern LWPMU_DEVICE devices;
 extern U64         *pmu_state;
 extern U32          num_core_devs;
+extern U64          ibt_status;
+extern DRV_BOOL     kallsyms_lookup_available;
+extern U64          kaiser_enabled_ptr_addr;
+extern U64          kaiser_pti_option_addr;
+extern U64          kaiser_add_mapping_addr;
+extern U64          kaiser_remove_mapping_addr;
+extern U64          cea_set_pte_addr;
+extern U64          do_kernel_range_flush_addr;
+extern U64          dyn_addr;
 
 typedef struct UNC_EM_DESC_NODE_S UNC_EM_DESC_NODE;
 typedef UNC_EM_DESC_NODE         *UNC_EM_DESC;

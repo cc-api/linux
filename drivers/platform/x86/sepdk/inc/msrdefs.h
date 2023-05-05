@@ -115,6 +115,9 @@
 
 #define PERF_GLOBAL_STATUS_TOPA_PMI_MASK 0x80000000000000ULL
 
+#define IA32_S_CET              0x6A2
+#define CET_IBT_EN              0x4
+
 // REG INDEX inside GLOBAL CTRL SECTION
 enum {
 	GLOBAL_CTRL_REG_INDEX = 0,
