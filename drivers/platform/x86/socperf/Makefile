@@ -54,14 +54,14 @@ ccflags-y := -I$(srctree)/drivers/platform/x86/socperf/include -I$(srctree)/driv
 
 obj-m := $(DRIVER_NAME).o
 
-arch-objs :=    pci.o                 \
-		soc_uncore.o                  \
-		haswellunc_sa.o               \
-		npk_uncore.o  \
+arch-objs :=    pci.o             \
+		soc_uncore.o      \
+		haswellunc_sa.o   \
+		npk_uncore.o      \
 		haswellunc_sa.o   \
 		npk_uncore.o
 
-$(DRIVER_NAME)-objs :=    \
+$(DRIVER_NAME)-objs :=            \
 		socperfdrv.o      \
 		control.o         \
 		utility.o         \

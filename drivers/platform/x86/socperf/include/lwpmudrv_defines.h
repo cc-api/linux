@@ -128,6 +128,16 @@ extern "C" {
 #define IN
 #define INOUT
 
+/*
+ * START - driverless mode defines
+ * */
+
+#define PERF_SYSFS_DEVICE_PATH "/sys/bus/event_source/devices/"
+
+/*
+ * END   - driverless mode defines
+ * */
+
 //
 // VERIFY_SIZEOF let's you insert a compile-time check that the size of a data
 // type (e.g. a struct) is what you think it should be.  Usually it is
@@ -546,6 +556,10 @@ extern "C" {
 #define INITIAL_BASE_NUM_EVENTS        2000
 #define INITIAL_BASE_NUM_MATRIX_EVENTS 100
 #define NUM_EVENTS_MULTIPLY_FACTOR     2
+
+#define SEP_DEFAULT_CORE_TYPE		0
+#define SEP_SMALL_CORE_TYPE		0x20
+#define SEP_BIG_CORE_TYPE		0x40
 
 /*
  * Memory allocation and deallocation macros

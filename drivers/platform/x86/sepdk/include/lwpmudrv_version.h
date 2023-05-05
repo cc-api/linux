@@ -23,9 +23,9 @@
 #define STRINGIFY_W(x)  _STRINGIFY_W(x)
 
 #define SEP_MAJOR_VERSION       5
-#define SEP_MINOR_VERSION       37
+#define SEP_MINOR_VERSION       40
 // API version is independent of major/minor and tracks driver version
-#define SEP_API_VERSION         12
+#define SEP_API_VERSION         14
 
 #define SEP_PREV_MAJOR_VERSION  5
 #define EMON_PREV_MAJOR_VERSION 11
@@ -73,9 +73,9 @@
 #define PRODUCT_VERSION_DATE __DATE__ " at " __TIME__
 
 #define SEP_PRODUCT_COPYRIGHT \
-	"Copyright(C) 2007-2020 Intel Corporation. All rights reserved."
+	"Copyright(C) 2007 Intel Corporation. All rights reserved."
 #define EMON_PRODUCT_COPYRIGHT \
-	"Copyright(C) 1993-2020 Intel Corporation. All rights reserved."
+	"Copyright(C) 1993 Intel Corporation. All rights reserved."
 
 #define PRODUCT_DISCLAIMER \
 	"Warning: This computer program is protected under U.S. and international\ncopyright laws, and may only be used or copied in accordance with the terms\nof the license agreement.  Except as permitted by such license, no part\nof this computer program may be reproduced, stored in a retrieval system,\nor transmitted in any form or by any means without the express written consent\nof Intel Corporation."

@@ -103,7 +103,7 @@
 #include <linux/delay.h>
 #endif
 
-MODULE_AUTHOR("Copyright (C) 2007-2020 Intel Corporation");
+MODULE_AUTHOR("Copyright (C) 2007 Intel Corporation");
 MODULE_VERSION(SEP_NAME"_"SEP_VERSION_STR);
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -179,6 +179,11 @@ DRV_SETUP_INFO_NODE req_drv_setup_info;
 IPT_CONFIG          ipt_config;
 DRV_BOOL            collect_sideband   = FALSE;
 DRV_BOOL            unc_discovery_init = FALSE;
+DRV_BOOL            kallsyms_lookup_available  = FALSE;
+U64                 ibt_status                 = 0ULL;
+U64                 kaiser_enabled_ptr_addr    = 0ULL;
+U64                 kaiser_pti_option_addr     = 0ULL;
+
 #if defined(DRV_PMT_ENABLE)
 DRV_PMT_TELEM_DEV_NODE pmt_devices[MAX_PMT_DEVICES];
 U32                    pmt_dev_index;
@@ -241,6 +246,7 @@ U64      *pmu_state;
 U64      *cpu_tsc;
 U64      *prev_cpu_tsc;
 U64      *diff_cpu_tsc;
+U64      *temp_tsc;
 U64       max_rmid;
 
 UNCORE_TOPOLOGY_INFO_NODE           uncore_topology;
@@ -2413,7 +2419,7 @@ lwpmudrv_Emon_Read_Op(PVOID arg)
 	}
 
 	prev_cpu_tsc[this_cpu] = cpu_tsc[this_cpu];
-	if (DRV_CONFIG_per_cpu_tsc(drv_cfg) || (this_cpu == 0)) {
+	if (DRV_CONFIG_per_cpu_tsc(drv_cfg) || DRV_CONFIG_per_cpu_absolute_tsc(drv_cfg) || (this_cpu == 0)) {
 		UTILITY_Read_TSC(&cpu_tsc[this_cpu]);
 	}
 
@@ -2434,7 +2440,7 @@ lwpmudrv_Emon_Read_Op(PVOID arg)
 
 	lwpmudrv_Write_Op(NULL);
 
-	if (DRV_CONFIG_per_cpu_tsc(drv_cfg) || (this_cpu == 0)) {
+	if (DRV_CONFIG_per_cpu_tsc(drv_cfg) || DRV_CONFIG_per_cpu_absolute_tsc(drv_cfg) || (this_cpu == 0)) {
 		UTILITY_Read_TSC(&cpu_tsc[this_cpu]);
 	}
 
@@ -2969,7 +2975,7 @@ lwpmudrv_Read_Allowlist_MSR_All_Cores(IOCTL_ARGS arg)
 			goto clean_return;
 		} else {
 			SEP_DRV_LOG_TRACE("Verified the MSR 0x%x",
-					  msr_ops[i].reg_id);
+					  req_msr_ops[i].reg_id);
 		}
 
 		node                = &msr_data[i];
@@ -3128,7 +3134,7 @@ lwpmudrv_Write_Allowlist_MSR_All_Cores(IOCTL_ARGS arg)
 			goto clean_return;
 		} else {
 			SEP_DRV_LOG_TRACE("Verified the MSR 0x%x",
-					  msr_ops[i].reg_id);
+					  req_msr_ops[i].reg_id);
 		}
 
 		node                 = &msr_data[i];
@@ -3276,7 +3282,7 @@ lwpmudrv_Read_Counters_And_Switch_Group(IOCTL_ARGS arg)
 		// if per_cpu_tsc is not defined, read cpu0's tsc and save in var cpu_tsc[0]
 		// if per_cpu_tsc is defined, read all cpu's tsc and save in var cpu_tsc by lwpmudrv_Fill_TSC_Info
 #if !defined(CONFIG_PREEMPT_COUNT)
-	if (DRV_CONFIG_per_cpu_tsc(drv_cfg)) {
+	if (DRV_CONFIG_per_cpu_tsc(drv_cfg) || DRV_CONFIG_per_cpu_absolute_tsc(drv_cfg)) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
 		atomic_set(&read_now, GLOBAL_STATE_num_cpus(driver_state));
 		init_waitqueue_head(&read_tsc_now);
@@ -3286,6 +3292,14 @@ lwpmudrv_Read_Counters_And_Switch_Group(IOCTL_ARGS arg)
 	} else
 #endif
 		CONTROL_Invoke_Cpu(0, lwpmudrv_Read_Specific_TSC, &cpu_tsc[0]);
+
+#if defined(CONFIG_PREEMPT_COUNT)
+		if (DRV_CONFIG_per_cpu_absolute_tsc(drv_cfg)) {
+			for (i = 0; i < GLOBAL_STATE_num_cpus(driver_state); i++) {
+				cpu_tsc[i] = cpu_tsc[0];
+			}
+		}
+#endif
 
 	// step 3
 	// Counters should be frozen right after time stamped.
@@ -3312,8 +3326,14 @@ lwpmudrv_Read_Counters_And_Switch_Group(IOCTL_ARGS arg)
 	orig_r_buf_ptr = arg->buf_drv_to_usr;
 	orig_r_buf_len = arg->len_drv_to_usr;
 
-	if (copy_to_user(arg->buf_drv_to_usr, diff_cpu_tsc,
-			 GLOBAL_STATE_num_cpus(driver_state) * sizeof(U64))) {
+	if (DRV_CONFIG_per_cpu_absolute_tsc(drv_cfg)) {
+		temp_tsc = cpu_tsc;
+	} else {
+		temp_tsc = diff_cpu_tsc;
+	}
+
+	if (copy_to_user(arg->buf_drv_to_usr, temp_tsc,
+			GLOBAL_STATE_num_cpus(driver_state) * sizeof(U64))) {
 		SEP_DRV_LOG_ERROR_FLOW_OUT("Memory copy failure!");
 		return OS_FAULT;
 	}
@@ -3430,7 +3450,7 @@ lwpmudrv_Read_And_Reset_Counters(IOCTL_ARGS arg)
 		// if per_cpu_tsc is not defined, read cpu0's tsc into var cpu_tsc[0]
 		// if per_cpu_tsc is defined, read all cpu's tsc into var cpu_tsc by lwpmudrv_Fill_TSC_Info
 #if !defined(CONFIG_PREEMPT_COUNT)
-	if (DRV_CONFIG_per_cpu_tsc(drv_cfg)) {
+	if (DRV_CONFIG_per_cpu_tsc(drv_cfg) || DRV_CONFIG_per_cpu_absolute_tsc(drv_cfg)) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
 		atomic_set(&read_now, GLOBAL_STATE_num_cpus(driver_state));
 		init_waitqueue_head(&read_tsc_now);
@@ -3440,6 +3460,14 @@ lwpmudrv_Read_And_Reset_Counters(IOCTL_ARGS arg)
 	} else
 #endif
 		CONTROL_Invoke_Cpu(0, lwpmudrv_Read_Specific_TSC, &cpu_tsc[0]);
+
+#if defined(CONFIG_PREEMPT_COUNT)
+		if (DRV_CONFIG_per_cpu_absolute_tsc(drv_cfg)) {
+			for (i = 0; i < GLOBAL_STATE_num_cpus(driver_state); i++) {
+				cpu_tsc[i] = cpu_tsc[0];
+			}
+		}
+#endif
 
 	// step 3
 	// Counters should be frozen right after time stamped.
@@ -3466,8 +3494,13 @@ lwpmudrv_Read_And_Reset_Counters(IOCTL_ARGS arg)
 	orig_r_buf_ptr = arg->buf_drv_to_usr;
 	orig_r_buf_len = arg->len_drv_to_usr;
 
-	if (copy_to_user(arg->buf_drv_to_usr, diff_cpu_tsc,
-			 GLOBAL_STATE_num_cpus(driver_state) * sizeof(U64))) {
+    if (DRV_CONFIG_per_cpu_absolute_tsc(drv_cfg)) {
+		temp_tsc = cpu_tsc;
+	} else {
+		temp_tsc = diff_cpu_tsc;
+	}
+	if (copy_to_user(arg->buf_drv_to_usr, temp_tsc,
+			GLOBAL_STATE_num_cpus(driver_state) * sizeof(U64))) {
 		return OS_FAULT;
 	}
 
@@ -6200,6 +6233,8 @@ lwpmudrv_Get_Drv_Setup_Info(IOCTL_ARGS args)
 		}
 	}
 
+	DRV_SETUP_INFO_ibt_status(&req_drv_setup_info) = ibt_status;
+
 	UTILITY_Read_Cpuid(0x1, &num_basic_functions, &rbx, &rcx, &rdx);
 	if ((rcx >> 31) & 0x1) {
 		DRV_SETUP_INFO_vmm_guest_vm(&req_drv_setup_info) = 1;
@@ -6226,7 +6261,7 @@ lwpmudrv_Get_Drv_Setup_Info(IOCTL_ARGS args)
 			DRV_SETUP_INFO_vmm_guest_vm(&req_drv_setup_info) = 1;
 		}
 	}
-#if defined(CONFIG_XEN) && LINUX_VERSION_CODE > KERNEL_VERSION(2,6,32)
+#if defined(CONFIG_XEN) && LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 32)
 	else if (xen_domain()) {
 		DRV_SETUP_INFO_vmm_mode(&req_drv_setup_info)   = 1;
 		DRV_SETUP_INFO_vmm_vendor(&req_drv_setup_info) = DRV_VMM_XEN;
@@ -6261,7 +6296,7 @@ lwpmudrv_Get_Drv_Setup_Info(IOCTL_ARGS args)
 #endif
 
 #if defined(DRV_USE_KAISER)
-	kaiser_enabled_ptr = (int *)UTILITY_Find_Symbol("kaiser_enabled");
+	kaiser_enabled_ptr = (int *)kaiser_enabled_ptr_addr;
 	if (kaiser_enabled_ptr && *kaiser_enabled_ptr) {
 		SEP_DRV_LOG_INIT(
 			"KAISER is enabled! (&kaiser_enable=%p, val: %d).",
@@ -6269,7 +6304,7 @@ lwpmudrv_Get_Drv_Setup_Info(IOCTL_ARGS args)
 		DRV_SETUP_INFO_page_table_isolation(&req_drv_setup_info) =
 			DRV_SETUP_INFO_PTI_KAISER;
 	} else {
-		kaiser_pti_option = (int *)UTILITY_Find_Symbol("pti_option");
+		kaiser_pti_option = (int *)kaiser_pti_option_addr;
 		if (kaiser_pti_option) {
 			SEP_DRV_LOG_INIT(
 				"KAISER pti_option=%p pti_option val=%d",
@@ -6311,21 +6346,19 @@ lwpmudrv_Get_Drv_Setup_Info(IOCTL_ARGS args)
 	DRV_SETUP_INFO_tracepoints_available(&req_drv_setup_info) = 1;
 #else
 	DRV_SETUP_INFO_sched_switch_hook_unavailable(&req_drv_setup_info) = 1;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
-	DRV_SETUP_INFO_process_exit_hook_unavailable(&req_drv_setup_info) = 1;
 #endif
-#endif
-#if !defined(CONFIG_KPROBES) && LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
+#if !defined(CONFIG_KPROBES) && !defined(PROFILE_MUNMAP)
 	DRV_SETUP_INFO_munmap_hook_unavailable(&req_drv_setup_info) = 1;
 #endif
+#if !defined(CONFIG_KPROBES) && !defined(PROFILE_TASK_EXIT)
+	DRV_SETUP_INFO_process_exit_hook_unavailable(&req_drv_setup_info) = 1;
+#endif
 
-	if (!GLOBAL_STATE_symbol_lookup_available(driver_state)) {
-		if (!UTILITY_Find_Symbol("kallsyms_lookup_name")) {
-			DRV_SETUP_INFO_symbol_lookup_unavailable(
-				&req_drv_setup_info) = 1;
-		}
-	} else {
+	if (kallsyms_lookup_available) {
 		GLOBAL_STATE_symbol_lookup_available(driver_state) = 1;
+	} else {
+		DRV_SETUP_INFO_symbol_lookup_unavailable(
+			&req_drv_setup_info) = 1;
 	}
 
 	if (allowlist_index != -1) {
@@ -6363,6 +6396,8 @@ lwpmudrv_Get_Drv_Setup_Info(IOCTL_ARGS args)
 	SEP_DRV_LOG_TRACE("DRV_SETUP_INFO sched_switch_hook_unavailable %d.",
 			  DRV_SETUP_INFO_sched_switch_hook_unavailable(
 				  &req_drv_setup_info));
+	SEP_DRV_LOG_TRACE("DRV_SETUP_INFO ibt_status %d.",
+			  DRV_SETUP_INFO_ibt_status(&req_drv_setup_info));
 
 #if defined(DRV_CPU_HOTPLUG)
 	DRV_SETUP_INFO_cpu_hotplug_mode(&req_drv_setup_info) = 1;
@@ -7875,6 +7910,11 @@ lwpmu_Load(VOID)
 	PMU_LIST_Build_MSR_List();
 	PMU_LIST_Build_PCI_List();
 	PMU_LIST_Build_MMIO_List();
+
+	// This must be always called at then ed
+	if (!status) {
+		UTILITY_Init_Symbol();
+	}
 
 	SEP_DRV_LOG_FLOW_OUT("Return value: %d.", status);
 	return status;

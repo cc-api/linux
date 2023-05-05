@@ -151,6 +151,17 @@ asmlinkage void SYS_Get_CSD(U32, U32 *, U32 *);
  */
 extern unsigned long UTILITY_Find_Symbol(char const *name);
 
+/*
+ * @fn       extern void UTILITY_Init_Symbol (void)
+ *
+ * @brief    Finds the address of the kernel symbols the driver depends on.
+ *
+ * @param    void
+ *
+ * @return   void
+ */
+extern void UTILITY_Init_Symbol(void);
+
 /************************************************************************/
 /*********************** DRIVER LOG DECLARATIONS ************************/
 /************************************************************************/

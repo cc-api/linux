@@ -33,8 +33,8 @@
 #ifndef _PMU_INFO_H_INC_
 #define _PMU_INFO_H_INC_
 
-U32 drv_type     = DRV_TYPE_PUBLIC;
-S8 *drv_type_str = "PUBLIC";
+U32 drv_type     = DRV_TYPE_PRIVATE;
+S8 *drv_type_str = "PRIVATE";
 
 #define MAX_PERFMON_VERSION 5
 
@@ -62,6 +62,7 @@ static const PMU_INFO_NODE architectural_pmu_info_list[] = {
 };
 
 static const PMU_INFO_NODE pmu_info_list[] = {
+	// PUBLIC
 	// CTI number = 108
 	{0x6,  0x4F, 0x0, 0xF, bdx_msr_list,     bdx_pci_list,    skx_mmio_list          },
 
@@ -182,6 +183,15 @@ static const PMU_INFO_NODE pmu_info_list[] = {
 	// CTI number = 136
 	{ 0x6, 0xA5, 0x0, 0xF, skl_msr_list,     NULL,            client_common_mmio_list},
 
+	// CTI number = 145
+	{ 0x6, 0x97, 0x0, 0xF, plat5_msr_list,   NULL,            plat5_mmio_info_list   },
+
+	// CTI number = 148
+	{ 0x6, 0x9A, 0x0, 0xF, plat5_msr_list,   NULL,            plat5_mmio_info_list   },
+
+	// CTI number = 156
+	{ 0x6, 0xBE, 0x0, 0xF, plat5_msr_list,   NULL,            plat5_mmio_info_list   },
+
 	// CTI number = 144
 	{ 0x6, 0x6C, 0x0, 0xF, icx_r_msr_list,   icx_r_pci_list,  icx_mmio_info_list     },
 
@@ -200,11 +210,14 @@ static const PMU_INFO_NODE pmu_info_list[] = {
 	// CTI number = 131
 	{ 0x6, 0x8F, 0x0, 0xF, plat4_msr_list,   plat4_pci_list,  plat4_mmio_info_list   },
 
-	// CTI number = 145
-	{ 0x6, 0x97, 0x0, 0xF, plat5_msr_list,   NULL,            plat5_mmio_info_list   },
+	// CTI number = 121
+	{ 0x6, 0x99, 0x9, 0xF, plat2_msr_list,   plat2_pci_list,  icx_mmio_info_list     },
 
-	// CTI number = 148
-	{ 0x6, 0x9A, 0x0, 0xF, plat5_msr_list,   NULL,            plat5_mmio_info_list   },
+	// CTI number = 126
+	{ 0x6, 0x67, 0x0, 0xF, plat1_msr_list,   NULL,            client_common_mmio_list},
+
+	// CTI number = 149
+	{ 0x6, 0xAD, 0x0, 0xF, plat3_msr_list,   plat3_pci_list,  plat3_mmio_info_list	 },
 
 	// CTI number = 151
 	{ 0x6, 0xB7, 0x0, 0xF, plat5_msr_list,   NULL,            plat5_mmio_info_list   },
@@ -214,6 +227,21 @@ static const PMU_INFO_NODE pmu_info_list[] = {
 
 	// CTI number = 153
 	{ 0x6, 0xBF, 0x0, 0xF, plat5_msr_list,   NULL,            plat5_mmio_info_list   },
+
+	// CTI number = 154
+	{ 0x6, 0xAC, 0x0, 0xF, plat6_msr_list,   NULL,            plat6_mmio_info_list   },
+
+	// CTI number = 155
+	{ 0x6, 0xAA, 0x0, 0xF, plat6_msr_list,   NULL,            plat6_mmio_info_list   },
+
+	// CTI number = 157
+	{ 0x6, 0xCF, 0x0, 0xF, plat4_msr_list,   plat4_pci_list,  plat4_mmio_info_list   },
+
+	// CTI number = 158
+	{ 0x6, 0xB6, 0x0, 0xF, plat7_msr_list,   plat7_pci_list,  plat7_mmio_info_list   },
+
+    // CTI number = 159
+	{ 0x6, 0xAF, 0x0, 0xF, plat8_msr_list,   plat3_pci_list,  plat3_mmio_info_list	 },
 
 	// Last
 	{ 0x0, 0x0,  0x0, 0x0, NULL,             NULL,            NULL                   }

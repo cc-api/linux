@@ -88,6 +88,11 @@ extern DRV_CONFIG          drv_cfg;
 extern DRV_SETUP_INFO_NODE req_drv_setup_info;
 extern DRV_BOOL            multi_pebs_enabled;
 
+U64    kaiser_add_mapping_addr    = 0ULL;
+U64    kaiser_remove_mapping_addr = 0ULL;
+U64    cea_set_pte_addr           = 0ULL;
+U64    do_kernel_range_flush_addr = 0ULL;
+
 #if defined(DRV_USE_PTI)
 /* ------------------------------------------------------------------------- */
 /*!
@@ -1573,12 +1578,13 @@ extern U64
 APEBS_Fill_Buffer(S8 *buffer, EVENT_DESC evt_desc, U32 rec_index)
 {
 	DTS_BUFFER_EXT1          dtes;
-	LATENCY_INFO_NODE        latency_info       = { 0 };
-	U64                      dtes_record_size   = 0;
-	U64                      dtes_record_format = 0;
-	ADAPTIVE_PEBS_MEM_INFO   apebs_mem          = NULL;
-	ADAPTIVE_PEBS_GPR_INFO   apebs_gpr          = NULL;
-	ADAPTIVE_PEBS_BASIC_INFO apebs_basic        = NULL;
+	LATENCY_INFO_NODE        latency_info           = { 0 };
+	U64                      dtes_record_size       = 0;
+	U64                      dtes_record_format     = 0;
+	U64                      dtes_num_lbr_entries   = 0;
+	ADAPTIVE_PEBS_MEM_INFO   apebs_mem              = NULL;
+	ADAPTIVE_PEBS_GPR_INFO   apebs_gpr              = NULL;
+	ADAPTIVE_PEBS_BASIC_INFO apebs_basic            = NULL;
 	S8                      *pebs_base, *pebs_index, *pebs_ptr;
 	U8                       pebs_ptr_check  = FALSE;
 	U64                      lbr_tos_from_ip = 0ULL;
@@ -1625,7 +1631,10 @@ APEBS_Fill_Buffer(S8 *buffer, EVENT_DESC evt_desc, U32 rec_index)
 			   48; // [63:48]
 	dtes_record_format =
 		(ADAPTIVE_PEBS_BASIC_INFO_record_info(apebs_basic) &
-		 APEBS_RECORD_FORMAT_MASK); // [47:0]
+		 APEBS_RECORD_FORMAT_MASK); // [23:0]
+
+	dtes_num_lbr_entries = (ADAPTIVE_PEBS_BASIC_INFO_record_info(apebs_basic) &
+				APEBS_NUM_LBR_ENTRIES_MASK) >> 24; // [31:24]
 
 	if (dtes_record_size !=
 	    LWPMU_DEVICE_pebs_record_size(&devices[dev_idx])) {
@@ -1715,7 +1724,7 @@ APEBS_Fill_Buffer(S8 *buffer, EVENT_DESC evt_desc, U32 rec_index)
 		if (!(dtes_record_format & APEBS_LBR_RECORD_FORMAT_MASK)) {
 			SEP_DRV_LOG_WARNING("LBR info not found in DS PEBS record\n");
 		}
-		if ((dtes_record_format >> 24) !=
+		if (dtes_num_lbr_entries !=
 		    (DEV_CONFIG_num_lbr_entries(pcfg) - 1)) {
 			SEP_DRV_LOG_WARNING("DRV_CONFIG_num_lbr_entries does not match with PEBS record\n");
 		}
@@ -1907,7 +1916,7 @@ PEBS_Allocate(VOID)
 	    SEP_DRV_LOG_INIT("Allocating PEBS buffer using KAISER-compatible approach.");
 
 	    if (!local_kaiser_add_mapping) {
-		local_kaiser_add_mapping = (PVOID)UTILITY_Find_Symbol("kaiser_add_mapping");
+		local_kaiser_add_mapping = (PVOID)kaiser_add_mapping_addr;
 		if (!local_kaiser_add_mapping) {
 		    SEP_DRV_LOG_ERROR("Could not find 'kaiser_add_mapping'!");
 		    goto kaiser_error_handling;
@@ -1915,7 +1924,7 @@ PEBS_Allocate(VOID)
 	    }
 
 	    if (!local_kaiser_remove_mapping) {
-		local_kaiser_remove_mapping = (PVOID)UTILITY_Find_Symbol("kaiser_remove_mapping");
+		local_kaiser_remove_mapping = (PVOID)kaiser_remove_mapping_addr;
 		if (!local_kaiser_remove_mapping) {
 		    SEP_DRV_LOG_ERROR("Could not find 'kaiser_remove_mapping'!");
 		    goto kaiser_error_handling;
@@ -1946,14 +1955,14 @@ kaiser_error_handling:
 	    }
 #elif defined(DRV_USE_PTI)
 	    if (!local_cea_set_pte) {
-		local_cea_set_pte = (PVOID)UTILITY_Find_Symbol("cea_set_pte");
+		local_cea_set_pte = (PVOID)cea_set_pte_addr;
 		if (!local_cea_set_pte) {
 		    SEP_DRV_LOG_ERROR_TRACE_OUT("Could not find 'cea_set_pte'!");
 		    return OS_FAULT;
 		}
 	    }
 	    if (!local_do_kernel_range_flush) {
-		local_do_kernel_range_flush = (PVOID)UTILITY_Find_Symbol("do_kernel_range_flush");
+		local_do_kernel_range_flush = (PVOID)do_kernel_range_flush_addr;
 		if (!local_do_kernel_range_flush) {
 		    SEP_DRV_LOG_ERROR_TRACE_OUT("Could not find 'do_kernel_range_flush'!");
 		    return OS_FAULT;

@@ -62,7 +62,6 @@ extern DISPATCH_NODE unc_mmio_single_bar_dispatch;
 extern DISPATCH_NODE unc_mmio_multiple_bar_dispatch;
 extern DISPATCH_NODE unc_mmio_fpga_dispatch;
 extern DISPATCH_NODE unc_mmio_pmm_dispatch;
-extern DISPATCH_NODE unc_mmio_mch_regbar_dispatch;
 extern DISPATCH_NODE unc_power_dispatch;
 extern DISPATCH_NODE unc_rdt_dispatch;
 extern DISPATCH_NODE hswunc_sa_dispatch;
@@ -265,11 +264,6 @@ UTILITY_Configure_CPU(U32 dispatch_id)
 		SEP_DRV_LOG_INIT("Set up the Uncore RDT dispatch table.");
 		dispatch = &unc_rdt_dispatch;
 		break;
-	case 132:
-		SEP_DRV_LOG_INIT(
-			"Set up the MMIO based REGBAR uncore dispatch table.");
-		dispatch = &unc_mmio_mch_regbar_dispatch;
-		break;
 	case 230:
 		SEP_DRV_LOG_INIT("Set up the Haswell SA dispatch table.");
 		dispatch = &hswunc_sa_dispatch;
@@ -466,6 +460,76 @@ utility_Compare_Symbol_Names(void          *ref_name,
 	return res;
 }
 #endif
+
+/*
+ * @fn       extern void UTILITY_Init_Symbol (void)
+ *
+ * @brief    Finds the address of the kernel symbols the driver depends on.
+ *
+ * @param    void
+ *
+ * @return   void
+ */
+extern void
+UTILITY_Init_Symbol(void)
+{
+        U64 rbx, rcx, rdx, num_basic_functions;
+	U64 cet_val = 0ULL;
+        S32 msr_status;
+	U64 kallsyms_lookup_ptr = 0;
+
+	SEP_DRV_LOG_TRACE_IN("");
+
+	num_basic_functions = 0;
+	rbx = 0;
+	rcx = 0;
+	rdx = 0;
+
+	ibt_status = DRV_SETUP_INFO_IBT_UNAVAILABLE;
+	UTILITY_Read_Cpuid(0x7, &num_basic_functions, &rbx, &rcx, &rdx);
+	if ((rdx >> 20) & 0x1) {
+		cet_val = SYS_Read_MSR_With_Status(IA32_S_CET, &msr_status);
+		if (!msr_status) {
+			if ((cet_val >> 2) & 0x1) {
+				ibt_status = DRV_SETUP_INFO_IBT_ENABLED;
+			} else {
+				ibt_status = DRV_SETUP_INFO_IBT_AVAILABLE;
+			}
+		}
+	}
+	if (ibt_status == DRV_SETUP_INFO_IBT_ENABLED) {
+		SYS_Write_MSR(IA32_S_CET, cet_val & (~CET_IBT_EN));
+	}
+	kallsyms_lookup_ptr = UTILITY_Find_Symbol("kallsyms_lookup_name");
+
+	SEP_DRV_LOG_TRACE("kallsyms_lookup_name address: 0x%lx",
+		kallsyms_lookup_ptr);
+
+	if (!kallsyms_lookup_ptr) {
+		kallsyms_lookup_available = FALSE;
+	} else {
+		kallsyms_lookup_available = TRUE;
+		kaiser_enabled_ptr_addr = UTILITY_Find_Symbol("kaiser_enabled");
+		kaiser_pti_option_addr = UTILITY_Find_Symbol("pti_option");
+
+		dyn_addr = UTILITY_Find_Symbol("_text");
+		if (!dyn_addr) {
+			dyn_addr = UTILITY_Find_Symbol("_stext");
+		}
+
+		kaiser_add_mapping_addr = UTILITY_Find_Symbol("kaiser_add_mapping");
+		kaiser_remove_mapping_addr = UTILITY_Find_Symbol("kaiser_remove_mapping");
+		cea_set_pte_addr = UTILITY_Find_Symbol("cea_set_pte");
+		do_kernel_range_flush_addr = UTILITY_Find_Symbol("do_kernel_range_flush");
+	}
+
+	if (ibt_status == DRV_SETUP_INFO_IBT_ENABLED) {
+		SYS_Write_MSR(IA32_S_CET, cet_val);
+	}
+
+	SEP_DRV_LOG_TRACE_OUT("");
+}
+
 
 /* ------------------------------------------------------------------------- */
 /*!

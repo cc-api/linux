@@ -117,7 +117,7 @@ struct SOCPERF_VERSION_NODE_S {
 
 #define SOCPERF_PRODUCT_NAME  "Sampling Enabling Product"
 #define PRODUCT_VERSION_DATE    __DATE__ " at " __TIME__
-#define PRODUCT_COPYRIGHT   "Copyright (C) 2011-2018 Intel Corporation. All rights reserved."
+#define PRODUCT_COPYRIGHT   "Copyright (C) 2011 Intel Corporation. All rights reserved."
 #define PRODUCT_DISCLAIMER  "Warning: This computer program is protected under U.S. and international\ncopyright laws, and may only be used or copied in accordance with the terms\nof the license agreement. Except as permitted by such license, no part\nof this computer program may be reproduced, stored in a retrieval system,\nor transmitted in any form or by any means without the express written consent\nof Intel Corporation."
 #define PRODUCT_VERSION     "5.0"
 

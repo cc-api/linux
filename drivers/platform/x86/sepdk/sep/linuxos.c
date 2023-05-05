@@ -86,12 +86,15 @@ static volatile S32 hooks_installed = 0;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 static struct tracepoint *tp_sched_switch = NULL;
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
-static struct tracepoint *tp_sched_process_exit = NULL;
+#if !defined(PROFILE_MUNMAP)
 static struct kprobe     *kp_munmap             = NULL;
+#endif
+#if !defined(PROFILE_TASK_EXIT)
+static struct kprobe     *kp_doexit             = NULL;
 #endif
 static struct kprobe *kp_guest_enter = NULL;
 static struct kprobe *kp_guest_exit  = NULL;
+U64                   dyn_addr       = 0ULL;
 
 #define HOOK_FREE      0
 #define HOOK_UNINSTALL -10000
@@ -309,9 +312,6 @@ linuxos_Map_Kernel_Modules(void)
 	U16                exec_mode = MODE_UNKNOWN;
 	unsigned long long addr;
 	unsigned long long size;
-#if defined(CONFIG_RANDOMIZE_BASE)
-	unsigned long dyn_addr = 0;
-#endif
 
 	SEP_DRV_LOG_TRACE_IN("");
 
@@ -342,20 +342,13 @@ linuxos_Map_Kernel_Modules(void)
 	       1;
 
 #if defined(CONFIG_RANDOMIZE_BASE)
-	if (!dyn_addr) {
-		dyn_addr = (unsigned long)UTILITY_Find_Symbol("_text");
-		if (!dyn_addr) {
-			dyn_addr = (unsigned long)UTILITY_Find_Symbol("_stext");
-		}
-
-		if (dyn_addr && dyn_addr > addr) {
-			dyn_addr &= ~(PAGE_SIZE - 1);
-			size -= (dyn_addr - addr);
-			addr = dyn_addr;
-		} else {
-			SEP_DRV_LOG_WARNING_TRACE_OUT(
-				"Could not find the kernel start address!");
-		}
+	if (dyn_addr && dyn_addr > addr) {
+		dyn_addr &= ~(PAGE_SIZE - 1);
+		size -= (dyn_addr - addr);
+		addr = dyn_addr;
+	} else {
+		SEP_DRV_LOG_WARNING_TRACE_OUT(
+			"Could not find the kernel start address!");
 	}
 #endif
 
@@ -513,6 +506,9 @@ linuxos_Enum_Modules_For_Process(struct task_struct *p,
 {
 	struct vm_area_struct *mmap;
 	U32                    first = 1;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+	VMA_ITERATOR(vmi, mm, 0);
+#endif
 
 #if defined(SECURE_SEP)
 	uid_t l_uid;
@@ -534,7 +530,11 @@ linuxos_Enum_Modules_For_Process(struct task_struct *p,
 		return OS_SUCCESS;
 	}
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+	for_each_vma(vmi, mmap) {
+#else
 	for (mmap = mm->mmap; mmap; mmap = mmap->vm_next) {
+#endif
 		/* We have 3 distinct conditions here.
 		 * 1) Is the page executable?
 		 * 2) Is is a part of the vdso area?
@@ -582,7 +582,7 @@ linuxos_Enum_Modules_For_Process(struct task_struct *p,
  * However it is not called when a process is exiting instead exit_mmap is called
  * (resulting in an EXIT_MMAP notification).
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_MUNMAP)
 static int
 linuxos_Exec_Unmap_Notify(struct notifier_block *self,
 			  unsigned long          val,
@@ -602,7 +602,7 @@ linuxos_Exec_Unmap_Notify(struct kprobe *p, struct pt_regs *regs)
 	uid_t l_uid;
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_MUNMAP)
 	SEP_DRV_LOG_NOTIFICATION_IN("Self: %p, val: %lu, data: %p.", self, val,
 				    data);
 	SEP_DRV_LOG_NOTIFICATION_TRACE(SEP_IN_NOTIFICATION,
@@ -612,7 +612,7 @@ linuxos_Exec_Unmap_Notify(struct kprobe *p, struct pt_regs *regs)
 	SEP_DRV_LOG_NOTIFICATION_IN("regs: %p, addr: 0x%lx.", regs, regs->di);
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_MUNMAP)
 	addr = (unsigned long)data;
 #else
 	addr = (unsigned long)regs->di;
@@ -636,7 +636,7 @@ linuxos_Exec_Unmap_Notify(struct kprobe *p, struct pt_regs *regs)
 		SEP_DRV_LOG_NOTIFICATION_OUT("Early exit (driver state).");
 		return status;
 	}
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_MUNMAP)
 	if (!atomic_add_negative(1, &hook_state)) {
 		SEP_DRV_LOG_NOTIFICATION_TRACE(SEP_IN_NOTIFICATION,
 					       "unmap: hook_state %d.",
@@ -647,7 +647,7 @@ linuxos_Exec_Unmap_Notify(struct kprobe *p, struct pt_regs *regs)
 			UTILITY_down_read_mm(mm);
 			mmap = FIND_VMA(mm, addr);
 			if (mmap && mmap->vm_file
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_MUNMAP)
 			    && (mmap->vm_flags & VM_EXEC)
 #endif
 			    ) {
@@ -657,7 +657,7 @@ linuxos_Exec_Unmap_Notify(struct kprobe *p, struct pt_regs *regs)
 			UTILITY_up_read_mm(mm);
 			mmput(mm);
 		}
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_MUNMAP)
 	}
 	atomic_dec(&hook_state);
 	SEP_DRV_LOG_NOTIFICATION_TRACE(SEP_IN_NOTIFICATION,
@@ -1098,26 +1098,30 @@ LINUXOS_Enum_Process_Modules(DRV_BOOL at_end)
  * of the task and set the unload sample count and the load event flag to 1 to
  * indicate this is a module unload
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_TASK_EXIT)
 static int
 linuxos_Exit_Task_Notify(struct notifier_block *self,
 			 unsigned long          val,
 			 PVOID                  data)
 #else
-static void
-linuxos_Exit_Task_Notify(void *ignore, struct task_struct *data)
+static int
+linuxos_Exit_Task_Notify(struct kprobe *kp, struct pt_regs *regs)
 #endif
 {
-	struct task_struct *p      = (struct task_struct *)data;
 	int                 status = OS_SUCCESS;
 	U32                 cur_driver_state;
 	struct mm_struct   *mm;
+#if defined(PROFILE_TASK_EXIT)
+	struct task_struct *p      = (struct task_struct *)data;
+#else
+	struct task_struct *p      = (struct task_struct *)current;
+#endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_TASK_EXIT)
 	SEP_DRV_LOG_NOTIFICATION_IN("Self: %p, val: %lu, data: %p.", self, val,
 				    data);
 #else
-	SEP_DRV_LOG_NOTIFICATION_IN("task_struct: %p", data);
+	SEP_DRV_LOG_NOTIFICATION_IN("task_struct: %p", p);
 #endif
 
 	cur_driver_state = GET_DRIVER_STATE();
@@ -1168,23 +1172,20 @@ linuxos_Exit_Task_Notify(void *ignore, struct task_struct *data)
 				       atomic_read(&hook_state));
 
 final:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 	SEP_DRV_LOG_NOTIFICATION_OUT("Res = %u.", status);
 	return status;
-#else
-	SEP_DRV_LOG_NOTIFICATION_OUT("");
-	return;
-#endif
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
 /*
  *  The notifier block.  All the static entries have been defined at this point
  */
+#if defined(PROFILE_MUNMAP)
 static struct notifier_block linuxos_exec_unmap_nb = {
 	.notifier_call = linuxos_Exec_Unmap_Notify,
 };
+#endif
 
+#if defined(PROFILE_TASK_EXIT)
 static struct notifier_block linuxos_exit_task_nb = {
 	.notifier_call = linuxos_Exit_Task_Notify,
 };
@@ -1259,7 +1260,14 @@ capture_sched_switch(void *p)
  *
  * None
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+static void
+record_pebs_process_info(void               *ignore,
+			 bool                preempt,
+			 struct task_struct *from,
+			 struct task_struct *to,
+			 unsigned int prev_state)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 0)
 static void
 record_pebs_process_info(void               *ignore,
 			 bool                preempt,
@@ -1377,41 +1385,6 @@ find_sched_switch_tracepoint(struct tracepoint *tp, VOID *param)
 }
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0)
-/* ------------------------------------------------------------------------- */
-/*!
- * @fn          void find_sched_process_exit_tracepoint
- * @brief       find tracepoint function for sched_process_exit
- *
- * @param       tp    pass in by system
- *              param pointer of trace point
- *
- * @return      none
- *
- * <I>Special Notes:</I>
- *
- * None
- */
-static void
-find_sched_process_exit_tracepoint(struct tracepoint *tp, VOID *param)
-{
-	struct tracepoint **ptp = (struct tracepoint **)param;
-
-	SEP_DRV_LOG_TRACE_IN("Tp: %p, param: %p.", tp, param);
-
-	if (tp && ptp) {
-		SEP_DRV_LOG_TRACE("trace point name: %s.", tp->name);
-		if (!strcmp(tp->name, "sched_process_exit")) {
-			SEP_DRV_LOG_TRACE(
-				"Found trace point for sched_process_exit.");
-			*ptp = tp;
-		}
-	}
-
-	SEP_DRV_LOG_TRACE_OUT("");
-}
-#endif
-
 /* ------------------------------------------------------------------------- */
 /*!
  * @fn          int install_sched_switch_callback(VOID)
@@ -1485,20 +1458,18 @@ install_sched_process_exit_callback(VOID)
 	SEP_DRV_LOG_TRACE_IN("");
 	SEP_DRV_LOG_INIT("Installing shced_process_exit Hook.");
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_TASK_EXIT)
 	err = profile_event_register(MY_TASK, &linuxos_exit_task_nb);
 #else
-#if defined(CONFIG_TRACEPOINTS)
-	if (!tp_sched_process_exit) {
-		for_each_kernel_tracepoint(&find_sched_process_exit_tracepoint,
-					   &tp_sched_process_exit);
-	}
-	if (!tp_sched_process_exit) {
+#if defined(CONFIG_KPROBES)
+	kp_doexit = CONTROL_Allocate_Memory(sizeof(struct kprobe));
+	if (!kp_doexit) {
+		SEP_DRV_LOG_ERROR("Failed to allocate memory for kp_doexit.");
 		err = -1;
 	} else {
-		err = tracepoint_probe_register(
-			tp_sched_process_exit, (void *)linuxos_Exit_Task_Notify,
-			NULL);
+		kp_doexit->symbol_name = "do_exit";
+		kp_doexit->pre_handler = linuxos_Exit_Task_Notify;
+		err = register_kprobe(kp_doexit);
 	}
 #else
 	err = -1;
@@ -1541,7 +1512,7 @@ install_sys_enter_munmap_callback(VOID)
 	SEP_DRV_LOG_TRACE_IN("");
 	SEP_DRV_LOG_INIT("Installing sys_enter_munmap Hook.");
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_MUNMAP)
 	err = profile_event_register(MY_UNMAP, &linuxos_exec_unmap_nb);
 #else
 #if defined(CONFIG_KPROBES)
@@ -1779,14 +1750,13 @@ uninstall_sched_process_exit_callback(VOID)
 	SEP_DRV_LOG_TRACE_IN("");
 	SEP_DRV_LOG_INIT("Uninstalling sched_process_exit Hook.");
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_TASK_EXIT)
 	err = profile_event_unregister(MY_TASK, &linuxos_exit_task_nb);
 #else
-#if defined(CONFIG_TRACEPOINTS)
-	if (tp_sched_process_exit) {
-		err = tracepoint_probe_unregister(
-			tp_sched_process_exit, (void *)linuxos_Exit_Task_Notify,
-			NULL);
+#if defined(CONFIG_KPROBES)
+	if (kp_doexit) {
+		unregister_kprobe(kp_doexit);
+		CONTROL_Free_Memory(kp_doexit);
 	}
 #endif
 #endif
@@ -1816,7 +1786,7 @@ uninstall_sys_enter_munmap_callback(VOID)
 	SEP_DRV_LOG_TRACE_IN("");
 	SEP_DRV_LOG_INIT("Uninstalling sys_enter_munmap Hook.");
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
+#if defined(PROFILE_MUNMAP)
 	err = profile_event_unregister(MY_UNMAP, &linuxos_exec_unmap_nb);
 #else
 #if defined(CONFIG_KPROBES)
