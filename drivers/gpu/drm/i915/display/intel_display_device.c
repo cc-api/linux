@@ -652,6 +652,18 @@ static const struct intel_display_device_info xe_lpdp_display = {
 		BIT(TRANSCODER_C) | BIT(TRANSCODER_D),
 };
 
+static const struct intel_display_device_info xe2_lpd_display = {
+	XE_LPD_FEATURES,
+	.has_cdclk_crawl = 1,
+	.has_cdclk_squash = 1,
+
+	.__runtime_defaults.ip.ver = 20,
+	.__runtime_defaults.fbc_mask = BIT(INTEL_FBC_A) | BIT(INTEL_FBC_B),
+	.__runtime_defaults.cpu_transcoder_mask =
+		BIT(TRANSCODER_A) | BIT(TRANSCODER_B) |
+		BIT(TRANSCODER_C) | BIT(TRANSCODER_D),
+};
+
 #undef INTEL_VGA_DEVICE
 #undef INTEL_QUANTA_VGA_DEVICE
 #define INTEL_VGA_DEVICE(id, info) { id, info }
@@ -719,6 +731,7 @@ static const struct {
 } gmdid_display_map[] = {
 	{ 14,  0, &xe_lpdp_display },
 	{ 14,  1, &xe_lpdp_display },
+	{ 20,  0, &xe2_lpd_display },
 };
 
 static const struct intel_display_device_info *
