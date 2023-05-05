@@ -402,26 +402,26 @@ UNC_MSR_Trigger_Read(PVOID param, U32 id, U32 read_from_intr)
 /*
  * Initialize the dispatch table
  */
-DISPATCH_NODE unc_msr_dispatch = {
-	NULL,                    // initialize
-	NULL,                    // destroy
-	UNC_MSR_Write_PMU,       // write
-	UNC_MSR_Disable_PMU,     // freeze
-	UNC_MSR_Enable_PMU,      // restart
-	UNC_MSR_Read_PMU_Data,   // read
-	NULL,                    // check for overflow
-	NULL,                    // swap group
-	NULL,                    // read lbrs
-	UNC_COMMON_MSR_Clean_Up, // cleanup
-	NULL,                    // hw errata
-	NULL,                    // read power
-	NULL,                    // check overflow errata
-	NULL,                    // read counts
-	NULL,                    // check overflow gp errata
-	NULL,                    // read_ro
-	NULL,                    // platform info
-	UNC_MSR_Trigger_Read,    // trigger read
-	NULL,                    // scan for uncore
-	NULL                     // read metrics
+DISPATCH_NODE  unc_msr_dispatch =
+{
+    .init                     = NULL,
+    .fini                     = NULL,
+    .write                    = UNC_MSR_Write_PMU,
+    .freeze                   = UNC_MSR_Disable_PMU,
+    .restart                  = UNC_MSR_Enable_PMU,
+    .read_data                = UNC_MSR_Read_PMU_Data,
+    .check_overflow           = NULL,
+    .swap_group               = NULL,
+    .read_lbrs                = NULL,
+    .cleanup                  = UNC_COMMON_MSR_Clean_Up,
+    .hw_errata                = NULL,
+    .read_power               = NULL,
+    .check_overflow_errata    = NULL,
+    .read_counts              = NULL,
+    .check_overflow_gp_errata = NULL,
+    .read_ro                  = NULL,
+    .platform_info            = NULL,
+    .trigger_read             = UNC_MSR_Trigger_Read,
+    .scan_for_uncore          = NULL,
+    .read_metrics             = NULL
 };
-

@@ -520,26 +520,26 @@ unc_pci_Read_PMU_Data(PVOID param, U32 dev_idx)
 /*
  * Initialize the dispatch table
  */
-DISPATCH_NODE unc_pci_dispatch = {
-	NULL,                  // initialize
-	NULL,                  // destroy
-	unc_pci_Write_PMU,     // write
-	unc_pci_Disable_PMU,   // freeze
-	unc_pci_Enable_PMU,    // restart
-	unc_pci_Read_PMU_Data, // read
-	NULL,                  // check for overflow
-	NULL,                  // swap group
-	NULL,                  // read lbrs
-	NULL,                  // cleanup
-	NULL,                  // hw errata
-	NULL,                  // read power
-	NULL,                  // check overflow errata
-	NULL,                  // read counts
-	NULL,                  // check overflow gp errata
-	NULL,                  // read_ro
-	NULL,                  // platform info
-	unc_pci_Trigger_Read,  // trigger read
-	NULL,                  // scan for uncore
-	NULL                   // read metrics
+DISPATCH_NODE  unc_pci_dispatch =
+{
+    .init                     = NULL,
+    .fini                     = NULL,
+    .write                    = unc_pci_Write_PMU,
+    .freeze                   = unc_pci_Disable_PMU,
+    .restart                  = unc_pci_Enable_PMU,
+    .read_data                = unc_pci_Read_PMU_Data,
+    .check_overflow           = NULL,
+    .swap_group               = NULL,
+    .read_lbrs                = NULL,
+    .cleanup                  = NULL,
+    .hw_errata                = NULL,
+    .read_power               = NULL,
+    .check_overflow_errata    = NULL,
+    .read_counts              = NULL,
+    .check_overflow_gp_errata = NULL,
+    .read_ro                  = NULL,
+    .platform_info            = NULL,
+    .trigger_read             = unc_pci_Trigger_Read,
+    .scan_for_uncore          = NULL,
+    .read_metrics             = NULL
 };
-
