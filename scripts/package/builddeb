@@ -389,7 +389,7 @@ Description: Linux kernel version specific tools for version $packageversion
 EOF
 
 # OOT: build and include x86 tools
-NO_LIBPYTHON=1 NO_LIBPERL=1 $MAKE -C tools perf
+NO_LIBTRACEEVENT=1 NO_LIBPYTHON=1 NO_LIBPERL=1 $MAKE -C tools perf
 $MAKE -C tools/power/x86/x86_energy_perf_policy
 MAKEFLAGS="" $MAKE -C tools/power/x86/turbostat
 $MAKE tools/intel-speed-select
