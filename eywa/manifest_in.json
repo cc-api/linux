@@ -25,7 +25,7 @@
                 }
             ],
             "description": "intel-next scripts and patches",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3372",
             "name": "eywa",
@@ -33,7 +33,7 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
+            "last_enabled": "v6.4",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
@@ -98,7 +98,7 @@
                 }
             ],
             "description": "intel-next scripts and patches",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3373",
             "name": "configs",
@@ -106,7 +106,7 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
+            "last_enabled": "v6.4",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
@@ -122,7 +122,7 @@
                 }
             ],
             "description": "intel-next scripts and patches",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3374",
             "name": "packaging",
@@ -130,7 +130,7 @@
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
+            "last_enabled": "v6.4",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
@@ -155,7 +155,7 @@
                 }
             ],
             "description": "Custom intel-next logo on bootup",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Kyle Pelton",
@@ -173,7 +173,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
+            "last_enabled": "v6.4",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
