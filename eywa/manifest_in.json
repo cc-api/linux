@@ -5640,14 +5640,14 @@
                 }
             ],
             "description": "Add  support to turbostat",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Charles Prestopine",
                     "email": "charles.d.prestopine@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3387",
             "name": "turbolnl",
             "repourl": "https://github.com/intel-sandbox/xi_linux",
             "sdl_contact": [
@@ -5658,8 +5658,8 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
-            "maillist": "",
+            "last_enabled": "v6.4",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00032.html",
             "platforms": "LNL",
             "feature_jiras": "LFE-3896,LFE-3909"
         },
