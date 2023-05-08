@@ -541,6 +541,34 @@ u32 gen8_de_pipe_underrun_mask(struct drm_i915_private *dev_priv)
 	return mask;
 }
 
+static void gen8_read_and_ack_pch_irqs(struct drm_i915_private *i915, u32 *pch_iir, u32 *pica_iir)
+{
+	u32 pica_ier = 0;
+
+	*pica_iir = 0;
+	*pch_iir = intel_uncore_read(&i915->uncore, SDEIIR);
+	if (!*pch_iir)
+		return;
+
+	/**
+	 * PICA IER must be disabled/re-enabled around clearing PICA IIR and
+	 * SDEIIR, to avoid losing PICA IRQs and to ensure that such IRQs set
+	 * their flags both in the PICA and SDE IIR.
+	 */
+	if (*pch_iir & SDE_PICAINTERRUPT) {
+		drm_WARN_ON(&i915->drm, INTEL_PCH_TYPE(i915) < PCH_MTP);
+
+		pica_ier = intel_uncore_rmw(&i915->uncore, PICAINTERRUPT_IER, ~0, 0);
+		*pica_iir = intel_uncore_read(&i915->uncore, PICAINTERRUPT_IIR);
+		intel_uncore_write(&i915->uncore, PICAINTERRUPT_IIR, *pica_iir);
+	}
+
+	intel_uncore_write(&i915->uncore, SDEIIR, *pch_iir);
+
+	if (pica_ier)
+		intel_uncore_write(&i915->uncore, PICAINTERRUPT_IER, pica_ier);
+}
+
 static irqreturn_t
 gen8_de_irq_handler(struct drm_i915_private *dev_priv, u32 master_ctl)
 {
@@ -643,15 +671,19 @@ gen8_de_irq_handler(struct drm_i915_private *dev_priv, u32 master_ctl)
 
 	if (HAS_PCH_SPLIT(dev_priv) && !HAS_PCH_NOP(dev_priv) &&
 	    master_ctl & GEN8_DE_PCH_IRQ) {
+		u32 pica_iir;
 		/*
 		 * FIXME(BDW): Assume for now that the new interrupt handling
 		 * scheme also closed the SDE interrupt handling race we've seen
 		 * on older pch-split platforms. But this needs testing.
 		 */
-		iir = intel_uncore_read(&dev_priv->uncore, SDEIIR);
+		gen8_read_and_ack_pch_irqs(dev_priv, &iir, &pica_iir);
 		if (iir) {
 			intel_uncore_write(&dev_priv->uncore, SDEIIR, iir);
 			ret = IRQ_HANDLED;
+
+			if (pica_iir)
+				xelpdp_pica_irq_handler(dev_priv, pica_iir);
 
 			if (INTEL_PCH_TYPE(dev_priv) >= PCH_ICP)
 				icp_irq_handler(dev_priv, iir);
@@ -774,7 +806,11 @@ void gen11_display_irq_reset(struct drm_i915_private *dev_priv)
 
 	GEN3_IRQ_RESET(dev_priv, GEN8_DE_PORT_);
 	GEN3_IRQ_RESET(dev_priv, GEN8_DE_MISC_);
-	GEN3_IRQ_RESET(dev_priv, GEN11_DE_HPD_);
+
+	if (DISPLAY_VER(dev_priv) >= 14)
+		GEN3_IRQ_RESET(dev_priv, PICAINTERRUPT_);
+	else
+		GEN3_IRQ_RESET(dev_priv, GEN11_DE_HPD_);
 
 	if (INTEL_PCH_TYPE(dev_priv) >= PCH_ICP)
 		GEN3_IRQ_RESET(dev_priv, SDE);
@@ -888,6 +924,19 @@ static void gen8_de_irq_postinstall(struct drm_i915_private *dev_priv)
 	}
 }
 
+static void mtp_irq_postinstall(struct drm_i915_private *i915)
+{
+	u32 sde_mask = SDE_GMBUS_ICP | SDE_PICAINTERRUPT;
+	u32 de_hpd_mask = XELPDP_AUX_TC_MASK;
+	u32 de_hpd_enables = de_hpd_mask | XELPDP_DP_ALT_HOTPLUG_MASK |
+			     XELPDP_TBT_HOTPLUG_MASK;
+
+	GEN3_IRQ_INIT(i915, PICAINTERRUPT_, ~de_hpd_mask,
+		      de_hpd_enables);
+
+	GEN3_IRQ_INIT(i915, SDE, ~sde_mask, 0xffffffff);
+}
+
 static void icp_irq_postinstall(struct drm_i915_private *dev_priv)
 {
 	u32 mask = SDE_GMBUS_ICP;
@@ -911,8 +960,11 @@ void gen11_display_irq_postinstall(struct drm_i915_private *dev_priv)
 	if (!HAS_DISPLAY(dev_priv))
 		return;
 
-	if (INTEL_PCH_TYPE(dev_priv) >= PCH_ICP)
-		icp_irq_postinstall(dev_priv);
+	if (DISPLAY_VER(dev_priv) >= 14)
+		mtp_irq_postinstall(dev_priv);
+	else
+		if (INTEL_PCH_TYPE(dev_priv) >= PCH_ICP)
+			icp_irq_postinstall(dev_priv);
 
 	gen11_de_irq_postinstall(dev_priv);
 }
