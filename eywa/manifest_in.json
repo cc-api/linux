@@ -270,49 +270,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "nvme_simics_fix",
-            "branch_type": "internal nonexpiring",
-            "config_options": [
-                {
-                    "name": "CONFIG_NVME_CORE",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_BLK_DEV_NVME",
-                    "value": "y"
-                }
-            ],
-            "contributor": [
-                {
-                    "name": "Shyjumon",
-                    "email": "shyjumon.n@intel.com"
-                }
-            ],
-            "description": "Simics NVME driver enabling",
-            "enabled": false,
-            "ip_owner": [
-                {
-                    "name": "Revanth Rajashekar",
-                    "email": "revanth.rajashekar@intel.com"
-                }
-            ],
-            "jira": "NEXT-3377",
-            "name": "nvme",
-            "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
-            "sdl_contact": [
-                {
-                    "name": "Revanth Rajashekar",
-                    "email": "revanth.rajashekar@intel.com"
-                }
-            ],
-            "status": "intel confidential",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.3",
-            "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
-        },
-        {
             "branch": "scs-v6.3",
             "branch_type": "expiring",
             "config_options": [
