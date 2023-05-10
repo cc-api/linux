@@ -571,6 +571,10 @@ int x86_pmu_max_precise(void)
 		if (x86_pmu.pebs_prec_dist)
 			precise++;
 	}
+
+	if (x86_pmu.arch_pebs)
+		precise = 3;
+
 	return precise;
 }
 

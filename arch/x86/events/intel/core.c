@@ -2839,6 +2839,62 @@ static void intel_pmu_enable_fixed(struct perf_event *event)
 	cpuc->fixed_ctrl_val |= bits;
 }
 
+static inline void intel_pmu_event_msr_write(unsigned int gp_msr,
+					     unsigned int fixed_msr,
+					     unsigned int idx,
+					     int size, u64 val)
+{
+	if (idx < INTEL_PMC_IDX_FIXED)
+		wrmsrl(gp_msr + (idx << size), val);
+	else
+		wrmsrl(fixed_msr + ((idx - INTEL_PMC_IDX_FIXED) << size), val);
+}
+
+static void intel_pmu_enable_event_ext(struct perf_event *event)
+{
+	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+	struct hw_perf_event *hwc = &event->hw;
+	struct arch_pebs_cap *cap;
+	union arch_pebs_index index;
+	u64 ext = 0;
+
+	if (!hybrid_bit(cpuc->pmu, arch_pebs))
+		return;
+
+	cap = hybrid_ptr(cpuc->pmu, arch_pebs_cap);
+
+	if (event->attr.precise_ip && ((1 << hwc->idx) & cap->counter_map)) {
+		ext |= ARCH_PEBS_EN;
+		ext |= (-hwc->sample_period) & ARCH_PEBS_RELOAD;
+
+		if (cpuc->pebs_data_cfg & PEBS_DATACFG_MEMINFO)
+			ext |= ARCH_PEBS_AUX & cap->group_map;
+
+		if (cpuc->pebs_data_cfg & PEBS_DATACFG_GP)
+			ext |= ARCH_PEBS_GPR & cap->group_map;
+
+		if (cpuc->pebs_data_cfg & PEBS_DATACFG_XMMS)
+			ext |= (1ULL << ARCH_PEBS_VECR_SHIFT) & cap->group_map;
+
+		if (cpuc->pebs_data_cfg & PEBS_DATACFG_LBRS)
+			ext |= ARCH_PEBS_LBR & cap->group_map;
+
+		index.full = 0;
+		if (cpuc->n_pebs == cpuc->n_large_pebs)
+			index.split.thresh = ((x86_pmu.pebs_buffer_size) >> 4)
+					     & 0x7fffff;
+		else
+			index.split.thresh = 1;
+		index.split.en = 1;
+
+		wrmsrl(MSR_IA32_PEBS_INDEX, index.full);
+	}
+
+	intel_pmu_event_msr_write(MSR_IA32_PERFEVTSEL0_EXT,
+				  MSR_IA32_FIXED_CTR0_CTRL_EXT,
+				  hwc->idx, 2, ext);
+}
+
 static void intel_pmu_enable_event(struct perf_event *event)
 {
 	u64 enable_mask = ARCH_PERFMON_EVENTSEL_ENABLE;
@@ -2853,9 +2909,12 @@ static void intel_pmu_enable_event(struct perf_event *event)
 		if (log_event_in_branch(event))
 			enable_mask |= ARCH_PERFMON_EVENTSEL_LBR_LOG;
 		intel_set_masks(event, idx);
+		intel_pmu_enable_event_ext(event);
 		__x86_pmu_enable_event(hwc, enable_mask);
 		break;
 	case INTEL_PMC_IDX_FIXED ... INTEL_PMC_IDX_FIXED_BTS - 1:
+		intel_pmu_enable_event_ext(event);
+		fallthrough;
 	case INTEL_PMC_IDX_METRIC_BASE ... INTEL_PMC_IDX_METRIC_END:
 		intel_pmu_enable_fixed(event);
 		break;
@@ -3047,6 +3106,14 @@ static int handle_pmi_common(struct pt_regs *regs, u64 status)
 	 * events via drain_pebs().
 	 */
 	status &= ~(cpuc->pebs_enabled & x86_pmu.pebs_capable);
+
+	/*
+	 * Arch PEBS sets bit 54 in the global status register
+	 */
+	if (__test_and_clear_bit(GLOBAL_STATUS_ARCH_PEBS_THRESHOLD_BIT, (unsigned long *)&status)) {
+		handled++;
+		x86_pmu.drain_pebs(regs, &data);
+	}
 
 	/*
 	 * PEBS overflow sets bit 62 in the global status register
@@ -4991,6 +5058,10 @@ static bool init_hybrid_pmu(int cpu)
 	if (this_cpu_has(X86_FEATURE_ARCH_PERFMON_EXT))
 		update_pmu_cap(pmu);
 
+	pmu->arch_pebs = this_cpu_has(X86_FEATURE_ARCH_PEBS);
+	if (pmu->arch_pebs)
+		intel_arch_pebs_enum_cap(&pmu->arch_pebs_cap);
+
 	/* Must run after update_pmu_cap which could upate counter bitmaps */
 	intel_pmu_check_hybrid_pmus();
 
@@ -6556,7 +6627,7 @@ __init int intel_pmu_init(void)
 
 		intel_pmu_pebs_data_source_cmt();
 		x86_pmu.pebs_latency_data = mtl_latency_data_small;
-		x86_pmu.get_event_constraints = cmt_get_event_constraints;
+		x86_pmu.get_event_constraints = intel_get_event_constraints;
 		x86_pmu.limit_period = spr_limit_period;
 		td_attr = cmt_events_attrs;
 		mem_attr = grt_mem_attrs;
@@ -6586,7 +6657,7 @@ __init int intel_pmu_init(void)
 
 		intel_pmu_pebs_data_source_cmt();
 		x86_pmu.pebs_latency_data = mtl_latency_data_small;
-		x86_pmu.get_event_constraints = cmt_get_event_constraints;
+		x86_pmu.get_event_constraints = intel_get_event_constraints;
 		x86_pmu.limit_period = spr_limit_period;
 		td_attr = skt_events_attrs;
 		mem_attr = grt_mem_attrs;

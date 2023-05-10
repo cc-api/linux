@@ -199,6 +199,12 @@ union cpuid10_edx {
 #define ARCH_PERFMON_BIT_EQ			BIT(1)
 
 /*
+ * Intel Architectural PEBS CPUID detection/enumeration details:
+ */
+#define ARCH_PEBS_CAPABILITY_LEAF	0x4
+#define ARCH_PEBS_COUNTER_LEAF		0x5
+
+/*
  * Intel Architectural LBR CPUID detection/enumeration details:
  */
 union cpuid28_eax {
@@ -416,6 +422,8 @@ static inline bool is_topdown_idx(int idx)
 #define GLOBAL_STATUS_LBRS_FROZEN		BIT_ULL(GLOBAL_STATUS_LBRS_FROZEN_BIT)
 #define GLOBAL_STATUS_TRACE_TOPAPMI_BIT		55
 #define GLOBAL_STATUS_TRACE_TOPAPMI		BIT_ULL(GLOBAL_STATUS_TRACE_TOPAPMI_BIT)
+#define GLOBAL_STATUS_ARCH_PEBS_THRESHOLD_BIT	54
+#define	GLOBAL_STATUS_ARCH_PEBS_THRESHOLD	BIT_ULL(GLOBAL_STATUS_TRACE_TOPAPMI_BIT)
 #define GLOBAL_STATUS_PERF_METRICS_OVF_BIT	48
 
 #define GLOBAL_CTRL_EN_PERF_METRICS		48
@@ -484,6 +492,93 @@ struct pebs_xmm {
  * AMD Extended Performance Monitoring and Debug cpuid feature detection
  */
 #define EXT_PERFMON_DEBUG_FEATURES		0x80000022
+
+/*
+ * Arch PEBS
+ */
+
+union arch_pebs_index {
+	struct {
+		u64 rsvd:4,
+		    wr:23,
+		    rsvd2:4,
+		    full:1,
+		    en:1,
+		    rsvd3:3,
+		    thresh:23,
+		    rsvd4:5;
+	} split;
+	u64 full;
+};
+
+struct arch_pebs_header {
+	union {
+		u64 format;
+		struct {
+			u64 size:16,	/* Record size */
+			    rsvd:14,
+			    mode:1,	/* 64BIT_MODE */
+			    cont:1,
+			    rsvd2:3,
+			    cntr:5,
+			    lbr:2,
+			    rsvd3:7,
+			    xmm:1,
+			    vecr:6,
+			    rsvd4:5,
+			    gpr:1,
+			    aux:1,
+			    basic:1;
+		};
+	};
+	u64 rsvd5;
+};
+
+struct arch_pebs_basic {
+	struct arch_pebs_header header;
+	u64 ip;
+	u64 applicable_counters;
+	u64 tsc;
+	union {
+		u64 latency;
+		struct {
+			u64 retire:16,	/* Retire Latency */
+			    rsvd:48;
+		};
+	};
+	u64 rsvd2;
+	u64 rsvd3;
+};
+
+struct arch_pebs_aux {
+	u64 address;
+	u64 rsvd;
+	u64 rsvd2;
+	u64 rsvd3;
+	u64 rsvd4;
+	u64 aux;
+	u64 latency;
+	u64 tsx_tuning;
+};
+
+struct arch_pebs_gprs {
+	u64 flags, ip, ax, cx, dx, bx, sp, bp, si, di;
+	u64 r8, r9, r10, r11, r12, r13, r14, r15, ssp;
+	u64 rsvd;
+};
+
+struct arch_pebs_xmm {
+	u64 xmm[16*2];	/* two entries for each register */
+};
+
+struct arch_pebs_lbr_header {
+	u64 rsvd;
+	u64 ctl;
+	u64 depth;
+	u64 ler_from;
+	u64 ler_to;
+	u64 ler_info;
+};
 
 /*
  * IBS cpuid feature detection

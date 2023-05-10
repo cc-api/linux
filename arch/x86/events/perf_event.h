@@ -661,6 +661,12 @@ enum {
 #define PERF_PEBS_DATA_SOURCE_MAX	0x10
 #define PERF_PEBS_DATA_SOURCE_MASK	(PERF_PEBS_DATA_SOURCE_MAX - 1)
 
+struct arch_pebs_cap {
+	u64 group_map;
+	u64 counter_map;
+	u64 pdist_map;
+};
+
 struct x86_hybrid_pmu {
 	struct pmu			pmu;
 	const char			*name;
@@ -699,6 +705,8 @@ struct x86_hybrid_pmu {
 		u64 cnt_bitmapl;
 		DECLARE_BITMAP(cnt_bitmap, X86_PMC_IDX_MAX);
 	};
+	unsigned int			arch_pebs	:1;
+	struct arch_pebs_cap	arch_pebs_cap;
 	union {
 		unsigned long 		events_ext_maskl;
 		unsigned long 		events_ext_mask[BITS_TO_LONGS(ARCH_PERFMON_EXT_EVENTS_COUNT)];
@@ -720,6 +728,16 @@ extern struct static_key_false perf_is_hybrid;
 
 #define hybrid(_pmu, _field)				\
 (*({							\
+	typeof(&x86_pmu._field) __Fp = &x86_pmu._field;	\
+							\
+	if (is_hybrid() && (_pmu))			\
+		__Fp = &hybrid_pmu(_pmu)->_field;	\
+							\
+	__Fp;						\
+}))
+
+#define hybrid_ptr(_pmu, _field)				\
+(({							\
 	typeof(&x86_pmu._field) __Fp = &x86_pmu._field;	\
 							\
 	if (is_hybrid() && (_pmu))			\
@@ -930,6 +948,12 @@ struct x86_pmu {
 	unsigned long	large_pebs_flags;
 	u64		rtm_abort_event;
 	u64		pebs_capable;
+
+	/*
+	 * Intel Architectural PEBS
+	 */
+	unsigned int	arch_pebs:1;
+	struct arch_pebs_cap arch_pebs_cap;
 
 	/*
 	 * Intel LBR
@@ -1713,6 +1737,8 @@ void intel_pmu_pebs_data_source_mtl(void);
 void intel_pmu_pebs_data_source_arl_h(void);
 
 void intel_pmu_pebs_data_source_cmt(void);
+
+void intel_arch_pebs_enum_cap(struct arch_pebs_cap *cap);
 
 int intel_pmu_setup_lbr_filter(struct perf_event *event);
 
