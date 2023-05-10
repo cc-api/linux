@@ -349,9 +349,9 @@ void xe_device_remove(struct xe_device *xe)
 {
 	xe_device_remove_display(xe);
 
-	xe_irq_shutdown(xe);
-
 	xe_display_unlink(xe);
+
+	xe_irq_shutdown(xe);
 }
 
 void xe_device_shutdown(struct xe_device *xe)
