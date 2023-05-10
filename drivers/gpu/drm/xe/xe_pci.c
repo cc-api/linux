@@ -202,6 +202,19 @@ static const struct xe_graphics_desc graphics_xe3 = {
 	.supports_usm = false,
 };
 
+static const struct xe_graphics_desc graphics_xe3xpc = {
+	.name = "Xe3_XPC",
+	XE3_GFX_FEATURES,
+	.dma_mask_size = 52,
+	.va_bits = 57,
+	/*
+	 * FIXME: Following features temporarily disabled until full driver
+	 * support is added
+	 */
+	.has_flat_ccs = false,
+	.supports_usm = false,
+};
+
 static const struct xe_media_desc media_xem = {
 	.name = "Xe_M",
 	.ver = 12,
@@ -381,6 +394,12 @@ static const struct xe_device_desc ptl_desc = {
 	.require_force_probe = true,
 };
 
+static const struct xe_device_desc fsg_desc = {
+	PLATFORM(XE_FALCONSHORES),
+	.has_4tile = true,
+	.require_force_probe = true,
+};
+
 #undef PLATFORM
 __diag_pop();
 
@@ -393,6 +412,7 @@ static struct gmdid_map graphics_ip_map[] = {
 	{ 2004, &graphics_xe2 },
 	{ 3000, &graphics_xe3 },
 	{ 3001, &graphics_xe3 },
+	{ 3500, &graphics_xe3xpc },
 };
 
 /* Map of GMD_ID values to media IP */
@@ -429,6 +449,7 @@ static const struct pci_device_id pciidlist[] = {
 	XE_BMG_IDS(INTEL_VGA_DEVICE, &bmg_desc),
 	XE_LNL_IDS(INTEL_VGA_DEVICE, &lnl_desc),
 	XE_PTL_IDS(INTEL_VGA_DEVICE, &ptl_desc),
+	XE_FSG_IDS(INTEL_VGA_DEVICE, &fsg_desc),
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, pciidlist);
