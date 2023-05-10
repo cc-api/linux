@@ -2670,7 +2670,7 @@ static void update_saved_topdown_regs(struct perf_event *event, u64 slots,
 	}
 }
 
-static inline void _intel_update_topdown_event(struct perf_event *event,
+static inline void __intel_update_topdown_event(struct perf_event *event,
 					       u64 slots, u64 metrics,
 					       u64 last_slots, u64 last_metrics)
 {
@@ -2681,34 +2681,19 @@ static inline void _intel_update_topdown_event(struct perf_event *event,
 					   last_slots, last_metrics);
 }
 
-/*
- * Update all active Topdown events.
- *
- * The PERF_METRICS and Fixed counter 3 are read separately. The values may be
- * modify by a NMI. PMU has to be disabled before calling this function.
- */
-
-static u64 intel_update_topdown_event(struct perf_event *event, int metric_end)
+u64 _intel_update_topdown_event(struct perf_event *event, int metric_end,
+				 u64 slots, u64 metrics)
 {
 	struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
 	struct perf_event *other;
-	u64 slots, metrics;
 	bool reset = true;
 	int idx;
-
-	/* read Fixed counter 3 */
-	rdpmcl((3 | INTEL_PMC_FIXED_RDPMC_BASE), slots);
-	if (!slots)
-		return 0;
-
-	/* read PERF_METRICS */
-	rdpmcl(INTEL_PMC_FIXED_RDPMC_METRICS, metrics);
 
 	for_each_set_bit(idx, cpuc->active_mask, metric_end + 1) {
 		if (!is_topdown_idx(idx))
 			continue;
 		other = cpuc->events[idx];
-		_intel_update_topdown_event(other, slots, metrics,
+		__intel_update_topdown_event(other, slots, metrics,
 					    event ? event->hw.saved_slots : 0,
 					    event ? event->hw.saved_metric : 0);
 	}
@@ -2718,7 +2703,7 @@ static u64 intel_update_topdown_event(struct perf_event *event, int metric_end)
 	 * in active_mask e.g. x86_pmu_stop()
 	 */
 	if (event && !test_bit(event->hw.idx, cpuc->active_mask)) {
-		_intel_update_topdown_event(event, slots, metrics,
+		__intel_update_topdown_event(event, slots, metrics,
 					    event->hw.saved_slots,
 					    event->hw.saved_metric);
 
@@ -2743,6 +2728,28 @@ static u64 intel_update_topdown_event(struct perf_event *event, int metric_end)
 	}
 
 	return slots;
+}
+
+/*
+ * Update all active Topdown events.
+ *
+ * The PERF_METRICS and Fixed counter 3 are read separately. The values may be
+ * modify by a NMI. PMU has to be disabled before calling this function.
+ */
+
+static u64 intel_update_topdown_event(struct perf_event *event, int metric_end)
+{
+	u64 slots, metrics;
+
+	/* read Fixed counter 3 */
+	rdpmcl((3 | INTEL_PMC_FIXED_RDPMC_BASE), slots);
+	if (!slots)
+		return 0;
+
+	/* read PERF_METRICS */
+	rdpmcl(INTEL_PMC_FIXED_RDPMC_METRICS, metrics);
+
+	return _intel_update_topdown_event(event, metric_end, slots, metrics);
 }
 
 static u64 icl_update_topdown_event(struct perf_event *event)
@@ -2862,6 +2869,14 @@ static void intel_pmu_enable_event_ext(struct perf_event *event)
 		return;
 
 	cap = hybrid_ptr(cpuc->pmu, arch_pebs_cap);
+
+	if ((cpuc->pebs_data_cfg & PEBS_DATACFG_CNTR) &&
+	    (event->attr.sample_type & PERF_SAMPLE_READ)) {
+		ext |= ARCH_PEBS_CNTR_ALLOW;
+		if (is_sampling_event(event))
+			ext |= ARCH_PEBS_CNTR_GP | ARCH_PEBS_CNTR_FIXED |
+				ARCH_PEBS_CNTR_METRICS;
+	}
 
 	if (event->attr.precise_ip && ((1 << hwc->idx) & cap->counter_map)) {
 		ext |= ARCH_PEBS_EN;

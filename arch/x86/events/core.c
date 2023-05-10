@@ -117,7 +117,6 @@ u64 x86_perf_event_update(struct perf_event *event)
 	struct hw_perf_event *hwc = &event->hw;
 	int shift = 64 - x86_pmu.cntval_bits;
 	u64 prev_raw_count, new_raw_count;
-	u64 delta;
 
 	if (unlikely(!hwc->event_base))
 		return 0;
@@ -143,11 +142,8 @@ u64 x86_perf_event_update(struct perf_event *event)
 	 * Careful, not all hw sign-extends above the physical width
 	 * of the count.
 	 */
-	delta = (new_raw_count << shift) - (prev_raw_count << shift);
-	delta >>= shift;
-
-	local64_add(delta, &event->count);
-	local64_sub(delta, &hwc->period_left);
+	__x86_perf_event_update(event, prev_raw_count,
+				new_raw_count, shift);
 
 	return new_raw_count;
 }

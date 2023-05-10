@@ -117,6 +117,9 @@ static inline bool is_topdown_event(struct perf_event *event)
 			is_vmetrics_event(event);
 }
 
+u64 _intel_update_topdown_event(struct perf_event *event, int metric_end,
+				 u64 slots, u64 metrics);
+
 struct amd_nb {
 	int nb_id;  /* NorthBridge id */
 	int refcnt; /* reference count */
@@ -1201,6 +1204,18 @@ extern u64 __read_mostly hw_cache_extra_regs
 				[PERF_COUNT_HW_CACHE_RESULT_MAX];
 
 u64 x86_perf_event_update(struct perf_event *event);
+
+static inline void __x86_perf_event_update(struct perf_event *event,
+					   u64 prev, u64 new, int shift)
+{
+	u64 delta;
+
+	delta = (new << shift) - (prev << shift);
+	delta >>= shift;
+
+	local64_add(delta, &event->count);
+	local64_sub(delta, &event->hw.period_left);
+}
 
 static inline unsigned int x86_pmu_config_addr(int index)
 {

@@ -134,6 +134,7 @@
 #define PEBS_DATACFG_GP	BIT_ULL(1)
 #define PEBS_DATACFG_XMMS	BIT_ULL(2)
 #define PEBS_DATACFG_LBRS	BIT_ULL(3)
+#define PEBS_DATACFG_CNTR	BIT_ULL(4)
 #define PEBS_DATACFG_LBR_SHIFT	24
 
 /* Steal the highest bit of pebs_data_cfg for SW usage */
@@ -578,6 +579,13 @@ struct arch_pebs_lbr_header {
 	u64 ler_from;
 	u64 ler_to;
 	u64 ler_info;
+};
+
+struct arch_pebs_cntr_header {
+	u32 gp;
+	u32 fixed;
+	u32 metrics;
+	u32 freerun;
 };
 
 /*

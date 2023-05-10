@@ -1273,6 +1273,9 @@ static u64 pebs_update_adaptive_cfg(struct perf_event *event)
 			((x86_pmu.lbr_nr-1) << PEBS_DATACFG_LBR_SHIFT);
 	}
 
+	if (sample_type & PERF_SAMPLE_READ)
+			pebs_data_cfg |= PEBS_DATACFG_CNTR;
+
 	return pebs_data_cfg;
 }
 
@@ -2398,6 +2401,7 @@ static void setup_arch_pebs_sample_data(struct perf_event *event,
 	struct arch_pebs_gprs *gprs = NULL;
 	struct x86_perf_regs *perf_regs;
 	void *next_record = basic + 1;
+	int bit;
 
 	u64 sample_type;
 
@@ -2516,6 +2520,60 @@ static void setup_arch_pebs_sample_data(struct perf_event *event,
 			intel_pmu_store_pebs_lbrs(lbr);
 			data->br_stack = &cpuc->lbr_stack;
 		}
+	}
+
+	if (header->cntr) {
+		struct arch_pebs_cntr_header *cntr_header = next_record;
+		int shift = 64 - x86_pmu.cntval_bits;
+		struct perf_event *other;
+		u64 *val, *first, *last, slot = 0, metrics = 0;
+
+		next_record = cntr_header + 1;
+		first = next_record;
+
+		for_each_set_bit(bit, (unsigned long *)&cntr_header->gp, 64) {
+			val = next_record;
+			next_record = val + 1;
+			other = cpuc->events[bit];
+			/*
+			 * Slots and Topdown events will be handled
+			 * in the Metrics Subgroup.
+			 */
+			if (!other || is_topdown_count(other))
+				continue;
+			__x86_perf_event_update(other, local64_read(&other->hw.prev_count),
+						*val, shift);
+		}
+
+		for_each_set_bit(bit, (unsigned long *)&cntr_header->metrics, 32) {
+			val = next_record;
+			next_record = val + 1;
+			if (!bit)
+				slot = *val;
+			else if (bit == 1)
+				metrics = *val;
+		}
+
+		WARN_ON_ONCE((!slot && (metrics != 0)) ||
+			     (!metrics && (slot != 0)));
+
+		if (slot && metrics) {
+			other = cpuc->events[INTEL_PMC_IDX_FIXED_SLOTS];
+			WARN_ON_ONCE(!other);
+			if (other) {
+				_intel_update_topdown_event(other, INTEL_PMC_IDX_METRIC_BASE + x86_pmu.num_topdown_events - 1,
+							     slot, metrics);
+			}
+		}
+
+		/* TODO: we don't have freerun events for now */
+		for_each_set_bit(bit, (unsigned long *)&cntr_header->freerun, 32) {
+			val = next_record;
+			next_record = val + 1;
+		}
+
+		last = next_record;
+		next_record = last + ((last - first) & 1);
 	}
 }
 
