@@ -1410,8 +1410,8 @@
                     "email": "ricardo.neri-calderon@linux.intel.com"
                 }
             ],
-            "description": "Support for hybrid CPUs and Hardware Feedback Interface",
-            "enabled": false,
+            "description": "Enable Intel Thread Director (ITD) as well as code to discover and enumerate the topology of hybrid CPUs.\n",
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Eliezer Weissman",
@@ -1422,7 +1422,7 @@
                     "email": "muhammad.abozaed@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3393",
             "name": "hybrid",
             "repourl": "https://github.com/intel-sandbox/ranerica.linux.git",
             "sdl_contact": [
@@ -1433,8 +1433,8 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
-            "maillist": "",
+            "last_enabled": "v6.4",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00044.html",
             "platforms": "ADL,ARL,LKF,LNL,MTL,RPL",
             "feature_jiras": "LFE-3935,LFE-3936,LFE-6953"
         },
