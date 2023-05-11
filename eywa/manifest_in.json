@@ -5905,6 +5905,47 @@
             "platforms": "ARL",
             "feature_jiras": "",
             "last_enabled": "v6.3"
+        },
+        {
+            "branch": "tracepoint-xsave-for-inext",
+            "branch_type": "expiring",
+            "config_options": [
+                {
+                    "name": "CONFIG_EVENT_TRACING",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_TRACING",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_TRACING_SUPPORT",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_FUNCTION_TRACER",
+                    "value": "y"
+                }
+            ],
+            "contributor": [
+                {
+                    "name": "Yi Sun",
+                    "email": "yi.sun@linux.intel.com"
+                }
+            ],
+            "description": "Measure the latency of XSAVE and XRSTOR",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3397",
+            "name": "tracepoint_xsave",
+            "repourl": "https://github.com/intel-sandbox/linux-sy.git",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00049.html",
+            "platforms": "EMR,GNR,SPR",
+            "feature_jiras": "",
+            "last_enabled": "v6.4"
         }
     ]
 }
