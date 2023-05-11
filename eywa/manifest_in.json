@@ -1410,7 +1410,7 @@
                     "email": "ricardo.neri-calderon@linux.intel.com"
                 }
             ],
-            "description": "Enable Intel Thread Director (ITD) as well as code to discover and enumerate the topology of hybrid CPUs.\n",
+            "description": "Enable Intel Thread Director (ITD) as well as code to discover and enumerate the topology of hybrid CPUs.",
             "enabled": true,
             "ip_owner": [
                 {
