@@ -411,6 +411,7 @@ static const struct xe_device_desc ptl_desc = {
 static const struct xe_device_desc fsg_desc = {
 	PLATFORM(XE_FALCONSHORES),
 	.has_4tile = true,
+	.has_display = false,
 	.require_force_probe = true,
 };
 
