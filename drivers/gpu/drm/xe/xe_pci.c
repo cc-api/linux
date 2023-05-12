@@ -404,6 +404,7 @@ static const struct xe_device_desc lnl_desc = {
 static const struct xe_device_desc ptl_desc = {
 	PLATFORM(XE_PANTHERLAKE),
 	.has_4tile = true,
+	.has_display = false, /* TODO: not implemented yet */
 	.require_force_probe = true,
 };
 
