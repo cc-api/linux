@@ -34,37 +34,47 @@
 
 /* Xe device functions */
 
-static void xe_display_last_close(struct drm_device *dev)
-{
-	intel_fbdev_restore_mode(to_xe_device(dev));
-}
-
 /**
- * xe_display_set_driver_hooks - set driver flags and hooks for display
+ * xe_display_driver_probe_defer - Detect if we need to wait for other drivers
+ *				   early on
  * @pdev: PCI device
- * @driver: DRM device driver
  *
- * Set features and function hooks in @driver that are needed for driving the
- * display IP, when that is enabled.
- *
- * Returns: 0 on success
+ * Returns: 0 if probe can continue, -EPROBE_DEFER otherwise
  */
-int xe_display_set_driver_hooks(struct pci_dev *pdev, struct drm_driver *driver)
+int xe_display_driver_probe_defer(struct pci_dev *pdev)
 {
 	if (!enable_display)
 		return 0;
 
-	/* Detect if we need to wait for other drivers early on */
-	if (intel_display_driver_probe_defer(pdev))
-		return -EPROBE_DEFER;
+	return intel_display_driver_probe_defer(pdev);
+}
+
+static void xe_display_last_close(struct drm_device *dev)
+{
+	struct xe_device *xe = to_xe_device(dev);
+
+	if (xe->info.enable_display)
+		intel_fbdev_restore_mode(to_xe_device(dev));
+}
+
+/**
+ * xe_display_driver_set_hooks - Add driver flags and hooks for display
+ * @driver: DRM device driver
+ *
+ * Set features and function hooks in @driver that are needed for driving the
+ * display IP. This sets the driver's capability of driving display, regardless
+ * if the device has it enabled
+ */
+void xe_display_driver_set_hooks(struct drm_driver *driver)
+{
+	if (!enable_display)
+		return;
 
 	driver->driver_features |= DRIVER_MODESET | DRIVER_ATOMIC;
 	driver->lastclose = xe_display_last_close;
-
-	return 0;
 }
 
-static void unset_driver_hooks(struct xe_device *xe)
+static void unset_display_features(struct xe_device *xe)
 {
 	xe->drm.driver_features &= ~(DRIVER_MODESET | DRIVER_ATOMIC);
 }
@@ -484,8 +494,10 @@ __diag_ignore_all("-Woverride-init", "Allow field overrides in table");
 
 void xe_display_info_init(struct xe_device *xe)
 {
-	if (!xe->info.enable_display)
+	if (!xe->info.enable_display) {
+		unset_display_features(xe);
 		return;
+	}
 
 	switch (xe->info.platform) {
 	case XE_TIGERLAKE:
@@ -532,9 +544,9 @@ void xe_display_info_init(struct xe_device *xe)
 		xe->info.display = (struct xe_device_display_info) { XE_LPDP };
 		break;
 	default:
-		drm_dbg(&xe->drm, "No display IP, skipping\n");
+		drm_warn(&xe->drm, "Unknown display IP\n");
 		xe->info.enable_display = false;
-		unset_driver_hooks(xe);
+		unset_display_features(xe);
 		return;
 	}
 }

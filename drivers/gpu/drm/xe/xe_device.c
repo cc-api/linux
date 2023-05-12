@@ -171,9 +171,7 @@ struct xe_device *xe_device_create(struct pci_dev *pdev,
 	struct xe_device *xe;
 	int err;
 
-	err = xe_display_set_driver_hooks(pdev, &driver);
-	if (err)
-		return ERR_PTR(err);
+	xe_display_driver_set_hooks(&driver);
 
 	err = drm_aperture_remove_conflicting_pci_framebuffers(pdev, &driver);
 	if (err)
@@ -192,7 +190,6 @@ struct xe_device *xe_device_create(struct pci_dev *pdev,
 	xe->info.devid = pdev->device;
 	xe->info.revid = pdev->revision;
 	xe->info.enable_guc = enable_guc;
-	xe->info.enable_display = enable_display;
 
 	spin_lock_init(&xe->irq.lock);
 
@@ -349,9 +346,9 @@ void xe_device_remove(struct xe_device *xe)
 {
 	xe_device_remove_display(xe);
 
-	xe_irq_shutdown(xe);
-
 	xe_display_unlink(xe);
+
+	xe_irq_shutdown(xe);
 }
 
 void xe_device_shutdown(struct xe_device *xe)
