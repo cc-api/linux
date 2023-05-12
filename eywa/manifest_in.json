@@ -955,7 +955,7 @@
             "feature_jiras": "LFE-7063"
         },
         {
-            "branch": "intel-th-v6.2",
+            "branch": "intel_th-for-intel-next",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -1018,7 +1018,7 @@
                 }
             ],
             "description": "Contains tracehub support for Granite Rapids, Meteor Lake, Raptor Lake.",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Swarnakumar Aswatnarayana",
@@ -1029,9 +1029,9 @@
                     "email": "saish.amonkar@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3400",
             "name": "tracehub",
-            "repourl": "https://github.com/intel-sandbox/ahunter6.next.git",
+            "repourl": "https://github.com/intel-sandbox/linux-stm.git",
             "sdl_contact": [
                 {
                     "name": "Kai Svahn",
@@ -1044,9 +1044,9 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2",
-            "maillist": "",
-            "platforms": "",
+            "last_enabled": "v6.4",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00058.html",
+            "platforms": "GNR,MTL,RPL",
             "feature_jiras": ""
         },
         {
