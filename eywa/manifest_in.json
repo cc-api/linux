@@ -1368,7 +1368,7 @@
                 }
             ],
             "description": "SVOS Kernel/Driver Changes ",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Adam Preble",
