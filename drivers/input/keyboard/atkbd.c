@@ -27,6 +27,10 @@
 #include <linux/dmi.h>
 #include <linux/property.h>
 
+#if defined(CONFIG_SVOS) && defined(CONFIG_KGDB_KDB)
+extern int kdb_atkbd_hook(unsigned short);
+#endif
+
 #define DRIVER_DESC	"AT and PS/2 keyboard driver"
 
 MODULE_AUTHOR("Vojtech Pavlik <vojtech@suse.cz>");
@@ -557,6 +561,13 @@ static void atkbd_receive_byte(struct ps2dev *ps2dev, u8 data)
 			atkbd->last = code;
 			atkbd->time = jiffies + msecs_to_jiffies(dev->rep[REP_DELAY]) / 2;
 		}
+#if defined(CONFIG_SVOS) && defined(CONFIG_KGDB_KDB) && defined(CONFIG_X86)
+		//
+		// if keycode is kdb trigger call kdb from the hook code
+		//
+		if (kdb_atkbd_hook(keycode))    // see if keycode is trigger for KDB
+			break;
+#endif
 
 		input_event(dev, EV_KEY, keycode, value);
 		input_sync(dev);
