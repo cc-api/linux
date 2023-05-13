@@ -2272,6 +2272,10 @@ extern void pagefault_out_of_memory(void);
 #define offset_in_folio(folio, p) ((unsigned long)(p) & (folio_size(folio) - 1))
 
 /*
+#ifdef CONFIG_SVOS
+static inline void show_free_areas(unsigned int flags, nodemask_t *nodemask)
+#else
+#endif
  * Parameter block passed down to zap_pte_range in exceptional cases.
  */
 struct zap_details {
