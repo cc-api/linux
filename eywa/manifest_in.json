@@ -136,6 +136,53 @@
             "feature_jiras": ""
         },
         {
+            "branch": "svos-next-pull-6.4",
+            "branch_type": "expiring",
+            "config_options": [
+                {
+                    "name": "CONFIG_SVOS",
+                    "value": "n"
+                },
+                {
+                    "name": "CONFIG_SVFS_ACPI",
+                    "value": "n"
+                },
+                {
+                    "name": "CONFIG_SVOS_RAS_ERRORCORRECT",
+                    "value": "n"
+                }
+            ],
+            "contributor": [
+                {
+                    "name": "Adam Preble",
+                    "email": "adam.c.preble@intel.com"
+                }
+            ],
+            "description": "SVOS Kernel/Driver Changes ",
+            "enabled": false,
+            "ip_owner": [
+                {
+                    "name": "Adam Preble",
+                    "email": "adam.c.preble@intel.com"
+                }
+            ],
+            "jira": "NEXT-3401",
+            "name": "SVOS Kernel",
+            "repourl": "https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next",
+            "sdl_contact": [
+                {
+                    "name": "Adam Preble",
+                    "email": "adam.c.preble@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.4",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00063.html",
+            "platforms": "",
+            "feature_jiras": ""
+        },
+        {
             "branch": "intel_next_branding",
             "branch_type": "internal nonexpiring",
             "config_options": [
@@ -1341,53 +1388,6 @@
             "stuck_at_ref": "",
             "last_enabled": "v6.4",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00048.html",
-            "platforms": "",
-            "feature_jiras": ""
-        },
-        {
-            "branch": "svos-next-pull-6.4",
-            "branch_type": "expiring",
-            "config_options": [
-                {
-                    "name": "CONFIG_SVOS",
-                    "value": "n"
-                },
-                {
-                    "name": "CONFIG_SVFS_ACPI",
-                    "value": "n"
-                },
-                {
-                    "name": "CONFIG_SVOS_RAS_ERRORCORRECT",
-                    "value": "n"
-                }
-            ],
-            "contributor": [
-                {
-                    "name": "Adam Preble",
-                    "email": "adam.c.preble@intel.com"
-                }
-            ],
-            "description": "SVOS Kernel/Driver Changes ",
-            "enabled": false,
-            "ip_owner": [
-                {
-                    "name": "Adam Preble",
-                    "email": "adam.c.preble@intel.com"
-                }
-            ],
-            "jira": "NEXT-3401",
-            "name": "SVOS Kernel",
-            "repourl": "https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next",
-            "sdl_contact": [
-                {
-                    "name": "Adam Preble",
-                    "email": "adam.c.preble@intel.com"
-                }
-            ],
-            "status": "intel confidential",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.4",
-            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00063.html",
             "platforms": "",
             "feature_jiras": ""
         },
