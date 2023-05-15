@@ -49,13 +49,14 @@
 static struct microcode_ops	*microcode_ops;
 struct dentry *dentry_ucode;
 static bool dis_ucode_ldr = true;
+<<<<<<<
 #ifdef CONFIG_SVOS
-bool override_minrev = true;
-bool ucode_load_same = true;
-#else
-bool override_minrev = false;
-bool ucode_load_same = false;
+bool late_load = false;
 #endif
+=======
+bool override_minrev;
+bool ucode_load_same;
+>>>>>>>
 
 bool initrd_gone;
 
@@ -713,6 +714,9 @@ static ssize_t reload_store_common(struct device *dev,
 	}
 
 	cpus_read_lock();
+#ifdef CONFIG_SVOS
+	late_load = true;
+#endif
 
 	ret = check_online_cpus();
 	if (ret)
