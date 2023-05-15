@@ -337,12 +337,8 @@ static int intel_tc_port_get_max_lane_count(struct intel_digital_port *dig_port)
 {
 	struct drm_i915_private *i915 = to_i915(dig_port->base.base.dev);
 	struct intel_tc_port *tc = to_tc_port(dig_port);
-	enum phy phy = intel_port_to_phy(i915, dig_port->base.port);
 	intel_wakeref_t wakeref;
 	u32 lane_mask = 0;
-
-	if (!intel_phy_is_tc(i915, phy) || tc->mode != TC_PORT_DP_ALT)
-		return 4;
 
 	assert_tc_cold_blocked(tc);
 
@@ -372,9 +368,10 @@ static int intel_tc_port_get_max_lane_count(struct intel_digital_port *dig_port)
 int intel_tc_port_max_lane_count(struct intel_digital_port *dig_port)
 {
 	struct drm_i915_private *i915 = to_i915(dig_port->base.base.dev);
+	enum phy phy = intel_port_to_phy(i915, dig_port->base.port);
 	struct intel_tc_port *tc = to_tc_port(dig_port);
 
-	if (tc->mode != TC_PORT_DP_ALT)
+	if (!intel_phy_is_tc(i915, phy) || tc->mode != TC_PORT_DP_ALT)
 		return 4;
 
 	if (DISPLAY_VER(i915) >= 20)
