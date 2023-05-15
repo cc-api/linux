@@ -1311,7 +1311,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "intel-pt-perf-tools-v6.3",
+            "branch": "intel-pt-perf-tools-v6.4",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
