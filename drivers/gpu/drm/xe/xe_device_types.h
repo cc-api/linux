@@ -226,6 +226,7 @@ struct xe_device {
 #if IS_ENABLED(CONFIG_DRM_XE_DISPLAY)
 		struct xe_device_display_info {
 			u8 ver;
+			u8 rel;
 
 			u8 pipe_mask;
 			u8 cpu_transcoder_mask;

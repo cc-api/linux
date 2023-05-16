@@ -130,6 +130,11 @@ static inline struct drm_i915_private *kdev_to_i915(struct device *kdev)
 #define IS_GRAPHICS_STEP(xe, first, last) ({u8 __step = (xe)->info.step.graphics; first <= __step && __step <= last;})
 #define IS_LP(xe) (0)
 
+#define IP_VER(ver, rel)		((ver) << 8 | (rel))
+
+#define DISPLAY_VER_FULL(xe)		IP_VER((xe)->info.display.ver, \
+					       (xe)->info.display.rel)
+
 #define IS_TGL_UY(xe) (xe && 0)
 #define IS_CML_ULX(xe) (xe && 0)
 #define IS_CFL_ULX(xe) (xe && 0)

@@ -412,6 +412,7 @@ __diag_push();
 __diag_ignore_all("-Woverride-init", "Allow field overrides in table");
 
 #define __DISPLAY_DEFAULTS \
+	.rel = 0,							\
 	.pipe_mask = BIT(PIPE_A) | BIT(PIPE_B) |			\
 		     BIT(PIPE_C) | BIT(PIPE_D),				\
 	.cpu_transcoder_mask =						\
