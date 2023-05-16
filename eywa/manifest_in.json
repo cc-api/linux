@@ -4378,7 +4378,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "6.4-for-intel-next",
+            "branch": "for-next-6.4-ucode-ifs",
             "branch_type": "expiring",
             "config_options": [
                 {
