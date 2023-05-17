@@ -59,7 +59,8 @@ int ima_extend_rtmr(struct tpm_chip *chip, u32 rtmr_idx,
         return -EINVAL;
 
     for (i = 0; i < chip->nr_allocated_banks; i++) {
-        if (digests[i].alg_id != chip->allocated_banks[i].alg_id) {
+        if (digests[i].alg_id != NULL &&
+			digests[i].alg_id != chip->allocated_banks[i].alg_id) {
             return -EINVAL;
         }
     }
@@ -114,7 +115,7 @@ int tdx_get_boot_measurements(struct tdx_boot_digests *boot_digests)
     /* Parse tdreport and retrieve info*/
     report = (struct tdreport *)tdreport;
 
-    for (i = 0; i < sizeof(&report->tdinfo.mrtd); i++) {
+    for (i = 0; i < sizeof(report->tdinfo.mrtd)/sizeof(u64); i++) {
         memcpy(&boot_digests->boot_digest[0][i * 8], &report->tdinfo.mrtd[i], sizeof(u64));
         memcpy(&boot_digests->boot_digest[1][i * 8], &report->tdinfo.rtmr[i], sizeof(u64));
         j = i + 6;
