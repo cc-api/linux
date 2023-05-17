@@ -94,15 +94,15 @@ void intel_detect_pch(struct drm_i915_private *dev_priv)
 	unsigned short id;
 	enum intel_pch pch_type;
 
-	/* DG1 has south engine display on the same PCI device */
-	if (IS_DG1(dev_priv)) {
-		dev_priv->pch_type = PCH_DG1;
+	/* Using false PCHs for platforms with south display engine on the same PCI device */
+	if (IS_LUNARLAKE(dev_priv)) {
+		dev_priv->pch_type = PCH_LNL;
+		return;
+	} else if (IS_BATTLEMAGE(dev_priv)) {
+		dev_priv->pch_type = PCH_BMG;
 		return;
 	} else if (IS_DG2(dev_priv)) {
 		dev_priv->pch_type = PCH_DG2;
-		return;
-	} else if (IS_LUNARLAKE(dev_priv)) {
-		dev_priv->pch_type = PCH_LNL;
 		return;
 	}
 
