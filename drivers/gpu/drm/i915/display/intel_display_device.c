@@ -718,6 +718,7 @@ static const struct {
 	const struct intel_display_device_info *display;
 } gmdid_display_map[] = {
 	{ 14,  0, &xe_lpdp_display },
+	{ 14,  1, &xe_lpdp_display },
 };
 
 static const struct intel_display_device_info *
