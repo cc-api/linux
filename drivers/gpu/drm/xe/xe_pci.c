@@ -354,6 +354,7 @@ static const u16 bmg_g21_ids[] = { XE_BMG_G21_IDS(NOP), 0 };
 static const struct xe_device_desc bmg_desc = {
 	DGFX_FEATURES,
 	PLATFORM(XE_BATTLEMAGE),
+	.has_display = true,
 	.require_force_probe = true,
 	.subplatforms = (const struct xe_subplatform_desc[]) {
 		{ XE_SUBPLATFORM_BMG_G10, "G10", bmg_g10_ids },
