@@ -41,6 +41,7 @@ struct microcode_ops {
 	 */
 	enum ucode_state (*apply_microcode)(int cpu);
 	int (*collect_cpu_info)(int cpu, struct cpu_signature *csig);
+	u32 (*get_current_rev)(void);
 };
 
 extern struct ucode_cpu_info ucode_cpu_info[];
