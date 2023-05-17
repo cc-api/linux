@@ -548,6 +548,13 @@ void xe_display_info_init(struct xe_device *xe)
 			.ver = 20,
 		};
 		break;
+	case XE_BATTLEMAGE:
+		xe->info.display = (struct xe_device_display_info) {
+			XE_LPDP,
+			.ver = 14,
+			.rel = 1,
+		};
+		break;
 	default:
 		drm_warn(&xe->drm, "Unknown display IP\n");
 		xe->info.enable_display = false;
