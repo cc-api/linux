@@ -1750,6 +1750,17 @@ static void vmx_dynamic_update_hfi_table(struct kvm_vcpu *vcpu)
 	mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
 }
 
+static void vmx_vcpu_hfi_load(struct kvm_vcpu *vcpu, int cpu)
+{
+	if (!intel_hfi_enabled())
+		return;
+
+	if (!vmx_hfi_initialized(to_kvm_vmx(vcpu->kvm)))
+		return;
+
+	kvm_make_request(KVM_REQ_HFI_UPDATE, vcpu);
+}
+
 /*
  * Switches to specified vcpu, until a matching vcpu_put(), but assumes
  * vcpu mutex is already taken.
@@ -1763,6 +1774,9 @@ static void vmx_vcpu_load(struct kvm_vcpu *vcpu, int cpu)
 	vmx_vcpu_pi_load(vcpu, cpu);
 
 	vmx->host_debugctlmsr = get_debugctlmsr();
+
+	if (unlikely(vcpu->cpu != cpu))
+		vmx_vcpu_hfi_load(vcpu, cpu);
 }
 
 static void vmx_vcpu_put(struct kvm_vcpu *vcpu)
