@@ -1621,7 +1621,7 @@ static int vmx_build_hfi_table(struct kvm *kvm)
 	return 1;
 }
 
-static void vmx_update_hfi_table(struct kvm *kvm)
+static void vmx_update_hfi_table(struct kvm *kvm, bool forced_int)
 {
 	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
 	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
@@ -1640,7 +1640,7 @@ static void vmx_update_hfi_table(struct kvm *kvm)
 	}
 
 	ret = vmx_build_hfi_table(kvm);
-	if (ret <= 0)
+	if (ret < 0 || (!ret && !forced_int))
 		return;
 
 	kvm_vmx_hfi->hfi_update_status = true;
@@ -1746,7 +1746,7 @@ static void vmx_dynamic_update_hfi_table(struct kvm_vcpu *vcpu)
 	 * change is found in the virtual HFI table, the Guest memory
 	 * write and interrupt injection will not be repeated.
 	 */
-	vmx_update_hfi_table(vcpu->kvm);
+	vmx_update_hfi_table(vcpu->kvm, false);
 	mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
 }
 
