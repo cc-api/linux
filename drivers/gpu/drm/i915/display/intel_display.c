@@ -5290,7 +5290,16 @@ intel_pipe_config_compare(const struct intel_crtc_state *current_config,
 		PIPE_CONF_CHECK_RECT(pch_pfit.dst);
 
 		PIPE_CONF_CHECK_I(scaler_state.scaler_id);
-		PIPE_CONF_CHECK_I(pixel_rate);
+
+		/*
+		 * Simulator lacks support for C20 PHY modeling. Since
+		 * port_clock, crtc_clock and pixel_rate are calculated based
+		 * on dpll, those parameters won't have valid values in
+		 * simulation. Skip validating those.
+		 * TODO: Condition can be improved to skip only for C20 PHY.
+		 */
+		if (!IS_SIMULATOR(dev_priv))
+			PIPE_CONF_CHECK_I(pixel_rate);
 
 		PIPE_CONF_CHECK_X(gamma_mode);
 		if (IS_CHERRYVIEW(dev_priv))
@@ -5363,11 +5372,19 @@ intel_pipe_config_compare(const struct intel_crtc_state *current_config,
 	if (IS_G4X(dev_priv) || DISPLAY_VER(dev_priv) >= 5)
 		PIPE_CONF_CHECK_I(pipe_bpp);
 
-	if (!fastset || !pipe_config->update_m_n) {
-		PIPE_CONF_CHECK_I(hw.pipe_mode.crtc_clock);
-		PIPE_CONF_CHECK_I(hw.adjusted_mode.crtc_clock);
+	/*
+	 * Simulator lacks support for C20 PHY modeling. Since port_clock,
+	 * crtc_clock and pixel_rate are calculated based on dpll, those
+	 * parameters won't have valid values in simulation. Skip validating
+	 * those.
+	 * TODO: Condition can be improved to skip only for C20 PHY.
+	 */
+	if (!IS_SIMULATOR(dev_priv)) {
+		if (!fastset || !pipe_config->update_m_n) {
+			PIPE_CONF_CHECK_I(hw.pipe_mode.crtc_clock);
+			PIPE_CONF_CHECK_I(hw.adjusted_mode.crtc_clock);
+		}
 	}
-	PIPE_CONF_CHECK_I(port_clock);
 
 	PIPE_CONF_CHECK_I(min_voltage_level);
 
