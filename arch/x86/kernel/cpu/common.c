@@ -410,6 +410,9 @@ static void setup_uintr(struct cpuinfo_x86 *c)
 	cr4_set_bits(X86_CR4_UINTR);
 	pr_info_once("x86: User Interrupts (UINTR) enabled\n");
 
+	if (cpu_feature_enabled(X86_FEATURE_UTIMER))
+		pr_info_once("x86: User Timer (UTIMER) enabled\n");
+
 	return;
 
 clear_uintr_cap:

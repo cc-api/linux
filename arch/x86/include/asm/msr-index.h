@@ -480,6 +480,7 @@
 #define MSR_IA32_UINTR_MISC		0x988	/* 39:32-UINV, 31:0-UITTSZ */
 #define MSR_IA32_UINTR_PD		0x989
 #define MSR_IA32_UINTR_TT		0x98a
+#define MSR_IA32_UINTR_TIMER		0x1b00
 
 /* CPUID.6.EAX */
 #define HWP_BASE_BIT			(1<<7)
