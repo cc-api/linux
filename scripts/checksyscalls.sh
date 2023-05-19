@@ -210,6 +210,7 @@ cat << EOF
 #define __IGNORE_uintr_register_self
 #define __IGNORE_uintr_alt_stack
 #define __IGNORE_uintr_ipi_fd
+#define __IGNORE_uintr_set_timer
 
 /* ... including the "new" 32-bit uid syscalls */
 #define __IGNORE_lchown32

@@ -53,6 +53,11 @@ inline bool is_uintr_receiver(struct task_struct *t)
 	return !!t->thread.upid_activated;
 }
 
+inline bool is_uintr_timer(struct task_struct *t)
+{
+	return !!t->thread.uhandler_activated;
+}
+
 inline bool is_uintr_ongoing(struct task_struct *t)
 {
 	return test_bit(UINTR_UPID_STATUS_ON,
@@ -66,7 +71,7 @@ inline bool is_uintr_sender(struct task_struct *t)
 
 inline bool is_uintr_task(struct task_struct *t)
 {
-	return(is_uintr_receiver(t) || is_uintr_sender(t));
+	return(is_uintr_receiver(t) || is_uintr_sender(t) || is_uintr_timer(t));
 }
 
 static void free_upid(struct uintr_upid_ctx *upid_ctx)
@@ -888,6 +893,9 @@ static int do_uintr_unregister_handler(void)
 
 	t->thread.upid_activated = false;
 
+	wrmsrl(MSR_IA32_UINTR_TIMER, 0);
+	t->thread.uhandler_activated = false;
+
 	/*
 	 * Suppress notifications so that no further interrupts are generated
 	 * based on this UPID.
@@ -992,6 +1000,9 @@ static int do_uintr_register_handler(u64 handler, unsigned int flags)
 	t->thread.upid_activated = true;
 
 	end_update_xsave_msrs();
+
+	t->thread.uhandler_activated = true;
+
 
 	if (flags & UINTR_HANDLER_FLAG_WAITING_ANY) {
 		if (flags & UINTR_HANDLER_FLAG_WAITING_RECEIVER)
@@ -1416,6 +1427,30 @@ void switch_uintr_return(void)
 		apic->send_IPI_self(UINTR_NOTIFICATION_VECTOR);
 }
 
+/* TODO: Optimize function when reading 0 and writing 0 */
+void switch_uintr_timer(struct task_struct *prev, struct task_struct *next)
+{
+	u64 timer_deadline = 0;
+	bool needs_update = false;
+
+	if (!cpu_feature_enabled(X86_FEATURE_UTIMER))
+		return;
+
+	if (is_uintr_timer(prev)) {
+		rdmsrl(MSR_IA32_UINTR_TIMER, prev->thread.utimer_deadline);
+		needs_update = true;
+	}
+
+	if (is_uintr_timer(next)) {
+		timer_deadline = next->thread.utimer_deadline;
+		needs_update = true;
+	}
+
+	if (needs_update)
+		wrmsrl(MSR_IA32_UINTR_TIMER, timer_deadline);
+
+}
+
 /* Check does SN need to be set here */
 /* Called when task is unregistering/exiting or timer expired */
 static void uintr_remove_task_wait(struct task_struct *task)
@@ -1504,6 +1539,9 @@ void uintr_free(struct task_struct *t)
 		t->thread.uitt_activated = false;
 
 		end_update_xsave_msrs();
+
+		wrmsrl(MSR_IA32_UINTR_TIMER, 0);
+		t->thread.uhandler_activated = false;
 	}
 
 	if (upid_ctx) {
@@ -1553,4 +1591,32 @@ void uintr_wake_up_process(void)
 		}
 	}
 	spin_unlock_irqrestore(&uintr_wait_lock, flags);
+}
+
+/*
+ * sys_uintr_set_timer - Program a deadline in to the User Timer MSR
+ */
+SYSCALL_DEFINE3(uintr_set_timer, u64, deadline, u64, vector, unsigned int, flags)
+{
+	u64 utimer_val = (deadline & ~0x1F) | vector;
+
+	pr_debug("uintr_set_timer syscall deadline %llx, vector %llx flags %x\n", deadline, vector, flags);
+
+	if (!cpu_feature_enabled(X86_FEATURE_UINTR) ||
+	    !cpu_feature_enabled(X86_FEATURE_UTIMER))
+		return -ENOSYS;
+
+	if (flags)
+		return -EINVAL;
+
+	if (vector >= 64)
+		return -EINVAL;
+
+	if (!is_uintr_timer(current))
+		return -EOPNOTSUPP;
+
+	wrmsrl(MSR_IA32_UINTR_TIMER, utimer_val);
+	pr_debug("uintr_set_timer syscall UINTR_TIMER MSR set as %llx\n", utimer_val);
+
+	return 0;
 }

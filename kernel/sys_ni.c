@@ -263,6 +263,7 @@ COND_SYSCALL(uintr_wait);
 COND_SYSCALL(uintr_register_self);
 COND_SYSCALL(uintr_alt_stack);
 COND_SYSCALL(uintr_ipi_fd);
+COND_SYSCALL(uintr_set_timer);
 
 /*
  * Architecture specific weak syscall entries.
