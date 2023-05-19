@@ -845,9 +845,11 @@ __SYSCALL(__NR_uintr_register_self, sys_uintr_register_self)
 __SYSCALL(__NR_uintr_alt_stack, sys_uintr_alt_stack)
 #define __NR_uintr_ipi_fd 479
 __SYSCALL(__NR_uintr_ipi_fd, sys_uintr_ipi_fd)
+#define __NR_uintr_set_timer 480
+__SYSCALL(__NR_uintr_set_timer, sys_uintr_set_timer)
 
 #undef __NR_syscalls
-#define __NR_syscalls 480
+#define __NR_syscalls 481
 
 /*
  * 32 bit systems traditionally used different

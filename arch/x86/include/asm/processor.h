@@ -473,9 +473,13 @@ struct thread_struct {
 	/* Signifies whether the MSRs for that thread are active */
 	unsigned int		uitt_activated:1;
 	unsigned int		upid_activated:1;
+	unsigned int		uhandler_activated:1;
 
 	/* Pointer to the UPID context for the task */
 	struct uintr_upid_ctx	*upid_ctx;
+
+	/* User Timer state */
+	u64 utimer_deadline;
 #endif
 
 	/*

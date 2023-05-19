@@ -958,6 +958,7 @@ asmlinkage long sys_uintr_wait(u64 usec, unsigned int flags);
 asmlinkage long sys_uintr_register_self(u64 vector, unsigned int flags);
 asmlinkage long sys_uintr_alt_stack(void __user *sp, size_t size, unsigned int flags);
 asmlinkage long sys_uintr_ipi_fd(unsigned int flags);
+asmlinkage long sys_uintr_set_timer(u64 deadline, u64 vector, unsigned int flags);
 
 /* pciconfig: alpha, arm, arm64, ia64, sparc */
 asmlinkage long sys_pciconfig_read(unsigned long bus, unsigned long dfn,

@@ -1,0 +1,138 @@
+.TH uintr_set_timer 2
+.SH NAME
+uintr_set_timer - Set a timer to be delivered as a User Interrupt
+
+.SH SYNOPSIS
+.SY
+int uintr_set_timer(u64 tsc_deadline, u64 vector, unsigned int flags);
+.YS
+
+.SH DESCRIPTION
+uintr_set_timer() allows a thread to program a timer which upon expiry would be
+delivered as a User Interrupt.
+
+tsc_deadline
+		Absolute deadline based on the TimeStamp Counter.
+
+vector
+		Vector number (0-63) of the Timer interrupt to be delivered.
+
+flags
+		Flags to modify behavior
+
+A thread can only register a User Timer interrupt after it has registered a
+User Interrupt handler.
+
+Calling uintr_set_timer() with a tsc_deadline of 0 would cancel the timer.
+
+uintr_unregister_handler(2) would also clear any timer requests that have been
+submitted.
+
+Only one timer request can be made at any given time. Submitting another
+request before the previous one has expired would override the prior request.
+
+Only one-shot timer are supported. There is no support for a periodic timer.
+
+.SH RETURN VALUE
+On success, uintr_set_timer() returns 0.  On error, -1 is
+returned and errno is set to indicate the cause of the error.
+
+.SH ERRORS
+ENOSYS  Underlying hardware doesn't have support for Uintr for Utimer.
+
+EOPNOTSUPP  No interrupt handler registered.
+
+EINVAL	    flags is not 0.
+
+EINVAL      Vector number is greater that 63
+
+.SH VERSIONS
+uintr_set_timer() first appeared in Linux <tbd>.
+
+.SH CONFORMING TO
+uintr_set_timer() is Linux specific.
+
+.SH EXAMPLES
+.SS Build
+.P
+To compile this sample an updated toolchain is needed.
+ - Use GCC release 11 or higher &
+ - Use Binutils release 2.36 or higher
+
+.EX
+gcc -muintr -mgeneral-regs-only -minline-all-stringops utimer_sample.c -o utimer_sample
+.EE
+
+.SS Run
+.EX
+$./utimer_sample
+Interrupt handler enabled
+Programming User Timer
+	-- User Timer handler --
+Success
+.EE
+
+.SS Program source
+.EX
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <syscall.h>
+#include <unistd.h>
+#include <x86gprintrin.h>
+
+#define __NR_uintr_register_handler	471
+#define __NR_uintr_unregister_handler	472
+#define __NR_uintr_set_timer		480
+
+#define uintr_register_handler(handler, flags)	syscall(__NR_uintr_register_handler, handler, flags)
+#define uintr_unregister_handler(flags)		syscall(__NR_uintr_unregister_handler, flags)
+#define uintr_set_timer(deadline,vector,flags)	syscall(__NR_uintr_set_timer, deadline, vector, flags)
+
+#define TIMER_DELAY	0x100000
+#define TIMER_VECTOR	1
+
+unsigned int uintr_received;
+
+void __attribute__ ((interrupt)) uintr_handler(struct __uintr_frame *ui_frame,
+					    unsigned long long vector)
+{
+	static const char print[] = "\et-- User Timer handler --\en";
+
+	write(STDOUT_FILENO, print, sizeof(print) - 1);
+	uintr_received = 1;
+}
+
+int main(int argc, char *argv[])
+{
+	if (uintr_register_handler(uintr_handler, 0)) {
+		printf("Interrupt handler register error\en");
+		exit(EXIT_FAILURE);
+	}
+
+	_stui();
+	printf("Interrupt handler enabled\en");
+
+	printf("Programming User Timer\en");
+	if (uintr_set_timer(_rdtsc() + TIMER_DELAY, TIMER_VECTOR, 0)) {
+		printf("Error setting up timer\en");
+		exit(EXIT_FAILURE);
+	}
+
+	/* Do some other work */
+	while (!uintr_received)
+		usleep(1);
+
+	uintr_unregister_handler(0);
+
+	printf("Success\en");
+	exit(EXIT_SUCCESS);
+}
+.EE
+
+.SH NOTES
+Currently, there is no glibc wrapper for this system call; call it
+using syscall(2).
+
+The user interrupt related system calls need hardware support to
+generate and receive user interrupts. Refer uintr(7) for details.

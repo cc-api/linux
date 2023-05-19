@@ -632,8 +632,10 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 	/* Reload sp0. */
 	update_task_stack(next_p);
 
-	if (cpu_feature_enabled(X86_FEATURE_UINTR))
+	if (cpu_feature_enabled(X86_FEATURE_UINTR)) {
+		switch_uintr_timer(prev_p, next_p);
 		switch_uintr_finish(next_p);
+	}
 
 	switch_to_extra(prev_p, next_p);
 

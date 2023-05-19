@@ -89,6 +89,7 @@ int uintr_notify(struct file *uvec_f);
 void switch_uintr_prepare(struct task_struct *prev);
 void switch_uintr_return(void);
 void switch_uintr_finish(struct task_struct *next);
+void switch_uintr_timer(struct task_struct *prev, struct task_struct *next);
 
 void uintr_free(struct task_struct *task);
 
@@ -106,6 +107,7 @@ static inline struct file *uvecfd_fget(int uvec_fd) { return ERR_PTR(-EINVAL); }
 static inline void switch_uintr_prepare(struct task_struct *prev) {}
 static inline void switch_uintr_return(void) {}
 static inline void switch_uintr_finish(struct task_struct *next) {}
+static inline void switch_uintr_timer(struct task_struct *prev, struct task_struct *next) {}
 
 static inline void uintr_free(struct task_struct *task) {}
 
