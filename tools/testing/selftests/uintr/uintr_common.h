@@ -31,6 +31,7 @@
 #define __NR_uintr_register_self	477
 #define __NR_uintr_alt_stack		478
 #define __NR_uintr_ipi_fd		479
+#define __NR_uintr_set_timer		480
 #endif
 
 #define uintr_register_handler(handler, flags)	syscall(__NR_uintr_register_handler, handler, flags)
@@ -42,6 +43,7 @@
 #define uintr_register_self(vector, flags)	syscall(__NR_uintr_register_self, vector, flags)
 #define uintr_alt_stack(sp, size, flags)	syscall(__NR_uintr_alt_stack, sp, size, flags)
 #define uintr_ipi_fd(flags)			syscall(__NR_uintr_ipi_fd, flags)
+#define uintr_set_timer(deadline,vector,flags)	syscall(__NR_uintr_set_timer, deadline, vector, flags)
 
 void __attribute__((interrupt)) uintr_empty_handler(struct __uintr_frame *ui_frame,
 						    unsigned long long vector)
