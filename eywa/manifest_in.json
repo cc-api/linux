@@ -5815,7 +5815,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "v6.3-rc6-kvm-lam-new",
+            "branch": "lam_v6.4-rc2",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
@@ -5825,16 +5825,16 @@
                 }
             ],
             "description": "Linear Address Masking KVM Enabling",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3410",
             "name": "lam_kvm",
             "repourl": "https://github.com/binbinwu1/linux",
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
-            "maillist": "",
+            "last_enabled": "v6.4",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00075.html",
             "platforms": "GRR,LNL,SRF",
             "feature_jiras": "LFE-28,LFE-843"
         },
