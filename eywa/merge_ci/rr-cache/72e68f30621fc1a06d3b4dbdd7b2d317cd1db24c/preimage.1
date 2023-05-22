@@ -163,51 +163,6 @@ module_param(allow_smaller_maxphyaddr, bool, S_IRUGO);
 	RTIT_STATUS_BYTECNT))
 
 /*
- * TM2 (CPUID.01H:ECX[8]), DTHERM (CPUID.06H:EAX[0]), PLN (CPUID.06H:EAX[4]),
- * and HWP (CPUID.06H:EAX[7]) are not emulated in kvm.
- */
-#define MSR_IA32_THERM_STATUS_RO_MASK (THERM_STATUS_PROCHOT | \
-	THERM_STATUS_PROCHOT_FORCEPR_EVENT | THERM_STATUS_CRITICAL_TEMP)
-#define MSR_IA32_THERM_STATUS_RWC0_MASK (THERM_STATUS_PROCHOT_LOG | \
-	THERM_STATUS_PROCHOT_FORCEPR_LOG | THERM_STATUS_CRITICAL_TEMP_LOG)
-/* MSR_IA32_THERM_STATUS unavailable bits mask: unsupported and reserved bits. */
-#define MSR_IA32_THERM_STATUS_UNAVAIL_MASK (~(MSR_IA32_THERM_STATUS_RO_MASK | \
-	MSR_IA32_THERM_STATUS_RWC0_MASK))
-
-/* ECMD (CPUID.06H:EAX[5]) is not emulated in kvm. */
-#define MSR_IA32_THERM_CONTROL_RW_MASK (THERM_ON_DEM_CLO_MOD_ENABLE | \
-	THERM_ON_DEM_CLO_MOD_DUTY_CYC_MASK)
-
-/*
- * MSR_IA32_THERM_INTERRUPT available bits mask.
- * PLN (CPUID.06H:EAX[4]) and HFN (CPUID.06H:EAX[24]) are not emulated in kvm.
- */
-#define MSR_IA32_THERM_INTERRUPT_AVAIL_MASK (THERM_INT_HIGH_ENABLE | \
-	THERM_INT_LOW_ENABLE | THERM_INT_PROCHOT_ENABLE | \
-	THERM_INT_FORCEPR_ENABLE | THERM_INT_CRITICAL_TEM_ENABLE | \
-	THERM_MASK_THRESHOLD0 | THERM_INT_THRESHOLD0_ENABLE | \
-	THERM_MASK_THRESHOLD1 | THERM_INT_THRESHOLD1_ENABLE)
-
-#define MSR_IA32_PACKAGE_THERM_STATUS_RO_MASK (PACKAGE_THERM_STATUS_PROCHOT | \
-	PACKAGE_THERM_STATUS_PROCHOT_EVENT | PACKAGE_THERM_STATUS_CRITICAL_TEMP | \
-	THERM_STATUS_THRESHOLD0 | THERM_STATUS_THRESHOLD1 | \
-	PACKAGE_THERM_STATUS_POWER_LIMIT | PACKAGE_THERM_STATUS_DIG_READOUT_MASK)
-#define MSR_IA32_PACKAGE_THERM_STATUS_RWC0_MASK (PACKAGE_THERM_STATUS_PROCHOT_LOG | \
-	PACKAGE_THERM_STATUS_PROCHOT_EVENT_LOG | PACKAGE_THERM_STATUS_CRITICAL_TEMP_LOG | \
-	THERM_LOG_THRESHOLD0 | THERM_LOG_THRESHOLD1 | \
-	PACKAGE_THERM_STATUS_POWER_LIMIT_LOG | PACKAGE_THERM_STATUS_HFI_UPDATED)
-/* MSR_IA32_PACKAGE_THERM_STATUS unavailable bits mask: unsupported and reserved bits. */
-#define MSR_IA32_PACKAGE_THERM_STATUS_UNAVAIL_MASK (~(MSR_IA32_PACKAGE_THERM_STATUS_RO_MASK | \
-	MSR_IA32_PACKAGE_THERM_STATUS_RWC0_MASK))
-
-#define MSR_IA32_PACKAGE_THERM_INTERRUPT_MASK (PACKAGE_THERM_INT_HIGH_ENABLE | \
-	PACKAGE_THERM_INT_LOW_ENABLE | PACKAGE_THERM_INT_PROCHOT_ENABLE | \
-	PACKAGE_THERM_INT_OVERHEAT_ENABLE | THERM_MASK_THRESHOLD0 | \
-	THERM_INT_THRESHOLD0_ENABLE | THERM_MASK_THRESHOLD1 | \
-	THERM_INT_THRESHOLD1_ENABLE | PACKAGE_THERM_INT_PLN_ENABLE | \
-	PACKAGE_THERM_INT_HFI_ENABLE)
-
-/*
  * List of MSRs that can be directly passed to the guest.
  * In addition to these x2apic and PT MSRs are handled specially.
  */
@@ -230,9 +185,6 @@ static u32 vmx_possible_passthrough_msrs[MAX_POSSIBLE_PASSTHROUGH_MSRS] = {
 	MSR_CORE_C3_RESIDENCY,
 	MSR_CORE_C6_RESIDENCY,
 	MSR_CORE_C7_RESIDENCY,
-	MSR_IA32_HW_FEEDBACK_CHAR,
-	MSR_IA32_HW_FEEDBACK_THREAD_CONFIG,
-	MSR_IA32_HW_HRESET_ENABLE,
 };
 
 /*
@@ -749,13 +701,6 @@ static bool is_valid_passthrough_msr(u32 msr)
 	case MSR_LBR_CORE_FROM ... MSR_LBR_CORE_FROM + 8:
 	case MSR_LBR_CORE_TO ... MSR_LBR_CORE_TO + 8:
 		/* LBR MSRs. These are handled in vmx_update_intercept_for_lbr_msrs() */
-		return true;
-	case MSR_IA32_U_CET:
-	case MSR_IA32_PL3_SSP:
-	case MSR_IA32_S_CET:
-		return true;
-	case MSR_IA32_PL0_SSP ... MSR_IA32_PL2_SSP:
-	case MSR_IA32_INT_SSP_TAB:
 		return true;
 	}
 
@@ -1281,63 +1226,6 @@ static void pt_guest_exit(struct vcpu_vmx *vmx)
 		wrmsrl(MSR_IA32_RTIT_CTL, vmx->pt_desc.host.ctl);
 }
 
-static void itd_guest_enter(struct vcpu_vmx *vmx)
-{
-	if (!kvm_cpu_cap_has(X86_FEATURE_ITD) ||
-	    !guest_cpuid_has(&vmx->vcpu, X86_FEATURE_ITD))
-		return;
-
-	rdmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, vmx->vcpu_hfi_desc.host_thread_cfg);
-	wrmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, vmx->vcpu_hfi_desc.guest_thread_cfg);
-}
-
-static void itd_guest_exit(struct vcpu_vmx *vmx)
-{
-	if (!kvm_cpu_cap_has(X86_FEATURE_ITD) ||
-	    !guest_cpuid_has(&vmx->vcpu, X86_FEATURE_ITD))
-		return;
-
-	rdmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, vmx->vcpu_hfi_desc.guest_thread_cfg);
-	wrmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, vmx->vcpu_hfi_desc.host_thread_cfg);
-}
-
-static void hreset_guest_enter(struct vcpu_vmx *vmx)
-{
-	if (!kvm_cpu_cap_has(X86_FEATURE_HRESET) ||
-	    !guest_cpuid_has(&vmx->vcpu, X86_FEATURE_HRESET))
-		return;
-
-	/*
-	 * Don't need to do HRESET before we enter guest since task switch
-	 * has done this, and vCPU thread also need its history to allow
-	 * Host to schedule.
-	 */
-	rdmsrl(MSR_IA32_HW_HRESET_ENABLE, vmx->vcpu_hfi_desc.host_hreset_enable);
-	wrmsrl(MSR_IA32_HW_HRESET_ENABLE, vmx->vcpu_hfi_desc.guest_hreset_enable);
-}
-
-static void hreset_guest_exit(struct vcpu_vmx *vmx)
-{
-	if (!kvm_cpu_cap_has(X86_FEATURE_HRESET) ||
-	    !guest_cpuid_has(&vmx->vcpu, X86_FEATURE_HRESET))
-		return;
-
-	rdmsrl(MSR_IA32_HW_HRESET_ENABLE, vmx->vcpu_hfi_desc.guest_hreset_enable);
-	wrmsrl(MSR_IA32_HW_HRESET_ENABLE, vmx->vcpu_hfi_desc.host_hreset_enable);
-}
-
-static void hfi_guest_enter(struct vcpu_vmx *vmx)
-{
-	itd_guest_enter(vmx);
-	hreset_guest_enter(vmx);
-}
-
-static void hfi_guest_exit(struct vcpu_vmx *vmx)
-{
-	itd_guest_exit(vmx);
-	hreset_guest_exit(vmx);
-}
-
 void vmx_set_host_fs_gs(struct vmcs_host_state *host, u16 fs_sel, u16 gs_sel,
 			unsigned long fs_base, unsigned long gs_base)
 {
@@ -1565,240 +1453,6 @@ void vmx_vcpu_load_vmcs(struct kvm_vcpu *vcpu, int cpu,
 	}
 }
 
-static void vmx_inject_therm_interrupt(struct kvm_vcpu *vcpu)
-{
-	/*
-	 * From SDM, the ACPI flag also indicates the presence of the
-	 * xAPIC thermal LVT entry.
-	 */
-	if (!guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
-		return;
-
-	if (irqchip_in_kernel(vcpu->kvm))
-		kvm_apic_therm_deliver(vcpu);
-}
-
-static inline bool vmx_hfi_initialized(struct kvm_vmx *kvm_vmx)
-{
-	return kvm_vmx->pkg_therm.hfi_desc.hfi_enabled &&
-	       kvm_vmx->pkg_therm.hfi_desc.table_ptr_valid;
-}
-
-static inline bool vmx_hfi_int_enabled(struct kvm_vmx *kvm_vmx)
-{
-	return kvm_vmx->pkg_therm.hfi_desc.hfi_int_enabled;
-}
-
-static int vmx_init_hfi_table(struct kvm *kvm)
-{
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
-	struct hfi_features *hfi_features = &kvm_vmx_hfi->hfi_features;
-	struct hfi_table *hfi_table = &kvm_vmx_hfi->hfi_table;
-	int nr_classes, ret = 0;
-
-	if (guest_cpuid_has(kvm_get_vcpu(kvm, 0), X86_FEATURE_ITD))
-		nr_classes = 4;
-	else
-		nr_classes = 1;
-
-	ret = intel_hfi_build_virt_features(hfi_features, nr_classes);
-	if (unlikely(ret))
-		return ret;
-
-	hfi_table->base_addr = kzalloc(hfi_features->nr_table_pages <<
-				       PAGE_SHIFT, GFP_KERNEL);
-	if (!hfi_table->base_addr)
-		return -ENOMEM;
-
-	hfi_table->hdr = hfi_table->base_addr + sizeof(*hfi_table->timestamp);
-	hfi_table->data = hfi_table->hdr + hfi_features->hdr_size;
-	return 0;
-}
-
-static int vmx_build_hfi_table(struct kvm *kvm)
-{
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
-	struct kvm_vcpu *v;
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
-	struct hfi_table *hfi_table = &kvm_vmx_hfi->hfi_table;
-	struct hfi_hdr *hfi_hdr = hfi_table->hdr;
-	struct hfi_features *hfi_features = &kvm_vmx_hfi->hfi_features;
-	int nr_classes, ret = 0, updated = 0;
-	unsigned long i;
-
-	if (kvm_vmx_hfi->itd_enabled)
-		nr_classes = kvm_vmx_hfi->hfi_features.nr_classes;
-	else
-		nr_classes = 1;
-
-	for (int i = 0; i < nr_classes; i++) {
-		hfi_hdr->perf_updated = 0;
-		hfi_hdr->ee_updated = 0;
-		hfi_hdr++;
-	}
-
-	kvm_for_each_vcpu(i, v, kvm) {
-		ret = intel_hfi_build_virt_table(hfi_table, hfi_features,
-						 nr_classes,
-						 to_vmx(v)->hfi_table_idx,
-						 v->cpu);
-		if (unlikely(ret < 0))
-			return ret;
-		updated |= ret;
-	}
-
-	if (!updated)
-		return updated;
-
-	/* Timestamp must be monotonic. */
-	(*kvm_vmx_hfi->hfi_table.timestamp)++;
-
-	/* Update the HFI table, whether the HFI interrupt is enabled or not. */
-	kvm_write_guest(kvm, kvm_vmx_hfi->table_base, hfi_table->base_addr,
-			hfi_features->nr_table_pages << PAGE_SHIFT);
-	return 1;
-}
-
-static void vmx_update_hfi_table(struct kvm *kvm, bool forced_int)
-{
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
-	int ret = 0;
-
-	if (!intel_hfi_enabled())
-		return;
-
-	if (!vmx_hfi_initialized(kvm_vmx))
-		return;
-
-	if (!kvm_vmx_hfi->hfi_table.base_addr) {
-		ret = vmx_init_hfi_table(kvm);
-		if (unlikely(ret))
-			return;
-	}
-
-	ret = vmx_build_hfi_table(kvm);
-	if (ret < 0 || (!ret && !forced_int))
-		return;
-
-	kvm_vmx_hfi->hfi_update_status = true;
-	kvm_vmx_hfi->hfi_update_pending = false;
-
-	/*
-	 * Since HFI is shared for all vCPUs of the same VM, we
-	 * actually support only 1 package topology VMs, so when
-	 * emulating package level interrupt, we only inject an
-	 * interrupt into one vCPU to reduce the overhead.
-	 */
-	if (vmx_hfi_int_enabled(kvm_vmx))
-		vmx_inject_therm_interrupt(kvm_get_vcpu(kvm, 0));
-}
-
-static void vmx_hfi_notifier_unregister(struct kvm *kvm)
-{
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
-
-	if (!kvm_vmx_hfi->hfi_host_instance)
-		return;
-
-	/*
-	 * Try to unregister, whether currently Guest enables the
-	 * HFI function.
-	 */
-	intel_hfi_notifier_unregister(&kvm_vmx_hfi->hfi_nb,
-				      kvm_vmx_hfi->hfi_host_instance);
-}
-
-static void vmx_hfi_notifier_register(struct kvm *kvm)
-{
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
-	struct kvm_vcpu *vcpu;
-	unsigned long i;
-
-	if (!intel_hfi_enabled())
-		return;
-
-	if (!vmx_hfi_initialized(kvm_vmx))
-		return;
-
-	if (kvm_vmx_hfi->hfi_host_instance)
-		return;
-
-	kvm_for_each_vcpu(i, vcpu, kvm) {
-		kvm_vmx_hfi->hfi_host_instance = intel_hfi_instance(vcpu->cpu);
-		if (kvm_vmx_hfi->hfi_host_instance) {
-			intel_hfi_notifier_register(&kvm_vmx_hfi->hfi_nb,
-						    kvm_vmx_hfi->hfi_host_instance);
-			break;
-		}
-	}
-}
-
-static int vmx_hfi_update_notify(struct notifier_block *nb,
-				 unsigned long code, void *data)
-{
-	struct hfi_desc *kvm_vmx_hfi;
-	struct kvm *kvm;
-
-	kvm_vmx_hfi = container_of(nb, struct hfi_desc, hfi_nb);
-	kvm = &kvm_vmx_hfi->vmx->kvm;
-
-	/*
-	 * Don't need to check if vcpu 0 belongs to
-	 * kvm_vmx_hfi->host_hfi_instance since currently ITD/HFI
-	 * virtualization is only supported for client platforms
-	 * (only one HFI instance).
-	 */
-	kvm_make_request(KVM_REQ_HFI_UPDATE, kvm_get_vcpu(kvm, 0));
-	return NOTIFY_OK;
-}
-
-void vmx_dynamic_update_hfi_table(struct kvm_vcpu *vcpu)
-{
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
-
-	if (!intel_hfi_enabled())
-		return;
-
-	mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-
-	if (kvm_vmx_hfi->hfi_update_status) {
-		kvm_vmx_hfi->hfi_update_pending = true;
-		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		return;
-	}
-
-	/*
-	 * The current KVM does not support MSR topology, so we handle
-	 * package thermal MSRs at the VM level and maintain the HFI table
-	 * at VM level. vCPUs of the same VM are sharing the one HFI table,
-	 * so that one vCPU can update the HFI table for the whole VM.
-	 *
-	 * And note, this vmx_dynamic_update_hfi_table() will update all vCPUs
-	 * even they belongs to different HFI instances. During the notification
-	 * handling of other HFI instances, if no change is found in the virtual
-	 * HFI table, the Guest memory write/interrupt injection will not be
-	 * repeated.
-	 */
-	vmx_update_hfi_table(vcpu->kvm, false);
-	mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-}
-
-static void vmx_vcpu_hfi_load(struct kvm_vcpu *vcpu, int cpu)
-{
-	if (!intel_hfi_enabled())
-		return;
-
-	if (!vmx_hfi_initialized(to_kvm_vmx(vcpu->kvm)))
-		return;
-
-	kvm_make_request(KVM_REQ_HFI_UPDATE, vcpu);
-}
-
 /*
  * Switches to specified vcpu, until a matching vcpu_put(), but assumes
  * vcpu mutex is already taken.
@@ -1812,9 +1466,6 @@ void vmx_vcpu_load(struct kvm_vcpu *vcpu, int cpu)
 	vmx_vcpu_pi_load(vcpu, cpu);
 
 	vmx->host_debugctlmsr = get_debugctlmsr();
-
-	if (unlikely(vcpu->cpu != cpu))
-		vmx_vcpu_hfi_load(vcpu, cpu);
 }
 
 void vmx_vcpu_put(struct kvm_vcpu *vcpu)
@@ -2295,7 +1946,6 @@ int vmx_get_msr_feature(struct kvm_msr_entry *msr)
 int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
 	struct vmx_uret_msr *msr;
 	u32 index;
 
@@ -2426,77 +2076,8 @@ int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		else
 			msr_info->data = vmx->pt_desc.guest.addr_a[index / 2];
 		break;
-	case MSR_IA32_U_CET:
-	case MSR_IA32_S_CET:
-	case MSR_IA32_PL3_SSP:
-	case MSR_KVM_GUEST_SSP:
-	case MSR_IA32_PL0_SSP ... MSR_IA32_PL2_SSP:
-	case MSR_IA32_INT_SSP_TAB:
-		if (!kvm_cet_is_msr_accessible(vcpu, msr_info))
-			return 1;
-		if (msr_info->index == MSR_KVM_GUEST_SSP) {
-			msr_info->data = vmcs_readl(GUEST_SSP);
-		} else if (msr_info->index == MSR_IA32_S_CET) {
-			msr_info->data = vmcs_readl(GUEST_S_CET);
-		} else if (msr_info->index == MSR_IA32_INT_SSP_TAB) {
-			msr_info->data = vmcs_readl(GUEST_INTR_SSP_TABLE);
-		} else {
-			kvm_get_xsave_msr(msr_info);
-		}
-		break;
 	case MSR_IA32_DEBUGCTLMSR:
 		msr_info->data = vmcs_read64(GUEST_IA32_DEBUGCTL);
-		break;
-	case MSR_IA32_THERM_CONTROL:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
-			return 1;
-		msr_info->data = vmx->msr_ia32_therm_control;
-		break;
-	case MSR_IA32_THERM_INTERRUPT:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
-			return 1;
-		msr_info->data = vmx->msr_ia32_therm_interrupt;
-		break;
-	case MSR_IA32_THERM_STATUS:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
-			return 1;
-		msr_info->data = vmx->msr_ia32_therm_status;
-		break;
-	case MSR_IA32_PACKAGE_THERM_INTERRUPT:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_PTS))
-			return 1;
-		msr_info->data = kvm_vmx->pkg_therm.msr_pkg_therm_int;
-		break;
-	case MSR_IA32_PACKAGE_THERM_STATUS:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_PTS))
-			return 1;
-
-		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		if (kvm_vmx->pkg_therm.hfi_desc.hfi_update_status)
-			kvm_vmx->pkg_therm.msr_pkg_therm_status |=
-				PACKAGE_THERM_STATUS_HFI_UPDATED;
-		else
-			kvm_vmx->pkg_therm.msr_pkg_therm_status &=
-				~PACKAGE_THERM_STATUS_HFI_UPDATED;
-		msr_info->data = kvm_vmx->pkg_therm.msr_pkg_therm_status;
-		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		break;
-	case MSR_IA32_HW_FEEDBACK_CONFIG:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
-			return 1;
-		msr_info->data = kvm_vmx->pkg_therm.msr_ia32_hfi_cfg;
-		break;
-	case MSR_IA32_HW_FEEDBACK_PTR:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
-			return 1;
-		msr_info->data = kvm_vmx->pkg_therm.msr_ia32_hfi_ptr;
 		break;
 	default:
 	find_uret_msr:
@@ -2536,208 +2117,6 @@ static u64 vmx_get_supported_debugctl(struct kvm_vcpu *vcpu, bool host_initiated
 	return debugctl;
 }
 
-/* Ignore writes to R/O bits. */
-static inline u64 vmx_set_msr_ro_bits(u64 new_val, u64 old_val, u64 ro_mask)
-{
-	return (new_val & ~ro_mask) | (old_val & ro_mask);
-}
-
-/* Ignore non-zero writes to R/WC0 bits. */
-static inline u64 vmx_set_msr_rwc0_bits(u64 new_val, u64 old_val, u64 rwc0_mask)
-{
-	u64 new_rwc0 = new_val & rwc0_mask, old_rwc0 = old_val & rwc0_mask;
-
-	return ((new_rwc0 | ~old_rwc0) & old_rwc0) | (new_val & ~rwc0_mask);
-}
-
-static int vmx_set_pkg_therm_int_msr(struct kvm_vcpu *vcpu,
-				     struct msr_data *msr_info)
-{
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
-	u64 data = msr_info->data;
-	bool hfi_int_enabled, hfi_int_changed;
-
-	hfi_int_enabled = data & PACKAGE_THERM_INT_HFI_ENABLE;
-	hfi_int_changed = vmx_hfi_int_enabled(kvm_vmx) != hfi_int_enabled;
-
-	kvm_vmx->pkg_therm.msr_pkg_therm_int = data;
-	kvm_vmx_hfi->hfi_int_enabled = hfi_int_enabled;
-
-	/*
-	 * Only HFI notification is supported, behaves as a dummy MSR
-	 * otherwise. When HFI interrupt enable transitions from 0 to
-	 * 1, the HFI status bit is set and an initial notify is
-	 * generated.
-	 */
-	if (!intel_hfi_enabled() ||
-	    !guest_cpuid_has(vcpu, X86_FEATURE_HFI) ||
-	    !hfi_int_changed)
-		return 0;
-
-	if (!hfi_int_enabled)
-		return 0;
-
-	/*
-	 * SDM: (For IA32_HW_FEEDBACK_CONFIG) no (HFI) status bit
-	 * set, no interrupt is generated.
-	 */
-	if (!kvm_vmx_hfi->hfi_enabled)
-		return 0;
-
-	/*
-	 * Inject interrupt only when the Guest's HFI table has update.
-	 */
-	vmx_update_hfi_table(vcpu->kvm, false);
-
-	return 0;
-}
-
-static int vmx_set_pkg_therm_status_msr(struct kvm_vcpu *vcpu,
-					struct msr_data *msr_info)
-{
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
-	u64 data = msr_info->data;
-	bool hfi_status_updated, hfi_status_changed;
-
-	if (!msr_info->host_initiated) {
-		data = vmx_set_msr_rwc0_bits(data, kvm_vmx->pkg_therm.msr_pkg_therm_status,
-					     MSR_IA32_PACKAGE_THERM_STATUS_RWC0_MASK);
-		data = vmx_set_msr_ro_bits(data, kvm_vmx->pkg_therm.msr_pkg_therm_status,
-					   MSR_IA32_PACKAGE_THERM_STATUS_RO_MASK);
-	}
-
-	/*
-	 * Guest clears HFI status bit to allow further updates to HFI
-	 * table. Pending updates from host should be applied to guest.
-	 */
-	hfi_status_updated = data & PACKAGE_THERM_STATUS_HFI_UPDATED;
-	hfi_status_changed = kvm_vmx_hfi->hfi_update_status != hfi_status_updated;
-
-	kvm_vmx->pkg_therm.msr_pkg_therm_status = data;
-	kvm_vmx_hfi->hfi_update_status = hfi_status_updated;
-
-	if (!intel_hfi_enabled() ||
-	    !guest_cpuid_has(vcpu, X86_FEATURE_HFI) ||
-	    !hfi_status_changed)
-		return 0;
-
-	/*
-	 * From SDM, once the HFI status bit is set, the hardware
-	 * will not generate any further updates to HFI table until
-	 * the OS clears this bit by writing 0. Now apply any
-	 * pending updates to guest HFI table.
-	 */
-	if (!kvm_vmx_hfi->hfi_update_status && kvm_vmx_hfi->hfi_update_pending)
-		vmx_update_hfi_table(vcpu->kvm, false);
-
-	return 0;
-}
-
-static int vmx_set_hfi_cfg_msr(struct kvm_vcpu *vcpu,
-			       struct msr_data *msr_info)
-{
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
-	u64 data = msr_info->data;
-	bool hfi_enabled, hfi_changed, itd_enabled, itd_changed;
-
-	/*
-	 * When the HFI enable bit changes (either from 0 to 1 or 1 to
-	 * 0), HFI status bit is set and an interrupt is generated if
-	 * enabled.
-	 */
-	hfi_enabled = data & HW_FEEDBACK_CONFIG_HFI_ENABLE;
-	hfi_changed = kvm_vmx_hfi->hfi_enabled != hfi_enabled;
-	itd_enabled = data & HW_FEEDBACK_CONFIG_ITD_ENABLE;
-	itd_changed = kvm_vmx_hfi->itd_enabled != itd_enabled;
-
-	kvm_vmx->pkg_therm.msr_ia32_hfi_cfg = data;
-	kvm_vmx_hfi->hfi_enabled = hfi_enabled;
-	kvm_vmx_hfi->itd_enabled = itd_enabled;
-
-	if (!hfi_changed && !itd_changed)
-		return 0;
-
-	/*
-	 * Refer to SDM, vol. 3B, Table 15-10. IA32_HW_FEEDBACK_CONFIG
-	 * Control Option.
-	 */
-
-	/* Invalid option; quietly ignored by the hardware. */
-	if (!hfi_changed && itd_changed && !hfi_enabled && itd_enabled) {
-		/* No action (no update in the table). */
-		return 0;
-	}
-
-	/* No action; keep HFI and Intel Thread Director disabled. */
-	if (!hfi_changed && itd_changed && !hfi_enabled && !itd_enabled) {
-		/* No action (no update in the table). */
-		return 0;
-	}
-
-	/* No action; keep HFI enabled. */
-	if (!hfi_changed && itd_changed && hfi_enabled && !itd_enabled) {
-		/* No action (no update in the table). */
-		return 0;
-	}
-
-	/* Disable HFI and Intel Thread Director whether ITD changed. */
-	if (hfi_changed && !hfi_enabled && itd_enabled) {
-		kvm_vmx_hfi->hfi_enabled = false;
-		kvm_vmx_hfi->itd_enabled = false;
-	}
-
-	if (!hfi_enabled) {
-		/*
-		 * SDM: hardware sets the IA32_PACKAGE_THERM_STATUS[bit 26]
-		 * to 1 to acknowledge disabling of the interface.
-		 */
-		kvm_vmx_hfi->hfi_update_status = true;
-		if (vmx_hfi_int_enabled(kvm_vmx))
-			vmx_inject_therm_interrupt(vcpu);
-	} else {
-		/*
-		 * Here we don't care pending updates, because the enabed
-		 * feature change may cause the HFI table update range to
-		 * change.
-		 */
-		vmx_update_hfi_table(vcpu->kvm, true);
-		vmx_hfi_notifier_register(vcpu->kvm);
-	}
-
-	return 0;
-}
-
-static int vmx_set_hfi_ptr_msr(struct kvm_vcpu *vcpu,
-			       struct msr_data *msr_info)
-{
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
-	u64 data = msr_info->data;
-
-	if (kvm_vmx->pkg_therm.msr_ia32_hfi_ptr == data)
-		return 0;
-
-	kvm_vmx->pkg_therm.msr_ia32_hfi_ptr = data;
-	kvm_vmx_hfi->table_ptr_valid = data & HW_FEEDBACK_PTR_VALID;
-	/*
-	 * Currently we don't really support MSR handling for package
-	 * scope, so when Guest writes, it is not possible to distinguish
-	 * between writes from different packages or repeated writes from
-	 * the same package. To simplify the process, we just assume that
-	 * multiple writes are duplicate writes of the same package and
-	 * overwrite the old.
-	 */
-	kvm_vmx_hfi->table_base = data & ~HW_FEEDBACK_PTR_VALID;
-
-	vmx_update_hfi_table(vcpu->kvm, true);
-	vmx_hfi_notifier_register(vcpu->kvm);
-
-	return 0;
-}
-
 /*
  * Writes msr value into the appropriate "register".
  * Returns 0 on success, non-0 otherwise.
@@ -2746,7 +2125,6 @@ static int vmx_set_hfi_ptr_msr(struct kvm_vcpu *vcpu,
 int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
-	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
 	struct vmx_uret_msr *msr;
 	int ret = 0;
 	u32 msr_index = msr_info->index;
@@ -3010,31 +2388,6 @@ int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		else
 			vmx->pt_desc.guest.addr_a[index / 2] = data;
 		break;
-	case MSR_IA32_U_CET:
-	case MSR_IA32_S_CET:
-	case MSR_IA32_PL3_SSP:
-	case MSR_KVM_GUEST_SSP:
-	case MSR_IA32_PL0_SSP ... MSR_IA32_PL2_SSP:
-	case MSR_IA32_INT_SSP_TAB:
-		if (!kvm_cet_is_msr_accessible(vcpu, msr_info))
-			return 1;
-		if (is_noncanonical_address(data, vcpu))
-			return 1;
-		if (msr_index == MSR_IA32_U_CET && (data & GENMASK(9, 6)))
-			return 1;
-		if ((msr_index == MSR_IA32_PL3_SSP ||
-		     msr_index == MSR_KVM_GUEST_SSP) && (data & GENMASK(2, 0)))
-			return 1;
-		if (msr_index == MSR_KVM_GUEST_SSP) {
-			vmcs_writel(GUEST_SSP, data);
-		} else if (msr_index == MSR_IA32_S_CET) {
-			vmcs_writel(GUEST_S_CET, data);
-		} else if (msr_index == MSR_IA32_INT_SSP_TAB) {
-			vmcs_writel(GUEST_INTR_SSP_TABLE, data);
-		} else {
-			kvm_set_xsave_msr(msr_info);
-		}
-		break;
 	case MSR_IA32_PERF_CAPABILITIES:
 		if (data && !vcpu_to_pmu(vcpu)->version)
 			return 1;
@@ -3058,106 +2411,7 @@ int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		}
 		ret = kvm_set_msr_common(vcpu, msr_info);
 		break;
-	case MSR_IA32_THERM_CONTROL:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
-			return 1;
-		if (!msr_info->host_initiated &&
-		    data & ~MSR_IA32_THERM_CONTROL_RW_MASK)
-			return 1;
-		vmx->msr_ia32_therm_control = data;
-		break;
-	case MSR_IA32_THERM_INTERRUPT:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
-			return 1;
-		if (!msr_info->host_initiated &&
-		    data & ~MSR_IA32_THERM_INTERRUPT_AVAIL_MASK)
-			return 1;
-		vmx->msr_ia32_therm_interrupt = data;
-		break;
-	case MSR_IA32_THERM_STATUS:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_ACPI))
-			return 1;
-		/* Unsupported and reserved bits: generate the exception. */
-		if (!msr_info->host_initiated &&
-		    data & MSR_IA32_THERM_STATUS_UNAVAIL_MASK)
-			return 1;
-		if (!msr_info->host_initiated) {
-			data = vmx_set_msr_rwc0_bits(data, vmx->msr_ia32_therm_status,
-						     MSR_IA32_THERM_STATUS_RWC0_MASK);
-			data = vmx_set_msr_ro_bits(data, vmx->msr_ia32_therm_status,
-						   MSR_IA32_THERM_STATUS_RO_MASK);
-		}
-		vmx->msr_ia32_therm_status = data;
-		break;
-	case MSR_IA32_PACKAGE_THERM_INTERRUPT:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_PTS))
-			return 1;
-		/* Unsupported bit: generate the exception. */
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI) &&
-		    data & PACKAGE_THERM_INT_HFI_ENABLE)
-			return 1;
-		/* Reserved bits: generate the exception. */
-		if (!msr_info->host_initiated &&
-		    data & ~MSR_IA32_PACKAGE_THERM_INTERRUPT_MASK)
-			return 1;
 
-		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		ret = vmx_set_pkg_therm_int_msr(vcpu, msr_info);
-		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		break;
-	case MSR_IA32_PACKAGE_THERM_STATUS:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_PTS))
-			return 1;
-		/* Unsupported and reserved bits: generate the exception. */
-		if (data & MSR_IA32_PACKAGE_THERM_STATUS_UNAVAIL_MASK)
-			return 1;
-		/* Unsupported bit: generate the exception. */
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI) &&
-		    data & PACKAGE_THERM_STATUS_HFI_UPDATED)
-			return 1;
-
-		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		ret = vmx_set_pkg_therm_status_msr(vcpu, msr_info);
-		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		break;
-	case MSR_IA32_HW_FEEDBACK_CONFIG:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
-			return 1;
-		/* Unsupported bit: generate the exception. */
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_ITD) &&
-		    (data & HW_FEEDBACK_CONFIG_ITD_ENABLE))
-			return 1;
-		/* Reserved bits: generate the exception. */
-		if (!msr_info->host_initiated &&
-		    data & ~(HW_FEEDBACK_CONFIG_HFI_ENABLE | HW_FEEDBACK_CONFIG_ITD_ENABLE))
-			return 1;
-
-		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		ret = vmx_set_hfi_cfg_msr(vcpu, msr_info);
-		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		break;
-	case MSR_IA32_HW_FEEDBACK_PTR:
-		if (!msr_info->host_initiated &&
-		    !guest_cpuid_has(vcpu, X86_FEATURE_HFI))
-			return 1;
-		/* Reserved bits: generate the exception. */
-		if (!msr_info->host_initiated &&
-		    data & HW_FEEDBACK_PTR_RESERVED_MASK)
-			return 1;
-
-		mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		ret = vmx_set_hfi_ptr_msr(vcpu, msr_info);
-		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
-		break;
 	default:
 	find_uret_msr:
 		msr = vmx_find_uret_msr(vmx, msr_index);
@@ -3306,7 +2560,6 @@ static int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 		{ VM_ENTRY_LOAD_IA32_EFER,		VM_EXIT_LOAD_IA32_EFER },
 		{ VM_ENTRY_LOAD_BNDCFGS,		VM_EXIT_CLEAR_BNDCFGS },
 		{ VM_ENTRY_LOAD_IA32_RTIT_CTL,		VM_EXIT_CLEAR_IA32_RTIT_CTL },
-		{ VM_ENTRY_LOAD_CET_STATE,		VM_EXIT_LOAD_CET_STATE },
 	};
 
 	memset(vmcs_conf, 0, sizeof(*vmcs_conf));
@@ -4120,7 +3373,8 @@ void vmx_load_mmu_pgd(struct kvm_vcpu *vcpu, hpa_t root_hpa, int root_level)
 			update_guest_cr3 = false;
 		vmx_ept_load_pdptrs(vcpu);
 	} else {
-		guest_cr3 = root_hpa | kvm_get_active_pcid(vcpu);
+		guest_cr3 = root_hpa | kvm_get_active_pcid(vcpu) |
+		            kvm_get_active_cr3_ctrl_bits(vcpu);
 	}
 
 	if (update_guest_cr3)
@@ -5545,13 +4799,6 @@ void vmx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 	vmx->spec_ctrl = 0;
 
 	vmx->msr_ia32_umwait_control = 0;
-	vmx->msr_ia32_therm_control = 0;
-	vmx->msr_ia32_therm_interrupt = 0;
-	vmx->msr_ia32_therm_status = 0;
-	vmx->vcpu_hfi_desc.host_thread_cfg = 0;
-	vmx->vcpu_hfi_desc.guest_thread_cfg = 0;
-	vmx->vcpu_hfi_desc.host_hreset_enable = 0;
-	vmx->vcpu_hfi_desc.guest_hreset_enable = 0;
 
 	vmx->hv_deadline_tsc = -1;
 	kvm_set_cr8(vcpu, 0);
@@ -7001,12 +6248,6 @@ void dump_vmcs(struct kvm_vcpu *vcpu)
 	if (vmcs_read32(VM_EXIT_MSR_STORE_COUNT) > 0)
 		vmx_dump_msrs("guest autostore", &vmx->msr_autostore.guest);
 
-	if (vmentry_ctl & VM_ENTRY_LOAD_CET_STATE) {
-		pr_err("S_CET = 0x%016lx\n", vmcs_readl(GUEST_S_CET));
-		pr_err("SSP = 0x%016lx\n", vmcs_readl(GUEST_SSP));
-		pr_err("INTR SSP TABLE = 0x%016lx\n",
-		       vmcs_readl(GUEST_INTR_SSP_TABLE));
-	}
 	pr_err("*** Host State ***\n");
 	pr_err("RIP = 0x%016lx  RSP = 0x%016lx\n",
 	       vmcs_readl(HOST_RIP), vmcs_readl(HOST_RSP));
@@ -7084,7 +6325,6 @@ void dump_vmcs(struct kvm_vcpu *vcpu)
 	if (secondary_exec_control & SECONDARY_EXEC_ENABLE_VPID)
 		pr_err("Virtual processor ID = 0x%04x\n",
 		       vmcs_read16(VIRTUAL_PROCESSOR_ID));
-<<<<<<<
 	if (secondary_exec_control & SECONDARY_EXEC_EPT_VIOLATION_VE) {
 		struct vmx_ve_information *ve_info;
 
@@ -7096,13 +6336,6 @@ void dump_vmcs(struct kvm_vcpu *vcpu)
 		       ve_info->exit_qualification,
 		       ve_info->guest_linear_address,
 		       ve_info->guest_physical_address, ve_info->eptp_index);
-=======
-	if (vmexit_ctl & VM_EXIT_LOAD_CET_STATE) {
-		pr_err("S_CET = 0x%016lx\n", vmcs_readl(HOST_S_CET));
-		pr_err("SSP = 0x%016lx\n", vmcs_readl(HOST_SSP));
-		pr_err("INTR SSP TABLE = 0x%016lx\n",
-		       vmcs_readl(HOST_INTR_SSP_TABLE));
->>>>>>>
 	}
 }
 
@@ -7611,11 +6844,6 @@ bool vmx_has_emulated_msr(struct kvm *kvm, u32 index)
 		return enable_unrestricted_guest || emulate_invalid_guest_state;
 	case KVM_FIRST_EMULATED_VMX_MSR ... KVM_LAST_EMULATED_VMX_MSR:
 		return nested;
-	case MSR_IA32_HW_FEEDBACK_CONFIG:
-	case MSR_IA32_HW_FEEDBACK_PTR:
-		return intel_hfi_enabled();
-	case MSR_IA32_HW_HRESET_ENABLE:
-		return boot_cpu_has(X86_FEATURE_HRESET);
 	case MSR_AMD64_VIRT_SPEC_CTRL:
 	case MSR_AMD64_TSC_RATIO:
 		/* This is AMD only.  */
@@ -7954,8 +7182,6 @@ fastpath_t vmx_vcpu_run(struct kvm_vcpu *vcpu)
 
 	pt_guest_enter(vmx);
 
-	hfi_guest_enter(vmx);
-
 	atomic_switch_perf_msrs(vmx);
 	if (intel_pmu_lbr_is_enabled(vcpu))
 		vmx_passthrough_lbr_msrs(vcpu);
@@ -7964,19 +7190,6 @@ fastpath_t vmx_vcpu_run(struct kvm_vcpu *vcpu)
 		vmx_update_hv_timer(vcpu);
 
 	kvm_wait_lapic_expire(vcpu);
-
-	/*
-	 * Save host MSR_IA32_S_CET so that it can be reloaded at vm_exit.
-	 * No need to save the other two vmcs fields as supervisor SHSTK
-	 * are not enabled on Intel platform now.
-	 */
-	if (IS_ENABLED(CONFIG_X86_KERNEL_IBT) &&
-	    (vm_exit_controls_get(vmx) & VM_EXIT_LOAD_CET_STATE)) {
-		u64 msr;
-
-		rdmsrl(MSR_IA32_S_CET, msr);
-		vmcs_writel(HOST_S_CET, msr);
-	}
 
 	/* The actual VMENTER/EXIT is in the .noinstr.text section. */
 	vmx_vcpu_enter_exit(vcpu, __vmx_vcpu_run_flags(vmx));
@@ -8007,8 +7220,6 @@ fastpath_t vmx_vcpu_run(struct kvm_vcpu *vcpu)
 #endif
 
 	vcpu->arch.regs_avail &= ~VMX_REGS_LAZY_LOAD_SET;
-
-	hfi_guest_exit(vmx);
 
 	pt_guest_exit(vmx);
 
@@ -8106,12 +7317,6 @@ int vmx_vcpu_create(struct kvm_vcpu *vcpu)
 			tsx_ctrl->mask = ~(u64)TSX_CTRL_CPUID_CLEAR;
 	}
 
-	/*
-	 * hfi_table_idx is initialized to 0, but later it may be changed according
-	 * to the value in the Guest's CPUID.0x06.edx[bits 16-31].
-	 */
-	vmx->hfi_table_idx = 0;
-
 	err = alloc_loaded_vmcs(&vmx->vmcs01);
 	if (err < 0)
 		goto free_pml;
@@ -8178,28 +7383,6 @@ free_vpid:
 	return err;
 }
 
-static int vmx_vm_init_pkg_therm(struct kvm *kvm)
-{
-	struct pkg_therm_desc *pkg_therm = &to_kvm_vmx(kvm)->pkg_therm;
-	struct hfi_desc *kvm_vmx_hfi = &pkg_therm->hfi_desc;
-
-	pkg_therm->msr_pkg_therm_int = 0;
-	pkg_therm->msr_pkg_therm_status = 0;
-	mutex_init(&pkg_therm->pkg_therm_lock);
-
-	kvm_vmx_hfi->hfi_enabled = false;
-	kvm_vmx_hfi->itd_enabled = false;
-	kvm_vmx_hfi->hfi_int_enabled = false;
-	kvm_vmx_hfi->table_ptr_valid = false;
-	kvm_vmx_hfi->hfi_update_pending = false;
-	kvm_vmx_hfi->hfi_update_status = false;
-	kvm_vmx_hfi->hfi_nb.notifier_call = vmx_hfi_update_notify;
-	kvm_vmx_hfi->hfi_host_instance = NULL;
-	kvm_vmx_hfi->vmx = to_kvm_vmx(kvm);
-
-	return 0;
-}
-
 #define L1TF_MSG_SMT "L1TF CPU bug present and SMT on, data leak possible. See CVE-2018-3646 and https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/l1tf.html for details.\n"
 #define L1TF_MSG_L1D "L1TF CPU bug present and virtualization mitigation disabled, data leak possible. See CVE-2018-3646 and https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/l1tf.html for details.\n"
 
@@ -8231,8 +7414,7 @@ int vmx_vm_init(struct kvm *kvm)
 			break;
 		}
 	}
-
-	return vmx_vm_init_pkg_therm(kvm);
+	return 0;
 }
 
 u8 vmx_get_mt_mask(struct kvm_vcpu *vcpu, gfn_t gfn, bool is_mmio)
@@ -8334,8 +7516,9 @@ static void nested_vmx_cr_fixed1_bits_update(struct kvm_vcpu *vcpu)
 	cr4_fixed1_update(X86_CR4_PKE,        ecx, feature_bit(PKU));
 	cr4_fixed1_update(X86_CR4_UMIP,       ecx, feature_bit(UMIP));
 	cr4_fixed1_update(X86_CR4_LA57,       ecx, feature_bit(LA57));
-	cr4_fixed1_update(X86_CR4_CET,	      ecx, feature_bit(SHSTK));
-	cr4_fixed1_update(X86_CR4_CET,	      edx, feature_bit(IBT));
+
+	entry = kvm_find_cpuid_entry_index(vcpu, 0x7, 1);
+	cr4_fixed1_update(X86_CR4_LAM_SUP,    eax, feature_bit(LAM));
 
 #undef cr4_fixed1_update
 }
@@ -8409,46 +7592,7 @@ static void update_intel_pt_cfg(struct kvm_vcpu *vcpu)
 		vmx->pt_desc.ctl_bitmask &= ~(0xfULL << (32 + i * 4));
 }
 
-<<<<<<<
-static bool is_cet_state_supported(struct kvm_vcpu *vcpu, u32 xss_state)
-{
-	return (kvm_caps.supported_xss & xss_state) &&
-	       (guest_cpuid_has(vcpu, X86_FEATURE_SHSTK) ||
-		guest_cpuid_has(vcpu, X86_FEATURE_IBT));
-}
-
-static void vmx_update_intercept_for_cet_msr(struct kvm_vcpu *vcpu)
-{
-	bool incpt = !is_cet_state_supported(vcpu, XFEATURE_MASK_CET_USER);
-
-	vmx_set_intercept_for_msr(vcpu, MSR_IA32_U_CET, MSR_TYPE_RW, incpt);
-
-	incpt |= !guest_cpuid_has(vcpu, X86_FEATURE_SHSTK);
-	vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL3_SSP, MSR_TYPE_RW, incpt);
-
-	/*
-	 * If IBT is available to guest, then passthrough S_CET MSR too since
-	 * kernel IBT is already in mainline kernel tree.
-	 */
-	incpt = !guest_cpuid_has(vcpu, X86_FEATURE_IBT);
-	vmx_set_intercept_for_msr(vcpu, MSR_IA32_S_CET, MSR_TYPE_RW, incpt);
-
-	/*
-	 * Supervisor shadow stack is not supported in VMX now, intercept all
-	 * related MSRs.
-	 */
-	incpt = !kvm_cet_kernel_shstk_supported();
-
-	vmx_set_intercept_for_msr(vcpu, MSR_IA32_INT_SSP_TAB, MSR_TYPE_RW, incpt);
-	vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL0_SSP, MSR_TYPE_RW, incpt);
-	vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL1_SSP, MSR_TYPE_RW, incpt);
-	vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL2_SSP, MSR_TYPE_RW, incpt);
-}
-
-static void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
-=======
 void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
->>>>>>>
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 
@@ -8513,30 +7657,13 @@ void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
 		vmx->msr_ia32_feature_control_valid_bits &=
 			~FEAT_CTL_SGX_LC_ENABLED;
 
-	if (guest_cpuid_has(vcpu, X86_FEATURE_HFI) && intel_hfi_enabled()) {
-		struct kvm_cpuid_entry2 *best = kvm_find_cpuid_entry_index(vcpu, 0x6, 0);
-
-		if (best)
-			vmx->hfi_table_idx = ((union cpuid6_edx)best->edx).split.index;
-	}
-
-	if (kvm_cpu_cap_has(X86_FEATURE_ITD)) {
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_HW_FEEDBACK_CHAR,
-					  MSR_TYPE_RW, !guest_cpuid_has(vcpu, X86_FEATURE_ITD));
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_HW_FEEDBACK_THREAD_CONFIG,
-					  MSR_TYPE_RW, !guest_cpuid_has(vcpu, X86_FEATURE_ITD));
-	}
-
-	if (kvm_cpu_cap_has(X86_FEATURE_HRESET))
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_HW_HRESET_ENABLE,
-					  MSR_TYPE_RW, !guest_cpuid_has(vcpu, X86_FEATURE_HRESET));
+	if (guest_cpuid_has(vcpu, X86_FEATURE_LAM))
+		vcpu->arch.cr3_ctrl_bits |= X86_CR3_LAM_U48 | X86_CR3_LAM_U57;
+	else
+		vcpu->arch.cr3_ctrl_bits &= ~(X86_CR3_LAM_U48 | X86_CR3_LAM_U57);
 
 	/* Refresh #PF interception to account for MAXPHYADDR changes. */
 	vmx_update_exception_bitmap(vcpu);
-
-	if (kvm_cet_user_supported() || kvm_cpu_cap_has(X86_FEATURE_IBT) ||
-	    kvm_cpu_cap_has(X86_FEATURE_SHSTK))
-		vmx_update_intercept_for_cet_msr(vcpu);
 }
 
 static u64 vmx_get_perf_capabilities(void)
@@ -8601,6 +7728,7 @@ static __init void vmx_set_cpu_caps(void)
 		kvm_cpu_cap_set(X86_FEATURE_UMIP);
 
 	/* CPUID 0xD.1 */
+	kvm_caps.supported_xss = 0;
 	if (!cpu_has_vmx_xsaves())
 		kvm_cpu_cap_clear(X86_FEATURE_XSAVES);
 
@@ -8612,12 +7740,6 @@ static __init void vmx_set_cpu_caps(void)
 
 	if (cpu_has_vmx_waitpkg())
 		kvm_cpu_cap_check_and_set(X86_FEATURE_WAITPKG);
-
-	if (!cpu_has_load_cet_ctrl() || !enable_unrestricted_guest) {
-		kvm_cpu_cap_clear(X86_FEATURE_SHSTK);
-		kvm_cpu_cap_clear(X86_FEATURE_IBT);
-		kvm_caps.supported_xss &= ~XFEATURE_MASK_CET_USER;
-	}
 }
 
 void vmx_request_immediate_exit(struct kvm_vcpu *vcpu)
@@ -8912,13 +8034,227 @@ void vmx_hardware_unsetup(void)
 void vmx_vm_destroy(struct kvm *kvm)
 {
 	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
-	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
 
-	vmx_hfi_notifier_unregister(kvm);
-	kfree(kvm_vmx_hfi->hfi_table.base_addr);
 	free_pages((unsigned long)kvm_vmx->pid_table, vmx_get_pid_table_order(kvm));
 }
 
+<<<<<<<
+=======
+#define LAM_S57_EN_MASK (X86_CR4_LAM_SUP | X86_CR4_LA57)
+static int lam_sign_extend_bit(struct kvm_vcpu *vcpu, gva_t addr)
+{
+	u64 cr3, cr4;
+
+	/*
+	 * The LAM identification of a pointer as user or supervisor is
+	 * based solely on the value of pointer bit 63.
+	 */
+	if (!(addr >> 63)) {
+		cr3 = kvm_read_cr3(vcpu);
+		if (cr3 & X86_CR3_LAM_U57)
+			return 56;
+		if (cr3 & X86_CR3_LAM_U48)
+			return 47;
+	} else {
+		cr4 = kvm_read_cr4_bits(vcpu, LAM_S57_EN_MASK);
+		if (cr4 == LAM_S57_EN_MASK)
+			return 56;
+		if (cr4 & X86_CR4_LAM_SUP)
+			return 47;
+	}
+	return -1;
+}
+
+/*
+ * Only called in 64-bit mode.
+ *
+ * LAM has a modified canonical check when applicable:
+ * LAM_S48                : [ 1 ][ metadata ][ 1 ]
+ *                            63               47
+ * LAM_U48                : [ 0 ][ metadata ][ 0 ]
+ *                            63               47
+ * LAM_S57                : [ 1 ][ metadata ][ 1 ]
+ *                            63               56
+ * LAM_U57 + 5-lvl paging : [ 0 ][ metadata ][ 0 ]
+ *                            63               56
+ * LAM_U57 + 4-lvl paging : [ 0 ][ metadata ][ 0...0 ]
+ *                            63               56..47
+ *
+ * Untag the metadata bits by sign-extending the value of bit 47 (LAM48) or
+ * bit 56 (LAM57). The resulting address after untag isn't guaranteed to be
+ * canonical. Callers should perform the original canonical check and raise
+ * #GP/#SS if the address is non-canonical.
+ *
+ * Note that KVM masks the metadata in addresses, performs the (original)
+ * canonicality checking and then walks page table. This is slightly
+ * different from hardware behavior but achieves the same effect.
+ * Specifically, if LAM is enabled, the processor performs a modified
+ * canonicality checking where the metadata are ignored instead of
+ * masked. After the modified canonicality checking, the processor masks
+ * the metadata before passing addresses for paging translation.
+ */
+void vmx_untag_addr(struct kvm_vcpu *vcpu, gva_t *gva, u32 flags)
+{
+	int sign_ext_bit;
+
+	/*
+	 * Check LAM_U48 in cr3_ctrl_bits to avoid guest_cpuid_has().
+	 * If not set, vCPU doesn't supports LAM.
+	 */
+	if (!(vcpu->arch.cr3_ctrl_bits & X86_CR3_LAM_U48) ||
+	    (flags & X86EMUL_F_SKIPLAM) || WARN_ON_ONCE(!is_64_bit_mode(vcpu)))
+		return;
+
+	sign_ext_bit = lam_sign_extend_bit(vcpu, *gva);
+	if (sign_ext_bit > 0)
+		*gva = (sign_extend64(*gva, sign_ext_bit) & ~BIT_ULL(63)) |
+		       (*gva & BIT_ULL(63));
+}
+
+static struct kvm_x86_ops vmx_x86_ops __initdata = {
+	.name = KBUILD_MODNAME,
+
+	.check_processor_compatibility = vmx_check_processor_compat,
+
+	.hardware_unsetup = vmx_hardware_unsetup,
+
+	.hardware_enable = vmx_hardware_enable,
+	.hardware_disable = vmx_hardware_disable,
+	.has_emulated_msr = vmx_has_emulated_msr,
+
+	.vm_size = sizeof(struct kvm_vmx),
+	.vm_init = vmx_vm_init,
+	.vm_destroy = vmx_vm_destroy,
+
+	.vcpu_precreate = vmx_vcpu_precreate,
+	.vcpu_create = vmx_vcpu_create,
+	.vcpu_free = vmx_vcpu_free,
+	.vcpu_reset = vmx_vcpu_reset,
+
+	.prepare_switch_to_guest = vmx_prepare_switch_to_guest,
+	.vcpu_load = vmx_vcpu_load,
+	.vcpu_put = vmx_vcpu_put,
+
+	.update_exception_bitmap = vmx_update_exception_bitmap,
+	.get_msr_feature = vmx_get_msr_feature,
+	.get_msr = vmx_get_msr,
+	.set_msr = vmx_set_msr,
+	.get_segment_base = vmx_get_segment_base,
+	.get_segment = vmx_get_segment,
+	.set_segment = vmx_set_segment,
+	.get_cpl = vmx_get_cpl,
+	.get_cs_db_l_bits = vmx_get_cs_db_l_bits,
+	.set_cr0 = vmx_set_cr0,
+	.is_valid_cr4 = vmx_is_valid_cr4,
+	.set_cr4 = vmx_set_cr4,
+	.set_efer = vmx_set_efer,
+	.get_idt = vmx_get_idt,
+	.set_idt = vmx_set_idt,
+	.get_gdt = vmx_get_gdt,
+	.set_gdt = vmx_set_gdt,
+	.set_dr7 = vmx_set_dr7,
+	.sync_dirty_debug_regs = vmx_sync_dirty_debug_regs,
+	.cache_reg = vmx_cache_reg,
+	.get_rflags = vmx_get_rflags,
+	.set_rflags = vmx_set_rflags,
+	.get_if_flag = vmx_get_if_flag,
+
+	.untag_addr = vmx_untag_addr,
+
+	.flush_tlb_all = vmx_flush_tlb_all,
+	.flush_tlb_current = vmx_flush_tlb_current,
+	.flush_tlb_gva = vmx_flush_tlb_gva,
+	.flush_tlb_guest = vmx_flush_tlb_guest,
+
+	.vcpu_pre_run = vmx_vcpu_pre_run,
+	.vcpu_run = vmx_vcpu_run,
+	.handle_exit = vmx_handle_exit,
+	.skip_emulated_instruction = vmx_skip_emulated_instruction,
+	.update_emulated_instruction = vmx_update_emulated_instruction,
+	.set_interrupt_shadow = vmx_set_interrupt_shadow,
+	.get_interrupt_shadow = vmx_get_interrupt_shadow,
+	.patch_hypercall = vmx_patch_hypercall,
+	.inject_irq = vmx_inject_irq,
+	.inject_nmi = vmx_inject_nmi,
+	.inject_exception = vmx_inject_exception,
+	.cancel_injection = vmx_cancel_injection,
+	.interrupt_allowed = vmx_interrupt_allowed,
+	.nmi_allowed = vmx_nmi_allowed,
+	.get_nmi_mask = vmx_get_nmi_mask,
+	.set_nmi_mask = vmx_set_nmi_mask,
+	.enable_nmi_window = vmx_enable_nmi_window,
+	.enable_irq_window = vmx_enable_irq_window,
+	.update_cr8_intercept = vmx_update_cr8_intercept,
+	.set_virtual_apic_mode = vmx_set_virtual_apic_mode,
+	.set_apic_access_page_addr = vmx_set_apic_access_page_addr,
+	.refresh_apicv_exec_ctrl = vmx_refresh_apicv_exec_ctrl,
+	.load_eoi_exitmap = vmx_load_eoi_exitmap,
+	.apicv_post_state_restore = vmx_apicv_post_state_restore,
+	.required_apicv_inhibits = VMX_REQUIRED_APICV_INHIBITS,
+	.hwapic_irr_update = vmx_hwapic_irr_update,
+	.hwapic_isr_update = vmx_hwapic_isr_update,
+	.guest_apic_has_interrupt = vmx_guest_apic_has_interrupt,
+	.sync_pir_to_irr = vmx_sync_pir_to_irr,
+	.deliver_interrupt = vmx_deliver_interrupt,
+	.dy_apicv_has_pending_interrupt = pi_has_pending_interrupt,
+
+	.set_tss_addr = vmx_set_tss_addr,
+	.set_identity_map_addr = vmx_set_identity_map_addr,
+	.get_mt_mask = vmx_get_mt_mask,
+
+	.get_exit_info = vmx_get_exit_info,
+
+	.vcpu_after_set_cpuid = vmx_vcpu_after_set_cpuid,
+
+	.has_wbinvd_exit = cpu_has_vmx_wbinvd_exit,
+
+	.get_l2_tsc_offset = vmx_get_l2_tsc_offset,
+	.get_l2_tsc_multiplier = vmx_get_l2_tsc_multiplier,
+	.write_tsc_offset = vmx_write_tsc_offset,
+	.write_tsc_multiplier = vmx_write_tsc_multiplier,
+
+	.load_mmu_pgd = vmx_load_mmu_pgd,
+
+	.check_intercept = vmx_check_intercept,
+	.handle_exit_irqoff = vmx_handle_exit_irqoff,
+
+	.request_immediate_exit = vmx_request_immediate_exit,
+
+	.sched_in = vmx_sched_in,
+
+	.cpu_dirty_log_size = PML_ENTITY_NUM,
+	.update_cpu_dirty_logging = vmx_update_cpu_dirty_logging,
+
+	.nested_ops = &vmx_nested_ops,
+
+	.pi_update_irte = vmx_pi_update_irte,
+	.pi_start_assignment = vmx_pi_start_assignment,
+
+#ifdef CONFIG_X86_64
+	.set_hv_timer = vmx_set_hv_timer,
+	.cancel_hv_timer = vmx_cancel_hv_timer,
+#endif
+
+	.setup_mce = vmx_setup_mce,
+
+#ifdef CONFIG_KVM_SMM
+	.smi_allowed = vmx_smi_allowed,
+	.enter_smm = vmx_enter_smm,
+	.leave_smm = vmx_leave_smm,
+	.enable_smi_window = vmx_enable_smi_window,
+#endif
+
+	.can_emulate_instruction = vmx_can_emulate_instruction,
+	.apic_init_signal_blocked = vmx_apic_init_signal_blocked,
+	.migrate_timers = vmx_migrate_timers,
+
+	.msr_filter_changed = vmx_msr_filter_changed,
+	.complete_emulated_msr = kvm_complete_insn_gp,
+
+	.vcpu_deliver_sipi_vector = kvm_vcpu_deliver_sipi_vector,
+};
+
+>>>>>>>
 static unsigned int vmx_handle_intel_pt_intr(void)
 {
 	struct kvm_vcpu *vcpu = kvm_get_running_vcpu();
