@@ -131,9 +131,6 @@ static int __set_sregs2(struct kvm_vcpu *vcpu, struct kvm_sregs2 *sregs2);
 static void __get_sregs2(struct kvm_vcpu *vcpu, struct kvm_sregs2 *sregs2);
 
 static DEFINE_MUTEX(vendor_module_lock);
-static void kvm_load_guest_fpu(struct kvm_vcpu *vcpu);
-static void kvm_put_guest_fpu(struct kvm_vcpu *vcpu);
-
 struct kvm_x86_ops kvm_x86_ops __read_mostly;
 
 #define KVM_X86_OP(func)					     \
@@ -226,8 +223,6 @@ static struct kvm_user_return_msrs __percpu *user_return_msrs;
 				| XFEATURE_MASK_YMM | XFEATURE_MASK_BNDREGS \
 				| XFEATURE_MASK_BNDCSR | XFEATURE_MASK_AVX512 \
 				| XFEATURE_MASK_PKRU | XFEATURE_MASK_XTILE)
-
-#define KVM_SUPPORTED_XSS	(XFEATURE_MASK_CET_USER)
 
 u64 __read_mostly host_efer;
 EXPORT_SYMBOL_GPL(host_efer);
@@ -538,15 +533,11 @@ EXPORT_SYMBOL_GPL(kvm_spurious_fault);
 #define EXCPT_CONTRIBUTORY	1
 #define EXCPT_PF		2
 
-static int exception_class(struct kvm_vcpu *vcpu, int vector)
+static int exception_class(int vector)
 {
 	switch (vector) {
 	case PF_VECTOR:
 		return EXCPT_PF;
-	case CP_VECTOR:
-		if (vcpu->arch.cr4_guest_rsvd_bits & X86_CR4_CET)
-			return EXCPT_BENIGN;
-		return EXCPT_CONTRIBUTORY;
 	case DE_VECTOR:
 	case TS_VECTOR:
 	case NP_VECTOR:
@@ -729,8 +720,8 @@ static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 		kvm_make_request(KVM_REQ_TRIPLE_FAULT, vcpu);
 		return;
 	}
-	class1 = exception_class(vcpu, prev_nr);
-	class2 = exception_class(vcpu, nr);
+	class1 = exception_class(prev_nr);
+	class2 = exception_class(nr);
 	if ((class1 == EXCPT_CONTRIBUTORY && class2 == EXCPT_CONTRIBUTORY) ||
 	    (class1 == EXCPT_PF && class2 != EXCPT_BENIGN)) {
 		/*
@@ -1013,9 +1004,6 @@ int kvm_set_cr0(struct kvm_vcpu *vcpu, unsigned long cr0)
 	    (is_64_bit_mode(vcpu) || kvm_is_cr4_bit_set(vcpu, X86_CR4_PCIDE)))
 		return 1;
 
-	if (!(cr0 & X86_CR0_WP) && kvm_is_cr4_bit_set(vcpu, X86_CR4_CET))
-		return 1;
-
 	static_call(kvm_x86_set_cr0)(vcpu, cr0);
 
 	kvm_post_set_cr0(vcpu, old_cr0, cr0);
@@ -1230,9 +1218,6 @@ int kvm_set_cr4(struct kvm_vcpu *vcpu, unsigned long cr4)
 		if ((kvm_read_cr3(vcpu) & X86_CR3_PCID_MASK) || !is_long_mode(vcpu))
 			return 1;
 	}
-
-	if ((cr4 & X86_CR4_CET) && !kvm_is_cr0_bit_set(vcpu, X86_CR0_WP))
-		return 1;
 
 	static_call(kvm_x86_set_cr4)(vcpu, cr4);
 
@@ -1485,13 +1470,11 @@ static const u32 msrs_to_save_base[] = {
 	MSR_IA32_RTIT_ADDR2_A, MSR_IA32_RTIT_ADDR2_B,
 	MSR_IA32_RTIT_ADDR3_A, MSR_IA32_RTIT_ADDR3_B,
 	MSR_IA32_UMWAIT_CONTROL,
+	MSR_IA32_HW_FEEDBACK_CHAR,
+	MSR_IA32_HW_FEEDBACK_THREAD_CONFIG,
+	MSR_IA32_HW_HRESET_ENABLE,
 
 	MSR_IA32_XFD, MSR_IA32_XFD_ERR,
-	MSR_IA32_XSS,
-	MSR_IA32_U_CET, MSR_IA32_PL3_SSP, MSR_KVM_GUEST_SSP,
-	MSR_IA32_S_CET,
-	MSR_IA32_PL0_SSP, MSR_IA32_PL1_SSP, MSR_IA32_PL2_SSP,
-	MSR_IA32_INT_SSP_TAB,
 };
 
 static const u32 msrs_to_save_pmu[] = {
@@ -1565,6 +1548,13 @@ static const u32 emulated_msrs_all[] = {
 	MSR_AMD64_TSC_RATIO,
 	MSR_IA32_POWER_CTL,
 	MSR_IA32_UCODE_REV,
+	MSR_IA32_THERM_CONTROL,
+	MSR_IA32_THERM_INTERRUPT,
+	MSR_IA32_THERM_STATUS,
+	MSR_IA32_PACKAGE_THERM_INTERRUPT,
+	MSR_IA32_PACKAGE_THERM_STATUS,
+	MSR_IA32_HW_FEEDBACK_CONFIG,
+	MSR_IA32_HW_FEEDBACK_PTR,
 
 	/*
 	 * The following list leaves out MSRs whose values are determined
@@ -3813,10 +3803,8 @@ int kvm_set_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		 */
 		if (data & ~kvm_caps.supported_xss)
 			return 1;
-		if (vcpu->arch.ia32_xss != data) {
-			vcpu->arch.ia32_xss = data;
-			kvm_update_cpuid_runtime(vcpu);
-		}
+		vcpu->arch.ia32_xss = data;
+		kvm_update_cpuid_runtime(vcpu);
 		break;
 	case MSR_SMI_COUNT:
 		if (!msr_info->host_initiated)
@@ -4371,21 +4359,6 @@ int kvm_get_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 }
 EXPORT_SYMBOL_GPL(kvm_get_msr_common);
 
-static const u32 xsave_msrs[] = {
-	MSR_IA32_U_CET, MSR_IA32_PL3_SSP,
-};
-
-static bool is_xsaves_msr(u32 index)
-{
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(xsave_msrs); i++) {
-		if (index == xsave_msrs[i])
-			return true;
-	}
-	return false;
-}
-
 /*
  * Read or write a bunch of msrs. All parameters are kernel addresses.
  *
@@ -4396,20 +4369,11 @@ static int __msr_io(struct kvm_vcpu *vcpu, struct kvm_msrs *msrs,
 		    int (*do_msr)(struct kvm_vcpu *vcpu,
 				  unsigned index, u64 *data))
 {
-	bool fpu_loaded = false;
 	int i;
 
-	for (i = 0; i < msrs->nmsrs; ++i) {
-		if (vcpu && !fpu_loaded && kvm_caps.supported_xss &&
-		    is_xsaves_msr(entries[i].index)) {
-			kvm_load_guest_fpu(vcpu);
-			fpu_loaded = true;
-		}
+	for (i = 0; i < msrs->nmsrs; ++i)
 		if (do_msr(vcpu, entries[i].index, &entries[i].data))
 			break;
-	}
-	if (fpu_loaded)
-		kvm_put_guest_fpu(vcpu);
 
 	return i;
 }
@@ -7296,6 +7260,11 @@ static void kvm_probe_msr_to_save(u32 msr_index)
 		if (!(kvm_get_arch_capabilities() & ARCH_CAP_TSX_CTRL_MSR))
 			return;
 		break;
+	case MSR_IA32_HW_FEEDBACK_CHAR:
+	case MSR_IA32_HW_FEEDBACK_THREAD_CONFIG:
+		if (!kvm_cpu_cap_has(X86_FEATURE_ITD))
+			return;
+		break;
 	default:
 		break;
 	}
@@ -9623,10 +9592,8 @@ static int __kvm_x86_vendor_init(struct kvm_x86_init_ops *ops)
 
 	rdmsrl_safe(MSR_EFER, &host_efer);
 
-	if (boot_cpu_has(X86_FEATURE_XSAVES)) {
+	if (boot_cpu_has(X86_FEATURE_XSAVES))
 		rdmsrl(MSR_IA32_XSS, host_xss);
-		kvm_caps.supported_xss = host_xss & KVM_SUPPORTED_XSS;
-	}
 
 	kvm_init_pmu_capability(ops->pmu_ops);
 
@@ -9645,25 +9612,6 @@ static int __kvm_x86_vendor_init(struct kvm_x86_init_ops *ops)
 	 * the final value.
 	 */
 	kvm_ops_update(ops);
-
-	/*
-	 * Check CET user bit is still set in kvm_caps.supported_xss,
-	 * if not, clear the cap bits as the user parts depends on
-	 * XSAVES support.
-	 */
-	if (!kvm_cet_user_supported()) {
-		kvm_cpu_cap_clear(X86_FEATURE_SHSTK);
-		kvm_cpu_cap_clear(X86_FEATURE_IBT);
-	}
-
-	/*
-	 * If SHSTK and IBT are available in KVM, clear CET user bit in
-	 * kvm_caps.supported_xss so that kvm_cet_user_supported() returns
-	 * false when called.
-	 */
-	if (!kvm_cpu_cap_has(X86_FEATURE_SHSTK) &&
-	    !kvm_cpu_cap_has(X86_FEATURE_IBT))
-		kvm_caps.supported_xss &= ~XFEATURE_MASK_CET_USER;
 
 	for_each_online_cpu(cpu) {
 		smp_call_function_single(cpu, kvm_x86_check_cpu_compat, &r, 1);
@@ -10854,6 +10802,8 @@ static int vcpu_enter_guest(struct kvm_vcpu *vcpu)
 
 		if (kvm_check_request(KVM_REQ_UPDATE_CPU_DIRTY_LOGGING, vcpu))
 			static_call(kvm_x86_update_cpu_dirty_logging)(vcpu);
+		if (kvm_check_request(KVM_REQ_HFI_UPDATE, vcpu))
+			static_call(kvm_x86_update_hfi)(vcpu);
 	}
 
 	if (kvm_check_request(KVM_REQ_EVENT, vcpu) || req_int_win ||
@@ -13897,7 +13847,6 @@ int kvm_sev_es_string_io(struct kvm_vcpu *vcpu, unsigned int size,
 }
 EXPORT_SYMBOL_GPL(kvm_sev_es_string_io);
 
-<<<<<<<
 /* Common function for legacy VMX and SVM guest*/
 unsigned long kvm_get_cr2(struct kvm_vcpu *vcpu)
 {
@@ -13921,48 +13870,6 @@ unsigned long kvm_get_xcr(struct kvm_vcpu *vcpu, int index)
 	}
 }
 EXPORT_SYMBOL_GPL(kvm_get_xcr);
-=======
-bool kvm_cet_is_msr_accessible(struct kvm_vcpu *vcpu, struct msr_data *msr)
-{
-	u64 mask;
-
-	if (!kvm_cet_user_supported() &&
-	    !(kvm_cpu_cap_has(X86_FEATURE_IBT) ||
-	      kvm_cpu_cap_has(X86_FEATURE_SHSTK)))
-		return false;
-
-	if (msr->host_initiated)
-		return true;
-
-	if (!guest_cpuid_has(vcpu, X86_FEATURE_SHSTK) &&
-	    !guest_cpuid_has(vcpu, X86_FEATURE_IBT))
-		return false;
-
-	/* The synthetic MSR is for userspace access only. */
-	if (msr->index == MSR_KVM_GUEST_SSP)
-		return false;
-
-	if (msr->index == MSR_IA32_U_CET)
-		return true;
-
-	if (msr->index == MSR_IA32_S_CET)
-		return guest_cpuid_has(vcpu, X86_FEATURE_IBT) ||
-		       kvm_cet_kernel_shstk_supported();
-
-	if (msr->index == MSR_IA32_INT_SSP_TAB)
-		return guest_cpuid_has(vcpu, X86_FEATURE_SHSTK) &&
-		       kvm_cet_kernel_shstk_supported();
-
-	if (msr->index == MSR_IA32_PL3_SSP &&
-	    !guest_cpuid_has(vcpu, X86_FEATURE_SHSTK))
-		return false;
-
-	mask = (msr->index == MSR_IA32_PL3_SSP) ? XFEATURE_MASK_CET_USER :
-						  XFEATURE_MASK_CET_KERNEL;
-	return !!(kvm_caps.supported_xss & mask);
-}
-EXPORT_SYMBOL_GPL(kvm_cet_is_msr_accessible);
->>>>>>>
 
 EXPORT_TRACEPOINT_SYMBOL_GPL(kvm_entry);
 EXPORT_TRACEPOINT_SYMBOL_GPL(kvm_exit);
