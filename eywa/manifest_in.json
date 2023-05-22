@@ -5825,7 +5825,7 @@
                 }
             ],
             "description": "Linear Address Masking KVM Enabling",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3410",
             "name": "lam_kvm",
@@ -5849,14 +5849,14 @@
                 }
             ],
             "description": "Allow lam_kvm to merge with tdx_kvm_support",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Kyle Pelton",
                     "email": "kyle.d.pelton@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3411",
             "name": "lam_fixup",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [
@@ -5867,7 +5867,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
+            "last_enabled": "v6.4",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
