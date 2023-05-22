@@ -5839,13 +5839,13 @@
             "feature_jiras": "LFE-28,LFE-843"
         },
         {
-            "branch": "lam_fixup",
+            "branch": "lam_fixup2",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
                 {
-                    "name": "Kyle Pelton",
-                    "email": "kyle.d.pelton@intel.com"
+                    "name": "Michael Bottini",
+                    "email": "michael.a.bottini@intel.com"
                 }
             ],
             "description": "Allow lam_kvm to merge with tdx_kvm_support",
@@ -5856,7 +5856,7 @@
                     "email": "kyle.d.pelton@intel.com"
                 }
             ],
-            "jira": "NEXT-3411",
+            "jira": "NEXT-3412",
             "name": "lam_fixup",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [
