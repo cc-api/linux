@@ -5985,6 +5985,44 @@
             "platforms": "EMR,GNR,SPR",
             "feature_jiras": "",
             "last_enabled": "v6.4"
+        },
+        {
+            "branch": "cwf-ni",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "S",
+                    "email": "S"
+                },
+                {
+                    "name": " Tao",
+                    "email": "tao1.su@intel.com"
+                }
+            ],
+            "description": "New Instructions Enumeration for platform CWF",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Su, Tao",
+                    "email": "tao1.su@intel.com"
+                }
+            ],
+            "jira": "NEXT-3413",
+            "name": "cwf_cpuid",
+            "repourl": "https://github.com/intel-sandbox/taosu.linux.git",
+            "sdl_contact": [
+                {
+                    "name": "Su, Tao",
+                    "email": "tao1.su@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00080.html",
+            "platforms": "CWF",
+            "feature_jiras": "LFE-7324,LFE-7325",
+            "last_enabled": "v6.4"
         }
     ]
 }
