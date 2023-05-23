@@ -865,6 +865,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 	case INTEL_FAM6_TIGERLAKE:
 	case INTEL_FAM6_METEORLAKE:
 	case INTEL_FAM6_METEORLAKE_L:
+	case INTEL_FAM6_ARROWLAKE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
 		set_feature(FID_BCLK, 10000);
