@@ -2025,6 +2025,7 @@ static const struct flash_info spi_nor_generic_flash = {
 	 */
 	.page_size = 256,
 	.parse_sfdp = true,
+	.n_banks = 1,
 };
 
 static const struct flash_info *spi_nor_match_id(struct spi_nor *nor,
