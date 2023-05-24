@@ -6019,6 +6019,30 @@
             "platforms": "CWF",
             "feature_jiras": "LFE-7324,LFE-7325",
             "last_enabled": "v6.4"
+        },
+        {
+            "branch": "svos_readme_fixup",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Michael Bottini",
+                    "email": "michael.a.bottini@intel.com"
+                }
+            ],
+            "description": "Fixup branch to remove Adam Preble's SVOS README commit",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3415",
+            "name": "svos_readme_fixup",
+            "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
+            "sdl_contact": [],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": "",
+            "last_enabled": "v6.4"
         }
     ]
 }
