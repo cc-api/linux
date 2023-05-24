@@ -1812,6 +1812,17 @@ bool intel_hfi_enabled(void)
 EXPORT_SYMBOL_GPL(intel_hfi_enabled);
 
 /**
+ * intel_hfi_max_instances() - Get the maximum number of hfi instances.
+ *
+ * Return: the maximum number of hfi instances.
+ */
+int intel_hfi_max_instances(void)
+{
+	return max_hfi_instances;
+}
+EXPORT_SYMBOL_GPL(intel_hfi_max_instances);
+
+/**
  * intel_hfi_build_virt_features() - Build a virtual hfi_features structure.
  *
  * @features:		Feature structure need to be filled
