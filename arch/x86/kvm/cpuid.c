@@ -628,6 +628,10 @@ void kvm_set_cpu_caps(void)
 		0 /* HTT */ | F(ACC) | 0 /* Reserved, PBE */
 	);
 
+	kvm_cpu_cap_mask(CPUID_6_EAX,
+		F(ARAT)
+	);
+
 	kvm_cpu_cap_mask(CPUID_7_0_EBX,
 		F(FSGSBASE) | F(SGX) | F(BMI1) | F(HLE) | F(AVX2) |
 		F(FDP_EXCPTN_ONLY) | F(SMEP) | F(BMI2) | F(ERMS) | F(INVPCID) |
@@ -957,7 +961,12 @@ static inline int __do_cpuid_func(struct kvm_cpuid_array *array, u32 function)
 		}
 		break;
 	case 6: /* Thermal management */
-		entry->eax = 0x4; /* allow ARAT */
+		cpuid_entry_override(entry, CPUID_6_EAX);
+
+		/* Always allow ARAT since APICs are emulated. */
+		if (!kvm_cpu_cap_has(X86_FEATURE_ARAT))
+			entry->eax |= 0x4;
+
 		entry->ebx = 0;
 		entry->ecx = 0;
 		entry->edx = 0;
