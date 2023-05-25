@@ -100,6 +100,7 @@ struct fw_blobs_by_type {
 };
 
 #define XE_GUC_FIRMWARE_DEFS(fw_def, mmp_ver, major_ver)			\
+	fw_def(FSG,		mmp_ver(  xe,	guc,	xe3pxp,	70, 6, 6))	\
 	fw_def(LUNARLAKE,	mmp_ver(  i915,	guc,	lnl,	70, 6, 6))	\
 	fw_def(BATTLEMAGE,	mmp_ver(  i915,	guc,	bmg,	70, 6, 6))	\
 	fw_def(METEORLAKE,	mmp_ver(  i915,	guc,	mtl,	70, 6, 4))	\
