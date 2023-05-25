@@ -1731,6 +1731,9 @@ struct kvm_x86_ops {
 	 * Returns vCPU specific APICv inhibit reasons
 	 */
 	unsigned long (*vcpu_get_apicv_inhibit_reasons)(struct kvm_vcpu *vcpu);
+
+	bool (*is_lass_violation)(struct kvm_vcpu *vcpu, unsigned long addr,
+				  unsigned int size, unsigned int flags);
 };
 
 struct kvm_x86_nested_ops {

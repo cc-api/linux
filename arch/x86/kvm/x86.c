@@ -8300,6 +8300,15 @@ static void emulator_vm_bugged(struct x86_emulate_ctxt *ctxt)
 		kvm_vm_bugged(kvm);
 }
 
+static bool emulator_is_lass_violation(struct x86_emulate_ctxt *ctxt,
+				       unsigned long addr,
+				       unsigned int size,
+				       unsigned int flags)
+{
+	return static_call(kvm_x86_is_lass_violation)(emul_to_vcpu(ctxt),
+						      addr, size, flags);
+}
+
 static const struct x86_emulate_ops emulate_ops = {
 	.vm_bugged           = emulator_vm_bugged,
 	.read_gpr            = emulator_read_gpr,
@@ -8345,6 +8354,7 @@ static const struct x86_emulate_ops emulate_ops = {
 	.leave_smm           = emulator_leave_smm,
 	.triple_fault        = emulator_triple_fault,
 	.set_xcr             = emulator_set_xcr,
+	.is_lass_violation   = emulator_is_lass_violation,
 };
 
 static void toggle_interruptibility(struct kvm_vcpu *vcpu, u32 mask)
