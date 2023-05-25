@@ -1,20 +1,38 @@
 # SPDX-License-Identifier: GPL-2.0
 # Makefile for Intel Software Defined Silicon provisioning tool
 
-intel_sdsi: intel_sdsi.c
+ifeq ($(srctree),)
+srctree := $(patsubst %/,%,$(dir $(CURDIR)))
+srctree := $(patsubst %/,%,$(dir $(srctree)))
+srctree := $(patsubst %/,%,$(dir $(srctree)))
+# $(info Determined 'srctree' to be $(srctree))
+endif
 
-CFLAGS = -Wextra
+INCL_PATH = \
+-Ilib/
+
+CC=gcc
+
+CFLAGS = -L. -Wextra
 
 BINDIR ?= /usr/sbin
 
-override CFLAGS += -O2 -Wall
+LDFLAGS += -l:libsdsi_spdm.so -lkeyutils
 
-%: %.c
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+override CFLAGS += -O2 -Wall
+#override CFLAGS += -g -Wall
+
+intel_sdsi: sdsi.c libsdsi_spdm.so
+	$(CC) $(CFLAGS) $(INCL_PATH) -o $@ $< $(LDFLAGS)
+
+libsdsi_spdm.so:
+	$(MAKE) -C lib/
+	cp lib/$@ .
 
 .PHONY : clean
 clean :
-	@rm -f intel_sdsi
+	@rm -f intel_sdsi libsdsi_spdm.so
+	$(MAKE) clean -C lib/
 
 install : intel_sdsi
 	install -d  $(DESTDIR)$(BINDIR)
