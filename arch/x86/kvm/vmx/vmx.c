@@ -8170,6 +8170,40 @@ static void vmx_vm_destroy(struct kvm *kvm)
 	free_pages((unsigned long)kvm_vmx->pid_table, vmx_get_pid_table_order(kvm));
 }
 
+bool vmx_is_lass_violation(struct kvm_vcpu *vcpu, unsigned long addr,
+			   unsigned int size, unsigned int flags)
+{
+	const bool is_supervisor_address = !!(addr & BIT_ULL(63));
+	const bool implicit = !!(flags & X86EMUL_F_IMPLICIT);
+	const bool fetch = !!(flags & X86EMUL_F_FETCH);
+	const bool is_wraparound_access = size ? (addr + size - 1) < addr : false;
+
+	if (!kvm_is_cr4_bit_set(vcpu, X86_CR4_LASS) || !is_long_mode(vcpu))
+		return false;
+
+	/*
+	 * INVTLB isn't subject to LASS, e.g. to allow invalidating userspace
+	 * addresses without toggling RFLAGS.AC.  Branch targets aren't subject
+	 * to LASS in order to simplifiy far control transfers (the subsequent
+	 * fetch will enforce LASS as appropriate).
+	 */
+	if (flags & (X86EMUL_F_BRANCH | X86EMUL_F_INVTLB))
+		return false;
+
+	if (!implicit && vmx_get_cpl(vcpu) == 3)
+		return is_supervisor_address;
+
+	/* LASS is enforced for supervisor-mode access iff SMAP is enabled. */
+	if (!fetch && !kvm_is_cr4_bit_set(vcpu, X86_CR4_SMAP))
+		return false;
+
+	/* Like SMAP, RFLAGS.AC disables LASS checks in supervisor mode. */
+	if (!fetch && !implicit && (kvm_get_rflags(vcpu) & X86_EFLAGS_AC))
+		return false;
+
+	return is_wraparound_access ? true : !is_supervisor_address;
+}
+
 static struct kvm_x86_ops vmx_x86_ops __initdata = {
 	.name = KBUILD_MODNAME,
 
@@ -8309,6 +8343,7 @@ static struct kvm_x86_ops vmx_x86_ops __initdata = {
 	.complete_emulated_msr = kvm_complete_insn_gp,
 
 	.vcpu_deliver_sipi_vector = kvm_vcpu_deliver_sipi_vector,
+	.is_lass_violation = vmx_is_lass_violation,
 };
 
 static unsigned int vmx_handle_intel_pt_intr(void)
