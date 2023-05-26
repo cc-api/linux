@@ -163,7 +163,7 @@ void xe_pat_init(struct xe_gt *gt)
 		return;
 	}
 
-	if (GRAPHICS_VER(xe) == 20) {
+	if (GRAPHICS_VER(xe) >= 20) {
 		program_pat_mcr(gt, xe2_pat_table, ARRAY_SIZE(xe2_pat_table));
 		xe_gt_mcr_multicast_write(gt, XE_REG_MCR(_PAT_ATS), XE2_PAT_ATS);
 		if (IS_DGFX(xe))
