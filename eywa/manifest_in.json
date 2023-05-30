@@ -1439,36 +1439,31 @@
             "feature_jiras": "LFE-3935,LFE-3936,LFE-6953"
         },
         {
-            "branch": "lass-6.2-rc2",
+            "branch": "lass",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
                 {
-                    "name": "Yian Chen",
-                    "email": "yian.chen@intel.com"
+                    "name": "Alexander Shishkin",
+                    "email": "alexander.shishkin@intel.com"
                 }
             ],
-            "description": "Enable ISA extension of LASS",
-            "enabled": false,
-            "ip_owner": [
-                {
-                    "name": "Vedvyas Shanbhogue",
-                    "email": "vedvyas.shanbhogue@intel.com"
-                }
-            ],
-            "jira": "",
+            "description": "Enable LASS",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3419",
             "name": "LASS",
-            "repourl": "https://github.com/intel-sandbox/kernel-works.git",
+            "repourl": "https://github.com/intel-sandbox/linux-perf.git",
             "sdl_contact": [
                 {
-                    "name": "Vedvyas Shanbhogue",
-                    "email": "vedvyas.shanbhogue@intel.com"
+                    "name": "Svahn, Kai",
+                    "email": "kai.svahn@intel.com"
                 }
             ],
-            "status": "intel confidential",
+            "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2",
-            "maillist": "",
+            "last_enabled": "v6.4",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00086.html",
             "platforms": "",
             "feature_jiras": ""
         },
