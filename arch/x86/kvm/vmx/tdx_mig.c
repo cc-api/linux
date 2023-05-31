@@ -788,6 +788,7 @@ static int64_t tdx_mig_stream_export_mem(struct kvm_tdx *kvm_tdx,
 	union tdx_mig_stream_info stream_info = {.val = 0};
 	struct tdx_module_output out;
 	uint64_t npages, err;
+	int idx;
 
 	if (mig_state->bugged)
 		return -EBADF;
@@ -836,8 +837,10 @@ static int64_t tdx_mig_stream_export_mem(struct kvm_tdx *kvm_tdx,
 	 */
 	if (seamcall_masked_status(err) == TDX_SUCCESS) {
 		if (err != TDX_SUCCESS) {
+			idx = srcu_read_lock(&kvm_tdx->kvm.srcu);
 			tdx_mig_handle_export_mem_error(&kvm_tdx->kvm,
 							gpa_list, npages);
+			srcu_read_unlock(&kvm_tdx->kvm.srcu, idx);
 		}
 
 		/*
@@ -993,7 +996,7 @@ static int tdx_mig_stream_import_mem(struct kvm_tdx *kvm_tdx,
 				     struct tdx_mig_stream *stream,
 				     uint64_t __user *data)
 {
-	int ret;
+	int idx, ret;
 	uint64_t i, npages;
 	gfn_t gfn;
 	kvm_pfn_t pfn;
@@ -1007,6 +1010,9 @@ static int tdx_mig_stream_import_mem(struct kvm_tdx *kvm_tdx,
 
 	memset(stream->gfns, 0, npages * sizeof(gfn_t));
 	memset(stream->sptes, 0, npages * sizeof(uint64_t));
+
+	idx = srcu_read_lock(&kvm->srcu);
+
 	for (i = 0; i < npages; i++) {
 		if (gpa_skip_import(&gpa_list_entries[i]))
 			continue;
@@ -1027,6 +1033,8 @@ static int tdx_mig_stream_import_mem(struct kvm_tdx *kvm_tdx,
 
 		stream->gfns[i] = gfn;
 	}
+
+	srcu_read_unlock(&kvm->srcu, idx);
 
 	return kvm_mmu_import_private_pages(vcpu, stream->gfns,
 					    stream->sptes, npages,
