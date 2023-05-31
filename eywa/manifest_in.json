@@ -915,7 +915,7 @@
                 }
             ],
             "description": "EDAC for SPR and IEH for TGL",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Ahmad, Annie",
@@ -934,7 +934,7 @@
                     "email": "tomer.levy@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3420",
             "name": "edac",
             "repourl": "https://github.com/intel-sandbox/qzhuo-linux.git",
             "sdl_contact": [
@@ -945,8 +945,8 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
-            "maillist": "",
+            "last_enabled": "v6.4",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00088.html",
             "platforms": "SPR,TGL",
             "feature_jiras": "LFE-4945,LFE-631"
         },
