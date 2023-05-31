@@ -1308,9 +1308,10 @@ static void hreset_guest_enter(struct vcpu_vmx *vmx)
 		return;
 
 	/*
-	 * Don't need to do HRESET before we enter guest since task switch
-	 * has done this, and vCPU thread also need its history to allow
-	 * Host to schedule.
+	 * Don't need to explicitly execute the HRESET instruction before
+	 * we enter guest since task switch has done this, and vCPU thread
+	 * also need to keep its history to allow Host to schedule if it isn't
+	 * switched in/out.
 	 */
 	rdmsrl(MSR_IA32_HW_HRESET_ENABLE, vmx->vcpu_hfi_desc.host_hreset_enable);
 	wrmsrl(MSR_IA32_HW_HRESET_ENABLE, vmx->vcpu_hfi_desc.guest_hreset_enable);
@@ -7706,11 +7707,6 @@ bool vmx_has_emulated_msr(struct kvm *kvm, u32 index)
 		return enable_unrestricted_guest || emulate_invalid_guest_state;
 	case KVM_FIRST_EMULATED_VMX_MSR ... KVM_LAST_EMULATED_VMX_MSR:
 		return nested;
-	case MSR_IA32_HW_FEEDBACK_CONFIG:
-	case MSR_IA32_HW_FEEDBACK_PTR:
-		return intel_hfi_enabled();
-	case MSR_IA32_HW_HRESET_ENABLE:
-		return boot_cpu_has(X86_FEATURE_HRESET);
 	case MSR_AMD64_VIRT_SPEC_CTRL:
 	case MSR_AMD64_TSC_RATIO:
 		/* This is AMD only.  */
