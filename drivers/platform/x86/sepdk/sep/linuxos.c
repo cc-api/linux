@@ -86,10 +86,8 @@ static volatile S32 hooks_installed = 0;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0)
 static struct tracepoint *tp_sched_switch = NULL;
 #endif
-#if !defined(PROFILE_MUNMAP)
+#if !defined(DRV_USE_PROFILE_HOOK)
 static struct kprobe     *kp_munmap             = NULL;
-#endif
-#if !defined(PROFILE_TASK_EXIT)
 static struct kprobe     *kp_doexit             = NULL;
 #endif
 static struct kprobe *kp_guest_enter = NULL;
@@ -363,7 +361,11 @@ linuxos_Map_Kernel_Modules(void)
 	     (unsigned long)modules > MODULES_VADDR; modules = modules->prev);
 	list_for_each_entry(current_module, modules, list) {
 		char *name = current_module->name;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0) || \
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0) || \
+	defined(SEP_CONFIG_MODULE_MEMORY)
+		addr = (unsigned long)current_module->mem[MOD_TEXT].base;
+		size = current_module->mem[MOD_TEXT].size;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0) || \
 	defined(SEP_CONFIG_MODULE_LAYOUT)
 		addr = (unsigned long)current_module->core_layout.base;
 		size = current_module->core_layout.size;
@@ -582,7 +584,7 @@ linuxos_Enum_Modules_For_Process(struct task_struct *p,
  * However it is not called when a process is exiting instead exit_mmap is called
  * (resulting in an EXIT_MMAP notification).
  */
-#if defined(PROFILE_MUNMAP)
+#if defined(DRV_USE_PROFILE_HOOK)
 static int
 linuxos_Exec_Unmap_Notify(struct notifier_block *self,
 			  unsigned long          val,
@@ -602,7 +604,7 @@ linuxos_Exec_Unmap_Notify(struct kprobe *p, struct pt_regs *regs)
 	uid_t l_uid;
 #endif
 
-#if defined(PROFILE_MUNMAP)
+#if defined(DRV_USE_PROFILE_HOOK)
 	SEP_DRV_LOG_NOTIFICATION_IN("Self: %p, val: %lu, data: %p.", self, val,
 				    data);
 	SEP_DRV_LOG_NOTIFICATION_TRACE(SEP_IN_NOTIFICATION,
@@ -612,7 +614,7 @@ linuxos_Exec_Unmap_Notify(struct kprobe *p, struct pt_regs *regs)
 	SEP_DRV_LOG_NOTIFICATION_IN("regs: %p, addr: 0x%lx.", regs, regs->di);
 #endif
 
-#if defined(PROFILE_MUNMAP)
+#if defined(DRV_USE_PROFILE_HOOK)
 	addr = (unsigned long)data;
 #else
 	addr = (unsigned long)regs->di;
@@ -636,7 +638,7 @@ linuxos_Exec_Unmap_Notify(struct kprobe *p, struct pt_regs *regs)
 		SEP_DRV_LOG_NOTIFICATION_OUT("Early exit (driver state).");
 		return status;
 	}
-#if defined(PROFILE_MUNMAP)
+#if defined(DRV_USE_PROFILE_HOOK)
 	if (!atomic_add_negative(1, &hook_state)) {
 		SEP_DRV_LOG_NOTIFICATION_TRACE(SEP_IN_NOTIFICATION,
 					       "unmap: hook_state %d.",
@@ -644,20 +646,20 @@ linuxos_Exec_Unmap_Notify(struct kprobe *p, struct pt_regs *regs)
 #endif
 		mm = get_task_mm(current);
 		if (mm) {
-			UTILITY_down_read_mm(mm);
+			UTILITY_down_read_mm(mm, true);
 			mmap = FIND_VMA(mm, addr);
 			if (mmap && mmap->vm_file
-#if defined(PROFILE_MUNMAP)
+#if defined(DRV_USE_PROFILE_HOOK)
 			    && (mmap->vm_flags & VM_EXEC)
 #endif
 			    ) {
 				linuxos_VMA_For_Process(current, mmap, TRUE,
 							&first);
 			}
-			UTILITY_up_read_mm(mm);
+			UTILITY_up_read_mm(mm, true);
 			mmput(mm);
 		}
-#if defined(PROFILE_MUNMAP)
+#if defined(DRV_USE_PROFILE_HOOK)
 	}
 	atomic_dec(&hook_state);
 	SEP_DRV_LOG_NOTIFICATION_TRACE(SEP_IN_NOTIFICATION,
@@ -1067,9 +1069,9 @@ LINUXOS_Enum_Process_Modules(DRV_BOOL at_end)
 			continue;
 		}
 
-		UTILITY_down_read_mm(mm);
+		UTILITY_down_read_mm(mm, false);
 		linuxos_Enum_Modules_For_Process(p, mm, at_end ? -1 : 0);
-		UTILITY_up_read_mm(mm);
+		UTILITY_up_read_mm(mm, false);
 		mmput(mm);
 		n++;
 	}
@@ -1098,7 +1100,7 @@ LINUXOS_Enum_Process_Modules(DRV_BOOL at_end)
  * of the task and set the unload sample count and the load event flag to 1 to
  * indicate this is a module unload
  */
-#if defined(PROFILE_TASK_EXIT)
+#if defined(DRV_USE_PROFILE_HOOK)
 static int
 linuxos_Exit_Task_Notify(struct notifier_block *self,
 			 unsigned long          val,
@@ -1111,13 +1113,13 @@ linuxos_Exit_Task_Notify(struct kprobe *kp, struct pt_regs *regs)
 	int                 status = OS_SUCCESS;
 	U32                 cur_driver_state;
 	struct mm_struct   *mm;
-#if defined(PROFILE_TASK_EXIT)
+#if defined(DRV_USE_PROFILE_HOOK)
 	struct task_struct *p      = (struct task_struct *)data;
 #else
 	struct task_struct *p      = (struct task_struct *)current;
 #endif
 
-#if defined(PROFILE_TASK_EXIT)
+#if defined(DRV_USE_PROFILE_HOOK)
 	SEP_DRV_LOG_NOTIFICATION_IN("Self: %p, val: %lu, data: %p.", self, val,
 				    data);
 #else
@@ -1158,14 +1160,14 @@ linuxos_Exit_Task_Notify(struct kprobe *kp, struct pt_regs *regs)
 		SEP_DRV_LOG_NOTIFICATION_OUT("Res = %u (!p->mm).", status);
 		goto final;
 	}
-	UTILITY_down_read_mm(mm);
+	UTILITY_down_read_mm(mm, false);
 	if (GET_DRIVER_STATE() != DRV_STATE_TERMINATING) {
 		if (!atomic_add_negative(1, &hook_state)) {
 			linuxos_Enum_Modules_For_Process(p, mm, 1);
 		}
 		atomic_dec(&hook_state);
 	}
-	UTILITY_up_read_mm(mm);
+	UTILITY_up_read_mm(mm, false);
 	mmput(mm);
 
 	SEP_DRV_LOG_NOTIFICATION_TRACE(SEP_IN_NOTIFICATION, "Hook_state %d.",
@@ -1179,13 +1181,11 @@ final:
 /*
  *  The notifier block.  All the static entries have been defined at this point
  */
-#if defined(PROFILE_MUNMAP)
+#if defined(DRV_USE_PROFILE_HOOK)
 static struct notifier_block linuxos_exec_unmap_nb = {
 	.notifier_call = linuxos_Exec_Unmap_Notify,
 };
-#endif
 
-#if defined(PROFILE_TASK_EXIT)
 static struct notifier_block linuxos_exit_task_nb = {
 	.notifier_call = linuxos_Exit_Task_Notify,
 };
@@ -1458,7 +1458,7 @@ install_sched_process_exit_callback(VOID)
 	SEP_DRV_LOG_TRACE_IN("");
 	SEP_DRV_LOG_INIT("Installing shced_process_exit Hook.");
 
-#if defined(PROFILE_TASK_EXIT)
+#if defined(DRV_USE_PROFILE_HOOK)
 	err = profile_event_register(MY_TASK, &linuxos_exit_task_nb);
 #else
 #if defined(CONFIG_KPROBES)
@@ -1512,7 +1512,7 @@ install_sys_enter_munmap_callback(VOID)
 	SEP_DRV_LOG_TRACE_IN("");
 	SEP_DRV_LOG_INIT("Installing sys_enter_munmap Hook.");
 
-#if defined(PROFILE_MUNMAP)
+#if defined(DRV_USE_PROFILE_HOOK)
 	err = profile_event_register(MY_UNMAP, &linuxos_exec_unmap_nb);
 #else
 #if defined(CONFIG_KPROBES)
@@ -1750,7 +1750,7 @@ uninstall_sched_process_exit_callback(VOID)
 	SEP_DRV_LOG_TRACE_IN("");
 	SEP_DRV_LOG_INIT("Uninstalling sched_process_exit Hook.");
 
-#if defined(PROFILE_TASK_EXIT)
+#if defined(DRV_USE_PROFILE_HOOK)
 	err = profile_event_unregister(MY_TASK, &linuxos_exit_task_nb);
 #else
 #if defined(CONFIG_KPROBES)
@@ -1786,7 +1786,7 @@ uninstall_sys_enter_munmap_callback(VOID)
 	SEP_DRV_LOG_TRACE_IN("");
 	SEP_DRV_LOG_INIT("Uninstalling sys_enter_munmap Hook.");
 
-#if defined(PROFILE_MUNMAP)
+#if defined(DRV_USE_PROFILE_HOOK)
 	err = profile_event_unregister(MY_UNMAP, &linuxos_exec_unmap_nb);
 #else
 #if defined(CONFIG_KPROBES)

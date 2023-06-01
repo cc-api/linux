@@ -781,7 +781,7 @@ sys_info_Update_Hyperthreading_Info(VOID *buffer)
 
 	// Apply hueristic to detect HT OFF and CPU offline configuration
 	if (max_thread_id == 0 &&
-	    GLOBAL_STATE_num_cpus(driver_state) == num_cores) {
+	    GLOBAL_STATE_active_cpus(driver_state) == num_cores) {
 		// This is the case HT is off by BIOS
 		SEP_DRV_LOG_DETECTION("Hyperthreading OFF");
 		if (threads_per_core[cpu] > 1 &&
@@ -1220,9 +1220,13 @@ SYS_INFO_Build(VOID)
 		//        return STATUS_INSUFFICIENT_RESOURCES;
 		return 0;
 	}
-	// Update per CPU num_modules
+	// Update per CPU num_modules and num cores per module
 	for (i = 0; i < (U32)GLOBAL_STATE_num_cpus(driver_state); i++) {
 		local_gpc = &(((VTSA_GEN_PER_CPU *)gen_per_cpu)[i]);
+		if (!VTSA_GEN_PER_CPU_cpu_intel_processor_number(local_gpc)) {
+			// Discard offlined cores since their module ID = 0 which is a valid ID
+			continue;
+		}
 		VTSA_GEN_PER_CPU_cpu_num_modules(local_gpc) =
 			(U16)(num_modules);
 		if (VTSA_GEN_PER_CPU_cpu_package_num(local_gpc) == 0 &&

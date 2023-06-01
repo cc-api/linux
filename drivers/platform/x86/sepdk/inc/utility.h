@@ -110,9 +110,9 @@ extern void SYS_IO_Delay(void);
 
 extern void UTILITY_Read_TSC(U64 *pTsc);
 
-extern void UTILITY_down_read_mm(struct mm_struct *mm);
+extern void UTILITY_down_read_mm(struct mm_struct *mm, bool lock_required);
 
-extern void UTILITY_up_read_mm(struct mm_struct *mm);
+extern void UTILITY_up_read_mm(struct mm_struct *mm, bool lock_required);
 
 extern void
 UTILITY_Read_Cpuid(U64  cpuid_function,

@@ -2729,7 +2729,8 @@ struct PERF_DEVICE_CONFIG_INFO_NODE_S {
 	S8  cpu_mask[MAX_EVENT_NAME_LENGTH]; // cpumask value in /sys/bus/event_source/devices/*/cpumask
 	// dependent on unit_scope, {socket (entry for each socket) / thread level(no entry)/ system level (one entry)}
 	// We don't expect cpu_mask to over flow the specified size, but on event of overflow it goes into reserved fields
-	U32  perf_unit_id;               // Index to identify different units
+	U32 perf_unit_id;               // Index to identify different units
+	U32 device_sub_type;
 };
 
 #define PERF_DEVICE_CONFIG_INFO_name(x)              ((x)->name)
@@ -2741,6 +2742,7 @@ struct PERF_DEVICE_CONFIG_INFO_NODE_S {
 #define PERF_DEVICE_CONFIG_INFO_cpu_mask(x)          ((x)->cpu_mask)
 #define PERF_DEVICE_CONFIG_INFO_unc_unit_id(x)       ((x)->unc_unit_id)
 #define PERF_DEVICE_CONFIG_INFO_perf_unit_id(x)      ((x)->perf_unit_id)
+#define PERF_DEVICE_CONFIG_INFO_device_sub_type(x)   ((x)->device_sub_type)
 
 typedef struct PERF_SYS_DEVICES_NODE_S PERF_SYS_DEVICES_NODE;
 typedef PERF_SYS_DEVICES_NODE         *PERF_SYS_DEVICES;
@@ -2770,6 +2772,8 @@ struct PERF_SYS_DEVICES_NODE_S {
 	PERF_DEVICE_CONFIG_INFO_cpu_mask(&PERF_SYS_DEVICES_device_config(x, i))
 #define PERF_SYS_DEVICES_unc_unit_id(x, i)       \
 	PERF_DEVICE_CONFIG_INFO_unc_unit_id(&PERF_SYS_DEVICES_device_config(x, i))
+#define PERF_SYS_DEVICES_device_sub_type(x, i)         \
+	PERF_DEVICE_CONFIG_INFO_device_sub_type(&PERF_SYS_DEVICES_device_config(x, i))
 
 typedef enum {
 	IPT_BUFFER_CAPTURE = 0,

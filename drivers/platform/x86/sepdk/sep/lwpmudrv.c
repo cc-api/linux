@@ -6347,10 +6347,8 @@ lwpmudrv_Get_Drv_Setup_Info(IOCTL_ARGS args)
 #else
 	DRV_SETUP_INFO_sched_switch_hook_unavailable(&req_drv_setup_info) = 1;
 #endif
-#if !defined(CONFIG_KPROBES) && !defined(PROFILE_MUNMAP)
+#if !defined(CONFIG_KPROBES) && !defined(DRV_USE_PROFILE_HOOK)
 	DRV_SETUP_INFO_munmap_hook_unavailable(&req_drv_setup_info) = 1;
-#endif
-#if !defined(CONFIG_KPROBES) && !defined(PROFILE_TASK_EXIT)
 	DRV_SETUP_INFO_process_exit_hook_unavailable(&req_drv_setup_info) = 1;
 #endif
 
@@ -7080,6 +7078,8 @@ lwpmu_Device_Control(IOCTL_USE_INODE struct file *filp,
 	SEP_DRV_LOG_TRACE_IN("Cmd type: %d, subcommand: %d.", _IOC_TYPE(cmd),
 				 _IOC_NR(cmd));
 
+	memset(&local_args, 0, sizeof(IOCTL_ARGS_NODE));
+
 #if !defined(DRV_USE_UNLOCKED_IOCTL)
 	SEP_DRV_LOG_TRACE("Cmd: 0x%x, called on inode maj:%d, min:%d.", cmd,
 			  imajor(inode), iminor(inode));
@@ -7563,7 +7563,11 @@ lwpmu_Load(VOID)
 	/* Register the file operations with the OS */
 
 #if !defined(DRV_UDEV_UNAVAILABLE)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	pmu_class = class_create(SEP_DRIVER_NAME);
+#else
 	pmu_class = class_create(THIS_MODULE, SEP_DRIVER_NAME);
+#endif
 	if (IS_ERR(pmu_class)) {
 		SEP_DRV_LOG_ERROR("Error registering SEP control class!");
 	}

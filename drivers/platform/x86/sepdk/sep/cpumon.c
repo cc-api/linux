@@ -140,7 +140,7 @@ static volatile S32 cpuhook_installed = 0;
  *
  */
 extern DRV_BOOL
-CPUMON_is_Online_Allowed()
+CPUMON_is_Online_Allowed(void)
 {
 	U32      cur_driver_state;
 	DRV_BOOL is_allowed = FALSE;
@@ -179,7 +179,7 @@ CPUMON_is_Online_Allowed()
  *
  */
 extern DRV_BOOL
-CPUMON_is_Offline_Allowed()
+CPUMON_is_Offline_Allowed(void)
 {
 	U32      cur_driver_state;
 	DRV_BOOL is_allowed = FALSE;

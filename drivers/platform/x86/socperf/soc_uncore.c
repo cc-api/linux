@@ -74,7 +74,9 @@
 #elif defined(DRV_CHROMEOS)
 #include <linux/pci.h>
 static struct pci_dev *pci_root;
+#if !defined(PCI_DEVFN)
 #define PCI_DEVFN(slot, func) ((((slot)&0x1f) << 3) | ((func)&0x07))
+#endif
 #endif
 
 static U32 counter_overflow[UNCORE_MAX_COUNTERS];

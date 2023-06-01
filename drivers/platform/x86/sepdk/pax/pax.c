@@ -724,6 +724,7 @@ pax_Device_Control(IOCTL_USE_INODE struct file *filp,
 	int             status = OS_SUCCESS;
 	IOCTL_ARGS_NODE local_args;
 
+	memset(&local_args, 0, sizeof(IOCTL_ARGS_NODE));
 	if (arg) {
 		status = copy_from_user(&local_args, (IOCTL_ARGS)arg,
 					sizeof(IOCTL_ARGS_NODE));
@@ -859,7 +860,11 @@ pax_Load(VOID)
 	}
 
 #if !defined(DRV_UDEV_UNAVAILABLE)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	pax_class = class_create("pax");
+#else
 	pax_class = class_create(THIS_MODULE, "pax");
+#endif
 	if (IS_ERR(pax_class)) {
 		PAX_PRINT_ERROR("Error registering pax class\n");
 	}
