@@ -974,7 +974,7 @@
                 }
             ],
             "description": "PMC core driver",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Mark Charney",
@@ -996,8 +996,8 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
-            "maillist": "",
+            "last_enabled": "v6.4",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00092.html",
             "platforms": "LNL,MTL,SKL,TGL",
             "feature_jiras": "LFE-7063"
         },
