@@ -6062,6 +6062,34 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.4"
+        },
+        {
+            "branch": "as/numa-inext",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Schofiel",
+                    "email": "Schofiel"
+                },
+                {
+                    "name": " Alison",
+                    "email": "alison.schofield@intel.com"
+                }
+            ],
+            "description": "CXL NUMA updates for GNR validation",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3423",
+            "name": "cxl_numa",
+            "repourl": "https://github.com/intel-sandbox/cxl.git",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00095.html",
+            "platforms": "GNR",
+            "feature_jiras": "",
+            "last_enabled": "v6.4"
         }
     ]
 }
