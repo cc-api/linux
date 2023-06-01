@@ -16,12 +16,6 @@
 # define DISABLE_UMIP	(1<<(X86_FEATURE_UMIP & 31))
 #endif
 
-#ifdef CONFIG_X86_LASS
-# define DISABLE_LASS	0
-#else
-# define DISABLE_LASS	(1<<(X86_FEATURE_LASS & 31))
-#endif
-
 #ifdef CONFIG_X86_64
 # define DISABLE_VME		(1<<(X86_FEATURE_VME & 31))
 # define DISABLE_K6_MTRR	(1<<(X86_FEATURE_K6_MTRR & 31))
