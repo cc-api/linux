@@ -82,30 +82,34 @@ static unsigned long (*kallsyms_lookup_name_local)(char const *);
 #endif
 
 extern VOID
-UTILITY_down_read_mm(struct mm_struct *mm)
+UTILITY_down_read_mm(struct mm_struct *mm, bool lock_required)
 {
 	SEP_DRV_LOG_TRACE_IN("Mm: %p.", mm);
 
+	if (lock_required || !in_atomic()) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
-	down_read((struct rw_semaphore *)&mm->mmap_sem);
+		down_read((struct rw_semaphore *)&mm->mmap_sem);
 #else
-	down_read((struct rw_semaphore *)&mm->mmap_lock);
+		down_read((struct rw_semaphore *)&mm->mmap_lock);
 #endif
+	}
 
 	SEP_DRV_LOG_TRACE_OUT("");
 	return;
 }
 
 extern VOID
-UTILITY_up_read_mm(struct mm_struct *mm)
+UTILITY_up_read_mm(struct mm_struct *mm, bool lock_required)
 {
 	SEP_DRV_LOG_TRACE_IN("Mm: %p.", mm);
 
+	if (lock_required || !in_atomic()) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
-	up_read((struct rw_semaphore *)&mm->mmap_sem);
+		up_read((struct rw_semaphore *)&mm->mmap_sem);
 #else
-	up_read((struct rw_semaphore *)&mm->mmap_lock);
+		up_read((struct rw_semaphore *)&mm->mmap_lock);
 #endif
+	}
 
 	SEP_DRV_LOG_TRACE_OUT("");
 	return;

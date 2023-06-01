@@ -1735,7 +1735,11 @@ static int socperf_Load(VOID)
 #if !defined(DRV_UDEV_UNAVAILABLE)
 	SOCPERF_PRINT("SocPerf Driver: creating device %s...\n",
 		      SOCPERF_DRIVER_NAME DRV_DEVICE_DELIMITER "c");
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
+	pmu_class = class_create(SOCPERF_DRIVER_NAME);
+#else
 	pmu_class = class_create(THIS_MODULE, SOCPERF_DRIVER_NAME);
+#endif
 	if (IS_ERR(pmu_class)) {
 		SOCPERF_PRINT_ERROR(
 			"Error registering SocPerf control class\n");

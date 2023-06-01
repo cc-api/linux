@@ -30,12 +30,25 @@
 DRIVER_NAME = sepint5
 
 ccflags-y := -I$(srctree)/drivers/platform/x86/sepdk/include -I$(srctree)/drivers/platform/x86/sepdk/inc -I$(srctree)/drivers/platform/x86/sepdk
+# this is a temporary work-around for handling the module structure changes across multiple kernels.
+# need to find out a proper solution.
 
-ccflags-y  += -DSEP_CONFIG_MODULE_LAYOUT
-
-ifeq ($(shell test -e ../../../../../include/linux/kaiser.h && echo -n YES),YES)
-    ccflags-y += -DKAISER_HEADER_PRESENT
+ifneq ($(shell grep -s $(srctree)/include/linux/module.h -we "struct module_layout"),)
+    ccflags-y  += -DSEP_CONFIG_MODULE_LAYOUT
+else
+    ifneq ($(shell grep -s $(srctree)/include/linux/module.h -we "struct module_memory"),)
+        ccflags-y  += -DSEP_CONFIG_MODULE_MEMORY
 endif
+endif
+
+ifneq ($(shell grep -s $(srctree)/include/linux/profile.h -we "PROFILE_TASK_EXIT"),)
+    ccflags-y  += -DDRV_USE_PROFILE_HOOK
+endif
+
+ifeq ($(shell test -e $(srctree)/include/linux/kaiser.h && echo -n YES),YES)
+    ccflags-y  += -DKAISER_HEADER_PRESENT
+endif
+
 
 obj-m := $(DRIVER_NAME).o
 
