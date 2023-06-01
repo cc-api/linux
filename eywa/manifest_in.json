@@ -6038,6 +6038,30 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.4"
+        },
+        {
+            "branch": "kvm_lass_fixup",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Michael Bottini",
+                    "email": "michael.a.bottini@intel.com"
+                }
+            ],
+            "description": "Fixup to add .check_lass = vmc_check_lass to switched kvm_ops struct location.",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3422",
+            "name": "kvm_lass_fixup",
+            "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": "",
+            "last_enabled": "v6.4"
         }
     ]
 }
