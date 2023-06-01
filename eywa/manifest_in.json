@@ -4787,7 +4787,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "kvm_lass",
+            "branch": "kvm-lass-v6.4-rc4",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
@@ -4806,7 +4806,7 @@
             ],
             "jira": "NEXT-3421",
             "name": "KVM LASS",
-            "repourl": "https://github.com/intel-plai/kvm_lass.git",
+            "repourl": "https://github.com/intel-sandbox/kvm-ipiv.git",
             "sdl_contact": [
                 {
                     "name": "Guang Zeng",
