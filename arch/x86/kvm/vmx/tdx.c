@@ -1009,7 +1009,8 @@ static noinstr void tdx_vcpu_enter_exit(struct vcpu_tdx *tdx)
 			pr_tdx_error(TDH_VP_ENTER, err, NULL);
 			break;
 		}
-	} while (err == TDX_OPERAND_BUSY);
+	} while (err == TDX_OPERAND_BUSY ||
+		 err == TDX_OPERAND_BUSY_HOST_PRIORITY);
 
 	if ((u16)tdx->exit_reason.basic == EXIT_REASON_EXCEPTION_NMI &&
 	    is_nmi(tdexit_intr_info(vcpu))) {
