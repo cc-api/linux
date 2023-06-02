@@ -49,6 +49,8 @@ ifeq ($(shell test -e $(srctree)/include/linux/kaiser.h && echo -n YES),YES)
     ccflags-y  += -DKAISER_HEADER_PRESENT
 endif
 
+ccflags-y += -DSEP_ENABLE_PRIVATE_CPUS
+
 
 obj-m := $(DRIVER_NAME).o
 
