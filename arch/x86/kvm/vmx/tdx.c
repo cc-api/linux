@@ -990,6 +990,8 @@ u64 __tdx_vcpu_run(hpa_t tdvpr, void *regs, u32 regs_mask);
 
 static noinstr void tdx_vcpu_enter_exit(struct vcpu_tdx *tdx)
 {
+	u64 err, retries = 0;
+
 	/*
 	 * Avoid section mismatch with to_tdx() with KVM_VM_BUG().  The caller
 	 * should call to_tdx().
@@ -997,8 +999,18 @@ static noinstr void tdx_vcpu_enter_exit(struct vcpu_tdx *tdx)
 	struct kvm_vcpu *vcpu = &tdx->vcpu;
 
 	guest_state_enter_irqoff();
-	tdx->exit_reason.full = __tdx_vcpu_run(tdx->tdvpr_pa, vcpu->arch.regs,
-					tdx->tdvmcall.regs_mask);
+	do {
+		tdx->exit_reason.full = __tdx_vcpu_run(tdx->tdvpr_pa,
+											   vcpu->arch.regs,
+											   tdx->tdvmcall.regs_mask);
+		err = seamcall_masked_status(tdx->exit_reason.full);
+		if (retries++ > TDX_SEAMCALL_RETRY_MAX) {
+			KVM_BUG_ON(err, vcpu->kvm);
+			pr_tdx_error(TDH_VP_ENTER, err, NULL);
+			break;
+		}
+	} while (err == TDX_OPERAND_BUSY);
+
 	if ((u16)tdx->exit_reason.basic == EXIT_REASON_EXCEPTION_NMI &&
 	    is_nmi(tdexit_intr_info(vcpu))) {
 		kvm_before_interrupt(vcpu, KVM_HANDLING_NMI);
