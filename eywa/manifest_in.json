@@ -3113,7 +3113,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "user_shstk_v8.5",
+            "branch": "ss_9_12",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -3132,9 +3132,9 @@
                 }
             ],
             "description": "Shadow stack feature",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3424",
             "name": "shadow_stacks",
             "repourl": "https://github.com/intel-sandbox/rpedgeco.linux.git",
             "sdl_contact": [
@@ -3145,8 +3145,8 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
-            "maillist": "",
+            "last_enabled": "v6.4",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-06/msg00001.html",
             "platforms": "EMR,GNR,SPR,TGL",
             "feature_jiras": "LFE-3784"
         },
