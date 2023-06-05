@@ -552,7 +552,6 @@ static inline void fpu_inherit_perms(struct fpu *dst_fpu)
 	}
 }
 
-<<<<<<<
 /* A passed ssp of zero will not cause any update */
 static int update_fpu_shstk(struct task_struct *dst, unsigned long ssp)
 {
@@ -578,13 +577,13 @@ static int update_fpu_shstk(struct task_struct *dst, unsigned long ssp)
 	xstate->user_ssp = (u64)ssp;
 #endif
 	return 0;
-=======
+}
+
 static void fpu_reset_fpstate(struct fpstate *fpstate)
 {
 	memcpy(&fpstate->regs, &init_fpstate.regs, init_fpstate_copy_size());
 	if (use_xsave())
 		xstate_init_xcomp_bv(&fpstate->regs.xsave, fpstate->xfeatures);
->>>>>>>
 }
 
 /* Clone current's FPU state on fork */
@@ -811,6 +810,10 @@ void fpregs_lock_and_load(void)
 	if (test_thread_flag(TIF_NEED_FPU_LOAD))
 		fpregs_restore_userregs();
 }
+<<<<<<<
+=======
+EXPORT_SYMBOL_GPL(fpregs_lock_and_load);
+>>>>>>>
 
 #ifdef CONFIG_X86_DEBUG_FPU
 /*
