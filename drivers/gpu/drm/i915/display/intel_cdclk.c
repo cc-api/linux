@@ -37,6 +37,8 @@
 #include "intel_pci_config.h"
 #include "intel_pcode.h"
 #include "intel_psr.h"
+#include "skl_watermark.h"
+#include "skl_watermark_regs.h"
 #include "vlv_sideband.h"
 
 /**
@@ -1223,6 +1225,7 @@ static void skl_cdclk_uninit_hw(struct drm_i915_private *dev_priv)
 
 struct intel_cdclk_vals {
 	u32 cdclk;
+	u32 mdclk;
 	u16 refclk;
 	u16 waveform;
 	u8 divider;	/* CD2X divider * 2 */
@@ -1380,6 +1383,32 @@ static const struct intel_cdclk_vals mtl_cdclk_table[] = {
 	{}
 };
 
+static const struct intel_cdclk_vals lnl_cdclk_table[] = {
+	{ .refclk = 38400, .cdclk = 153600, .mdclk = 614400, .divider = 2, .ratio = 16, .waveform = 0xaaaa },
+	{ .refclk = 38400, .cdclk = 172800, .mdclk = 614400, .divider = 2, .ratio = 16, .waveform = 0xad5a },
+	{ .refclk = 38400, .cdclk = 192000, .mdclk = 614400, .divider = 2, .ratio = 16, .waveform = 0xb6b6 },
+	{ .refclk = 38400, .cdclk = 211200, .mdclk = 614400, .divider = 2, .ratio = 16, .waveform = 0xdbb6 },
+	{ .refclk = 38400, .cdclk = 230400, .mdclk = 614400, .divider = 2, .ratio = 16, .waveform = 0xeeee },
+	{ .refclk = 38400, .cdclk = 249600, .mdclk = 614400, .divider = 2, .ratio = 16, .waveform = 0xf7de },
+	{ .refclk = 38400, .cdclk = 268800, .mdclk = 614400, .divider = 2, .ratio = 16, .waveform = 0xfefe },
+	{ .refclk = 38400, .cdclk = 288000, .mdclk = 614400, .divider = 2, .ratio = 16, .waveform = 0xfffe },
+	{ .refclk = 38400, .cdclk = 307200, .mdclk = 614400, .divider = 2, .ratio = 16, .waveform = 0x0000 },
+	{ .refclk = 38400, .cdclk = 330000, .mdclk = 960000, .divider = 2, .ratio = 25, .waveform = 0xdbb6 },
+	{ .refclk = 38400, .cdclk = 360000, .mdclk = 960000, .divider = 2, .ratio = 25, .waveform = 0xeeee },
+	{ .refclk = 38400, .cdclk = 390000, .mdclk = 960000, .divider = 2, .ratio = 25, .waveform = 0xf7de },
+	{ .refclk = 38400, .cdclk = 420000, .mdclk = 960000, .divider = 2, .ratio = 25, .waveform = 0xfefe },
+	{ .refclk = 38400, .cdclk = 450000, .mdclk = 960000, .divider = 2, .ratio = 25, .waveform = 0xfffe },
+	{ .refclk = 38400, .cdclk = 480000, .mdclk = 960000, .divider = 2, .ratio = 25, .waveform = 0x0000 },
+	{ .refclk = 38400, .cdclk = 487200, .mdclk = 1113600, .divider = 2, .ratio = 29, .waveform = 0xfefe },
+	{ .refclk = 38400, .cdclk = 522000, .mdclk = 1113600, .divider = 2, .ratio = 29, .waveform = 0xfffe },
+	{ .refclk = 38400, .cdclk = 556800, .mdclk = 1113600, .divider = 2, .ratio = 29, .waveform = 0x0000 },
+	{ .refclk = 38400, .cdclk = 571200, .mdclk = 1305600, .divider = 2, .ratio = 34, .waveform = 0xfefe },
+	{ .refclk = 38400, .cdclk = 612000, .mdclk = 1305600, .divider = 2, .ratio = 34, .waveform = 0xfffe },
+	{ .refclk = 38400, .cdclk = 652800, .mdclk = 1305600, .divider = 2, .ratio = 34, .waveform = 0x0000 },
+	{}
+};
+
+
 static int bxt_calc_cdclk(struct drm_i915_private *dev_priv, int min_cdclk)
 {
 	const struct intel_cdclk_vals *table = dev_priv->display.cdclk.table;
@@ -1512,6 +1541,8 @@ static void bxt_de_pll_readout(struct drm_i915_private *dev_priv,
 static void bxt_get_cdclk(struct drm_i915_private *dev_priv,
 			  struct intel_cdclk_config *cdclk_config)
 {
+	const struct intel_cdclk_vals *table = dev_priv->display.cdclk.table;
+	int i, ratio, tbl_waveform = 0;
 	u32 squash_ctl = 0;
 	u32 divider;
 	int div;
@@ -1562,8 +1593,34 @@ static void bxt_get_cdclk(struct drm_i915_private *dev_priv,
 
 		cdclk_config->cdclk = DIV_ROUND_CLOSEST(hweight16(waveform) *
 							cdclk_config->vco, size * div);
+		tbl_waveform = squash_ctl & CDCLK_SQUASH_WAVEFORM_MASK;
 	} else {
 		cdclk_config->cdclk = DIV_ROUND_CLOSEST(cdclk_config->vco, div);
+	}
+
+	ratio = cdclk_config->vco / cdclk_config->ref;
+
+	for (i = 0; table[i].refclk; i++) {
+		if (table[i].refclk != cdclk_config->ref)
+			continue;
+
+		if (table[i].divider != div)
+			continue;
+
+		if (table[i].waveform != tbl_waveform)
+			continue;
+
+		if (table[i].ratio != ratio)
+			continue;
+
+		/*
+		 * Supported from LunarLake HW onwards, however considering that
+		 * besides this the whole procedure is the same, we keep this
+		 * for all the platforms.
+		 */
+		cdclk_config->mdclk = table[i].mdclk;
+
+		break;
 	}
 
  out:
@@ -1660,7 +1717,12 @@ static void adlp_cdclk_pll_crawl(struct drm_i915_private *dev_priv, int vco)
 
 static u32 bxt_cdclk_cd2x_pipe(struct drm_i915_private *dev_priv, enum pipe pipe)
 {
-	if (DISPLAY_VER(dev_priv) >= 12) {
+	if (DISPLAY_VER(dev_priv) >= 20) {
+		if (pipe == INVALID_PIPE)
+			return LNL_CDCLK_CD2X_PIPE_NONE;
+		else
+			return LNL_CDCLK_CD2X_PIPE(pipe);
+	} else if (DISPLAY_VER(dev_priv) >= 12) {
 		if (pipe == INVALID_PIPE)
 			return TGL_CDCLK_CD2X_PIPE_NONE;
 		else
@@ -1759,6 +1821,59 @@ static bool cdclk_pll_is_unknown(unsigned int vco)
 	 * sanitize path.
 	 */
 	return vco == ~0;
+}
+
+static int get_mdclk_cdclk_ratio(struct drm_i915_private *i915,
+				 const struct intel_cdclk_config *cdclk_config)
+{
+	if (DISPLAY_VER(i915) >= 20)
+		return cdclk_config->mdclk / cdclk_config->cdclk - 1;
+	else
+		return 1;
+}
+
+static void lnl_prog_mbus_dbuf_ctrl(struct drm_i915_private *i915,
+				const struct intel_cdclk_config *cdclk_config)
+{
+	int min_throttle_val;
+	int min_tracker_state;
+	enum dbuf_slice slice;
+	int mdclk_cdclk_div_ratio;
+	int mbus_join = intel_de_read(i915, MBUS_CTL) & MBUS_JOIN;
+
+	mdclk_cdclk_div_ratio = get_mdclk_cdclk_ratio(i915, cdclk_config);
+
+	min_throttle_val = MBUS_TRANS_THROTTLE_MIN_SELECT(mdclk_cdclk_div_ratio);
+
+	intel_de_rmw(i915, MBUS_CTL, MBUS_TRANS_THROTTLE_MIN_MASK, min_throttle_val);
+
+	if (mbus_join)
+		mdclk_cdclk_div_ratio = (mdclk_cdclk_div_ratio << 1) + 1;
+
+	min_tracker_state = DBUF_MIN_TRACKER_STATE_SERVICE(mdclk_cdclk_div_ratio);
+
+	for_each_dbuf_slice(i915, slice)
+		intel_de_rmw(i915, DBUF_CTL_S(slice),
+			     DBUF_MIN_TRACKER_STATE_SERVICE_MASK,
+			     min_tracker_state);
+
+}
+
+static void lnl_cdclk_squash_program(struct drm_i915_private *i915,
+				     const struct intel_cdclk_config *cdclk_config,
+				     u16 waveform)
+{
+
+	if (cdclk_config->cdclk < i915->display.cdclk.hw.cdclk)
+		/* Program mbus_ctrl and dbuf_ctrl registers as Pre hook */
+		lnl_prog_mbus_dbuf_ctrl(i915, cdclk_config);
+
+	dg2_cdclk_squash_program(i915, waveform);
+
+	if (cdclk_config->cdclk > i915->display.cdclk.hw.cdclk)
+		/* Program mbus_ctrl and dbuf_ctrl registers as Post hook */
+		lnl_prog_mbus_dbuf_ctrl(i915, cdclk_config);
+
 }
 
 static int cdclk_squash_divider(u16 waveform)
@@ -1862,12 +1977,16 @@ static void _bxt_set_cdclk(struct drm_i915_private *dev_priv,
 	else
 		clock = cdclk;
 
-	if (HAS_CDCLK_SQUASH(dev_priv))
-		dg2_cdclk_squash_program(dev_priv, waveform);
+	if (HAS_CDCLK_SQUASH(dev_priv)) {
+		if (DISPLAY_VER(dev_priv) >= 20)
+			lnl_cdclk_squash_program(dev_priv, cdclk_config,
+						 waveform);
+		else
+			dg2_cdclk_squash_program(dev_priv, waveform);
+	}
 
 	val = bxt_cdclk_cd2x_div_sel(dev_priv, clock, vco) |
-		bxt_cdclk_cd2x_pipe(dev_priv, pipe) |
-		skl_cdclk_decimal(cdclk);
+		bxt_cdclk_cd2x_pipe(dev_priv, pipe);
 
 	/*
 	 * Disable SSA Precharge when CD clock frequency < 500 MHz,
@@ -1876,6 +1995,16 @@ static void _bxt_set_cdclk(struct drm_i915_private *dev_priv,
 	if ((IS_GEMINILAKE(dev_priv) || IS_BROXTON(dev_priv)) &&
 	    cdclk >= 500000)
 		val |= BXT_CDCLK_SSA_PRECHARGE_ENABLE;
+
+	if (DISPLAY_VER(dev_priv) >= 20)
+		/*
+		 * Using CDCLK through PLL seems to be always better option when its
+		 * supported, both in terms of perfomance and power consumption.
+		 */
+		val |= CDCLK_SOURCE_SEL_CDCLK_PLL;
+	else
+		val |= skl_cdclk_decimal(cdclk);
+
 	intel_de_write(dev_priv, CDCLK_CTL, val);
 
 	if (pipe != INVALID_PIPE)
@@ -2179,6 +2308,7 @@ bool intel_cdclk_needs_modeset(const struct intel_cdclk_config *a,
 			       const struct intel_cdclk_config *b)
 {
 	return a->cdclk != b->cdclk ||
+		a->mdclk != b->mdclk ||
 		a->vco != b->vco ||
 		a->ref != b->ref;
 }
@@ -2369,12 +2499,32 @@ intel_set_cdclk_post_plane_update(struct intel_atomic_state *state)
 	}
 }
 
+static int
+cdclk_match_by_refclk_mdclk(struct drm_i915_private *i915, int pixel_rate)
+{
+	const struct intel_cdclk_vals *table = i915->display.cdclk.table;
+	int i;
+
+	for (i = 0; table[i].refclk; i++)
+		if (table[i].refclk == i915->display.cdclk.hw.ref &&
+		    table[i].mdclk >= pixel_rate)
+			return table[i].cdclk;
+
+	drm_WARN(&i915->drm, 1,
+		 "Cannot satisfy pixel rate %d with refclk %u\n",
+		 pixel_rate, i915->display.cdclk.hw.ref);
+
+	return 0;
+}
+
 static int intel_pixel_rate_to_cdclk(const struct intel_crtc_state *crtc_state)
 {
 	struct drm_i915_private *dev_priv = to_i915(crtc_state->uapi.crtc->dev);
 	int pixel_rate = crtc_state->pixel_rate;
 
-	if (DISPLAY_VER(dev_priv) >= 10)
+	if (DISPLAY_VER(dev_priv) >= 20)
+		return cdclk_match_by_refclk_mdclk(dev_priv, pixel_rate);
+	else if (DISPLAY_VER(dev_priv) >= 10)
 		return DIV_ROUND_UP(pixel_rate, 2);
 	else if (DISPLAY_VER(dev_priv) == 9 ||
 		 IS_BROADWELL(dev_priv) || IS_HASWELL(dev_priv))
@@ -2510,6 +2660,8 @@ static int intel_compute_min_cdclk(struct intel_cdclk_state *cdclk_state)
 	struct intel_crtc_state *crtc_state;
 	int min_cdclk, i;
 	enum pipe pipe;
+	struct intel_dbuf_state *new_dbuf_state;
+	struct intel_dbuf_state *old_dbuf_state;
 
 	for_each_new_intel_crtc_in_state(state, crtc, crtc_state, i) {
 		int ret;
@@ -2538,6 +2690,21 @@ static int intel_compute_min_cdclk(struct intel_cdclk_state *cdclk_state)
 			cdclk_state->bw_min_cdclk = min_cdclk;
 
 			ret = intel_atomic_lock_global_state(&cdclk_state->base);
+			if (ret)
+				return ret;
+		}
+	}
+
+	new_dbuf_state = intel_atomic_get_new_dbuf_state(state);
+	old_dbuf_state = intel_atomic_get_old_dbuf_state(state);
+	if (new_dbuf_state && old_dbuf_state) {
+		new_dbuf_state->mdclk_cdclk_ratio =
+			get_mdclk_cdclk_ratio(dev_priv, &cdclk_state->actual);
+
+		if (new_dbuf_state->mdclk_cdclk_ratio != old_dbuf_state->mdclk_cdclk_ratio) {
+			int ret;
+
+			ret = intel_atomic_serialize_global_state(&new_dbuf_state->base);
 			if (ret)
 				return ret;
 		}
@@ -3398,7 +3565,10 @@ static const struct intel_cdclk_funcs i830_cdclk_funcs = {
  */
 void intel_init_cdclk_hooks(struct drm_i915_private *dev_priv)
 {
-	if (IS_METEORLAKE(dev_priv)) {
+	if (DISPLAY_VER(dev_priv) >= 20) {
+		dev_priv->display.funcs.cdclk = &mtl_cdclk_funcs;
+		dev_priv->display.cdclk.table = lnl_cdclk_table;
+	} else if (IS_METEORLAKE(dev_priv)) {
 		dev_priv->display.funcs.cdclk = &mtl_cdclk_funcs;
 		dev_priv->display.cdclk.table = mtl_cdclk_table;
 	} else if (IS_DG2(dev_priv)) {

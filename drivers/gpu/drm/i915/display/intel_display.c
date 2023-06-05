@@ -1758,7 +1758,7 @@ bool intel_phy_is_tc(struct drm_i915_private *dev_priv, enum phy phy)
 	if (IS_DG2(dev_priv))
 		/* DG2's "TC1" output uses a SNPS PHY */
 		return false;
-	else if (IS_ALDERLAKE_P(dev_priv) || IS_METEORLAKE(dev_priv))
+	else if (DISPLAY_VER(dev_priv) >= 13 && !IS_DGFX(dev_priv))
 		return phy >= PHY_F && phy <= PHY_I;
 	else if (IS_TIGERLAKE(dev_priv))
 		return phy >= PHY_D && phy <= PHY_I;
@@ -5256,7 +5256,16 @@ intel_pipe_config_compare(const struct intel_crtc_state *current_config,
 		PIPE_CONF_CHECK_RECT(pch_pfit.dst);
 
 		PIPE_CONF_CHECK_I(scaler_state.scaler_id);
-		PIPE_CONF_CHECK_I(pixel_rate);
+
+		/*
+		 * Simulator lacks support for C20 PHY modeling. Since
+		 * port_clock, crtc_clock and pixel_rate are calculated based
+		 * on dpll, those parameters won't have valid values in
+		 * simulation. Skip validating those.
+		 * TODO: Condition can be improved to skip only for C20 PHY.
+		 */
+		if (!IS_SIMULATOR(dev_priv))
+			PIPE_CONF_CHECK_I(pixel_rate);
 
 		PIPE_CONF_CHECK_X(gamma_mode);
 		if (IS_CHERRYVIEW(dev_priv))
@@ -5328,11 +5337,20 @@ intel_pipe_config_compare(const struct intel_crtc_state *current_config,
 	if (IS_G4X(dev_priv) || DISPLAY_VER(dev_priv) >= 5)
 		PIPE_CONF_CHECK_I(pipe_bpp);
 
-	if (!fastset || !pipe_config->seamless_m_n) {
-		PIPE_CONF_CHECK_I(hw.pipe_mode.crtc_clock);
-		PIPE_CONF_CHECK_I(hw.adjusted_mode.crtc_clock);
+	/*
+	 * Simulator lacks support for C20 PHY modeling. Since port_clock,
+	 * crtc_clock and pixel_rate are calculated based on dpll, those
+	 * parameters won't have valid values in simulation. Skip validating
+	 * those.
+	 * TODO: Condition can be improved to skip only for C20 PHY.
+	 */
+	if (!IS_SIMULATOR(dev_priv)) {
+		if (!fastset || !pipe_config->seamless_m_n) {
+			PIPE_CONF_CHECK_I(hw.pipe_mode.crtc_clock);
+			PIPE_CONF_CHECK_I(hw.adjusted_mode.crtc_clock);
+		}
+		PIPE_CONF_CHECK_I(port_clock);
 	}
-	PIPE_CONF_CHECK_I(port_clock);
 
 	PIPE_CONF_CHECK_I(min_voltage_level);
 
@@ -7048,7 +7066,7 @@ static void intel_atomic_commit_tail(struct intel_atomic_state *state)
 	/* Now enable the clocks, plane, pipe, and connectors that we set up. */
 	dev_priv->display.funcs.display->commit_modeset_enables(state);
 
-	if (state->modeset)
+	if (state->modeset && DISPLAY_VER(dev_priv) < 20)
 		intel_set_cdclk_post_plane_update(state);
 
 	intel_wait_for_vblank_workers(state);
@@ -7094,6 +7112,9 @@ static void intel_atomic_commit_tail(struct intel_atomic_state *state)
 
 	intel_dbuf_post_plane_update(state);
 	intel_psr_post_plane_update(state);
+
+	if (state->modeset && DISPLAY_VER(dev_priv) >= 20)
+		intel_set_cdclk_post_plane_update(state);
 
 	for_each_oldnew_intel_crtc_in_state(state, crtc, old_crtc_state, new_crtc_state, i) {
 		intel_post_plane_update(state, crtc);
@@ -7397,7 +7418,7 @@ void intel_setup_outputs(struct drm_i915_private *dev_priv)
 	if (!HAS_DISPLAY(dev_priv))
 		return;
 
-	if (IS_METEORLAKE(dev_priv)) {
+	if (DISPLAY_VER(dev_priv) >= 14) {
 		intel_ddi_init(dev_priv, PORT_A);
 		intel_ddi_init(dev_priv, PORT_B);
 		intel_ddi_init(dev_priv, PORT_TC1);

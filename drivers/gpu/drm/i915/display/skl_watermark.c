@@ -3470,20 +3470,43 @@ int intel_dbuf_init(struct drm_i915_private *i915)
 	return 0;
 }
 
+static int get_mbus_mdclk_cdclk_ratio(struct drm_i915_private *i915,
+                                      int mdclk_cdclk_ratio,
+                                      int mbus_joined)
+{
+        if (DISPLAY_VER(i915) >= 20) {
+                if (mbus_joined)
+                        return (mdclk_cdclk_ratio << 1) + 1;
+                else
+                        return mdclk_cdclk_ratio;
+        }
+
+        if (mbus_joined)
+                return 3;
+
+        return 1;
+}
+
 /*
  * Configure MBUS_CTL and all DBUF_CTL_S of each slice to join_mbus state before
  * update the request state of all DBUS slices.
  */
-static void update_mbus_pre_enable(struct intel_atomic_state *state)
+static void intel_update_mbus(struct intel_atomic_state *state)
 {
 	struct drm_i915_private *i915 = to_i915(state->base.dev);
 	u32 mbus_ctl, dbuf_min_tracker_val;
 	enum dbuf_slice slice;
 	const struct intel_dbuf_state *dbuf_state =
 		intel_atomic_get_new_dbuf_state(state);
+	int tracker_state_service;
 
 	if (!HAS_MBUS_JOINING(i915))
 		return;
+
+        tracker_state_service =
+                get_mbus_mdclk_cdclk_ratio(i915,
+                                           dbuf_state->mdclk_cdclk_ratio,
+                                           dbuf_state->joined_mbus);
 
 	/*
 	 * TODO: Implement vblank synchronized MBUS joining changes.
@@ -3492,12 +3515,14 @@ static void update_mbus_pre_enable(struct intel_atomic_state *state)
 	if (dbuf_state->joined_mbus) {
 		mbus_ctl = MBUS_HASHING_MODE_1x4 | MBUS_JOIN |
 			MBUS_JOIN_PIPE_SELECT_NONE;
-		dbuf_min_tracker_val = DBUF_MIN_TRACKER_STATE_SERVICE(3);
 	} else {
 		mbus_ctl = MBUS_HASHING_MODE_2x2 |
 			MBUS_JOIN_PIPE_SELECT_NONE;
-		dbuf_min_tracker_val = DBUF_MIN_TRACKER_STATE_SERVICE(1);
 	}
+
+        dbuf_min_tracker_val = DBUF_MIN_TRACKER_STATE_SERVICE(tracker_state_service);
+
+        mbus_ctl |= MBUS_TRANS_THROTTLE_MIN_SELECT(dbuf_state->mdclk_cdclk_ratio);
 
 	intel_de_rmw(i915, MBUS_CTL,
 		     MBUS_HASHING_MODE_MASK | MBUS_JOIN |
@@ -3518,13 +3543,14 @@ void intel_dbuf_pre_plane_update(struct intel_atomic_state *state)
 		intel_atomic_get_old_dbuf_state(state);
 
 	if (!new_dbuf_state ||
-	    (new_dbuf_state->enabled_slices == old_dbuf_state->enabled_slices &&
-	     new_dbuf_state->joined_mbus == old_dbuf_state->joined_mbus))
+	    ((new_dbuf_state->enabled_slices == old_dbuf_state->enabled_slices)
+            && (new_dbuf_state->joined_mbus == old_dbuf_state->joined_mbus)
+            && (new_dbuf_state->mdclk_cdclk_ratio == old_dbuf_state->mdclk_cdclk_ratio)))
 		return;
 
 	WARN_ON(!new_dbuf_state->base.changed);
 
-	update_mbus_pre_enable(state);
+	intel_update_mbus(state);
 	gen9_dbuf_slices_update(i915,
 				old_dbuf_state->enabled_slices |
 				new_dbuf_state->enabled_slices);
@@ -3539,11 +3565,15 @@ void intel_dbuf_post_plane_update(struct intel_atomic_state *state)
 		intel_atomic_get_old_dbuf_state(state);
 
 	if (!new_dbuf_state ||
-	    (new_dbuf_state->enabled_slices == old_dbuf_state->enabled_slices &&
-	     new_dbuf_state->joined_mbus == old_dbuf_state->joined_mbus))
+	    ((new_dbuf_state->enabled_slices == old_dbuf_state->enabled_slices)
+            && (new_dbuf_state->joined_mbus == old_dbuf_state->joined_mbus)
+            && (new_dbuf_state->mdclk_cdclk_ratio == old_dbuf_state->mdclk_cdclk_ratio)))
 		return;
 
 	WARN_ON(!new_dbuf_state->base.changed);
+
+	if (DISPLAY_VER(i915) >= 20)
+		intel_update_mbus(state);
 
 	gen9_dbuf_slices_update(i915,
 				new_dbuf_state->enabled_slices);

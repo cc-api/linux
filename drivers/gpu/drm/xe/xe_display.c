@@ -541,6 +541,12 @@ void xe_display_info_init(struct xe_device *xe)
 	case XE_METEORLAKE:
 		xe->info.display = (struct xe_device_display_info) { XE_LPDP };
 		break;
+	case XE_LUNARLAKE:
+		xe->info.display = (struct xe_device_display_info) {
+			XE_LPDP,
+			.ver = 20,
+		};
+		break;
 	default:
 		drm_warn(&xe->drm, "Unknown display IP\n");
 		xe->info.enable_display = false;
