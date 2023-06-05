@@ -38,6 +38,7 @@ enum intel_pt_sample_type {
 	INTEL_PT_PSB_EVT	= 1 << 12,
 	INTEL_PT_EVT		= 1 << 13,
 	INTEL_PT_IFLAG_CHG	= 1 << 14,
+	INTEL_PT_TRIG_EVENT	= 1 << 15,
 };
 
 enum intel_pt_period_type {
@@ -256,6 +257,8 @@ struct intel_pt_state {
 	int cfe_vector;
 	int evd_cnt;
 	struct intel_pt_evd *evd;
+	uint32_t triggers;
+	uint8_t trigger_flags;
 };
 
 struct intel_pt_insn;
