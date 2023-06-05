@@ -384,7 +384,7 @@ static const struct xe_device_desc bmg_desc = {
 	DGFX_FEATURES,
 	PLATFORM(XE_BATTLEMAGE),
 	.has_4tile = true,
-	.has_display = false, /* TODO: not implemented yet */
+	.has_display = true,
 	.require_force_probe = true,
 	.subplatforms = (const struct xe_subplatform_desc[]) {
 		{ XE_SUBPLATFORM_BMG_G10, "G10", bmg_g10_ids },

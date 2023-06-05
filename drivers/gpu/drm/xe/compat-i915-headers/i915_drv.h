@@ -79,7 +79,8 @@ static inline struct drm_i915_private *kdev_to_i915(struct device *kdev)
 #define IS_DG2(dev_priv)	IS_PLATFORM(dev_priv, XE_DG2)
 #define IS_PONTEVECCHIO(dev_priv) IS_PLATFORM(dev_priv, XE_PVC)
 #define IS_METEORLAKE(dev_priv) IS_PLATFORM(dev_priv, XE_METEORLAKE)
-#define IS_LUNARLAKE(dev_priv) IS_PLATFORM(dev_priv, XE_LUNARLAKE)
+#define IS_LUNARLAKE(dev_priv)  IS_PLATFORM(dev_priv, XE_LUNARLAKE)
+#define IS_BATTLEMAGE(dev_priv)  IS_PLATFORM(dev_priv, XE_BATTLEMAGE)
 
 #define IS_HSW_ULT(dev_priv) (dev_priv && 0)
 #define IS_BDW_ULT(dev_priv) (dev_priv && 0)
@@ -128,6 +129,11 @@ static inline struct drm_i915_private *kdev_to_i915(struct device *kdev)
 #define IS_DISPLAY_STEP(xe, first, last) ({u8 __step = (xe)->info.step.display; first <= __step && __step <= last;})
 #define IS_GRAPHICS_STEP(xe, first, last) ({u8 __step = (xe)->info.step.graphics; first <= __step && __step <= last;})
 #define IS_LP(xe) (0)
+
+#define IP_VER(ver, rel)		((ver) << 8 | (rel))
+
+#define DISPLAY_VER_FULL(xe)		IP_VER((xe)->info.display.ver, \
+					       (xe)->info.display.rel)
 
 #define IS_TGL_UY(xe) (xe && 0)
 #define IS_CML_ULX(xe) (xe && 0)

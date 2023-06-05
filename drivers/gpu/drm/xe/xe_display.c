@@ -412,6 +412,7 @@ __diag_push();
 __diag_ignore_all("-Woverride-init", "Allow field overrides in table");
 
 #define __DISPLAY_DEFAULTS \
+	.rel = 0,							\
 	.pipe_mask = BIT(PIPE_A) | BIT(PIPE_B) |			\
 		     BIT(PIPE_C) | BIT(PIPE_D),				\
 	.cpu_transcoder_mask =						\
@@ -545,6 +546,13 @@ void xe_display_info_init(struct xe_device *xe)
 		xe->info.display = (struct xe_device_display_info) {
 			XE_LPDP,
 			.ver = 20,
+		};
+		break;
+	case XE_BATTLEMAGE:
+		xe->info.display = (struct xe_device_display_info) {
+			XE_LPDP,
+			.ver = 14,
+			.rel = 1,
 		};
 		break;
 	default:
