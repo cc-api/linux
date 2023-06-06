@@ -5786,7 +5786,7 @@
                 }
             ],
             "description": "Linear Address Masking KVM Enabling",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3410",
             "name": "lam_kvm",
