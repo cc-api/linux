@@ -5810,7 +5810,7 @@
                 }
             ],
             "description": "Allow lam_kvm to merge with tdx_kvm_support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Kyle Pelton",
