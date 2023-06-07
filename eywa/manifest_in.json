@@ -3132,7 +3132,7 @@
                 }
             ],
             "description": "Shadow stack feature",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3424",
             "name": "shadow_stacks",
