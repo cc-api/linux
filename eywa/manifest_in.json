@@ -6090,6 +6090,39 @@
             "platforms": "GNR",
             "feature_jiras": "",
             "last_enabled": "v6.4"
+        },
+        {
+            "branch": "for-intel-next",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Jinga",
+                    "email": "Jinga"
+                },
+                {
+                    "name": " Rajvi",
+                    "email": "rajvi.jingar@intel.com"
+                }
+            ],
+            "description": "LNL-M telemetry and watcher support",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Rajvi Jingar",
+                    "email": "rajvi.jingar@intel.com"
+                }
+            ],
+            "jira": "NEXT-3426",
+            "name": "lnlm_telemetry",
+            "repourl": "https://github.com/intel-sandbox/linux-kernel-rjingar.git",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-06/msg00005.html",
+            "platforms": "LNL",
+            "feature_jiras": "",
+            "last_enabled": "v6.4"
         }
     ]
 }
