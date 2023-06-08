@@ -298,6 +298,7 @@ __diag_pop();
 static struct gmdid_map graphics_ip_map[] = {
 	{ 1270, &graphics_xelpg },
 	{ 1271, &graphics_xelpg },
+	{ 1274, &graphics_xelpg },	/* Xe_LPG+ */
 };
 
 /* Map of GMD_ID values to media IP */
