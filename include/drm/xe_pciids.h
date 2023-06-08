@@ -202,7 +202,10 @@
 	MACRO__(0x7DE0, ## __VA_ARGS__)
 
 #define XE_ARL_IDS(MACRO__, ...)		\
-	MACRO__(0x7D67, ## __VA_ARGS__)
+	MACRO__(0x7D41, ## __VA_ARGS__),	\
+	MACRO__(0x7D51, ## __VA_ARGS__),	\
+	MACRO__(0x7D67, ## __VA_ARGS__),	\
+	MACRO__(0x7DD1, ## __VA_ARGS__)
 
 #define XE_MTL_IDS(MACRO__, ...)		\
 	XE_MTL_M_IDS(MACRO__, ## __VA_ARGS__),	\
