@@ -6123,7 +6123,12 @@
         {
             "branch": "fred",
             "branch_type": "expiring",
-            "config_options": [],
+            "config_options": [
+                {
+                    "name": "CONFIG_X86_FRED",
+                    "value": "y"
+                }
+            ],
             "contributor": [
                 {
                     "name": "Xin Li",
@@ -6136,7 +6141,12 @@
             "jira": "NEXT-3427",
             "name": "fred_support",
             "repourl": "https://github.com/intel-sandbox/linux-fred.git",
-            "sdl_contact": [],
+            "sdl_contact": [
+                {
+                    "name": "Ravi Shankar",
+                    "email": "ravi.v.shankar@intel.com"
+                }
+            ],
             "status": "public",
             "stuck_at_ref": "",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-06/msg00008.html",
