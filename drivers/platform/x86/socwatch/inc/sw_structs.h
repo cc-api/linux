@@ -325,7 +325,7 @@ struct sw_driver_pch_mailbox_io_descriptor {
 
 #pragma pack(push, 1)
 typedef struct sw_driver_io_descriptor {
-	pw_u16_t collection_type; /* One of 'enum sw_io_type' */
+	pw_u16_t collection_type; /* One of 'enum sww_io_type' */
 	/* TODO: specify READ/WRITE */
 	pw_s16_t collection_command; /* One of 'enum sw_io_cmd' */
 	pw_u16_t counter_size_in_bytes; /* The number of bytes to READ or WRITE */
