@@ -5,7 +5,7 @@
  *
  * GPL LICENSE SUMMARY
  *
- * Copyright(c) 2014 - 2021 Intel Corporation.
+ * Copyright(c) 2014 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -24,7 +24,7 @@
  *
  * BSD LICENSE
  *
- * Copyright(c) 2014 - 2021 Intel Corporation.
+ * Copyright(c) 2014 Intel Corporation.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,9 +55,13 @@
 
 #include <linux/module.h>  /* try_module_get */
 #include <linux/fs.h>      /* inode */
-#include <linux/device.h>  /* class_create */
-#include <linux/cdev.h>    /* cdev_alloc */
 #include <linux/version.h> /* LINUX_VERSION_CODE */
+#if KERNEL_VERSION(6, 4, 0) > LINUX_VERSION_CODE
+	#include <linux/device.h>  /* class_create */
+#else
+	#include <linux/device/class.h>  /* class_create */
+#endif /* LINUX_VERSION_CODE */
+#include <linux/cdev.h>    /* cdev_alloc */
 #if KERNEL_VERSION(4, 12, 0) > LINUX_VERSION_CODE
     #include <asm/uaccess.h>   /* copy_to_user */
 #else
@@ -156,7 +160,8 @@ static int sw_device_release_i(struct inode *inode, struct file *file)
 
 	if (IS_COLLECTING()) {
 		pw_pr_error(
-			"ERROR: Detected ongoing collection on a device release!\n");
+			"ERROR: Detected partial start of collection or ongoing collection"
+			" on a device release!\n");
 		retVal = (*s_file_ops->stop_handler)();
 	}
 	module_put(THIS_MODULE);
@@ -308,12 +313,18 @@ int sw_register_dev(struct sw_file_ops *ops)
 		return -PW_ERROR;
 	}
 
+
 	/*
 	 * Create the character device
 	 */
 	ret = alloc_chrdev_region(&apwr_dev, 0, 1, PW_DEVICE_NAME);
 	apwr_dev_major_num = MAJOR(apwr_dev);
+#if KERNEL_VERSION(6, 4, 0) > LINUX_VERSION_CODE
 	apwr_class = class_create(THIS_MODULE, "apwr");
+#else
+	apwr_class = class_create("apwr");
+#endif /* LINUX_VERSION_CODE */
+
 	if (IS_ERR(apwr_class))
 		pw_pr_error("Error registering apwr class\n");
 

@@ -66,10 +66,11 @@
 #pragma pack(push, 1)
 /**
  * struct - sw_driver_aggr_telem_io_descriptor - Aggregate Telemetry Metric descriptor
- * This descriptor is used to interact with TA and PMT driver to get aggregate telemetry data
- * @num_entries: number of entries we want to read from aggregate telemetry SRAM.
- * Note: These entries should be contigous then only TA and PMT driver can read them together
- * @offset First offset which we want to read from aggregate telemetry data
+ * This descriptor is used to interact with CTA and PMT driver to get aggregate telemetry data
+ * @data_remapped_address Either pointer to mapped memory location base address or to a PIRP_INFO struct
+ * @sample_id The offset into the telem space where the counter is. only applicable if it is a physical memory location
+ * @guid The GUID which the descriptor is related to
+ * @endpoint_id the endpoint given back from discovery.  Used as index to figure out what device we are talking about.
  * All the offsets are specified in the XML file
  */
 struct sw_driver_aggr_telem_io_descriptor {
@@ -118,11 +119,11 @@ typedef struct _sw_aggregator_info {
 } sw_aggregator_info;
 
 typedef struct _sw_aggregator_msg {
-	pw_u32_t num_telem_endpoints;
+	pw_u32_t num_telem_endpoints; // Max value should be UINT16_MAX
 	sw_aggregator_info info[MAX_AGGR_TELEM_ENDPOINTS]; /* Array of sw_aggregator_info structs. */
 } sw_aggregator_msg;
 
-#define AGGREGATOR_BUFFER_SIZE(num_telem_endpoints) (sizeof(sw_aggregator_info) * num_telem_endpoints + sizeof(pw_u32_t))
+#define AGGREGATOR_BUFFER_SIZE(num_telem_endpoints) (sizeof(sw_aggregator_info) * num_telem_endpoints + sizeof(num_telem_endpoints))
 #pragma pack(pop)
 
 #endif /* __SW_PMT_STRUCTS_H__ */
