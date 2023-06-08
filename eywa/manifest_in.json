@@ -3113,7 +3113,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "ss_9_12",
+            "branch": "ss_intel_next_changed_sys_nr",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -3132,7 +3132,7 @@
                 }
             ],
             "description": "Shadow stack feature",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3424",
             "name": "shadow_stacks",
