@@ -28,5 +28,13 @@ CONFIG_SCSI_UFSHCD=y
 CONFIG_SCSI_UFS_BSG=y
 ```
 # Performance Impacts
-TBD: Kernel profile before after will be done by Adam Preble since he's refining
-the criteria here.
+Using 6.4.0 tickless in a QEMU virtual machine:
+
+| Kernel Point of Interest                          | Before            | After           | Delta % |
+| ------------------------------------------------- | ----------------- | --------------- | ------- |
+| initrd (bytes)                                    | 60158993          | 60158968        | -0.00%  |
+| vmlinux (bytes)                                   | 8246688           | 8246688         | 0.0%    |
+| /lib/modules/6.4.0.svos-next-tickless-x86-64 (MB) | 512               | 512             | 0.0%    |
+| slabtop Total Size (K)                            | 31328.93K         | 31328.93K       | 0.0%    |
+
+Note: The impact of this change was surprisingly small.
