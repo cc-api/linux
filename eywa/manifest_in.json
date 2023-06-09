@@ -4934,7 +4934,7 @@
                 }
             ],
             "description": "Enable Intel Thread Director (ITD) in virtualization scenario",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Eliezer Weissmann",
@@ -4972,7 +4972,7 @@
                 }
             ],
             "description": "Patch is needed in order for tdx/thread_director to merge",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Kyle Pelton",
