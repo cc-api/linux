@@ -480,6 +480,9 @@ struct thread_struct {
 
 	/* User Timer state */
 	u64 utimer_deadline;
+
+	/* User MSR control */
+	u64 umsr_control;
 #endif
 
 	/*

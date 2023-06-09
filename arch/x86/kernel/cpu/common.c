@@ -410,8 +410,13 @@ static void setup_uintr(struct cpuinfo_x86 *c)
 	cr4_set_bits(X86_CR4_UINTR);
 	pr_info_once("x86: User Interrupts (UINTR) enabled\n");
 
-	if (cpu_feature_enabled(X86_FEATURE_UTIMER))
-		pr_info_once("x86: User Timer (UTIMER) enabled\n");
+	if (cpu_feature_enabled(X86_FEATURE_UTIMER)) {
+		if (cpu_feature_enabled(X86_FEATURE_USER_MSR)) {
+			pr_info_once("x86: User Timer (UTIMER) enabled with User MSR support\n");
+		} else {
+			pr_info_once("x86: User Timer (UTIMER) enabled without User MSR support\n");
+		}
+	}
 
 	return;
 

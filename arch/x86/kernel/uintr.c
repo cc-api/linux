@@ -41,6 +41,12 @@ struct uvecfd_ctx {
 #endif
 };
 
+/* *HACK* Simplify setting of MSR BITMAP using macros */
+u8 user_msr_bitmap[PAGE_SIZE] __aligned(PAGE_SIZE) = {
+	[MSR_IA32_UINTR_TIMER >> 3] = 1,
+	[0x800 + (MSR_IA32_UINTR_TIMER >> 3)] = 1,
+};
+
 /* Definitions to make the compiler happy */
 static void uintr_remove_task_wait(struct task_struct *task);
 
@@ -896,6 +902,11 @@ static int do_uintr_unregister_handler(void)
 	wrmsrl(MSR_IA32_UINTR_TIMER, 0);
 	t->thread.uhandler_activated = false;
 
+	if (cpu_feature_enabled(X86_FEATURE_USER_MSR)) {
+		wrmsrl(MSR_IA32_USER_MSR_CTL, 0);
+		t->thread.umsr_control = 0;
+	}
+
 	/*
 	 * Suppress notifications so that no further interrupts are generated
 	 * based on this UPID.
@@ -1002,6 +1013,14 @@ static int do_uintr_register_handler(u64 handler, unsigned int flags)
 	end_update_xsave_msrs();
 
 	t->thread.uhandler_activated = true;
+
+	if (cpu_feature_enabled(X86_FEATURE_USER_MSR)) {
+		t->thread.umsr_control = ((u64)user_msr_bitmap & USER_MSR_CTL_BITMAPADDR) |
+					 (USER_MSR_CTL_ENABLE);
+		wrmsrl(MSR_IA32_USER_MSR_CTL, t->thread.umsr_control);
+		pr_debug("recv: UMSR bitmap_addr:%llx, msr_ctl:%llx\n",
+			 (u64)user_msr_bitmap, t->thread.umsr_control);
+	}
 
 
 	if (flags & UINTR_HANDLER_FLAG_WAITING_ANY) {
@@ -1446,9 +1465,12 @@ void switch_uintr_timer(struct task_struct *prev, struct task_struct *next)
 		needs_update = true;
 	}
 
-	if (needs_update)
+	if (needs_update) {
 		wrmsrl(MSR_IA32_UINTR_TIMER, timer_deadline);
 
+		if (cpu_feature_enabled(X86_FEATURE_USER_MSR))
+			wrmsrl(MSR_IA32_USER_MSR_CTL, next->thread.umsr_control);
+	}
 }
 
 /* Check does SN need to be set here */
@@ -1542,6 +1564,11 @@ void uintr_free(struct task_struct *t)
 
 		wrmsrl(MSR_IA32_UINTR_TIMER, 0);
 		t->thread.uhandler_activated = false;
+
+		if (cpu_feature_enabled(X86_FEATURE_USER_MSR)) {
+			wrmsrl(MSR_IA32_USER_MSR_CTL, 0);
+			t->thread.umsr_control = 0;
+		}
 	}
 
 	if (upid_ctx) {

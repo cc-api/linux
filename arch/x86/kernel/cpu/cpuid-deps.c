@@ -84,6 +84,7 @@ static const struct cpuid_dep cpuid_deps[] = {
 	{ X86_FEATURE_SHSTK,			X86_FEATURE_XSAVES    },
 	{ X86_FEATURE_UINTR,			X86_FEATURE_XSAVES    },
 	{ X86_FEATURE_UTIMER,			X86_FEATURE_UINTR     },
+	{ X86_FEATURE_USER_MSR,			X86_FEATURE_UTIMER    },
 	{}
 };
 
