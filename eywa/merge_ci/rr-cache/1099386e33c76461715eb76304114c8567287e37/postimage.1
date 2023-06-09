@@ -1220,11 +1220,8 @@ struct kvm_x86_ops vt_x86_ops __initdata = {
 	.vcpu_mem_enc_ioctl = vt_vcpu_mem_enc_ioctl,
 
 	.vm_move_enc_context_from = vt_move_enc_context_from,
-<<<<<<<
-	.check_lass = vmx_check_lass
-=======
 	.update_hfi = vmx_dynamic_update_hfi_table,
->>>>>>>
+	.check_lass = vmx_check_lass
 };
 
 struct kvm_x86_init_ops vt_init_ops __initdata = {

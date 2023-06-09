@@ -16,7 +16,6 @@
 #include <linux/irq_work.h>
 #include <linux/irq.h>
 #include <linux/workqueue.h>
-#include <linux/count_zeros.h>
 
 #include <linux/kvm.h>
 #include <linux/kvm_para.h>
@@ -149,20 +148,6 @@
 #define KVM_HPAGE_SIZE(x)	(1UL << KVM_HPAGE_SHIFT(x))
 #define KVM_HPAGE_MASK(x)	(~(KVM_HPAGE_SIZE(x) - 1))
 #define KVM_PAGES_PER_HPAGE(x)	(KVM_HPAGE_SIZE(x) / PAGE_SIZE)
-
-#define kvm_arch_required_alignment	kvm_arch_required_alignment
-static inline int kvm_arch_required_alignment(u64 gpa)
-{
-	int zeros = count_trailing_zeros(gpa);
-
-	WARN_ON_ONCE(!PAGE_ALIGNED(gpa));
-	if (zeros >= KVM_HPAGE_SHIFT(PG_LEVEL_1G))
-		return KVM_HPAGE_SHIFT(PG_LEVEL_1G);
-	else if (zeros >= KVM_HPAGE_SHIFT(PG_LEVEL_2M))
-		return KVM_HPAGE_SHIFT(PG_LEVEL_2M);
-
-	return PAGE_SHIFT;
-}
 
 #define KVM_MEMSLOT_PAGES_TO_MMU_PAGES_RATIO 50
 #define KVM_MIN_ALLOC_MMU_PAGES 64UL
@@ -1440,8 +1425,11 @@ struct kvm_arch {
 	struct task_struct *nx_huge_page_recovery_thread;
 
 #ifdef CONFIG_X86_64
-	/* The number of TDP MMU pages across all roots. */
+	/* The number of non-private TDP MMU pages across all roots. */
 	atomic64_t tdp_mmu_pages;
+
+	/* Same as tdp_mmu_pages but only for private pages. */
+	atomic64_t tdp_private_mmu_pages;
 
 	/*
 	 * List of struct kvm_mmu_pages being used as roots.
@@ -1625,6 +1613,7 @@ struct kvm_x86_ops {
 	void (*hardware_unsetup)(void);
 	int (*offline_cpu)(void);
 	bool (*has_emulated_msr)(struct kvm *kvm, u32 index);
+	int (*vcpu_check_cpuid)(struct kvm_vcpu *vcpu, struct kvm_cpuid_entry2 *e2, int nent);
 	void (*vcpu_after_set_cpuid)(struct kvm_vcpu *vcpu);
 
 	bool (*is_vm_type_supported)(unsigned long vm_type);
@@ -1743,8 +1732,6 @@ struct kvm_x86_ops {
 	void (*load_mmu_pgd)(struct kvm_vcpu *vcpu, hpa_t root_hpa,
 			     int root_level);
 	bool (*fault_is_private)(struct kvm *kvm, gpa_t gpa, u64 error_code);
-	void (*set_mem_attr)(struct kvm *kvm, struct kvm_memory_slot *slot,
-			     unsigned int attr, gfn_t start, gfn_t end);
 
 	int (*link_private_spt)(struct kvm *kvm, gfn_t gfn, enum pg_level level,
 				void *private_spt);
@@ -1954,6 +1941,9 @@ void kvm_mmu_destroy(struct kvm_vcpu *vcpu);
 int kvm_mmu_create(struct kvm_vcpu *vcpu);
 int kvm_mmu_init_vm(struct kvm *kvm);
 void kvm_mmu_uninit_vm(struct kvm *kvm);
+
+void kvm_mmu_init_memslot_memory_attributes(struct kvm *kvm,
+					    struct kvm_memory_slot *slot);
 
 void kvm_mmu_after_set_cpuid(struct kvm_vcpu *vcpu);
 void kvm_mmu_reset_context(struct kvm_vcpu *vcpu);
@@ -2374,11 +2364,6 @@ int memslot_rmap_alloc(struct kvm_memory_slot *slot, unsigned long npages);
  * remaining 31 lower bits must be 0 to preserve ABI.
  */
 #define KVM_EXIT_HYPERCALL_MBZ		GENMASK_ULL(31, 1)
-
-#ifdef CONFIG_KVM_GENERIC_MEMORY_ATTRIBUTES
-void kvm_memory_attributes_create_memslot(struct kvm *kvm,
-					  struct kvm_memory_slot *slot);
-#endif
 
 #if IS_ENABLED(CONFIG_KVM_INTEL)
 int vmxon_get(void);

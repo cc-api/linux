@@ -590,4 +590,20 @@ static inline void kvm_set_xsave_msr(struct msr_data *msr_info)
 	fpregs_unlock();
 }
 
+int lock_two_vms_for_migration(struct kvm *dst_kvm, struct kvm *src_kvm,
+			       atomic_t *dst_migration_in_progress,
+			       atomic_t *src_migration_in_progress);
+
+void unlock_two_vms_for_migration(struct kvm *dst_kvm, struct kvm *src_kvm,
+				  atomic_t *dst_migration_in_progress,
+				  atomic_t *src_migration_in_progress);
+
+int pre_move_enc_context_from(struct kvm *dst_kvm, struct kvm *src_kvm,
+			      atomic_t *dst_migration_in_progress,
+			      atomic_t *src_migration_in_progress);
+
+void post_move_enc_context_from(struct kvm *dst_kvm, struct kvm *src_kvm,
+				atomic_t *dst_migration_in_progress,
+				atomic_t *src_migration_in_progress);
+
 #endif
