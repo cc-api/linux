@@ -6060,7 +6060,7 @@ struct mt_table {
 	unsigned int nr_levels;
 	u8 *level_shift;
 	int (*add_node)(struct mt_node *node);
-	void (*remove_node)(struct mt_node *node);
+	int (*remove_node)(struct mt_node *node);
 	int (*set_entry)(struct mt_node *node, u64 entry_id, void *data, bool set);
 };
 
@@ -6135,6 +6135,7 @@ static void mt_entry_depopulate(struct mt_table *mt_tbl,
 	union mt_node_key key;
 	struct mt_node *node;
 	unsigned int lvl;
+	int ret;
 
 	pr_debug("%s: entry_id=%llx, entry_lvl=%d\n", __func__, entry_id, entry_lvl);
 
@@ -6152,10 +6153,15 @@ static void mt_entry_depopulate(struct mt_table *mt_tbl,
 			mt_tbl->set_entry(node, entry_id, NULL, false);
 
 		if (!atomic64_dec_return(&node->cnt)) {
-			mt_tbl->remove_node(node);
-			hash_del(&node->hnode);
-			free_page(node->va);
-			kfree(node);
+			ret = mt_tbl->remove_node(node);
+			if (ret) {
+				/* the node is still in use by tdx module */
+				atomic64_inc(&node->cnt);
+			} else {
+				hash_del(&node->hnode);
+				free_page(node->va);
+				kfree(node);
+			}
 		}
 	}
 }
@@ -6233,7 +6239,7 @@ static int devif_mt_add_node(struct mt_node *node)
 	return 0;
 }
 
-static void devif_mt_remove_node(struct mt_node *node)
+static int devif_mt_remove_node(struct mt_node *node)
 {
 	union devifmt_idx devifmt_idx = { 0 };
 	int parent_entry_level = node->key.level + 1;
@@ -6246,6 +6252,8 @@ static void devif_mt_remove_node(struct mt_node *node)
 	ret = tdh_devifmt_remove(devifmt_idx.raw);
 	if (ret)
 		pr_err("%s: devifmt_idx =%llx, ret=%llx\n", __func__, devifmt_idx.raw, ret);
+
+	return ret ? -EFAULT : 0;
 }
 
 static u8 devif_mt_level_shift[] = { 9, 18, 27, 32 };
@@ -6374,7 +6382,7 @@ static int mmio_mt_add_node(struct mt_node *node)
 	return 0;
 }
 
-static void mmio_mt_remove_node(struct mt_node *node)
+static int mmio_mt_remove_node(struct mt_node *node)
 {
 	union mmiomt_idx mmiomt_idx = { 0 };
 	int parent_entry_level = node->key.level + 1;
@@ -6386,6 +6394,8 @@ static void mmio_mt_remove_node(struct mt_node *node)
 	ret = tdh_mmiomt_remove(mmiomt_idx.raw);
 	if (ret)
 		pr_err("%s: mmiomt_idx =%llx, ret=%llx\n", __func__, mmiomt_idx.raw, ret);
+
+	return ret ? -EFAULT : 0;
 }
 
 static int mmio_mt_set_entry(struct mt_node *node, u64 entry_id, void *data, bool set)
