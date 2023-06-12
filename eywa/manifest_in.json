@@ -5992,7 +5992,7 @@
                 }
             ],
             "description": "Fixup branch to remove Adam Preble's SVOS README commit",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3415",
             "name": "svos_readme_fixup",
