@@ -1699,7 +1699,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "prm_v6.3_for_intel_next",
+            "branch": "prm_v6.4_for_intel_next",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -1722,14 +1722,14 @@
                 }
             ],
             "description": "PRM runtime update support for Intel PRM-capable platforms",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Sinha, Ankit",
                     "email": "ankit.sinha@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3429",
             "name": "prm_linux_support",
             "repourl": "https://github.com/intel-sandbox/aubrey-linux.git",
             "sdl_contact": [
@@ -1748,7 +1748,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
+            "last_enabled": "v6.4",
             "maillist": "",
             "platforms": "EMR,GNR",
             "feature_jiras": "LFE-745"
