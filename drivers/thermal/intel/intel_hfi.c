@@ -22,8 +22,10 @@
 #define pr_fmt(fmt)  "intel-hfi: " fmt
 
 #include <linux/bitops.h>
+#include <linux/cpu.h>
 #include <linux/cpufeature.h>
 #include <linux/cpumask.h>
+#include <linux/device.h>
 #include <linux/gfp.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
@@ -40,6 +42,7 @@
 #include <linux/spinlock.h>
 #include <linux/suspend.h>
 #include <linux/string.h>
+#include <linux/sysfs.h>
 #include <linux/topology.h>
 #include <linux/workqueue.h>
 
@@ -531,6 +534,41 @@ static void init_hfi_instance(struct hfi_instance *hfi_instance)
 	hfi_instance->data = hfi_instance->hdr + hfi_features.hdr_size;
 }
 
+static ssize_t intel_hfi_show(struct device *dev, struct device_attribute *attr,
+			      char *buf)
+{
+	struct hfi_cpu_info *info = &per_cpu(hfi_cpu_info, dev->id);
+
+	return sysfs_emit(buf, "%u\n", !!info->hfi_instance);
+}
+
+static DEVICE_ATTR_RO(intel_hfi);
+
+static void intel_hfi_add_state_sysfs(int cpu)
+{
+	struct device *dev = get_cpu_device(cpu);
+
+	if (!dev)
+		goto err;
+
+	if (sysfs_create_file(&dev->kobj, &dev_attr_intel_hfi.attr))
+		goto err;
+
+	return;
+err:
+	pr_err("Failed to register state sysfs!");
+}
+
+static void intel_hfi_remove_state_sysfs(int cpu)
+{
+	struct device *dev = get_cpu_device(cpu);
+
+	if (!dev)
+		return;
+
+	sysfs_remove_file(&dev->kobj, &dev_attr_intel_hfi.attr);
+}
+
 static void hfi_enable(void)
 {
 	u64 msr_val;
@@ -609,6 +647,8 @@ void intel_hfi_online(unsigned int cpu)
 	struct hfi_instance *hfi_instance;
 	struct hfi_cpu_info *info;
 	u16 die_id;
+
+	intel_hfi_add_state_sysfs(cpu);
 
 	/* Nothing to do if hfi_instances are missing. */
 	if (!hfi_instances)
@@ -714,6 +754,8 @@ void intel_hfi_offline(unsigned int cpu)
 {
 	struct hfi_cpu_info *info = &per_cpu(hfi_cpu_info, cpu);
 	struct hfi_instance *hfi_instance;
+
+	intel_hfi_remove_state_sysfs(cpu);
 
 	/*
 	 * Check if @cpu as an associated, initialized (i.e., with a non-NULL
