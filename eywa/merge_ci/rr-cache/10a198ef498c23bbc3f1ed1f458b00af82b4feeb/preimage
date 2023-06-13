@@ -657,14 +657,14 @@ void kvm_set_cpu_caps(void)
 		kvm_cpu_cap_set(X86_FEATURE_IBT);
 
 	kvm_cpu_cap_mask(CPUID_7_1_EAX,
-<<<<<<<
-		F(AVX_VNNI) | F(AVX512_BF16) | F(CMPCCXADD) |
+		F(AVX_VNNI) | F(AVX512_BF16) | F(LASS) | F(CMPCCXADD) |
 		F(FZRM) | F(FSRS) | F(FSRC) |
+<<<<<<<
 		F(AMX_FP16) | F(AVX_IFMA) | F(SHA512) |
 		F(SM3) | F(SM4)
 =======
-		F(AVX_VNNI) | F(AVX512_BF16) | F(LASS) | F(CMPCCXADD) |
-		F(FZRM) | F(FSRS) | F(FSRC) | F(AMX_FP16) | F(AVX_IFMA)
+		F(FRED) | F(LKGS) |
+		F(AMX_FP16) | F(AVX_IFMA)
 >>>>>>>
 	);
 
