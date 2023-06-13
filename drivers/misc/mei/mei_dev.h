@@ -82,6 +82,19 @@ enum mei_dev_pxp_mode {
 	MEI_DEV_PXP_READY   = 3,
 };
 
+/**
+ * enum mei_dev_reset_to_pxp - reset to PXP mode performed
+ *
+ * @MEI_DEV_RESET_TO_PXP_DEFAULT: before reset
+ * @MEI_DEV_RESET_TO_PXP_PERFORMED: reset performed
+ * @MEI_DEV_RESET_TO_PXP_DONE: reset processed
+ */
+enum mei_dev_reset_to_pxp {
+	MEI_DEV_RESET_TO_PXP_DEFAULT = 0,
+	MEI_DEV_RESET_TO_PXP_PERFORMED = 1,
+	MEI_DEV_RESET_TO_PXP_DONE = 2,
+};
+
 const char *mei_dev_state_str(int state);
 
 enum mei_file_transaction_states {
@@ -537,6 +550,7 @@ struct mei_dev_timeouts {
  * @saved_fw_status      : saved firmware status
  * @saved_dev_state      : saved device state
  * @saved_fw_status_flag : flag indicating that firmware status was saved
+ * @gsc_reset_to_pxp     : state of reset to the PXP mode
  *
  * @ops:        : hw specific operations
  * @hw          : hw specific data
@@ -637,6 +651,7 @@ struct mei_device {
 	struct mei_fw_status saved_fw_status;
 	enum mei_dev_state saved_dev_state;
 	bool saved_fw_status_flag;
+	enum mei_dev_reset_to_pxp gsc_reset_to_pxp;
 
 	const struct mei_hw_ops *ops;
 	char hw[] __aligned(sizeof(void *));
