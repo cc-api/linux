@@ -687,3 +687,11 @@ Description:
 		(RO) the list of CPUs that are isolated and don't
 		participate in load balancing. These CPUs are set by
 		boot parameter "isolcpus=".
+
+What:		/sys/devices/system/cpu/cpuX/intel_hfi
+Date:		June 2023
+Contact:	Linux power management list <linux-pm@vger.kernel.org>
+Description:	State of the Intel hardware Feedback Interface (HFI)
+
+		Shows '1' if HFI is enabled in the package of cpuX, and '0'
+		otherwise.
