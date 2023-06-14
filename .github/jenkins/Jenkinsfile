@@ -14,7 +14,7 @@ pipeline {
           if (env.CHANGE_ID != null) {
             BUILDNAME = "pr-${env.CHANGE_ID}-${env.GIT_COMMIT[0..6]}"
           } else {
-            ID = sh(script: 'docker run --rm gfx-osgc-docker-ci-igk.gfx-assets.intel.com/lgci-ubuntu2004:latest redis-cli -h intel-gfx-ci-internal incr xe-kernel-build-id', returnStdout: true).trim()
+            ID = sh(script: 'docker run --rm registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest redis-cli -h intel-gfx-ci-internal incr xe-kernel-build-id', returnStdout: true).trim()
             BUILDNAME = "${ID}-${env.GIT_COMMIT[0..6]}"
           }
           currentBuild.displayName = "$BUILDNAME"
@@ -24,7 +24,7 @@ pipeline {
 
     stage('KUnit') {
       steps {
-        sh "docker run --tmpfs /dev/shm:rw,exec --rm -v \$(pwd):/kernel gfx-osgc-docker-ci-igk.gfx-assets.intel.com/lgci-ubuntu2004:latest /common/xe/kunit.sh"
+        sh "docker run --tmpfs /dev/shm:rw,exec --rm -v \$(pwd):/kernel registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest /common/xe/kunit.sh"
       }
     }
 
@@ -37,9 +37,9 @@ pipeline {
             DEPLOY_DIR = "postmerge"
           }
         }
-        sh "docker run --rm -v \$(pwd):/kernel gfx-osgc-docker-ci-igk.gfx-assets.intel.com/lgci-ubuntu2004:latest /common/xe/build.sh"
+        sh "docker run --rm -v \$(pwd):/kernel registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest /common/xe/build.sh"
         sh """
-          docker run --rm -v \$(pwd):/kernel gfx-osgc-docker-ci-igk.gfx-assets.intel.com/lgci-ubuntu2004:latest \
+          docker run --rm -v \$(pwd):/kernel registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest \
           gta-asset push gfx-osgc-assets-igk/builds/kernel-xe-internal ${DEPLOY_DIR} ${BUILDNAME} /kernel/archive/kernel.tar.gz -u ${ARTIFACTORY_USR} -p ${ARTIFACTORY_PSW} -v --no-archive
         """
       }
