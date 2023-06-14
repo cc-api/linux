@@ -200,6 +200,24 @@ static struct workqueue_struct *hfi_updates_wq;
 #define HFI_UPDATE_INTERVAL		HZ
 #define HFI_MAX_THERM_NOTIFY_COUNT	16
 
+/**
+ * enum hfi_user_config - Enablement states as provided by the user
+ * @HFI_USER_CFG_DEFAULT:	User does not configure the HFI in the kernel
+ * 				command line. HFI is enabled if hardware
+ * 				supports it and is not broken.
+ * @HFI_USER_CFG_DISABLE:	User disables the HFI in the kernel command
+ * 				line.
+ * @HFI_USER_CFG_FORCE_ENABLE:	User force-enables the HFI. It will be enabled
+ * 				if hardware supports it but is broken.
+ */
+enum hfi_user_config {
+	HFI_USER_CFG_DEFAULT = 0,
+	HFI_USER_CFG_DISABLE,
+	HFI_USER_CFG_FORCE_ENABLE
+};
+
+static enum hfi_user_config hfi_user_config;
+
 /*
  * A task may be unclassified if it has been recently created, spend most of
  * its lifetime sleeping, or hardware has not provided a classification.
@@ -794,12 +812,37 @@ static bool hfi_is_broken(void)
 	}
 }
 
+static __init int intel_hfi_parse_options(char *str)
+{
+	if (parse_option_str(str, "force_enable")) {
+		if (!boot_cpu_has(X86_FEATURE_HFI)) {
+			pr_err("Cannot force-enable HFI. Hardware does not support it!\n");
+			return 1;
+		}
+
+		if (hfi_is_broken())
+			pr_info("Force-enabling HFI in broken hardware");
+
+		hfi_user_config = HFI_USER_CFG_FORCE_ENABLE;
+		return 1;
+	}
+
+	if (parse_option_str(str, "disable"))
+		hfi_user_config = HFI_USER_CFG_DISABLE;
+
+	return 1;
+}
+__setup("intel_hfi=", intel_hfi_parse_options);
+
 static __init int hfi_parse_features(void)
 {
 	unsigned int nr_capabilities;
 	union cpuid6_edx edx;
 
-	if (hfi_is_broken())
+	if (hfi_user_config == HFI_USER_CFG_DISABLE)
+		return -EPERM;
+
+	if (hfi_is_broken() && hfi_user_config != HFI_USER_CFG_FORCE_ENABLE)
 		return -EPERM;
 
 	if (!boot_cpu_has(X86_FEATURE_HFI))
