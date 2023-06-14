@@ -46,6 +46,7 @@
 #include <linux/topology.h>
 #include <linux/workqueue.h>
 
+#include <asm/intel-family.h>
 #include <asm/msr.h>
 
 #include "intel_hfi.h"
@@ -780,10 +781,26 @@ void intel_hfi_offline(unsigned int cpu)
 	mutex_unlock(&hfi_instance_lock);
 }
 
+static bool hfi_is_broken(void)
+{
+	switch(boot_cpu_data.x86_model) {
+#if 0
+	case INTEL_FAM6_METEORLAKE:
+	case INTEL_FAM6_METEORLAKE_L:
+		return true;
+#endif
+	default:
+		return false;
+	}
+}
+
 static __init int hfi_parse_features(void)
 {
 	unsigned int nr_capabilities;
 	union cpuid6_edx edx;
+
+	if (hfi_is_broken())
+		return -EPERM;
 
 	if (!boot_cpu_has(X86_FEATURE_HFI))
 		return -ENODEV;
