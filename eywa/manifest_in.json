@@ -6132,7 +6132,7 @@
                 }
             ],
             "description": "Intel FRED support",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3427",
             "name": "fred_support",
