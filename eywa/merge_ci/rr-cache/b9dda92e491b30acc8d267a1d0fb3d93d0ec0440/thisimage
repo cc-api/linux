@@ -1077,11 +1077,6 @@ config SCHED_MC_PRIO
 
 	  If unsure say Y here.
 
-config X86_IPC_CLASSES
-	def_bool y
-	depends on IPC_CLASSES
-	depends on INTEL_HFI_THERMAL
-
 config UP_LATE_INIT
 	def_bool y
 	depends on !SMP && X86_LOCAL_APIC
