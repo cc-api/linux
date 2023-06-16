@@ -473,7 +473,7 @@ static const u8 xe2_bcs_offsets[] = {
 	XE2_CTX_COMMON,
 
 	NOP(4 + 8 + 1),         /* [0x34] */
-	LRI(2, 0),              /* [0x41] */
+	LRI(2, POSTED),         /* [0x41] */
 	REG16(0x200),           /* [0x42] BCS_SWCTRL */
 	REG16(0x204),           /* [0x44] BLIT_CCTL */
 
