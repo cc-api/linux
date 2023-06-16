@@ -2140,9 +2140,29 @@ static void wrmsrl_cstar(unsigned long val)
 		wrmsrl(MSR_CSTAR, val);
 }
 
-/* May not be marked __init: used by software suspend */
-void syscall_init(void)
+static inline void idt_syscall_init(void)
 {
+	wrmsrl(MSR_LSTAR, (unsigned long)entry_SYSCALL_64);
+
+#ifdef CONFIG_IA32_EMULATION
+	wrmsrl_cstar((unsigned long)entry_SYSCALL_compat);
+	/*
+	 * This only works on Intel CPUs.
+	 * On AMD CPUs these MSRs are 32-bit, CPU truncates MSR_IA32_SYSENTER_EIP.
+	 * This does not cause SYSENTER to jump to the wrong location, because
+	 * AMD doesn't allow SYSENTER in long mode (either 32- or 64-bit).
+	 */
+	wrmsrl_safe(MSR_IA32_SYSENTER_CS, (u64)__KERNEL_CS);
+	wrmsrl_safe(MSR_IA32_SYSENTER_ESP,
+		    (unsigned long)(cpu_entry_stack(smp_processor_id()) + 1));
+	wrmsrl_safe(MSR_IA32_SYSENTER_EIP, (u64)entry_SYSENTER_compat);
+#else
+	wrmsrl_cstar((unsigned long)ignore_sysret);
+	wrmsrl_safe(MSR_IA32_SYSENTER_CS, (u64)GDT_ENTRY_INVALID_SEG);
+	wrmsrl_safe(MSR_IA32_SYSENTER_ESP, 0ULL);
+	wrmsrl_safe(MSR_IA32_SYSENTER_EIP, 0ULL);
+#endif
+
 	/*
 	 * Flags to clear on syscall; clear as much as possible
 	 * to minimize user space-kernel interference.
@@ -2153,10 +2173,12 @@ void syscall_init(void)
 	       X86_EFLAGS_IF|X86_EFLAGS_DF|X86_EFLAGS_OF|
 	       X86_EFLAGS_IOPL|X86_EFLAGS_NT|X86_EFLAGS_RF|
 	       X86_EFLAGS_AC|X86_EFLAGS_ID);
+}
 
-	/*
-	 * The default user and kernel segments
-	 */
+/* May not be marked __init: used by software suspend */
+void syscall_init(void)
+{
+	/* The default user and kernel segments */
 	wrmsr(MSR_STAR, 0, (__USER32_CS << 16) | __KERNEL_CS);
 
 	if (cpu_feature_enabled(X86_FEATURE_FRED)) {
@@ -2165,28 +2187,7 @@ void syscall_init(void)
 		wrmsrl_safe(MSR_IA32_SYSENTER_ESP, 0ULL);
 		wrmsrl_safe(MSR_IA32_SYSENTER_EIP, 0ULL);
 	} else {
-		wrmsrl(MSR_LSTAR, (unsigned long)entry_SYSCALL_64);
-
-#ifdef CONFIG_IA32_EMULATION
-		wrmsrl_cstar((unsigned long)entry_SYSCALL_compat);
-		/*
-		 * This only works on Intel CPUs.
-		 * On AMD CPUs these MSRs are 32-bit, CPU truncates
-		 * MSR_IA32_SYSENTER_EIP.
-		 * This does not cause SYSENTER to jump to the wrong
-		 * location, because AMD doesn't allow SYSENTER in
-		 * long mode (either 32- or 64-bit).
-		 */
-		wrmsrl_safe(MSR_IA32_SYSENTER_CS, (u64)__KERNEL_CS);
-		wrmsrl_safe(MSR_IA32_SYSENTER_ESP,
-			    (unsigned long)(cpu_entry_stack(smp_processor_id()) + 1));
-		wrmsrl_safe(MSR_IA32_SYSENTER_EIP, (u64)entry_SYSENTER_compat);
-#else
-		wrmsrl_cstar((unsigned long)ignore_sysret);
-		wrmsrl_safe(MSR_IA32_SYSENTER_CS, (u64)GDT_ENTRY_INVALID_SEG);
-		wrmsrl_safe(MSR_IA32_SYSENTER_ESP, 0ULL);
-		wrmsrl_safe(MSR_IA32_SYSENTER_EIP, 0ULL);
-#endif
+		idt_syscall_init();
 	}
 }
 
@@ -2320,9 +2321,9 @@ void cpu_init_exception_handling(void)
 	/* paranoid_entry() gets the CPU number from the GDT */
 	setup_getcpu(cpu);
 
-	/* Set up the TSS */
 	tss_setup_io_bitmap(tss);
 	set_tss_desc(cpu, &get_cpu_entry_area(cpu)->tss.x86_tss);
+
 	load_TR_desc();
 
 	/* GHCB needs to be setup to handle #VC. */

@@ -3244,6 +3244,18 @@ static int nested_vmx_check_guest_state(struct kvm_vcpu *vcpu,
 			    CC(is_noncanonical_address(vmcs12->guest_ia32_fred_ssp3, vcpu)))
 				return -EINVAL;
 		}
+		if (vmcs12->guest_cr4 & X86_CR4_FRED) {
+			unsigned int ss_dpl = VMX_AR_DPL(vmcs12->guest_ss_ar_bytes);
+			if (CC(ss_dpl == 1 || ss_dpl == 2))
+				return -EINVAL;
+			if (ss_dpl == 0 &&
+			    CC(!(vmcs12->guest_cs_ar_bytes & VMX_AR_L_MASK)))
+				return -EINVAL;
+			if (ss_dpl == 3 &&
+			    (CC(vmcs12->guest_rflags & X86_EFLAGS_IOPL) ||
+			     CC(vmcs12->guest_interruptibility_info & GUEST_INTR_STATE_STI)))
+				return -EINVAL;
+		}
 	} else {
 		if (CC(vmcs12->guest_cr4 & X86_CR4_FRED))
 			return -EINVAL;
