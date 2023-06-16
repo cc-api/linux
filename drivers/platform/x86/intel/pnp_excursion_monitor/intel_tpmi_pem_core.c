@@ -381,6 +381,7 @@ static int pem_feature_enable(int cpu, unsigned int enable)
 				PEM_CONTROL_INDEX);
 
 	pr_info("%s PEM_CONTROL_INDEX WR:%llx\n", __func__, val);
+
 enable_unlock:
 	rcu_read_unlock();
 
@@ -438,6 +439,8 @@ static ssize_t cpumask_show(struct device *dev, struct device_attribute *attr, c
 {
 	struct pmu *pmu = dev_get_drvdata(dev);
 
+        pr_info("%s\n", __func__);
+
 	if (pmu == &pem_pmu)
 		return cpumap_print_to_pagebuf(true, buf, &pem_power_domain_cpu_mask);
 	else
@@ -448,6 +451,8 @@ static int pem_store_config(int cpu, struct perf_event *event)
 {
 	struct tpmi_pem_instance_info *instance;
 	int ret = -EIO;
+
+        pr_info("%s\n", __func__);
 
 	rcu_read_lock();
 
@@ -477,6 +482,8 @@ static int pem_get_stored_config(int cpu, int *fet, int *tw, struct perf_event *
 	struct tpmi_pem_instance_info *instance;
 	int ret = -EIO;
 
+        pr_info("%s\n", __func__);
+
 	*fet = 0;
 	*tw = 0;
 
@@ -502,8 +509,12 @@ static bool validate_config(struct perf_event *event)
 {
 	u32 fet, tw;
 
+        pr_info("%s\n", __func__);
+
 	fet = FIELD_GET(PEM_GENMASK_FET, event->attr.config);
 	tw = FIELD_GET(PEM_GENMASK_TW, event->attr.config);
+
+	pr_info("FET:%x tw:%x\n", fet, tw);
 
 	if (event->group_leader != event) {
 		struct perf_event *_event = event->group_leader;
@@ -511,6 +522,8 @@ static bool validate_config(struct perf_event *event)
 
 		_fet = FIELD_GET(PEM_GENMASK_FET, _event->attr.config);
 		_tw = FIELD_GET(PEM_GENMASK_TW, _event->attr.config);
+
+		pr_info("group leader FET:%x tw:%x\n", _fet, _tw);
 
 		/* check for mismatch from the leader */
 		if ((fet && _fet != fet) || (tw && _tw != tw))
@@ -532,6 +545,8 @@ static int pem_pmu_event_init(struct perf_event *event)
 	u32 cfg = event->attr.config;
 	int cpu = event->cpu;
 
+        pr_info("%s event->cpu:%d\n", __func__, cpu);
+
 	/* Only process of the type matches what we got from perf_pmu_register() */
 	if (event->attr.type != pem_pmu.type)
 		return -ENOENT;
@@ -551,23 +566,42 @@ static int pem_pmu_event_init(struct perf_event *event)
 	if (BIT(cfg) & PEM_RESD_MASK)
 		return -EINVAL;
 
-	if (!validate_config(event))
+	if (!validate_config(event)) {
+		pr_info("validate_config failed\n");
 		return -EINVAL;
+	}
 
 	if (event->pmu == &pem_pmu) {
+		char buffer[128];
+
 		event->hw.event_base = cfg;
+
+		cpumap_print_bitmask_to_buf(buffer, &pem_power_domain_cpu_mask,
+		0, 127);
+		pr_info("pem_power_domain_cpu_mask :%s\n", buffer);
+
+		cpumap_print_bitmask_to_buf(buffer, tpmi_get_power_domain_mask(event->cpu),
+		0, 127);
+		pr_info("tpmi_get_power_domain_mask :%s\n", buffer);
+
 		cpu = cpumask_any_and(&pem_power_domain_cpu_mask,
 				      tpmi_get_power_domain_mask(event->cpu));
 	} else {
+		pr_info("event->pmu != &pem_pmu\n");
 		return -ENOENT;
 	}
 
-	if (cpu >= nr_cpu_ids)
+	if (cpu >= nr_cpu_ids) {
+		pr_info("cpu >= nr_cpu_ids %d:%d\n", cpu, nr_cpu_ids);
+
 		return -ENODEV;
+	}
 
 	event->cpu = cpu;
 	event->hw.config = cfg;
 	event->hw.idx = -1;
+
+	pr_info("%s success\n", __func__);
 
 	return 0;
 }
@@ -586,7 +620,31 @@ static void pmt_pem_unregister_endpoint(struct tpmi_pem_instance_info *instance)
 	if (instance->telem_endpoint)		
 		pmt_telem_unregister_endpoint(instance->telem_endpoint);
 }
+
+static int pmt_telem_read_counters(struct tpmi_pem_instance_info *instance, u64 *samples)
+{
+	int ret;
+
+        pr_info("%s\n", __func__);
+
+		ret = pmt_telem_read(instance->telem_endpoint, instance->pmt_sample_id,
+							samples, instance->pmt_sample_count);
+
+        pr_info("%s pmt_read ret:%d\n", __func__, ret);
+
+		if (!ret) {
+			int i;
+
+			pr_info("Dump of all counters read from PMT\n");
+			for (i = 0; i < instance->pmt_sample_count; ++i)
+				pr_info("sample id:%d count:%llx\n", i, samples[i]);
+		}
+
+	return ret;
+}
+
 #else
+
 static void pmt_pem_register_endpoint(struct tpmi_pem_instance_info *instance,
 				      struct pci_dev *pcidev, u32 guid)
 {
@@ -594,17 +652,12 @@ static void pmt_pem_register_endpoint(struct tpmi_pem_instance_info *instance,
 static void pmt_pem_unregister_endpoint(struct tpmi_pem_instance_info *instance)
 {
 }
-#endif
 
 static int pmt_telem_read_counters(struct tpmi_pem_instance_info *instance, u64 *samples)
 {
-#ifdef PMT_SUPPORT
-	return pmt_telem_read(instance->telem_endpoint, instance->pmt_sample_id,
-			       samples, instance->pmt_sample_count);
-#else
 	return 0;
-#endif
 }
+#endif
 
 #define PEM_GENMASK_GUID		GENMASK_ULL(31, 0)
 #define PEM_GENMASK_SAMPLE_ID		GENMASK_ULL(47, 32)
@@ -618,10 +671,14 @@ static int pem_store_pmt_pci_info(struct tpmi_pem_instance_info *instance)
 	u32 guid;
 	u64 val;
 
+	pr_info("%s\n", __func__);
+
 	if (!instance->pmt_info_offset)
 		return -EIO; /* No info offset field is available */
 
 	val = readq((u8 __iomem *)instance->pem_base + instance->pmt_info_offset * 8);
+	pr_info("info offset val:%llx\n", val);
+
 	guid = FIELD_GET(PEM_GENMASK_GUID, val);
 	sample_id = FIELD_GET(PEM_GENMASK_SAMPLE_ID, val);
 	sample_count = FIELD_GET(PEM_GENMASK_SAMPLE_COUNT, val);
@@ -630,10 +687,16 @@ static int pem_store_pmt_pci_info(struct tpmi_pem_instance_info *instance)
 	dev = instance->plat_info->device_number;
 	fn = instance->plat_info->function_number;
 
+	pr_info("PCI device instance for B:%x D:%x F:%x\n", bus, dev, fn);
 	pci_dev = pci_get_domain_bus_and_slot(0, bus, PCI_DEVFN(dev, fn));
 	if (!pci_dev) {
 		pr_err("No PCI device instance for B:%x D:%x F:%x\n", bus, dev, fn);
 		return -EIO;
+	}
+
+	if (!guid) {
+		guid = 0x00056d3c;
+		pr_info("Overide GUID :%x\n", guid);
 	}
 
 	instance->pmt_pci_dev = pci_dev;
@@ -652,6 +715,8 @@ static u32 pem_read_pmt_counter(struct tpmi_pem_instance_info *instance, int ind
 	u64 counters[PERF_PEM_EVENT_MAX];
 	int ret;
 
+	pr_info("%s\n", __func__);
+
 	if (!instance || index >= PERF_PEM_EVENT_MAX)
 		return 0;
 
@@ -663,14 +728,18 @@ static u32 pem_read_pmt_counter(struct tpmi_pem_instance_info *instance, int ind
 	if (ret)
 		return 0;
 
+	pr_info("counter at index:%d %llx\n", index, counters[index]);
+
 	return counters[index];
 }
 
-static inline u64 pem_pmu_read_counter(struct perf_event *event)
+static inline u64 pem_pmu_read_counter(struct perf_event *event, bool start)
 {
 	struct tpmi_pem_instance_info *instance;
 	u64 counter = 0, val;
 	int ret;
+
+	pr_info("%s\n", __func__);
 
 	rcu_read_lock();
 
@@ -687,7 +756,8 @@ static inline u64 pem_pmu_read_counter(struct perf_event *event)
 	if (ret)
 		goto read_counter_unlock;
 
-	if (val & BIT(event->hw.event_base))
+	pr_info("BIT(event->hw.event_base) 0x%lx BIT:%lx\n", event->hw.event_base, BIT(event->hw.event_base));
+	if (start || (val & BIT(event->hw.event_base)))
 		counter += pem_read_pmt_counter(instance, event->hw.event_base);
 
 read_counter_unlock:
@@ -701,9 +771,11 @@ static void pem_pmu_event_update(struct perf_event *event)
 	struct hw_perf_event *hwc = &event->hw;
 	u64 prev_raw_count, new_raw_count;
 
+	pr_info("%s\n", __func__);
+
 again:
 	prev_raw_count = local64_read(&hwc->prev_count);
-	new_raw_count = pem_pmu_read_counter(event);
+	new_raw_count = pem_pmu_read_counter(event, false);
 
 	if (local64_cmpxchg(&hwc->prev_count, prev_raw_count,
 			    new_raw_count) != prev_raw_count)
@@ -724,19 +796,22 @@ again:
 
 static void pem_pmu_event_start(struct perf_event *event, int mode)
 {
+	pr_info("%s\n", __func__);
 	/* Reset the last excursion status */
 	pem_status_clear(event->cpu, event->hw.event_base);
 
-	local64_set(&event->hw.prev_count, pem_pmu_read_counter(event));
+	local64_set(&event->hw.prev_count, pem_pmu_read_counter(event, true));
 }
 
 static void pem_pmu_event_stop(struct perf_event *event, int mode)
 {
+	pr_info("%s\n", __func__);
 	pem_pmu_event_update(event);
 }
 
 static void pem_pmu_event_del(struct perf_event *event, int mode)
 {
+	pr_info("%s\n", __func__);
 	pem_pmu_event_stop(event, PERF_EF_UPDATE);
 	pem_store_config(event->cpu, NULL);
 }
@@ -747,6 +822,7 @@ static int pem_pmu_event_add(struct perf_event *event, int mode)
 	u32 _fet, _tw;
 	int ret;
 
+	pr_info("%s\n", __func__);
 	ret = pem_get_stored_config(event->cpu, &_fet, &_tw, &owner);
 	if (ret)
 		return ret;
@@ -769,6 +845,8 @@ static void pem_pmu_enable(struct pmu *pmu)
 	u32 fet, tw;
 	int ret;
 
+	pr_info("%s\n", __func__);
+
 	ret = pem_get_stored_config(cpu, &fet, &tw, &owner);
 	if (ret)
 		return;
@@ -784,6 +862,7 @@ static void pem_pmu_disable(struct pmu *pmu)
 {
 	int cpu = raw_smp_processor_id();
 
+	pr_info("%s\n", __func__);
 	pem_feature_enable(cpu, 0);
 }
 
@@ -873,7 +952,7 @@ static int pem_cpu_init(unsigned int cpu)
 
 #define PEM_AUTO_SUSPEND_DELAY_MS	2000
 #define PEM_GENMASK_VERSION		GENMASK(7, 0)
-#define PEM_GENMASK_PMT_OFFSET		GENMASK(7, 0)
+#define PEM_GENMASK_PMT_OFFSET		GENMASK(15, 8)
 
 int tpmi_pem_dev_add(struct auxiliary_device *auxdev)
 {
@@ -947,6 +1026,7 @@ int tpmi_pem_dev_add(struct auxiliary_device *auxdev)
 		tpmi_pem->instance_info[i].power_domain = i;
 		tpmi_pem->instance_info[i].plat_info = plat_info;
 		tpmi_pem->instance_info[i].auxdev = auxdev;
+		pr_info("tpmi_pem->instance_info[i].pmt_info_offset:%d\n", tpmi_pem->instance_info[i].pmt_info_offset);
 
 		pem_store_pmt_pci_info(&tpmi_pem->instance_info[i]);
 
@@ -990,6 +1070,8 @@ void tpmi_pem_dev_remove(struct auxiliary_device *auxdev)
 	struct tpmi_pem_struct *tpmi_pem = auxiliary_get_drvdata(auxdev);
 	int i;
 
+	pr_info("%s\n", __func__);
+
 	for (i = 0; i < tpmi_pem->number_of_instances; ++i) {
 		pmt_pem_unregister_endpoint(&tpmi_pem->instance_info[i]);
 	}
@@ -1007,6 +1089,8 @@ EXPORT_SYMBOL_NS_GPL(tpmi_pem_dev_remove, INTEL_TPMI_PEM);
 int tpmi_pem_pmu_init(void)
 {
 	int ret = 0;
+
+	pr_info("%s\n", __func__);
 
 	mutex_lock(&pem_tpmi_dev_lock);
 
@@ -1028,12 +1112,16 @@ int tpmi_pem_pmu_init(void)
 init_done:
 	mutex_unlock(&pem_tpmi_dev_lock);
 
+	pr_info("%s ret:%d\n", __func__, ret);
+
 	return ret;
 }
 EXPORT_SYMBOL_NS_GPL(tpmi_pem_pmu_init, INTEL_TPMI_PEM);
 
 void tpmi_pem_pmu_exit(void)
 {
+	pr_info("%s\n", __func__);
+
 	mutex_lock(&pem_tpmi_dev_lock);
 
 	if (pem_core_usage_count)
@@ -1048,6 +1136,7 @@ void tpmi_pem_pmu_exit(void)
 }
 EXPORT_SYMBOL_NS_GPL(tpmi_pem_pmu_exit, INTEL_TPMI_PEM);
 
+MODULE_IMPORT_NS(INTEL_PMT);
 MODULE_IMPORT_NS(INTEL_TPMI);
 MODULE_IMPORT_NS(INTEL_TPMI_POWER_DOMAIN);
 
