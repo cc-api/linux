@@ -23,6 +23,8 @@
 #include "intel_tpmi_pem_core.h"
 #include "../tpmi_power_domains.h"
 
+#define PMT_SUPPORT
+
 #ifdef PMT_SUPPORT
 #include "../pmt/telemetry.h"
 #endif
@@ -50,6 +52,9 @@ struct tpmi_pem_instance_info {
 	u32 pmt_guid;
 	u16 pmt_sample_id;
 	u16 pmt_sample_count;
+#ifdef PMT_SUPPORT
+	struct telem_endpoint *telem_endpoint;
+#endif	
 };
 
 /* Each socket will have multiple power domain instances */
@@ -567,12 +572,35 @@ static int pem_pmu_event_init(struct perf_event *event)
 	return 0;
 }
 
-static int pmt_telem_read_counters(struct pci_dev *pci_dev, int instance, u32 guid,
-				   u16 sample_id, u16 sample_count, u64 *samples)
+#ifdef PMT_SUPPORT
+static void pmt_pem_register_endpoint(struct tpmi_pem_instance_info *instance,
+				      struct pci_dev *pcidev, u32 guid)
+{
+	instance->telem_endpoint = pmt_telem_find_and_register_endpoint(pcidev, guid, 0);
+	if (!instance->telem_endpoint)
+		pr_info("Telem end point not found guid:%x\n", guid);
+}
+
+static void pmt_pem_unregister_endpoint(struct tpmi_pem_instance_info *instance)
+{
+	if (instance->telem_endpoint)		
+		pmt_telem_unregister_endpoint(instance->telem_endpoint);
+}
+#else
+static void pmt_pem_register_endpoint(struct tpmi_pem_instance_info *instance,
+				      struct pci_dev *pcidev, u32 guid)
+{
+}
+static void pmt_pem_unregister_endpoint(struct tpmi_pem_instance_info *instance)
+{
+}
+#endif
+
+static int pmt_telem_read_counters(struct tpmi_pem_instance_info *instance, u64 *samples)
 {
 #ifdef PMT_SUPPORT
-	/* This function will call PMT interface function */
-	return pmt_telem_read64(pci_dev, guid, 0, sample_id, sample_count, samples);
+	return pmt_telem_read(instance->telem_endpoint, instance->pmt_sample_id,
+			       samples, instance->pmt_sample_count);
 #else
 	return 0;
 #endif
@@ -614,6 +642,8 @@ static int pem_store_pmt_pci_info(struct tpmi_pem_instance_info *instance)
 	instance->pmt_sample_count = sample_count;
 	pr_info("%s instance :%p guid:%x sample_id:%x sample_count:%d\n", __func__, instance->pmt_pci_dev, instance->pmt_guid, instance->pmt_sample_id, instance->pmt_sample_count);
 
+	pmt_pem_register_endpoint(instance, pci_dev, guid);
+
 	return 0;
 }
 
@@ -629,9 +659,7 @@ static u32 pem_read_pmt_counter(struct tpmi_pem_instance_info *instance, int ind
 		return 0;
 
 	pr_info("%s read instance:%p guid:%x sample_id:%x sample_count:%d\n", __func__, instance->pmt_pci_dev, instance->pmt_guid, instance->pmt_sample_id, instance->pmt_sample_count);
-	ret = pmt_telem_read_counters(instance->pmt_pci_dev, 0, instance->pmt_guid,
-				      instance->pmt_sample_id, instance->pmt_sample_count,
-				      counters);
+	ret = pmt_telem_read_counters(instance, counters);
 	if (ret)
 		return 0;
 
@@ -960,6 +988,11 @@ EXPORT_SYMBOL_NS_GPL(tpmi_pem_dev_add, INTEL_TPMI_PEM);
 void tpmi_pem_dev_remove(struct auxiliary_device *auxdev)
 {
 	struct tpmi_pem_struct *tpmi_pem = auxiliary_get_drvdata(auxdev);
+	int i;
+
+	for (i = 0; i < tpmi_pem->number_of_instances; ++i) {
+		pmt_pem_unregister_endpoint(&tpmi_pem->instance_info[i]);
+	}
 
 	mutex_lock(&pem_tpmi_dev_lock);
 	RCU_INIT_POINTER(pem_common.pem_inst[tpmi_pem->pkg_id], NULL);
