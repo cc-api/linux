@@ -694,6 +694,10 @@ void kvm_set_cpu_caps(void)
 		F(AVX_RAO_FP) | F(AVX512_RAO_FP)
 	);
 
+	kvm_cpu_cap_init_kvm_defined(CPUID_7_1_ECX,
+		F(AMX_FP8)
+	);
+
 	kvm_cpu_cap_mask(CPUID_D_1_EAX,
 		F(XSAVEOPT) | F(XSAVEC) | F(XGETBV1) | F(XSAVES) | f_xfd
 	);
@@ -986,8 +990,8 @@ static inline int __do_cpuid_func(struct kvm_cpuid_array *array, u32 function)
 
 			cpuid_entry_override(entry, CPUID_7_1_EAX);
 			cpuid_entry_override(entry, CPUID_7_1_EBX);
+			cpuid_entry_override(entry, CPUID_7_1_ECX);
 			cpuid_entry_override(entry, CPUID_7_1_EDX);
-			entry->ecx = 0;
 		}
 		break;
 	case 0xa: { /* Architectural Performance Monitoring */
