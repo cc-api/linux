@@ -1175,7 +1175,7 @@
                 }
             ],
             "description": "intel_rapl/intel_idle/thermal/turbostat support",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Evelyn Fields",
