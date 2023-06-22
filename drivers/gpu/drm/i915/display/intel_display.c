@@ -2554,8 +2554,13 @@ static void intel_set_transcoder_timings(const struct intel_crtc_state *crtc_sta
 		/*
 		 * VBLANK_START not used by hw, just clear it
 		 * to make it stand out in register dumps.
+		 *
+		 * #FIXME Avoid clearing the VBLANK START for Simulator,
+		 * as it stills track it. HSDES: 16021097356
 		 */
-		crtc_vblank_start = 1;
+
+		if (!IS_SIMULATOR(dev_priv))
+			crtc_vblank_start = 1;
 	}
 
 	if (DISPLAY_VER(dev_priv) > 3)
