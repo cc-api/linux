@@ -304,6 +304,7 @@ svoskern_ksys_mmap_pgoff(unsigned long addr, unsigned long len,
 EXPORT_SYMBOL(svoskern_ksys_mmap_pgoff);
 
 EXPORT_SYMBOL(vector_irq);
+EXPORT_SYMBOL(first_external_vector);
 
 int (*svoskern_svfs_callback_trap_handler)(int index, struct pt_regs *regs);
 EXPORT_SYMBOL(svoskern_svfs_callback_trap_handler);
