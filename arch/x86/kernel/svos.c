@@ -14,6 +14,7 @@
 #include <linux/svos.h>
 #include <linux/svos_svfs_exports.h>
 #include <asm/e820/api.h>
+#include <linux/efi.h>
 
 /* Avoid using small segments */
 #define SVOS_MIN_TARGET_E820_SIZE	(20 * 1024 * 1024)
@@ -77,6 +78,7 @@ void __init svos_mem_init(void)
 	u64 accum;
 	u64 goal;
 	u64 addr, size;
+	efi_memory_desc_t *md;
 	u64 kernel_start = __pa_symbol(_text);
 	/* Add a buffer of low space for kernel internal use */
 	u64 kernel_end = __pa_symbol(_end) + SVOS_KERNEL_LOW_SPACE;
@@ -177,7 +179,29 @@ void __init svos_mem_init(void)
 			}
 		}
 	}
+	/*  Loop over the efi memory descriptors to search
+		for EFI_CONVENTIONAL_MEMORY(System RAM) ranges that are
+		marked as SP(Specific Purpose) and convert them to SVOS TARGET.
+		Currently cxl memory (type 2&3) are marked as SP when we set CONFIG_EFI_SOFT_RESERVE=y
+		and we want those ranges as svos targets when som_goal_bytes != 0.
+		The history behind CONFIG_EFI_SOFT_RESERVE=y is intel CXL test cards are
+		using memory aliasing which means they expose more memory than they have and it causes 
+		a kernel panic since the OS tries to use it.
+		More details in https://hsdes.intel.com/resource/14017172453.
+		This code block must be after efi_memblock_x86_reserve_range
+		(efi_memmap_init_early to be more specific) since the regions marked as soft reserve 
+		and the memory descriptors are populated there.
 
+	*/
+	if (efi_enabled(EFI_MEMMAP)) {
+		for_each_efi_memory_desc(md) {
+			addr = md->phys_addr;
+			size = md->num_pages << EFI_PAGE_SHIFT;
+			if ((md->type == EFI_CONVENTIONAL_MEMORY) && md->attribute & EFI_MEMORY_SP) {
+				e820__range_update(addr, size, E820_TYPE_SOFT_RESERVED, E820_TYPE_SVOS_TARGET);
+			}
+		}
+	}
 	/* Sort and adjust the newly modified (post-carveout) kernel e820 table. */
 	e820__update_table(e820_table);
 
