@@ -2,6 +2,10 @@
 #ifndef _ASM_X86_HFI_H
 #define _ASM_X86_HFI_H
 
+#include <linux/cpumask.h>
+#include <linux/spinlock.h>
+#include <linux/workqueue.h>
+
 /* CPUID detection and enumeration definitions for HFI */
 
 union hfi_capabilities {
@@ -80,6 +84,30 @@ struct hfi_features {
 	unsigned int	cpu_stride;
 	unsigned int	class_stride;
 	unsigned int	hdr_size;
+};
+
+/**
+ * struct hfi_instance - Representation of an HFI instance (i.e., a table)
+ * @local_table:	Local copy of HFI table for this instance
+ * @cpus:		CPUs represented in this HFI table instance
+ * @hw_table:		Pointer to the HFI table of this instance
+ * @update_work:	Delayed work to process HFI updates
+ * @table_lock:		Lock to protect acceses to the table of this instance
+ * @event_lock:		Lock to process HFI interrupts
+ *
+ * A set of parameters to parse and navigate a specific HFI table.
+ */
+struct hfi_instance {
+	struct hfi_table	local_table;
+	cpumask_var_t		cpus;
+	void			*hw_table;
+	struct delayed_work	update_work;
+	raw_spinlock_t		table_lock;
+	raw_spinlock_t		event_lock;
+#ifdef CONFIG_DEBUG_FS
+	struct hfi_hdr		*cap_upd_hist;
+	unsigned int		cap_upd_hist_idx;
+#endif
 };
 
 #if defined(CONFIG_INTEL_HFI_THERMAL)

@@ -88,30 +88,6 @@ struct hfi_cpu_data {
 } __packed;
 
 /**
- * struct hfi_instance - Representation of an HFI instance (i.e., a table)
- * @local_table:	Local copy of HFI table for this instance
- * @cpus:		CPUs represented in this HFI table instance
- * @hw_table:		Pointer to the HFI table of this instance
- * @update_work:	Delayed work to process HFI updates
- * @table_lock:		Lock to protect acceses to the table of this instance
- * @event_lock:		Lock to process HFI interrupts
- *
- * A set of parameters to parse and navigate a specific HFI table.
- */
-struct hfi_instance {
-	struct hfi_table	local_table;
-	cpumask_var_t		cpus;
-	void			*hw_table;
-	struct delayed_work	update_work;
-	raw_spinlock_t		table_lock;
-	raw_spinlock_t		event_lock;
-#ifdef CONFIG_DEBUG_FS
-	struct hfi_hdr		*cap_upd_hist;
-	unsigned int		cap_upd_hist_idx;
-#endif
-};
-
-/**
  * struct hfi_cpu_info - Per-CPU attributes to consume HFI data
  * @index:		Row of this CPU in its HFI table
  * @hfi_instance:	Attributes of the HFI table to which this CPU belongs
