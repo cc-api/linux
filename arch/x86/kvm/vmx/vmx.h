@@ -7,6 +7,7 @@
 #include <asm/kvm.h>
 #include <asm/intel_pt.h>
 #include <asm/perf_event.h>
+#include <asm/hfi.h>
 
 #include "capabilities.h"
 #include "../kvm_cache_regs.h"
@@ -367,9 +368,49 @@ struct vcpu_vmx {
 	} shadow_msr_intercept;
 };
 
+/**
+ * struct hfi_desc - Representation of an HFI instance (i.e., a table)
+ * @hfi_enabled:	Flag to indicate whether HFI is enabled at runtime.
+ *			Parsed from the Guest's MSR_IA32_HW_FEEDBACK_CONFIG.
+ * @hfi_int_enabled:	Flag to indicate whether HFI is enabled at runtime.
+ *			Parsed from Guest's MSR_IA32_PACKAGE_THERM_INTERRUPT[bit 25].
+ * @table_ptr_valid:	Flag to indicate whether the memory of Guest HFI table is ready.
+ *			Parsed from the valid bit of Guest's MSR_IA32_HW_FEEDBACK_PTR.
+ * @hfi_update_status:	Flag to indicate whether Guest has handled the virtual HFI table
+ *			update.
+ *			Parsed from Guest's MSR_IA32_PACKAGE_THERM_STATUS[bit 26].
+ * @hfi_update_pending:	Flag to indicate whether there's any update on Host that is not
+ *			synced to Guest.
+ *			KVM should update the Guest's HFI table and inject the notification
+ *			until Guest has cleared hfi_update_status.
+ * @table_base:		GPA of Guest's HFI table, which is parsed from Guest's
+ *			MSR_IA32_HW_FEEDBACK_PTR.
+ * @hfi_features:	Feature information based on Guest's HFI/ITD CPUID.
+ * @hfi_table:		Local virtual HFI table based on the HFI data of the pCPU that
+ *			the vCPU is running on.
+ *			When KVM updates the Guest's HFI table, it writes the local
+ *			virtual HFI table to the Guest HFI table memory in @table_base.
+ *
+ * A set of status flags and feature information, used to maintain local virtual HFI table
+ * and sync updates to Guest HFI table.
+ */
+
+struct hfi_desc {
+	bool			hfi_enabled;
+	bool			hfi_int_enabled;
+	bool			table_ptr_valid;
+	bool			hfi_update_status;
+	bool			hfi_update_pending;
+	gpa_t			table_base;
+	struct			hfi_features hfi_features;
+	struct hfi_table	hfi_table;
+};
+
 struct pkg_therm_desc {
 	u64			msr_pkg_therm_int;
 	u64			msr_pkg_therm_status;
+	/* Currently HFI is only supported at package level. */
+	struct hfi_desc		hfi_desc;
 	/* All members before "struct mutex pkg_therm_lock" are protected by the lock. */
 	struct mutex		pkg_therm_lock;
 };

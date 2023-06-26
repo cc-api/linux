@@ -7719,10 +7719,17 @@ free_vpid:
 static int vmx_vm_init_pkg_therm(struct kvm *kvm)
 {
 	struct pkg_therm_desc *pkg_therm = &to_kvm_vmx(kvm)->pkg_therm;
+	struct hfi_desc *kvm_vmx_hfi = &pkg_therm->hfi_desc;
 
 	pkg_therm->msr_pkg_therm_int = 0;
 	pkg_therm->msr_pkg_therm_status = 0;
 	mutex_init(&pkg_therm->pkg_therm_lock);
+
+	kvm_vmx_hfi->hfi_enabled = false;
+	kvm_vmx_hfi->hfi_int_enabled = false;
+	kvm_vmx_hfi->table_ptr_valid = false;
+	kvm_vmx_hfi->hfi_update_pending = false;
+	kvm_vmx_hfi->hfi_update_status = false;
 
 	return 0;
 }
@@ -8390,7 +8397,9 @@ static void vmx_hardware_unsetup(void)
 static void vmx_vm_destroy(struct kvm *kvm)
 {
 	struct kvm_vmx *kvm_vmx = to_kvm_vmx(kvm);
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
 
+	kfree(kvm_vmx_hfi->hfi_table.base_addr);
 	free_pages((unsigned long)kvm_vmx->pid_table, vmx_get_pid_table_order(kvm));
 }
 
