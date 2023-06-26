@@ -1656,6 +1656,39 @@ static void vmx_update_hfi_table(struct kvm *kvm)
 		vmx_inject_therm_interrupt(kvm_get_vcpu(kvm, 0));
 }
 
+static void vmx_dynamic_update_hfi_table(struct kvm_vcpu *vcpu)
+{
+	struct kvm_vmx *kvm_vmx = to_kvm_vmx(vcpu->kvm);
+	struct hfi_desc *kvm_vmx_hfi = &kvm_vmx->pkg_therm.hfi_desc;
+
+	if (!intel_hfi_enabled())
+		return;
+
+	mutex_lock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+
+	/*
+	 * If Guest hasn't handled the previous update, just make a pending
+	 * flag to indicate that Host has more updates that KVM needs to sync.
+	 */
+	if (kvm_vmx_hfi->hfi_update_status) {
+		kvm_vmx_hfi->hfi_update_pending = true;
+		mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+		return;
+	}
+
+	/*
+	 * The virtual HFI table is maintained at VM level so that vCPUs
+	 * of the same VM are sharing the one HFI table. Therefore, one
+	 * vCPU can update the HFI table for the whole VM.
+	 *
+	 * During the notification handling of other HFI instances, if no
+	 * change is found in the virtual HFI table, the Guest memory
+	 * write and interrupt injection will not be repeated.
+	 */
+	vmx_update_hfi_table(vcpu->kvm);
+	mutex_unlock(&kvm_vmx->pkg_therm.pkg_therm_lock);
+}
+
 /*
  * Switches to specified vcpu, until a matching vcpu_put(), but assumes
  * vcpu mutex is already taken.
@@ -8666,6 +8699,7 @@ static struct kvm_x86_ops vmx_x86_ops __initdata = {
 	.complete_emulated_msr = kvm_complete_insn_gp,
 
 	.vcpu_deliver_sipi_vector = kvm_vcpu_deliver_sipi_vector,
+	.update_hfi = vmx_dynamic_update_hfi_table,
 };
 
 static unsigned int vmx_handle_intel_pt_intr(void)
