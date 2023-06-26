@@ -360,6 +360,9 @@ struct vcpu_vmx {
 	struct pt_desc pt_desc;
 	struct lbr_desc lbr_desc;
 
+	/* Should be extracted from Guest's CPUID.0x06.edx[bits 16-31]. */
+	int hfi_table_idx;
+
 	/* Save desired MSR intercept (read: pass-through) state */
 #define MAX_POSSIBLE_PASSTHROUGH_MSRS	16
 	struct {
