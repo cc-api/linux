@@ -7650,6 +7650,12 @@ static int vmx_vcpu_create(struct kvm_vcpu *vcpu)
 			tsx_ctrl->mask = ~(u64)TSX_CTRL_CPUID_CLEAR;
 	}
 
+	/*
+	 * hfi_table_idx is initialized to 0, but later it may be changed according
+	 * to the value in the Guest's CPUID.0x06.edx[bits 16-31].
+	 */
+	vmx->hfi_table_idx = 0;
+
 	err = alloc_loaded_vmcs(&vmx->vmcs01);
 	if (err < 0)
 		goto free_pml;
