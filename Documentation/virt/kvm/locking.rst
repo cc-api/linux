@@ -291,7 +291,7 @@ time it will be set using the Dirty tracking mechanism described above.
 		wakeup.
 
 ``vendor_module_lock``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^
 :Type:		mutex
 :Arch:		x86
 :Protects:	loading a vendor module (kvm_amd or kvm_intel)
@@ -299,3 +299,14 @@ time it will be set using the Dirty tracking mechanism described above.
     taken outside of kvm_lock, e.g. in KVM's CPU online/offline callbacks, and
     many operations need to take cpu_hotplug_lock when loading a vendor module,
     e.g. updating static calls.
+
+``pkg_therm_lock``
+^^^^^^^^^^^^^^^^^^
+:Type:		mutex
+:Arch:		x86 (vmx)
+:Protects:	PTS, HFI and ITD emulation
+:Comment:	This is a per-VM lock and it is used for VM level thermal features'
+    emulation (PTS, HFI and ITD). When these features' emulated MSRs need to
+    be changed, or when we handle the virtual HFI table's update, this lock is
+    needed to create the atomi context and to avoid competing behavior of other
+    vCPUs in the same VM.
