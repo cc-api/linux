@@ -157,6 +157,12 @@ bool kvm_can_use_hv_timer(struct kvm_vcpu *vcpu)
 		    kvm_can_post_timer_interrupt(vcpu));
 }
 
+static bool kvm_can_use_guest_virt_timer(struct kvm_vcpu *vcpu)
+{
+	return kvm_x86_ops.set_guest_virt_timer
+		&& !kvm_can_post_timer_interrupt(vcpu);
+}
+
 static bool kvm_use_posted_timer_interrupt(struct kvm_vcpu *vcpu)
 {
 	return kvm_can_post_timer_interrupt(vcpu) && vcpu->mode == IN_GUEST_MODE;
@@ -1708,6 +1714,7 @@ static void limit_periodic_timer_frequency(struct kvm_lapic *apic)
 }
 
 static void cancel_hv_timer(struct kvm_lapic *apic);
+static void cancel_guest_virt_timer(struct kvm_lapic *apic);
 
 static void cancel_apic_timer(struct kvm_lapic *apic)
 {
@@ -1715,8 +1722,43 @@ static void cancel_apic_timer(struct kvm_lapic *apic)
 	preempt_disable();
 	if (apic->lapic_timer.hv_timer_in_use)
 		cancel_hv_timer(apic);
+	else if (apic->lapic_timer.guest_virt_timer_in_use)
+		cancel_guest_virt_timer(apic);
 	preempt_enable();
 	atomic_set(&apic->lapic_timer.pending, 0);
+}
+
+static void cancel_guest_virt_timer(struct kvm_lapic *apic)
+{
+	WARN_ON(preemptible());
+	WARN_ON(!apic->lapic_timer.guest_virt_timer_in_use);
+	static_call(kvm_x86_cancel_guest_virt_timer)(apic->vcpu);
+	apic->lapic_timer.guest_virt_timer_in_use = false;
+}
+
+static bool start_guest_virt_timer(struct kvm_lapic *apic)
+{
+	struct kvm_timer *ktimer = &apic->lapic_timer;
+	struct kvm_vcpu *vcpu = apic->vcpu;
+	u32 reg;
+	u16 vector;
+
+	WARN_ON(preemptible());
+	if (!kvm_can_use_guest_virt_timer(vcpu))
+		return false;
+
+	if (!apic_lvtt_tscdeadline(apic))
+		return false;
+
+	reg = kvm_lapic_get_reg(apic, APIC_LVTT);
+	vector = reg & APIC_VECTOR_MASK;
+	if (static_call(kvm_x86_set_guest_virt_timer)(vcpu, vector))
+		return false;
+
+	ktimer->guest_virt_timer_in_use = true;
+	hrtimer_cancel(&ktimer->timer);
+
+	return true;
 }
 
 static void apic_update_lvtt(struct kvm_lapic *apic)
@@ -1734,6 +1776,12 @@ static void apic_update_lvtt(struct kvm_lapic *apic)
 		}
 		apic->lapic_timer.timer_mode = timer_mode;
 		limit_periodic_timer_frequency(apic);
+
+		if (apic_lvtt_tscdeadline(apic)) {
+			preempt_disable();
+			start_guest_virt_timer(apic);
+			preempt_enable();
+		}
 	}
 }
 
@@ -2056,6 +2104,15 @@ bool kvm_lapic_hv_timer_in_use(struct kvm_vcpu *vcpu)
 	return vcpu->arch.apic->lapic_timer.hv_timer_in_use;
 }
 
+bool kvm_lapic_guest_virt_timer_in_use(struct kvm_vcpu *vcpu)
+{
+	if (!lapic_in_kernel(vcpu))
+		return false;
+
+	return vcpu->arch.apic->lapic_timer.guest_virt_timer_in_use;
+}
+EXPORT_SYMBOL_GPL(kvm_lapic_guest_virt_timer_in_use);
+
 static void cancel_hv_timer(struct kvm_lapic *apic)
 {
 	WARN_ON(preemptible());
@@ -2128,6 +2185,9 @@ static void restart_apic_timer(struct kvm_lapic *apic)
 	preempt_disable();
 
 	if (!apic_lvtt_period(apic) && atomic_read(&apic->lapic_timer.pending))
+		goto out;
+
+	if (apic->lapic_timer.guest_virt_timer_in_use)
 		goto out;
 
 	if (!start_hv_timer(apic))
