@@ -109,6 +109,9 @@ module_param(enable_apicv, bool, S_IRUGO);
 bool __read_mostly enable_ipiv = true;
 module_param(enable_ipiv, bool, 0444);
 
+bool __read_mostly enable_apic_timer;
+module_param_named(apic_timer, enable_apic_timer, bool, 0444);
+
 /*
  * If nested=1, nested virtualization is supported, i.e., guests may use
  * VMX and be a hypervisor for its own guests. If nested=0, guests may not
@@ -4415,6 +4418,9 @@ static void vmx_refresh_apicv_exec_ctrl(struct kvm_vcpu *vcpu)
 						 SECONDARY_EXEC_VIRTUAL_INTR_DELIVERY);
 		if (enable_ipiv)
 			tertiary_exec_controls_clearbit(vmx, TERTIARY_EXEC_IPI_VIRT);
+
+		if(enable_apic_timer)
+			tertiary_exec_controls_clearbit(vmx, TERTIARY_EXEC_GUEST_APIC_TIMER);
 	}
 
 	vmx_update_msr_bitmap_x2apic(vcpu);
@@ -4474,6 +4480,11 @@ static u64 vmx_tertiary_exec_control(struct vcpu_vmx *vmx)
 	 */
 	if (!enable_ipiv || !kvm_vcpu_apicv_active(&vmx->vcpu))
 		exec_control &= ~TERTIARY_EXEC_IPI_VIRT;
+
+	/* GUEST_APIC_TIMER is enabled when guest enable lapic timer as tsc
+	 * deadline mode.
+	 */
+	exec_control &= ~TERTIARY_EXEC_GUEST_APIC_TIMER;
 
 	return exec_control;
 }
@@ -7354,7 +7365,8 @@ static fastpath_t vmx_vcpu_run(struct kvm_vcpu *vcpu)
 	if (enable_preemption_timer)
 		vmx_update_hv_timer(vcpu);
 
-	vmx_update_guest_virt_timer(vcpu);
+	if (enable_apic_timer)
+		vmx_update_guest_virt_timer(vcpu);
 
 	kvm_wait_lapic_expire(vcpu);
 
@@ -8071,7 +8083,8 @@ static int vmx_set_guest_virt_timer(struct kvm_vcpu *vcpu, u16 vector)
 	struct vcpu_vmx *vmx;
 
 	vmx = to_vmx(vcpu);
-	if (!kvm_vcpu_apicv_active(vcpu) ||
+	if (!enable_apic_timer ||
+	    !kvm_vcpu_apicv_active(vcpu) ||
 	    (exec_controls_get(vmx) & CPU_BASED_RDTSC_EXITING))
 		return -EPERM;
 
@@ -8577,6 +8590,9 @@ static __init int hardware_setup(void)
 
 	if (!cpu_has_vmx_preemption_timer())
 		enable_preemption_timer = false;
+
+	if (!cpu_has_vmx_guest_virt_timer())
+		enable_apic_timer = false;
 
 	if (enable_preemption_timer) {
 		u64 use_timer_freq = 5000ULL * 1000 * 1000;
