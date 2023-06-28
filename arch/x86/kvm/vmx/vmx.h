@@ -338,6 +338,7 @@ struct vcpu_vmx {
 
 	/* apic deadline value in host tsc */
 	u64 hv_deadline_tsc;
+	u16 guest_timer_vector;
 
 	unsigned long host_debugctlmsr;
 
