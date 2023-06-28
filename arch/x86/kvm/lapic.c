@@ -2217,6 +2217,20 @@ out:
 }
 EXPORT_SYMBOL_GPL(kvm_lapic_expired_hv_timer);
 
+void kvm_lapic_switch_to_guest_virt_timer(struct kvm_vcpu *vcpu)
+{
+	struct kvm_lapic *apic = vcpu->arch.apic;
+
+	// if tsc deadline timer interrupt pending, enable guest_virt_timer with
+	// guest_tsc_phy and guest tsc_virt clear to 0.
+	if (apic_lvtt_tscdeadline(apic) && atomic_read(&apic->lapic_timer.pending)) {
+		preempt_disable();
+		start_guest_virt_timer(apic);
+		preempt_enable();
+	} else if (apic->lapic_timer.guest_virt_timer_in_use)
+		hrtimer_cancel(&apic->lapic_timer.timer);
+}
+
 void kvm_lapic_switch_to_hv_timer(struct kvm_vcpu *vcpu)
 {
 	restart_apic_timer(vcpu->arch.apic);
@@ -2228,7 +2242,12 @@ void kvm_lapic_switch_to_sw_timer(struct kvm_vcpu *vcpu)
 
 	preempt_disable();
 	/* Possibly the TSC deadline timer is not enabled yet */
-	if (apic->lapic_timer.hv_timer_in_use)
+	if (apic->lapic_timer.guest_virt_timer_in_use)
+		apic->lapic_timer.tscdeadline =
+			static_call(kvm_x86_get_guest_tsc_deadline_virt)(vcpu);
+
+	if (apic->lapic_timer.hv_timer_in_use ||
+	    apic->lapic_timer.guest_virt_timer_in_use)
 		start_sw_timer(apic);
 	preempt_enable();
 }
