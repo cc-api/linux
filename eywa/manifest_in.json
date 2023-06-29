@@ -6149,6 +6149,30 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.4"
+        },
+        {
+            "branch": "for-intel-next",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Yang Zhong",
+                    "email": "yang.zhong@linux.intel.com"
+                }
+            ],
+            "description": "Guest apic virt timer patches for CWF",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3433",
+            "name": "guest_apic_virt",
+            "repourl": "https://github.com/intel-sandbox/yangzhon-linux.git",
+            "sdl_contact": [],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-06/msg00042.html",
+            "platforms": "CWF",
+            "feature_jiras": "LFE-7429",
+            "last_enabled": "v6.4"
         }
     ]
 }
