@@ -8033,6 +8033,33 @@ static void vmx_cancel_hv_timer(struct kvm_vcpu *vcpu)
 {
 	to_vmx(vcpu)->hv_deadline_tsc = -1;
 }
+
+static int vmx_set_guest_virt_timer(struct kvm_vcpu *vcpu, u16 vector)
+{
+	struct vcpu_vmx *vmx;
+
+	vmx = to_vmx(vcpu);
+	if (!kvm_vcpu_apicv_active(vcpu) ||
+	    (exec_controls_get(vmx) & CPU_BASED_RDTSC_EXITING))
+		return -EPERM;
+
+	vmx->guest_timer_vector = vector;
+
+	return 0;
+}
+
+static void vmx_cancel_guest_virt_timer(struct kvm_vcpu *vcpu)
+{
+	to_vmx(vcpu)->guest_timer_vector = 0;
+}
+
+static u64 vmx_get_guest_tsc_deadline_virt(struct kvm_vcpu *vcpu)
+{
+	if (!lapic_in_kernel(vcpu))
+		return 0;
+
+	return vmcs_read64(GUEST_DEADLINE_VIR);
+}
 #endif
 
 static void vmx_sched_in(struct kvm_vcpu *vcpu, int cpu)
@@ -8294,6 +8321,9 @@ static struct kvm_x86_ops vmx_x86_ops __initdata = {
 #ifdef CONFIG_X86_64
 	.set_hv_timer = vmx_set_hv_timer,
 	.cancel_hv_timer = vmx_cancel_hv_timer,
+	.set_guest_virt_timer = vmx_set_guest_virt_timer,
+	.cancel_guest_virt_timer = vmx_cancel_guest_virt_timer,
+	.get_guest_tsc_deadline_virt = vmx_get_guest_tsc_deadline_virt,
 #endif
 
 	.setup_mce = vmx_setup_mce,
