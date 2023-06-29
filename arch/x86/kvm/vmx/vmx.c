@@ -4828,6 +4828,7 @@ static void vmx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 	vmx->msr_ia32_umwait_control = 0;
 
 	vmx->hv_deadline_tsc = -1;
+	vmx->guest_timer_vector = 0xFF;
 	kvm_set_cr8(vcpu, 0);
 
 	vmx_segment_cache_clear(vmx);
@@ -7148,6 +7149,29 @@ static void vmx_update_hv_timer(struct kvm_vcpu *vcpu)
 	}
 }
 
+static void vmx_update_guest_virt_timer(struct kvm_vcpu *vcpu)
+{
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+
+	if (vmx->guest_timer_vector != 0xFF) {
+		u32 tertiary_exec_control;
+
+		tertiary_exec_control = tertiary_exec_controls_get(vmx);
+		if (vmx->guest_timer_vector != 0) {
+			vmcs_write64(GUEST_DEADLINE_PHY, 0);
+			vmcs_write64(GUEST_DEADLINE_VIR, 0);
+			vmcs_write16(GUEST_APIC_TIMER_VECTOR, vmx->guest_timer_vector);
+			tertiary_exec_control |= TERTIARY_EXEC_GUEST_APIC_TIMER;
+			vmx_set_intercept_for_msr(vcpu, MSR_IA32_TSC_DEADLINE, MSR_TYPE_RW, false);
+		} else {
+			tertiary_exec_control &= ~TERTIARY_EXEC_GUEST_APIC_TIMER;
+			vmx_set_intercept_for_msr(vcpu, MSR_IA32_TSC_DEADLINE, MSR_TYPE_RW, true);
+		}
+		tertiary_exec_controls_set(vmx, tertiary_exec_control);
+		vmx->guest_timer_vector = 0xFF;
+	}
+}
+
 void noinstr vmx_update_host_rsp(struct vcpu_vmx *vmx, unsigned long host_rsp)
 {
 	if (unlikely(host_rsp != vmx->loaded_vmcs->host_state.rsp)) {
@@ -7323,6 +7347,8 @@ static fastpath_t vmx_vcpu_run(struct kvm_vcpu *vcpu)
 
 	if (enable_preemption_timer)
 		vmx_update_hv_timer(vcpu);
+
+	vmx_update_guest_virt_timer(vcpu);
 
 	kvm_wait_lapic_expire(vcpu);
 
