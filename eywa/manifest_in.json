@@ -6162,16 +6162,50 @@
             ],
             "description": "Guest apic virt timer patches for CWF",
             "enabled": true,
-            "ip_owner": [],
+            "ip_owner": [
+                {
+                    "name": "Gil Neiger",
+                    "email": "gil.neiger@intel.com"
+                }
+            ],
             "jira": "NEXT-3433",
             "name": "guest_apic_virt",
             "repourl": "https://github.com/intel-sandbox/yangzhon-linux.git",
-            "sdl_contact": [],
+            "sdl_contact": [
+                {
+                    "name": "Yang Zhong",
+                    "email": "yang.zhong@intel.com"
+                }
+            ],
             "status": "intel confidential",
             "stuck_at_ref": "",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-06/msg00042.html",
             "platforms": "CWF",
             "feature_jiras": "LFE-7429",
+            "last_enabled": "v6.4"
+        },
+        {
+            "branch": "guest_apic_virt_fixup",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Michael Bottini",
+                    "email": "michael.a.bottini@intel.com"
+                }
+            ],
+            "description": "",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3434",
+            "name": "guest_apic_virt_fixup",
+            "repourl": "https://github.com/intel-sandbox/otc_power_kernel.git",
+            "sdl_contact": [],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": "",
             "last_enabled": "v6.4"
         }
     ]
