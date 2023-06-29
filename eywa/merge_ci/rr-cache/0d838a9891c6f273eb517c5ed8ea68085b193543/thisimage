@@ -885,9 +885,12 @@ config INTEL_TDX_GUEST
 	bool "Intel TDX (Trust Domain Extensions) - Guest Support"
 	depends on X86_64 && CPU_SUP_INTEL
 	depends on X86_X2APIC
+	depends on EFI_STUB
 	select ARCH_HAS_CC_PLATFORM
 	select X86_MEM_ENCRYPT
 	select X86_MCE
+	select UNACCEPTED_MEMORY
+	select IOMAP_IND_MMIO
 	help
 	  Support running as a guest under Intel TDX.  Without this support,
 	  the guest kernel can not boot or run under TDX.
@@ -1354,15 +1357,16 @@ config MICROCODE_AMD
 	  processors will be enabled.
 
 config MICROCODE_LATE_LOADING
-	bool "Late microcode loading (DANGEROUS)"
-	default n
+	bool "Late microcode loading"
+	default y
 	depends on MICROCODE
 	help
 	  Loading microcode late, when the system is up and executing instructions
 	  is a tricky business and should be avoided if possible. Just the sequence
 	  of synchronizing all cores and SMT threads is one fragile dance which does
 	  not guarantee that cores might not softlock after the loading. Therefore,
-	  use this at your own risk. Late loading taints the kernel too.
+	  use this at your own risk. Late loading taints the kernel, if it
+	  doesn't support a minimum required base version before an update.
 
 config X86_MSR
 	tristate "/dev/cpu/*/msr - Model-specific register support"
@@ -1959,7 +1963,26 @@ config X86_SGX
 
 	  If unsure, say N.
 
+config X86_USER_SHADOW_STACK
+	bool "X86 userspace shadow stack"
+	depends on AS_WRUSS
+	depends on X86_64
+	select ARCH_USES_HIGH_VMA_FLAGS
+	select X86_CET
+	help
+	  Shadow stack protection is a hardware feature that detects function
+	  return address corruption.  This helps mitigate ROP attacks.
+	  Applications must be enabled to use it, and old userspace does not
+	  get protection "for free".
+
+	  CPUs supporting shadow stacks were first released in 2020.
+
+	  See Documentation/x86/shstk.rst for more information.
+
+	  If unsure, say N.
+
 <<<<<<<
+=======
 config INTEL_TDX_HOST
 	bool "Intel Trust Domain Extensions (TDX) host support"
 	depends on CPU_SUP_INTEL
@@ -2013,25 +2036,6 @@ config INTEL_TDX_MODULE_LOADER_OLD
 	select FW_LOADER
 	help
 	  This enables kernel to load P-SEAMLDR and TDX module at boot time.
-
-=======
-config X86_USER_SHADOW_STACK
-	bool "X86 userspace shadow stack"
-	depends on AS_WRUSS
-	depends on X86_64
-	select ARCH_USES_HIGH_VMA_FLAGS
-	select X86_CET
-	help
-	  Shadow stack protection is a hardware feature that detects function
-	  return address corruption.  This helps mitigate ROP attacks.
-	  Applications must be enabled to use it, and old userspace does not
-	  get protection "for free".
-
-	  CPUs supporting shadow stacks were first released in 2020.
-
-	  See Documentation/x86/shstk.rst for more information.
-
-	  If unsure, say N.
 
 >>>>>>>
 config EFI
