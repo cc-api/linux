@@ -34,6 +34,7 @@ enum xe_presi_feature {
  * 		       is simulated.
  * - emulation pipe2D: Display and Gunit RTL is booted on FPGA, while the rest
  * 		       of the HW is simulated.
+ * - emulation pldm: HW is emulated on a PLDM or similar system.
  *
  * Note: the enum values for detected envs are equal to the modparam values + 1
  */
@@ -44,7 +45,8 @@ struct xe_presi_info {
 		XE_PRESI_MODE_SIMULATOR = 2,
 		XE_PRESI_MODE_EMULATOR_PIPEGT = 3,
 		XE_PRESI_MODE_EMULATOR_PIPE2D = 4,
-		XE_MAX_PRESI_MODE = XE_PRESI_MODE_EMULATOR_PIPE2D
+		XE_PRESI_MODE_EMULATOR_PLDM = 5,
+		XE_NUM_PRESI_MODES
 	} mode;
 	u64 disabled_features;
 	int timeout_multiplier;
@@ -66,7 +68,7 @@ struct xe_presi_info {
 #define IS_SIMULATOR(xe) (IS_PRESI_MODE(xe, SIMULATOR))
 #define IS_PIPEGT_EMULATOR(xe) (IS_PRESI_MODE(xe, EMULATOR_PIPEGT))
 #define IS_PIPE2D_EMULATOR(xe) (IS_PRESI_MODE(xe, EMULATOR_PIPE2D))
-#define IS_EMULATOR(xe) (IS_PIPEGT_EMULATOR(xe) || IS_PIPE2D_EMULATOR(xe))
+#define IS_PLDM_EMULATOR(xe) (IS_PRESI_MODE(xe, EMULATOR_PLDM))
 
 #define XE_PRESI_SKIP_FEATURE(xe, name) \
 	(xe->presi_info.disabled_features & XE_PRESI_FEATURE_BIT(name))
