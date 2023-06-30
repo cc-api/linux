@@ -1629,7 +1629,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "eabb4ce4f448e5f86962b89db4074e6f43355dca",
+            "stuck_at_ref": "",
             "last_enabled": "v6.4",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-05/msg00036.html",
             "platforms": "LNL-M",
