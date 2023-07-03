@@ -393,6 +393,24 @@ static const struct intel_sa_info xe2_hpd_sa_info = {
 	/* Other values not used by simplified algorithm */
 };
 
+static int sim_get_bw_info(struct drm_i915_private *i915)
+{
+	struct intel_bw_info *bi = &i915->display.bw.max[0];
+
+	/*
+	 * If running in simulation the SAGV isn't modelled and we can't query
+	 * the pcode for QGV data.  We'll just create a single dummy QGV point
+	 * with max bandwidth.
+	 */
+	bi->num_planes = 1;
+	bi->num_qgv_points = 1;
+	bi->deratedbw[0] = UINT_MAX;
+
+	i915->display.sagv.status = I915_SAGV_NOT_CONTROLLED;
+
+	return 0;
+}
+
 static int icl_get_bw_info(struct drm_i915_private *dev_priv, const struct intel_sa_info *sa)
 {
 	struct intel_qgv_info qi = {};
@@ -474,6 +492,9 @@ static int tgl_get_bw_info(struct drm_i915_private *dev_priv, const struct intel
 	int clperchgroup;
 	int num_groups = ARRAY_SIZE(dev_priv->display.bw.max);
 	int i, ret;
+
+	if (IS_PRESILICON(dev_priv))
+		return sim_get_bw_info(dev_priv);
 
 	ret = icl_get_qgv_points(dev_priv, &qi, is_y_tile);
 	if (ret) {
