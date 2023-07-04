@@ -6,8 +6,6 @@
 #include <linux/timer.h>
 #include <drm/drm_vblank.h>
 
-#include "i915_drv.h"
-#include "intel_display.h"
 #include "regs/xe_guc_regs.h"
 #include "xe_device_types.h"
 #include "xe_mmio.h"
@@ -206,6 +204,10 @@ bool xe_presi_setup_guc_wopcm_region(struct xe_gt *gt, u32 *guc_wopcm_base,
 
 #define XE_PRESI_TIMER_INTERVAL_MSECS 30
 
+#if IS_ENABLED(CONFIG_DRM_XE_DISPLAY)
+#include "i915_drv.h"
+#include "intel_display.h"
+
 static void xe_presi_irq_timer(struct timer_list *t)
 {
 	struct xe_device *xe = from_timer(xe, t, presi_info.irq_timer);
@@ -237,3 +239,4 @@ void xe_presi_irq_timer_stop(struct xe_device *xe)
 
 	del_timer_sync(&xe->presi_info.irq_timer);
 }
+#endif
