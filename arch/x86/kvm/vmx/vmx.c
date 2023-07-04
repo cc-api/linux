@@ -109,6 +109,8 @@ module_param(enable_apicv, bool, S_IRUGO);
 bool __read_mostly enable_ipiv = true;
 module_param(enable_ipiv, bool, 0444);
 
+static u64 __read_mostly host_s_cet;
+
 /*
  * If nested=1, nested virtualization is supported, i.e., guests may use
  * VMX and be a hypervisor for its own guests. If nested=0, guests may not
@@ -4355,6 +4357,9 @@ void vmx_set_constant_host_state(struct vcpu_vmx *vmx)
 
 	if (cpu_has_load_ia32_efer())
 		vmcs_write64(HOST_IA32_EFER, host_efer);
+
+	if (cpu_has_load_cet_ctrl())
+		vmcs_writel(HOST_S_CET, host_s_cet);
 }
 
 void set_cr4_guest_host_mask(struct vcpu_vmx *vmx)
@@ -8632,6 +8637,9 @@ static __init int hardware_setup(void)
 		if (r)
 			return r;
 	}
+
+	if (cpu_has_load_cet_ctrl())
+		rdmsrl_safe(MSR_IA32_S_CET, &host_s_cet);
 
 	vmx_set_cpu_caps();
 
