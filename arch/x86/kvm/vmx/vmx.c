@@ -2093,6 +2093,21 @@ static int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		else
 			msr_info->data = vmx->pt_desc.guest.addr_a[index / 2];
 		break;
+	case MSR_IA32_U_CET:
+	case MSR_IA32_PL0_SSP ... MSR_IA32_PL3_SSP:
+		return kvm_get_msr_common(vcpu, msr_info);
+	case MSR_IA32_S_CET:
+	case MSR_KVM_GUEST_SSP:
+	case MSR_IA32_INT_SSP_TAB:
+		if (kvm_get_msr_common(vcpu, msr_info))
+			return 1;
+		if (msr_info->index == MSR_KVM_GUEST_SSP)
+			msr_info->data = vmcs_readl(GUEST_SSP);
+		else if (msr_info->index == MSR_IA32_S_CET)
+			msr_info->data = vmcs_readl(GUEST_S_CET);
+		else if (msr_info->index == MSR_IA32_INT_SSP_TAB)
+			msr_info->data = vmcs_readl(GUEST_INTR_SSP_TABLE);
+		break;
 	case MSR_IA32_DEBUGCTLMSR:
 		msr_info->data = vmcs_read64(GUEST_IA32_DEBUGCTL);
 		break;
@@ -2401,6 +2416,31 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 			vmx->pt_desc.guest.addr_b[index / 2] = data;
 		else
 			vmx->pt_desc.guest.addr_a[index / 2] = data;
+		break;
+#define VMX_CET_CONTROL_MASK		(~GENMASK_ULL(9, 6))
+#define CET_LEG_BITMAP_BASE(data)	((data) >> 12)
+#define CET_EXCLUSIVE_BITS		(CET_SUPPRESS | CET_WAIT_ENDBR)
+	case MSR_IA32_PL0_SSP ... MSR_IA32_PL3_SSP:
+		return kvm_set_msr_common(vcpu, msr_info);
+		break;
+	case MSR_IA32_U_CET:
+	case MSR_IA32_S_CET:
+	case MSR_KVM_GUEST_SSP:
+	case MSR_IA32_INT_SSP_TAB:
+		if ((msr_index == MSR_IA32_U_CET ||
+		     msr_index == MSR_IA32_S_CET) &&
+		    ((data & ~VMX_CET_CONTROL_MASK) ||
+		     !IS_ALIGNED(CET_LEG_BITMAP_BASE(data), 4) ||
+		     (data & CET_EXCLUSIVE_BITS) == CET_EXCLUSIVE_BITS))
+			return 1;
+		if (kvm_set_msr_common(vcpu, msr_info))
+			return 1;
+		if (msr_index == MSR_KVM_GUEST_SSP)
+			vmcs_writel(GUEST_SSP, data);
+		else if (msr_index == MSR_IA32_S_CET)
+			vmcs_writel(GUEST_S_CET, data);
+		else if (msr_index == MSR_IA32_INT_SSP_TAB)
+			vmcs_writel(GUEST_INTR_SSP_TABLE, data);
 		break;
 	case MSR_IA32_PERF_CAPABILITIES:
 		if (data && !vcpu_to_pmu(vcpu)->version)

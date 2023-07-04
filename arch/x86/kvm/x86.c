@@ -3641,13 +3641,6 @@ static inline bool is_shadow_stack_msr(struct kvm_vcpu *vcpu,
 static bool kvm_cet_is_msr_accessible(struct kvm_vcpu *vcpu,
 				      struct msr_data *msr)
 {
-
-	/*
-	 * This function cannot work without later CET MSR read/write
-	 * emulation patch.
-	 */
-	WARN_ON_ONCE(1);
-
 	if (is_shadow_stack_msr(vcpu, msr)) {
 		if (!kvm_cpu_cap_has(X86_FEATURE_SHSTK))
 			return false;
