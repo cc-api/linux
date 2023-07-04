@@ -1662,7 +1662,7 @@ static int tdp_mmu_map_handle_target_level(struct kvm_vcpu *vcpu,
 		ret = RET_PF_SPURIOUS;
 	else {
 		ret = __tdp_mmu_map_handle_target_level(vcpu, fault, iter, new_spte);
-		if (ret == -EBUSY)
+		if (ret == -EBUSY || ret == -EAGAIN)
 			return RET_PF_RETRY;
 		else if (ret)
 			return RET_PF_INVALID;
