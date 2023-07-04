@@ -3652,8 +3652,18 @@ static bool kvm_cet_is_msr_accessible(struct kvm_vcpu *vcpu,
 		if (!kvm_cpu_cap_has(X86_FEATURE_SHSTK))
 			return false;
 
-		if (msr->index == MSR_KVM_GUEST_SSP)
+		/*
+		 * This MSR is synthesized mainly for userspace access during
+		 * Live Migration, it also can be accessed in SMM mode by VMM.
+		 * Guest is not allowed to access this MSR.
+		 */
+		if (msr->index == MSR_KVM_GUEST_SSP) {
+			if (IS_ENABLED(CONFIG_X86_64) &&
+			    !!(vcpu->arch.hflags & HF_SMM_MASK))
+				return true;
+
 			return msr->host_initiated;
+		}
 
 		return msr->host_initiated ||
 			guest_cpuid_has(vcpu, X86_FEATURE_SHSTK);
