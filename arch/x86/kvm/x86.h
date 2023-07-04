@@ -549,4 +549,22 @@ int kvm_sev_es_string_io(struct kvm_vcpu *vcpu, unsigned int size,
 			 unsigned int port, void *data,  unsigned int count,
 			 int in);
 
+/*
+ * Guest xstate MSRs have been loaded in __msr_io(), disable preemption before
+ * access the MSRs to avoid MSR content corruption.
+ */
+static inline void kvm_get_xsave_msr(struct msr_data *msr_info)
+{
+	kvm_fpu_get();
+	rdmsrl(msr_info->index, msr_info->data);
+	kvm_fpu_put();
+}
+
+static inline void kvm_set_xsave_msr(struct msr_data *msr_info)
+{
+	kvm_fpu_get();
+	wrmsrl(msr_info->index, msr_info->data);
+	kvm_fpu_put();
+}
+
 #endif
