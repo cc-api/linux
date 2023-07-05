@@ -1839,9 +1839,9 @@ static bool cdclk_compute_crawl_and_squash_midpoint(struct drm_i915_private *i91
 
 static bool pll_enable_wa_needed(struct drm_i915_private *dev_priv)
 {
-	return ((IS_DG2(dev_priv) || IS_METEORLAKE(dev_priv)) &&
-		dev_priv->display.cdclk.hw.vco > 0 &&
-		HAS_CDCLK_SQUASH(dev_priv));
+	return (IS_DG2(dev_priv) || IS_METEORLAKE(dev_priv) ||
+		DISPLAY_VER(dev_priv) == 20) &&
+		dev_priv->display.cdclk.hw.vco > 0 && HAS_CDCLK_SQUASH(dev_priv);
 }
 
 static void _bxt_set_cdclk(struct drm_i915_private *dev_priv,
