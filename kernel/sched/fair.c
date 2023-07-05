@@ -9581,24 +9581,59 @@ static int migrate_swap_stop2(void *data)
 	busiest_cpu = cpu_of(busiest_rq);
 	target_cpu = busiest_rq->push_cpu;
 
+	/*
+	 * Lock the two runqueues to search for tasks that can be swapped. We
+	 * have to release the runqueue locks before taking the locks pi_locks
+	 * of the identified tasks. Otherwise, we may have a circular dependency.
+	 *
+	 * It may happen that a task is being forked on CPU A and at the same
+	 * time CPU B is doing load balance and identifies tasks on CPU A that
+	 * can be swapped with tasks on CPU B. The circular dependency may
+	 * happen as follows:
+	 *
+	 * When forking a task on CPU A, task_fork() is called. It acquires
+	 * p->pi_lock in the process. Then, it will call task_fork_fair(), which
+	 * will acquire rq->__lock of CPU A.
+	 *
+	 * Meanwhile, CPU B will balance load and find that CPU A is the busiest
+	 * CPU and will want to swap tasks with it. We would like to hold the the
+	 * runqueue locks of CPUs A and B while we look for suitable tasks to
+	 * swap and do the actual swapping. However, task swapping requires to
+	 * acquire the pi_lock of the two swapped tasks. We have acquired the
+	 * locks in the reverse order of the fork codepath and created a circular
+	 * dependency.
+	 *
+	 * To avoid the dependency, hold the runqueue locks when searching for
+	 * tasks and then release them. If tasks need to be swapped, acquire
+	 * first the pi_locks of the involved tasks and then runqueue locks.
+	 *
+	 * Since the runqueue locks were released, there is a risk that by the
+	 * time we are ready to swap tasks, they have migrated. Check for this
+	 * condition before proceeding with the task swap.
+	 */
 	double_rq_lock(busiest_rq, target_rq);
-
 	can_swap = find_exchangeable_tasks(busiest_rq, target_rq, &arg);
+	double_rq_unlock(busiest_rq, target_rq);
+
 	if (can_swap) {
 		double_raw_lock(&arg.src_task->pi_lock,
 				&arg.dst_task->pi_lock);
+		double_rq_lock(busiest_rq, target_rq);
 
-		__migrate_swap_task(arg.src_task, target_cpu);
-		__migrate_swap_task(arg.dst_task, busiest_cpu);
+		/* Check that tasks have not migrated. */
+		if (task_cpu(arg.src_task) == busiest_cpu &&
+		    task_cpu(arg.dst_task) == target_cpu) {
+			__migrate_swap_task(arg.src_task, target_cpu);
+			__migrate_swap_task(arg.dst_task, busiest_cpu);
+		}
 
+		double_rq_unlock(busiest_rq, target_rq);
 		raw_spin_unlock(&arg.dst_task->pi_lock);
 		raw_spin_unlock(&arg.src_task->pi_lock);
 	}
 
 	busiest_rq->active_balance = 0;
 	target_rq->active_balance = 0;
-
-	double_rq_unlock(busiest_rq, target_rq);
 
 	return 0;
 }
