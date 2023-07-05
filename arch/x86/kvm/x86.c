@@ -228,7 +228,7 @@ static struct kvm_user_return_msrs __percpu *user_return_msrs;
 				| XFEATURE_MASK_BNDCSR | XFEATURE_MASK_AVX512 \
 				| XFEATURE_MASK_PKRU | XFEATURE_MASK_XTILE)
 
-#define KVM_SUPPORTED_XSS     0
+#define KVM_SUPPORTED_XSS	(XFEATURE_MASK_CET_USER)
 
 u64 __read_mostly host_efer;
 EXPORT_SYMBOL_GPL(host_efer);
@@ -9646,6 +9646,20 @@ static int __kvm_x86_vendor_init(struct kvm_x86_init_ops *ops)
 		goto out_mmu_exit;
 
 	kvm_ops_update(ops);
+
+	if (!kvm_is_cet_supported()) {
+		kvm_cpu_cap_clear(X86_FEATURE_SHSTK);
+		kvm_cpu_cap_clear(X86_FEATURE_IBT);
+	}
+
+	/*
+	 * If SHSTK and IBT are not available in KVM, clear CET user bit in
+	 * kvm_caps.supported_xss so that kvm_is_cet__supported() returns
+	 * false when called.
+	 */
+	if (!kvm_cpu_cap_has(X86_FEATURE_SHSTK) &&
+	    !kvm_cpu_cap_has(X86_FEATURE_IBT))
+		kvm_caps.supported_xss &= ~CET_XSTATE_MASK;
 
 	for_each_online_cpu(cpu) {
 		smp_call_function_single(cpu, kvm_x86_check_cpu_compat, &r, 1);
