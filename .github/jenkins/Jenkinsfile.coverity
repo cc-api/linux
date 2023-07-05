@@ -33,7 +33,7 @@ pipeline {
               -e GH_TOKEN=${GH_PSW} \
               -e BUILDNAME=${BUILDNAME} \
               -e STREAM=${STREAM} \
-              gfx-osgc-docker-ci-igk.gfx-assets.intel.com/lgci-ubuntu2004:latest /common/xe/coverity_scan.sh
+              registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest /common/xe/coverity_scan.sh
           """
         }
       }
