@@ -89,6 +89,34 @@
                 {
                     "name": "CONFIG_TEST_FPU",
                     "value": "y"
+                },
+                {
+                    "name": "CONFIG_IOMMUFD",
+                    "value": "y "
+                },
+                {
+                    "name": "CONFIG_IOMMUFD_TEST",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_IOMMUFD_VFIO_CONTAINER",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_FAULT_INJECTION",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_DEBUG_KERNEL",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_RUNTIME_TESTING_MENU",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_CONFIG_VFIO_CONTAINER",
+                    "value": "n"
                 }
             ],
             "contributor": [
