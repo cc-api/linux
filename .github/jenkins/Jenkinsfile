@@ -46,13 +46,18 @@ pipeline {
       post {
         success {
           script {
-            def ghUrl = sh("git config --get remote.origin.url").trim()
+            def ghUrl = sh(script: "git config --get remote.origin.url", returnStdout: true).trim()
             def ghUrlParts = ghUrl.split('/')
             def ghUrlIndex = ghUrlParts.findIndexOf({ it == "github.com" })
 
             def githubOrg = ghUrlParts[ghUrlIndex + 1]
             def githubRepo = ghUrlParts[ghUrlIndex + 2]
-            def githubCommitSha = sh("git rev-parse HEAD").trim()
+            if (githubRepo.endsWith('.git')) {
+              def lastDot = githubRepo.lastIndexOf('.')
+              githubRepo = githubRepo[0..lastDot-1]
+            }
+
+            def githubCommitSha = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
 
             sh("""curl -L \
               -X POST \
