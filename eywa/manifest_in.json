@@ -6172,7 +6172,7 @@
                 }
             ],
             "status": "public",
-            "stuck_at_ref": "917192a50ecfb7fdf90c44e4bf101469f6ce888a",
+            "stuck_at_ref": "",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-06/msg00008.html",
             "platforms": "",
             "feature_jiras": "",
