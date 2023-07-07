@@ -39,7 +39,14 @@ u64 xe_ggtt_pte_encode(struct xe_bo *bo, u64 bo_offset)
 		pte |= XE_GGTT_PTE_DM;
 
 	/* FIXME: vfunc + pass in caching rules */
-	if (xe->info.platform == XE_METEORLAKE) {
+	if (GRAPHICS_VERx100(xe) >= 2000) {
+		/*
+		 * Recommended PAT index for Xe2 is L3+L4 2-way cache coherent (index 2)
+		 * Wa_14018976079
+		 * https://hsdes.intel.com/appstore/article/#/14019265341
+		 */
+		pte |= MTL_GGTT_PTE_PAT1;
+	} else if (xe->info.platform == XE_METEORLAKE) {
 		pte |= MTL_GGTT_PTE_PAT0;
 		pte |= MTL_GGTT_PTE_PAT1;
 	}
@@ -236,7 +243,7 @@ static void ggtt_invalidate_gt_tlb(struct xe_gt *gt)
 	} else if (xe_device_uc_enabled(gt_to_xe(gt))) {
 		struct xe_device *xe = gt_to_xe(gt);
 
-		if (xe->info.platform == XE_PVC) {
+		if (xe->info.platform == XE_PVC || GRAPHICS_VERx100(xe) >= 2000) {
 			xe_mmio_write32(gt, PVC_GUC_TLB_INV_DESC1,
 					PVC_GUC_TLB_INV_DESC1_INVALIDATE);
 			xe_mmio_write32(gt, PVC_GUC_TLB_INV_DESC0,
