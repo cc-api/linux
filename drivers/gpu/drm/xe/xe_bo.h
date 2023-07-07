@@ -41,6 +41,12 @@
 #define PPAT_CACHED_PDE                 0
 #define PPAT_CACHED                     BIT_ULL(7)
 #define PPAT_DISPLAY_ELLC               BIT_ULL(4)
+/* FIXME: Not all of these should have XE2_ prefixes */
+#define XE2_PPGTT_PTE_PAT4		BIT_ULL(61)
+#define XE2_PPGTT_PTE_PAT3		BIT_ULL(62)
+#define XE2_PPGTT_PTE_PAT2		BIT_ULL(7)
+#define XE2_PPGTT_PTE_PAT1		BIT_ULL(4)
+#define XE2_PPGTT_PTE_PAT0		BIT_ULL(3)
 
 #define XE_PTE_SHIFT			12
 #define XE_PAGE_SIZE			(1 << XE_PTE_SHIFT)
