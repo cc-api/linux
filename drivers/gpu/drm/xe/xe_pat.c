@@ -6,6 +6,7 @@
 #include "xe_pat.h"
 
 #include "regs/xe_reg_defs.h"
+#include "xe_device.h"
 #include "xe_gt.h"
 #include "xe_gt_mcr.h"
 #include "xe_mmio.h"
@@ -14,6 +15,7 @@
 #define _PAT_INDEX(index)			_PICK_EVEN_2RANGES(index, 8, \
 								   0x4800, 0x4804, \
 								   0x4848, 0x484c)
+#define _PAT_PTA				0x4820
 
 #define XE2_NO_PROMOTE                          REG_BIT(10)
 #define XE2_COMP_EN                             REG_BIT(9)
@@ -191,4 +193,61 @@ void xe_pat_init(struct xe_gt *gt)
 		drm_err(&xe->drm, "Missing PAT table for platform with graphics version %d.%2d!\n",
 			GRAPHICS_VER(xe), GRAPHICS_VERx100(xe) % 100);
 	}
+}
+
+void xe_pat_dump(struct xe_gt *gt, struct drm_printer *p)
+{
+	u32 pat;
+	int i, err;
+
+	if (GRAPHICS_VERx100(gt_to_xe(gt)) < 2000)
+		/* Not implemented yet */
+		return;
+
+	xe_device_mem_access_get(gt_to_xe(gt));
+	err = xe_force_wake_get(gt_to_fw(gt), XE_FW_GT);
+	if (err)
+		goto err_fw;
+
+	drm_printf(p, "PAT table:\n");
+
+	for (i = 0; i < 32; i++) {
+		if (xe_gt_is_media_type(gt))
+			pat = xe_mmio_read32(gt, XE_REG(_PAT_INDEX(i)));
+		else
+			pat = xe_gt_mcr_unicast_read_any(gt, XE_REG_MCR(_PAT_INDEX(i)));
+
+		drm_printf(p, "PAT[%2d] = [ %u, %u, %u, %u, %u, %u ]  (%#8x)\n", i,
+			   !!(pat & XE2_NO_PROMOTE),
+			   !!(pat & XE2_COMP_EN),
+			   REG_FIELD_GET(XE2_L3_CLOS, pat),
+			   REG_FIELD_GET(XE2_L3_POLICY, pat),
+			   REG_FIELD_GET(XE2_L4_POLICY, pat),
+			   REG_FIELD_GET(XE2_COH_MODE, pat),
+			   pat);
+	}
+
+	/*
+	 * Also print PTA_MODE, which describes how the hardware accesses
+	 * PPGTT entries.
+	 */
+	if (xe_gt_is_media_type(gt))
+		pat = xe_mmio_read32(gt, XE_REG(_PAT_PTA));
+	else
+		pat = xe_gt_mcr_unicast_read_any(gt, XE_REG_MCR(_PAT_PTA));
+
+	drm_printf(p, "Page Table Access:\n");
+	drm_printf(p, "PTA_MODE= [ %u, %u, %u, %u, %u, %u ]  (%#8x)\n",
+		   !!(pat & XE2_NO_PROMOTE),
+		   !!(pat & XE2_COMP_EN),
+		   REG_FIELD_GET(XE2_L3_CLOS, pat),
+		   REG_FIELD_GET(XE2_L3_POLICY, pat),
+		   REG_FIELD_GET(XE2_L4_POLICY, pat),
+		   REG_FIELD_GET(XE2_COH_MODE, pat),
+		   pat);
+
+	err = xe_force_wake_put(gt_to_fw(gt), XE_FW_GT);
+err_fw:
+	XE_WARN_ON(err);
+	xe_device_mem_access_put(gt_to_xe(gt));
 }
