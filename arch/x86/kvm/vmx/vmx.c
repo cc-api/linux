@@ -8177,8 +8177,7 @@ static void vmx_vm_destroy(struct kvm *kvm)
 	free_pages((unsigned long)kvm_vmx->pid_table, vmx_get_pid_table_order(kvm));
 }
 
-static gva_t vmx_get_untagged_addr(struct kvm_vcpu *vcpu, gva_t gva,
-			    unsigned int flags)
+gva_t vmx_get_untagged_addr(struct kvm_vcpu *vcpu, gva_t gva, unsigned int flags)
 {
 	unsigned long cr3_bits;
 	int lam_bit;
