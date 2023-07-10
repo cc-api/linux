@@ -3,6 +3,7 @@
 #define _ASM_X86_MICROCODE_H
 
 extern bool override_minrev;
+extern bool ucode_load_same;
 
 struct cpu_signature {
 	unsigned int sig;
