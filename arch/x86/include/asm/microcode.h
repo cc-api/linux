@@ -85,4 +85,10 @@ void show_ucode_info_early(void);
 static inline void show_ucode_info_early(void) { }
 #endif /* !CONFIG_CPU_SUP_INTEL */
 
+#ifdef CONFIG_MICROCODE_LATE_LOADING
+extern void inform_ucode_mce_in_progress(void);
+#else
+static void inform_ucode_mce_in_progress(void) { }
+#endif
+
 #endif /* _ASM_X86_MICROCODE_H */
