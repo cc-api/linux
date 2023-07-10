@@ -813,7 +813,7 @@
                 }
             ],
             "description": "LPSS(MFD/DMA/UART)/GPIO enabling for LNL,MTL(SoC P, S and PCH S variants),ADL,TGL,ICL and other/older platforms",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Rajesh Bhaskar",
@@ -835,7 +835,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
+            "last_enabled": "v6.5",
             "maillist": "",
             "platforms": "ADL,ICL,LNL,MTL,TGL",
             "feature_jiras": ""
