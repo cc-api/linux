@@ -273,6 +273,9 @@ int intel_microcode_sanity_check(void *mc, bool print_err, int hdr_type)
 }
 EXPORT_SYMBOL_GPL(intel_microcode_sanity_check);
 
+/* Vendor specific ucode control flags */
+static enum late_load_flags intel_ucode_control;
+
 /*
  * Returns 1 if update has been found, 0 otherwise.
  */
@@ -713,6 +716,16 @@ void reload_ucode_intel(void)
 	apply_microcode_early(&uci, false);
 }
 
+static void intel_set_control_flags(enum late_load_flags flags)
+{
+	intel_ucode_control |= flags;
+}
+
+static enum late_load_flags intel_get_control_flags(void)
+{
+	return intel_ucode_control;
+}
+
 static int collect_cpu_info(int cpu_num, struct cpu_signature *csig)
 {
 	struct cpuinfo_x86 *c = &cpu_data(cpu_num);
@@ -930,7 +943,7 @@ static enum ucode_state request_microcode_fw(int cpu, struct device *device)
 }
 
 static struct microcode_ops microcode_intel_ops = {
-	.control                          = LATE_LOAD_SAFE,
+	.get_control_flags                = intel_get_control_flags,
 	.request_microcode_fw             = request_microcode_fw,
 	.collect_cpu_info                 = collect_cpu_info,
 	.apply_microcode                  = apply_microcode_intel,
@@ -957,6 +970,7 @@ struct microcode_ops * __init init_intel_microcode(void)
 	}
 
 	llc_size_per_core = calc_llc_size_per_core(c);
+	intel_set_control_flags(LATE_LOAD_SAFE);
 
 	return &microcode_intel_ops;
 }
