@@ -27,13 +27,13 @@
             "description": "intel-next scripts and patches",
             "enabled": false,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3436",
             "name": "eywa",
             "repourl": "https://github.com/intel-innersource/os.linux.intelnext.kernel.git",
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
+            "last_enabled": "v6.5",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
@@ -128,13 +128,13 @@
             "description": "intel-next scripts and patches",
             "enabled": false,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3437",
             "name": "configs",
             "repourl": "https://github.com/intel-innersource/os.linux.intelnext.kernel.git",
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
+            "last_enabled": "v6.5",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
@@ -152,13 +152,13 @@
             "description": "intel-next scripts and patches",
             "enabled": false,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3438",
             "name": "packaging",
             "repourl": "https://github.com/intel-innersource/os.linux.intelnext.kernel.git",
             "sdl_contact": [],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
+            "last_enabled": "v6.5",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
@@ -237,7 +237,7 @@
                     "email": "kyle.d.pelton@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3439",
             "name": "branding",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [
@@ -248,7 +248,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
+            "last_enabled": "v6.5",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
@@ -328,7 +328,7 @@
                     "email": "rodrigo.vivi@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3440",
             "name": "drm",
             "repourl": "https://github.com/intel-innersource/drivers.gpu.i915.drm-intel.git",
             "sdl_contact": [
@@ -824,7 +824,7 @@
                     "email": "eric.thian.aun.tan@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3441",
             "name": "lpss_gpio",
             "repourl": "https://github.com/intel-sandbox/ashevche.linux.kernel",
             "sdl_contact": [
@@ -1013,7 +1013,7 @@
                     "email": "christopher.j.lake@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3442",
             "name": "pmc_core",
             "repourl": "https://github.com/intel-sandbox/xi_linux.git",
             "sdl_contact": [
@@ -1210,7 +1210,7 @@
                     "email": "evelyn.fields@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3443",
             "name": "rapl/idle",
             "repourl": "https://github.com/intel-sandbox/rzhang1.git",
             "sdl_contact": [
@@ -3393,7 +3393,7 @@
                     "email": "nirmal.patel@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3444",
             "name": "MTLDIDs",
             "repourl": "https://github.com/intel-sandbox/otc_power_kernel",
             "sdl_contact": [],
