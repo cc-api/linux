@@ -3386,7 +3386,7 @@
                 }
             ],
             "description": "Add DIDs 8086:7D0B and 8086:AD0B for Intel MTL-M/S SKU's",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Nirmal Patel",
@@ -3399,7 +3399,7 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
+            "last_enabled": "v6.5",
             "maillist": "",
             "platforms": "MTL-M",
             "feature_jiras": ""
