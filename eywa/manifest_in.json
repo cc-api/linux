@@ -2437,7 +2437,7 @@
                 }
             ],
             "description": "CXL Memory Expander support ",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3447",
             "name": "cxl",
@@ -2450,7 +2450,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
+            "last_enabled": "v6.5",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
