@@ -33,7 +33,7 @@
 static const char ucode_path[] = "kernel/x86/microcode/GenuineIntel.bin";
 
 /* Current microcode patch used in early patching on the APs. */
-static struct microcode_intel *intel_ucode_patch;
+static struct microcode_intel *applied_ucode;
 
 /* last level cache size per core */
 static int llc_size_per_core;
@@ -387,7 +387,7 @@ scan_microcode(void *data, size_t size, struct ucode_cpu_info *uci, bool save)
 		}
 
 		if (save) {
-			save_microcode_patch(&intel_ucode_patch, data, mc_size);
+			save_microcode_patch(&applied_ucode, data, mc_size);
 			goto next;
 		}
 
@@ -545,7 +545,7 @@ int __init save_microcode_in_initrd_intel(void)
 	 * update that pointer too, with a stable patch address to use when
 	 * resuming the cores.
 	 */
-	intel_ucode_patch = NULL;
+	applied_ucode = NULL;
 
 	if (!load_builtin_intel_microcode(&cp))
 		cp = find_microcode_in_initrd(ucode_path, false);
@@ -608,9 +608,9 @@ void load_ucode_intel_ap(void)
 	struct ucode_cpu_info uci;
 
 	if (IS_ENABLED(CONFIG_X86_32))
-		iup = (struct microcode_intel **) __pa_nodebug(&intel_ucode_patch);
+		iup = (struct microcode_intel **)__pa_nodebug(&applied_ucode);
 	else
-		iup = &intel_ucode_patch;
+		iup = &applied_ucode;
 
 	if (!*iup) {
 		patch = __load_ucode_intel(&uci);
@@ -627,7 +627,7 @@ void load_ucode_intel_ap(void)
 
 static struct microcode_intel *find_patch(void)
 {
-	return intel_ucode_patch;
+	return applied_ucode;
 }
 
 void reload_ucode_intel(void)
@@ -811,7 +811,7 @@ static enum ucode_state generic_load_microcode(int cpu, struct iov_iter *iter)
 	uci->mc = (struct microcode_intel *)new_mc;
 
 	/* Save for CPU hotplug */
-	save_microcode_patch(&intel_ucode_patch, new_mc, new_mc_size);
+	save_microcode_patch(&applied_ucode, new_mc, new_mc_size);
 
 	pr_debug("CPU%d found a matching microcode update with version 0x%x (current=0x%x)\n",
 		 cpu, new_rev, uci->cpu_sig.rev);
