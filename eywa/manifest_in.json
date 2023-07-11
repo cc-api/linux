@@ -264,7 +264,7 @@
                 }
             ],
             "description": "Linux Next PM public tree",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3445",
             "name": "pm-testing",
@@ -272,7 +272,7 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
+            "last_enabled": "v6.5",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
@@ -288,7 +288,7 @@
                 }
             ],
             "description": "Linux Next TPM public next tree",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3446",
             "name": "tpm",
@@ -296,7 +296,7 @@
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
+            "last_enabled": "v6.5",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
