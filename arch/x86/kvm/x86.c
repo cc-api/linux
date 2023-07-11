@@ -11214,6 +11214,33 @@ static void kvm_put_guest_fpu(struct kvm_vcpu *vcpu)
 	trace_kvm_fpu(0);
 }
 
+static void kvm_save_cet_supervisor_ssp(struct kvm_vcpu *vcpu)
+{
+	preempt_disable();
+	if (unlikely(guest_can_use(vcpu, X86_FEATURE_SHSTK))) {
+		rdmsrl(MSR_IA32_PL0_SSP, vcpu->arch.cet_s_ssp[0]);
+		rdmsrl(MSR_IA32_PL1_SSP, vcpu->arch.cet_s_ssp[1]);
+		rdmsrl(MSR_IA32_PL2_SSP, vcpu->arch.cet_s_ssp[2]);
+		/*
+		 * Omit reset to host PL{1,2}_SSP because Linux will never use
+		 * these MSRs.
+		 */
+		wrmsrl(MSR_IA32_PL0_SSP, 0);
+	}
+	preempt_enable();
+}
+
+static void kvm_reload_cet_supervisor_ssp(struct kvm_vcpu *vcpu)
+{
+	preempt_disable();
+	if (unlikely(guest_can_use(vcpu, X86_FEATURE_SHSTK))) {
+		wrmsrl(MSR_IA32_PL0_SSP, vcpu->arch.cet_s_ssp[0]);
+		wrmsrl(MSR_IA32_PL1_SSP, vcpu->arch.cet_s_ssp[1]);
+		wrmsrl(MSR_IA32_PL2_SSP, vcpu->arch.cet_s_ssp[2]);
+	}
+	preempt_enable();
+}
+
 int kvm_arch_vcpu_ioctl_run(struct kvm_vcpu *vcpu)
 {
 	struct kvm_queued_exception *ex = &vcpu->arch.exception;
@@ -11224,6 +11251,7 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_vcpu *vcpu)
 	kvm_sigset_activate(vcpu);
 	kvm_run->flags = 0;
 	kvm_load_guest_fpu(vcpu);
+	kvm_reload_cet_supervisor_ssp(vcpu);
 
 	kvm_vcpu_srcu_read_lock(vcpu);
 	if (unlikely(vcpu->arch.mp_state == KVM_MP_STATE_UNINITIALIZED)) {
@@ -11312,6 +11340,7 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_vcpu *vcpu)
 	r = vcpu_run(vcpu);
 
 out:
+	kvm_save_cet_supervisor_ssp(vcpu);
 	kvm_put_guest_fpu(vcpu);
 	if (kvm_run->kvm_valid_regs)
 		store_regs(vcpu);
@@ -12400,7 +12429,15 @@ void kvm_arch_sched_in(struct kvm_vcpu *vcpu, int cpu)
 		pmu->need_cleanup = true;
 		kvm_make_request(KVM_REQ_PMU, vcpu);
 	}
+
+	kvm_reload_cet_supervisor_ssp(vcpu);
+
 	static_call(kvm_x86_sched_in)(vcpu, cpu);
+}
+
+void kvm_arch_sched_out(struct kvm_vcpu *vcpu, int cpu)
+{
+	kvm_save_cet_supervisor_ssp(vcpu);
 }
 
 void kvm_arch_free_vm(struct kvm *kvm)
