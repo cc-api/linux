@@ -6235,6 +6235,35 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.4"
+        },
+        {
+            "branch": "as/hotplug-inext",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Alison Schofield",
+                    "email": "alison.schofield@intel.com"
+                }
+            ],
+            "description": "CXL Hotplug Updates for GNR",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3448",
+            "name": "cxl_hotplug",
+            "repourl": "https://github.com/intel-sandbox/cxl.git",
+            "sdl_contact": [
+                {
+                    "name": "Dan Williams",
+                    "email": "dan.j.williams@intel.com"
+                }
+            ],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00005.html",
+            "platforms": "GNR",
+            "feature_jiras": "",
+            "last_enabled": "v6.5"
         }
     ]
 }
