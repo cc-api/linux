@@ -452,7 +452,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "cse-6.4",
+            "branch": "cse-6.5",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -531,14 +531,14 @@
                 }
             ],
             "description": "CSE/CSME MEI driver and MEI client drivers",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "William A. Stevens",
                     "email": "William.a.stevens@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3450",
             "name": "mei",
             "repourl": "https://github.com/intel-innersource/drivers.security.cse.drivers.linux-mei-pk.git",
             "sdl_contact": [
@@ -561,8 +561,8 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
-            "maillist": "",
+            "last_enabled": "v6.5",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00007.html",
             "platforms": "LNL,MTL,PNL",
             "feature_jiras": ""
         },
