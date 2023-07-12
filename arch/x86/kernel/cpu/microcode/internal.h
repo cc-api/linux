@@ -44,6 +44,7 @@ struct microcode_ops {
 	enum late_load_flags (*get_control_flags)(void);
 	enum ucode_state (*request_microcode_fw)(int cpu, struct device *dev);
 	void (*microcode_fini_cpu)(int cpu);
+	void (*post_apply)(bool success);
 
 	/*
 	 * The generic 'microcode_core' part guarantees that

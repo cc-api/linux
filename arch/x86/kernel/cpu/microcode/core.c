@@ -571,6 +571,10 @@ static ssize_t reload_store(struct device *dev,
 	}
 
 	ret = microcode_reload_late();
+
+	if (microcode_ops->post_apply)
+		microcode_ops->post_apply(!ret);
+
 	if (ret) {
 		ret = -EIO;
 		goto unlock;
