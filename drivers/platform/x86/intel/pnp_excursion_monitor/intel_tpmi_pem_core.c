@@ -23,8 +23,6 @@
 #include "intel_tpmi_pem_core.h"
 #include "../tpmi_power_domains.h"
 
-#define PMT_SUPPORT
-
 #ifdef PMT_SUPPORT
 #include "../pmt/telemetry.h"
 #endif
