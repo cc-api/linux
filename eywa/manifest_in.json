@@ -1246,14 +1246,14 @@
                 }
             ],
             "description": "Linux thermal",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Jim Hermerding",
                     "email": "jim.g.hermerding@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3451",
             "name": "thermal",
             "repourl": "https://github.com/intel-sandbox/spandruv.linux.git",
             "sdl_contact": [
@@ -1264,8 +1264,8 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
-            "maillist": "",
+            "last_enabled": "v6.5",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00013.html",
             "platforms": "MTL-M",
             "feature_jiras": "LFE-3922,LFE-5007,LFE-6281"
         },
