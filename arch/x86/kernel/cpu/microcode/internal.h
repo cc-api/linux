@@ -54,6 +54,7 @@ struct microcode_ops {
 	enum ucode_load_scope (*get_load_scope)(void);
 	enum ucode_state (*request_microcode_fw)(int cpu, struct device *dev);
 	void (*microcode_fini_cpu)(int cpu);
+	int (*pre_apply)(void);
 	void (*post_apply)(bool success);
 
 	/*
