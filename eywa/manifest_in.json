@@ -345,7 +345,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "scs-v6.5",
+            "branch": "scs-v6.4",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -420,7 +420,7 @@
                 }
             ],
             "description": "MMC Subsystem and SCS (eMMC/ SD card / SDIO / UFS) driver enabling",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Rajesh Bhaskar",
@@ -435,7 +435,7 @@
                     "email": "arijit.chattopadhyay@intel.com"
                 }
             ],
-            "jira": "NEXT-3453",
+            "jira": "",
             "name": "mmc",
             "repourl": "https://github.com/intel-sandbox/ahunter6.next.git",
             "sdl_contact": [
@@ -446,9 +446,9 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
-            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00016.html",
-            "platforms": "LNL,PTL",
+            "last_enabled": "v6.4",
+            "maillist": "",
+            "platforms": "LNL",
             "feature_jiras": ""
         },
         {
@@ -1386,7 +1386,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "intel-pt-perf-tools-v6.4",
+            "branch": "intel-pt-perf-tools-v6.5",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
@@ -1396,14 +1396,14 @@
                 }
             ],
             "description": "Updates to perf tools for Intel PT",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Jeyasingh Stalinselvaraj",
                     "email": "stalinselvaraj.jeyasingh@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3454",
             "name": "perf-tools",
             "repourl": "https://github.com/intel-sandbox/ahunter6.next.git",
             "sdl_contact": [
@@ -1414,8 +1414,8 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
-            "maillist": "",
+            "last_enabled": "v6.5",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00017.html",
             "platforms": "",
             "feature_jiras": ""
         },
@@ -2028,14 +2028,14 @@
                 }
             ],
             "description": "Intel TPMI MFD driver",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Chen, Stanley",
                     "email": "stanley.chen@intel.com"
                 }
             ],
-            "jira": "NEXT-3452",
+            "jira": "",
             "name": "tpmi",
             "repourl": "https://github.com/intel-sandbox/spandruv.linux.git",
             "sdl_contact": [
@@ -2046,8 +2046,8 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
-            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00015.html",
+            "last_enabled": "v6.4",
+            "maillist": "",
             "platforms": "EMR",
             "feature_jiras": "LFE-646,LFE-688,LFE-714"
         },
