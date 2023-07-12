@@ -5896,7 +5896,7 @@
             "last_enabled": "v6.3"
         },
         {
-            "branch": "tracepoint-xsave-for-inext",
+            "branch": "tracepoint-xsave-for-inext-v6.5",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -5923,18 +5923,18 @@
                 }
             ],
             "description": "Measure the latency of XSAVE and XRSTOR",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3456",
             "name": "tracepoint_xsave",
             "repourl": "https://github.com/intel-sandbox/linux-sy.git",
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "maillist": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00019.html",
             "platforms": "EMR,GNR,SPR",
             "feature_jiras": "",
-            "last_enabled": "v6.4"
+            "last_enabled": "v6.5"
         },
         {
             "branch": "tdx-compliance-for-inext-v6.5",
