@@ -212,6 +212,96 @@ static struct workqueue_struct *hfi_updates_wq;
 #define HFI_MAX_THERM_NOTIFY_COUNT	16
 
 #ifdef CONFIG_DEBUG_FS
+
+unsigned long __percpu *hfi_ipcc_history;
+
+static bool alloc_hfi_ipcc_history(void)
+{
+	int cpu;
+
+	if (!cpu_feature_enabled(X86_FEATURE_ITD))
+		return false;
+
+	/*
+	 * Alloc memory for the number of supported classes plus
+	 * unclassified.
+	 */
+	hfi_ipcc_history = __alloc_percpu(sizeof(*hfi_ipcc_history) *
+					  hfi_features.nr_classes + 1,
+					  sizeof(*hfi_ipcc_history));
+
+	if (!hfi_ipcc_history)
+		return NULL;
+
+	/* Not clear that __alloc_percpu() initializes memory to 0. */
+	for_each_possible_cpu(cpu) {
+		unsigned long *history = per_cpu_ptr(hfi_ipcc_history, cpu);
+
+		memset(history, 0, (hfi_features.nr_classes + 1) *
+		       sizeof(*hfi_ipcc_history));
+	}
+
+	return !!hfi_ipcc_history;
+}
+
+static ssize_t hfi_ipcc_history_write(struct file *file, const char __user *ptr,
+				      size_t len, loff_t *off)
+{
+	int cpu;
+
+	if (!hfi_ipcc_history)
+		return -ENOMEM;
+
+	for_each_possible_cpu(cpu) {
+		unsigned long *history = per_cpu_ptr(hfi_ipcc_history, cpu);
+
+		memset(history, 0, (hfi_features.nr_classes + 1) *
+		       sizeof(*hfi_ipcc_history));
+	}
+
+	return len;
+}
+
+static int hfi_ipcc_history_show(struct seq_file *s, void *unused)
+{
+	int cpu, i;
+
+	if (!hfi_ipcc_history)
+		return -ENOMEM;
+
+	seq_puts(s, "CPU\tUnclass\t");
+	for (i = IPC_CLASS_UNCLASSIFIED; i < hfi_features.nr_classes; i++)
+		seq_printf(s, "IPCC%d\t", i + 1);
+	seq_puts(s, "\n");
+
+	for_each_online_cpu(cpu) {
+		unsigned long *history = per_cpu_ptr(hfi_ipcc_history, cpu);
+
+		seq_printf(s, "%d\t", cpu);
+
+		for (i = 0; i < hfi_features.nr_classes + 1; i++)
+			seq_printf(s, "%lu\t", history[i]);
+
+		seq_puts(s,"\n");
+	}
+
+	return 0;
+}
+
+static int hfi_ipcc_history_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, hfi_ipcc_history_show, inode->i_private);
+}
+
+static const struct file_operations hfi_ipcc_history_fops = {
+	.owner = THIS_MODULE,
+	.open = hfi_ipcc_history_open,
+	.read = seq_read,
+	.write = hfi_ipcc_history_write,
+	.llseek = seq_lseek,
+	.release = single_release
+};
+
 static int hfi_features_show(struct seq_file *s, void *unused)
 {
 	union cpuid6_edx edx;
@@ -616,6 +706,9 @@ static void hfi_debugfs_unregister(void)
 {
 	debugfs_remove_recursive(hfi_debugfs_dir);
 	hfi_debugfs_dir = NULL;
+
+	free_percpu(hfi_ipcc_history);
+	hfi_ipcc_history = NULL;
 }
 
 static void hfi_debugfs_register(void)
@@ -631,7 +724,16 @@ static void hfi_debugfs_register(void)
 	if (!f)
 		goto err;
 
+	if (!alloc_hfi_ipcc_history())
+		goto err;
+
+	f = debugfs_create_file("ipcc_history", 0444, hfi_debugfs_dir,
+				NULL, &hfi_ipcc_history_fops);
+	if (!f)
+		goto err;
+
 	return;
+
 err:
 	hfi_debugfs_unregister();
 }
