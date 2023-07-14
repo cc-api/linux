@@ -21,6 +21,29 @@
 #include <asm/intel-family.h>
 #include <asm/topology.h>
 
+#if CONFIG_DEBUG_FS
+extern unsigned long __percpu *hfi_ipcc_history;
+
+/*
+ * Caller must convert from HFI to IPC classes.
+ *
+ * Must be called from the CPU to which the the history will be registered.
+ * This condition is met if called via the scheduler user tick.
+ */
+static void register_ipcc_history(u8 ipcc)
+{
+	unsigned long *history;
+
+	if (!hfi_ipcc_history)
+		return;
+
+	history = per_cpu_ptr(hfi_ipcc_history, smp_processor_id());
+	history[ipcc]++;
+}
+#else
+static void register_ipcc_history(u8 ipcc) { }
+#endif
+
 /**
  * struct itd_ipcc - IPC class fields as used by Intel Thread Director
  * @split.class:	The IPC class used for scheduling after filtering
@@ -99,9 +122,17 @@ void intel_update_ipcc(struct task_struct *curr)
 {
 	u8 hfi_class;
 	bool idle;
+	int ret;
 
-	if (intel_hfi_read_classid(&hfi_class))
+	ret = intel_hfi_read_classid(&hfi_class);
+
+	if (ret == -EINVAL)
+		register_ipcc_history(IPC_CLASS_UNCLASSIFIED);
+
+	if (ret)
 		return;
+
+	register_ipcc_history(hfi_class + 1);
 
 	/*
 	 * 0 is a valid classification for Intel Thread Director. A scheduler
