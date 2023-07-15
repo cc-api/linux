@@ -2155,6 +2155,18 @@ static u64 vmx_get_supported_debugctl(struct kvm_vcpu *vcpu, bool host_initiated
 	return debugctl;
 }
 
+static void vmx_disable_write_intercept_sss_msr(struct kvm_vcpu *vcpu)
+{
+	if (guest_can_use(vcpu, X86_FEATURE_SHSTK)) {
+		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL0_SSP,
+					  MSR_TYPE_RW, false);
+		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL1_SSP,
+					  MSR_TYPE_RW, false);
+		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL2_SSP,
+					  MSR_TYPE_RW, false);
+	}
+}
+
 /*
  * Writes msr value into the appropriate "register".
  * Returns 0 on success, non-0 otherwise.
@@ -2427,7 +2439,16 @@ static int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 #define CET_LEG_BITMAP_BASE(data)	((data) >> 12)
 #define CET_EXCLUSIVE_BITS		(CET_SUPPRESS | CET_WAIT_ENDBR)
 	case MSR_IA32_PL0_SSP ... MSR_IA32_PL3_SSP:
-		return kvm_set_msr_common(vcpu, msr_info);
+		if (kvm_set_msr_common(vcpu, msr_info))
+			return 1;
+		/*
+		 * Write to the base SSP MSRs should happen ahead of toggling
+		 * of IA32_S_CET.SH_STK_EN bit.
+		 */
+		if (msr_index != MSR_IA32_PL3_SSP && data) {
+			vmx_disable_write_intercept_sss_msr(vcpu);
+			wrmsrl(msr_index, data);
+		}
 		break;
 	case MSR_IA32_U_CET:
 	case MSR_IA32_S_CET:
@@ -7774,12 +7795,17 @@ static void vmx_update_intercept_for_cet_msr(struct kvm_vcpu *vcpu)
 					  MSR_TYPE_RW, false);
 		vmx_set_intercept_for_msr(vcpu, MSR_IA32_S_CET,
 					  MSR_TYPE_RW, false);
+		/*
+		 * Supervisor shadow stack MSRs are intercepted until
+		 * they're written by guest, this is designed to
+		 * optimize the save/restore overhead.
+		 */
 		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL0_SSP,
-					  MSR_TYPE_RW, false);
+					  MSR_TYPE_R, false);
 		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL1_SSP,
-					  MSR_TYPE_RW, false);
+					  MSR_TYPE_R, false);
 		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL2_SSP,
-					  MSR_TYPE_RW, false);
+					  MSR_TYPE_R, false);
 		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL3_SSP,
 					  MSR_TYPE_RW, false);
 		vmx_set_intercept_for_msr(vcpu, MSR_IA32_INT_SSP_TAB,
