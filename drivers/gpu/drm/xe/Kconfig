@@ -83,6 +83,15 @@ config DRM_XE_FORCE_PROBE
 
 	  Use "!*" to block the probe of the driver for all known devices.
 
+config DRM_XE_FS1
+	bool "Enable support in (future) FS1 ASIC"
+	depends on DRM_XE
+	default n
+	help
+	  Choose this option to turn on support in FS1 ASIC.
+
+	  If in doubt, say "N".
+
 menu "drm/Xe Debugging"
 depends on DRM_XE
 depends on EXPERT
