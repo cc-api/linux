@@ -228,7 +228,8 @@ static struct kvm_user_return_msrs __percpu *user_return_msrs;
 				| XFEATURE_MASK_BNDCSR | XFEATURE_MASK_AVX512 \
 				| XFEATURE_MASK_PKRU | XFEATURE_MASK_XTILE)
 
-#define KVM_SUPPORTED_XSS	(XFEATURE_MASK_CET_USER)
+#define KVM_SUPPORTED_XSS	(XFEATURE_MASK_CET_USER | \
+				 XFEATURE_MASK_CET_KERNEL)
 
 u64 __read_mostly host_efer;
 EXPORT_SYMBOL_GPL(host_efer);
@@ -9637,6 +9638,7 @@ static int __kvm_x86_vendor_init(struct kvm_x86_init_ops *ops)
 	if (boot_cpu_has(X86_FEATURE_XSAVES)) {
 		rdmsrl(MSR_IA32_XSS, host_xss);
 		kvm_caps.supported_xss = host_xss & KVM_SUPPORTED_XSS;
+		kvm_caps.supported_xss |= XFEATURE_MASK_CET_KERNEL;
 	}
 
 	kvm_init_pmu_capability(ops->pmu_ops);

@@ -362,7 +362,7 @@ static inline bool kvm_mpx_supported(void)
 		== (XFEATURE_MASK_BNDREGS | XFEATURE_MASK_BNDCSR);
 }
 
-#define CET_XSTATE_MASK (XFEATURE_MASK_CET_USER)
+#define CET_XSTATE_MASK (XFEATURE_MASK_CET_USER | XFEATURE_MASK_CET_KERNEL)
 /*
  * Shadow Stack and Indirect Branch Tracking feature enabling depends on
  * whether host side CET user xstate bit is supported or not.
