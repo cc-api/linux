@@ -251,4 +251,7 @@ union tdx_sept_level_state {
 	u64 raw;
 };
 
+/* The field id used to access the metadata (defined in the TDX ABI spec) */
+#define TDX_MD_FID_SERVTD_MAX_SERVTDS		0xA100000100000000
+
 #endif /* __KVM_X86_TDX_ARCH_H */
