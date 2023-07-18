@@ -128,4 +128,8 @@ int pmt_telem_read32(struct telem_endpoint *ep, u32 id, u32 *data,
 
 void pmt_telem_runtime_pm_put(struct telem_endpoint *ep);
 void pmt_telem_runtime_pm_get(struct telem_endpoint *ep);
+
+void pmt_pmu_register(void);
+void pmt_telem_pmu_unregister(void);
+
 #endif

@@ -286,7 +286,9 @@ pmt_telem_find_and_register_endpoint(struct pci_dev *pcidev, u32 guid, u16 pos)
 		if (err)
 			return ERR_PTR(err);
 
-		if (ep_info.header.guid == guid && ep_info.pdev == pcidev) {
+		if ((pcidev && ep_info.header.guid == guid &&
+			ep_info.pdev == pcidev) || (!pcidev &&
+			ep_info.header.guid == guid)) {
 			if (inst == pos)
 				return pmt_telem_register_endpoint(devid);
 			++inst;
@@ -365,12 +367,21 @@ static struct auxiliary_driver pmt_telem_aux_driver = {
 
 static int __init pmt_telem_init(void)
 {
-	return auxiliary_driver_register(&pmt_telem_aux_driver);
+	int ret;
+
+	ret = auxiliary_driver_register(&pmt_telem_aux_driver);
+	if (ret)
+		return ret;
+
+	pmt_pmu_register();
+
+	return 0;
 }
 module_init(pmt_telem_init);
 
 static void __exit pmt_telem_exit(void)
 {
+	pmt_telem_pmu_unregister();
 	auxiliary_driver_unregister(&pmt_telem_aux_driver);
 	xa_destroy(&telem_array);
 }
