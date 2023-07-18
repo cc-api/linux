@@ -28,6 +28,12 @@
 #define TDVMCALL_REPORT_FATAL_ERROR	0x10003
 #define TDVMCALL_SETUP_NOTIFY_INTR	0x10004
 
+#define TDX_MODULECALL_RETRY_MAX	10000
+#define TDX_MODULECALL_STATUS_MASK	0xFFFFFFFF00000000ULL
+
+#define TDX_OPERAND_BUSY		0x8000020000000000ULL
+#define TDX_OPERAND_BUSY_HOST_PRIORITY	0x8000020400000000ULL
+
 #ifndef __ASSEMBLY__
 
 /*
@@ -94,9 +100,9 @@ struct tdx_module_output {
 };
 
 /* Used to communicate with the TDX module */
-u64 __tdx_module_call(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9, u64 r10,
-		      u64 r11, u64 r12, u64 r13,
-		      struct tdx_module_output *out);
+u64 __tdx_module_call_asm(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9, u64 r10,
+			  u64 r11, u64 r12, u64 r13,
+			  struct tdx_module_output *out);
 
 bool tdx_accept_memory(phys_addr_t start, phys_addr_t end);
 
