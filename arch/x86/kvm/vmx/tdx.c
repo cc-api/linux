@@ -63,6 +63,7 @@ int tdx_vm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 struct tdx_info {
 	u8 nr_tdcs_pages;
 	u8 nr_tdvpx_pages;
+	u8 sys_rd;
 	bool tsx_supported;
 };
 
@@ -4151,6 +4152,11 @@ static struct notifier_block tdx_mce_nb = {
 	.priority = MCE_PRIO_CEC,
 };
 
+bool is_sys_rd_supported(void)
+{
+	return !!tdx_info.sys_rd;
+}
+
 static int __init tdx_module_setup(void)
 {
 	const struct tdsysinfo_struct *tdsysinfo;
@@ -4189,6 +4195,7 @@ static int __init tdx_module_setup(void)
 		 * -1 for TDVPR.
 		 */
 		.nr_tdvpx_pages = tdsysinfo->tdvps_base_size / PAGE_SIZE - 1,
+		.sys_rd = tdsysinfo->sys_rd,
 		.tsx_supported = tsx_supported,
 	};
 

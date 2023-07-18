@@ -62,6 +62,13 @@ static inline u64 tdx_seamcall(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
 
 #ifdef CONFIG_INTEL_TDX_HOST
 void pr_tdx_error(u64 op, u64 error_code, const struct tdx_module_output *out);
+
+bool is_sys_rd_supported(void);
+#else
+static bool is_sys_rd_supported(void)
+{
+	return false;
+}
 #endif
 
 static inline enum pg_level tdx_sept_level_to_pg_level(int tdx_level)
@@ -385,6 +392,15 @@ static inline u64 tdh_vp_wr(hpa_t tdvpr, u64 field, u64 val, u64 mask,
 {
 	return tdx_seamcall(TDH_VP_WR,
 			    tdvpr, field, val, mask, 0, 0, 0, 0, out);
+}
+
+static inline u64 tdh_sys_rd(u64 fid, struct tdx_module_output *out)
+{
+	if (!is_sys_rd_supported())
+		/* ORed with with OPERAND_ID_RAX, which is 0 */
+		return TDX_OPERAND_INVALID;
+
+	return tdx_seamcall(TDH_SYS_RD, 0, fid, 0, 0, 0, 0, 0, 0, out);
 }
 
 #endif /* __KVM_X86_TDX_OPS_H */
