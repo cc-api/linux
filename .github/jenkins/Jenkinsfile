@@ -4,7 +4,7 @@ pipeline {
     ARTIFACTORY = credentials('4d1d91a3-af3f-4750-bfdc-926a67e8307d')
     GH = credentials('sys_igkgfxci-github-token')
   }
-  
+
   stages {
     stage('Prepare') {
       steps {
@@ -13,9 +13,11 @@ pipeline {
         script {
           if (env.CHANGE_ID != null) {
             BUILDNAME = "pr-${env.CHANGE_ID}-${env.GIT_COMMIT[0..6]}"
+            sh "curl -X POST 'http://gfx-ci-internal.igk.intel.com:8091/api/build?name=${BUILDNAME}&component=xe'"
           } else {
             ID = sh(script: 'docker run --rm registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest redis-cli -h intel-gfx-ci-internal incr xe-kernel-build-id', returnStdout: true).trim()
             BUILDNAME = "${ID}-${env.GIT_COMMIT[0..6]}"
+            sh "curl -X POST 'http://gfx-ci-internal.igk.intel.com:8091/api/component?component=xe&latest_build=${BUILDNAME}'"
           }
           currentBuild.displayName = "$BUILDNAME"
         }
