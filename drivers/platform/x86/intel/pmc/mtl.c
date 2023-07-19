@@ -16,6 +16,7 @@
 #define SOCP_LPM_REQ_GUID	0x2625030
 #define IOEM_LPM_REQ_GUID	0x4357464
 #define IOEP_LPM_REQ_GUID	0x5077612
+#define SOCS_LPM_REQ_GUID	0x8478657
 
 /* Die C6 from PUNIT telemetry */
 #define MTL_PMT_DMU_DIE_C6_OFFSET	15
@@ -951,9 +952,272 @@ const struct pmc_reg_map mtl_ioem_reg_map = {
 	.lpm_reg_index = MTL_LPM_REG_INDEX,
 };
 
+const struct pmc_bit_map mtl_socs_ltr_show_map[] = {
+	{"SOUTHPORT_A",		CNP_PMC_LTR_SPA},
+	{"SOUTHPORT_B",		CNP_PMC_LTR_SPB},
+	{"SATA",		CNP_PMC_LTR_SATA},
+	{"GIGABIT_ETHERNET",	CNP_PMC_LTR_GBE},
+	{"XHCI",		CNP_PMC_LTR_XHCI},
+	{"SOUTHPORT_F",		ADL_PMC_LTR_SPF},
+	{"ME",			CNP_PMC_LTR_ME},
+	/* EVA is Enterprise Value Add, doesn't really exist on PCH */
+	{"SATA1",		CNP_PMC_LTR_EVA},
+	{"SOUTHPORT_C",		CNP_PMC_LTR_SPC},
+	{"HD_AUDIO",		CNP_PMC_LTR_AZ},
+	{"CNV",			CNP_PMC_LTR_CNV},
+	{"LPSS",		CNP_PMC_LTR_LPSS},
+	{"SOUTHPORT_D",		CNP_PMC_LTR_SPD},
+	{"SOUTHPORT_E",		CNP_PMC_LTR_SPE},
+	{"SATA2",		CNP_PMC_LTR_CAM},
+	{"ESPI",		CNP_PMC_LTR_ESPI},
+	{"SCC",			CNP_PMC_LTR_SCC},
+	{"ISH",                 CNP_PMC_LTR_ISH},
+	{"UFSX2",		CNP_PMC_LTR_UFSX2},
+	{"EMMC",		CNP_PMC_LTR_EMMC},
+	/*
+	 * Check intel_pmc_core_ids[] users of cnp_reg_map for
+	 * a list of core SoCs using this.
+	 */
+	{"WIGIG",		ICL_PMC_LTR_WIGIG},
+	{"THC0",		TGL_PMC_LTR_THC0},
+	{"THC1",		TGL_PMC_LTR_THC1},
+	{"SOUTHPORT_G",		MTL_PMC_LTR_SPG},
+	{"Reserved",		MTL_SOCS_PMC_LTR_RESERVED},
+	{"IOE_PMC",		MTL_PMC_LTR_IOE_PMC},
+	{"DMI3",                MTL_PMC_LTR_DMI3},
+
+	/* Below two cannot be used for LTR_IGNORE */
+	{"CURRENT_PLATFORM",	CNP_PMC_LTR_CUR_PLT},
+	{"AGGREGATED_SYSTEM",	CNP_PMC_LTR_CUR_ASLT},
+	{}
+};
+
+const struct pmc_bit_map mtl_socs_clocksource_status_map[] = {
+	{"AON2_OFF_STS",                 BIT(0)},
+	{"AON3_OFF_STS",                 BIT(1)},
+	{"AON4_OFF_STS",                 BIT(2)},
+	{"AON5_OFF_STS",                 BIT(3)},
+	{"AON1_OFF_STS",                 BIT(4)},
+	{"XTAL_LVM_OFF_STS",             BIT(5)},
+	{"AON3_SPL_OFF_STS",             BIT(9)},
+	{"DMI3FPW_0_PLL_OFF_STS",        BIT(10)},
+	{"DMI3FPW_1_PLL_OFF_STS",        BIT(11)},
+	{"G5X16FPW_0_PLL_OFF_STS",	 BIT(14)},
+	{"G5X16FPW_1_PLL_OFF_STS",	 BIT(15)},
+	{"G5X16FPW_2_PLL_OFF_STS",	 BIT(16)},
+	{"XTAL_AGGR_OFF_STS",            BIT(17)},
+	{"USB2_PLL_OFF_STS",             BIT(18)},
+	{"G5X16FPW_3_PLL_OFF_STS",	 BIT(19)},
+	{"BCLK_EXT_INJ_CLK_OFF_STS",     BIT(20)},
+	{"PHY_OC_EXT_INJ_CLK_OFF_STS",   BIT(21)},
+	{"FILTER_PLL_OFF_STS",           BIT(22)},
+	{"FABRIC_PLL_OFF_STS",           BIT(25)},
+	{"SOC_PLL_OFF_STS",              BIT(26)},
+	{"PCIEFAB_PLL_OFF_STS",          BIT(27)},
+	{"REF_PLL_OFF_STS",              BIT(28)},
+	{"GENLOCK_FILTER_PLL_OFF_STS",	 BIT(30)},
+	{"RTC_PLL_OFF_STS",              BIT(31)},
+	{}
+};
+
+const struct pmc_bit_map mtl_socs_power_gating_status_0_map[] = {
+	{"PMC_PGD0_PG_STS",              BIT(0)},
+	{"DMI_PGD0_PG_STS",              BIT(1)},
+	{"ESPISPI_PGD0_PG_STS",          BIT(2)},
+	{"XHCI_PGD0_PG_STS",             BIT(3)},
+	{"SPA_PGD0_PG_STS",              BIT(4)},
+	{"SPB_PGD0_PG_STS",              BIT(5)},
+	{"SPC_PGD0_PG_STS",              BIT(6)},
+	{"GBE_PGD0_PG_STS",              BIT(7)},
+	{"SATA_PGD0_PG_STS",             BIT(8)},
+	{"FIACPCB_P5x16_PGD0_PG_STS",    BIT(9)},
+	{"G5x16FPW_PGD0_PG_STS",	 BIT(10)},
+	{"FIA_D_PGD0_PG_STS",            BIT(11)},
+	{"MPFPW2_PGD0_PG_STS",           BIT(12)},
+	{"SPD_PGD0_PG_STS",              BIT(13)},
+	{"LPSS_PGD0_PG_STS",             BIT(14)},
+	{"LPC_PGD0_PG_STS",              BIT(15)},
+	{"SMB_PGD0_PG_STS",              BIT(16)},
+	{"ISH_PGD0_PG_STS",              BIT(17)},
+	{"P2S_PGD0_PG_STS",              BIT(18)},
+	{"NPK_PGD0_PG_STS",              BIT(19)},
+	{"DMI3FPW_PGD0_PG_STS",          BIT(20)},
+	{"GBETSN1_PGD0_PG_STS",          BIT(21)},
+	{"FUSE_PGD0_PG_STS",             BIT(22)},
+	{"FIACPCB_D_PGD0_PG_STS",        BIT(23)},
+	{"FUSEGPSB_PGD0_PG_STS",         BIT(24)},
+	{"XDCI_PGD0_PG_STS",             BIT(25)},
+	{"EXI_PGD0_PG_STS",              BIT(26)},
+	{"CSE_PGD0_PG_STS",              BIT(27)},
+	{"KVMCC_PGD0_PG_STS",            BIT(28)},
+	{"PMT_PGD0_PG_STS",              BIT(29)},
+	{"CLINK_PGD0_PG_STS",            BIT(30)},
+	{"PTIO_PGD0_PG_STS",             BIT(31)},
+	{}
+};
+
+const struct pmc_bit_map mtl_socs_power_gating_status_1_map[] = {
+	{"USBR0_PGD0_PG_STS",            BIT(0)},
+	{"SUSRAM_PGD0_PG_STS",           BIT(1)},
+	{"SMT1_PGD0_PG_STS",             BIT(2)},
+	{"FIACPCB_U_PGD0_PG_STS",        BIT(3)},
+	{"SMS2_PGD0_PG_STS",             BIT(4)},
+	{"SMS1_PGD0_PG_STS",             BIT(5)},
+	{"CSMERTC_PGD0_PG_STS",          BIT(6)},
+	{"CSMEPSF_PGD0_PG_STS",          BIT(7)},
+	{"SBR0_PGD0_PG_STS",             BIT(8)},
+	{"SBR1_PGD0_PG_STS",             BIT(9)},
+	{"SBR2_PGD0_PG_STS",             BIT(10)},
+	{"SBR3_PGD0_PG_STS",             BIT(11)},
+	{"MPFPW1_PGD0_PG_STS",           BIT(12)},
+	{"SBR5_PGD0_PG_STS",             BIT(13)},
+	{"FIA_X_PGD0_PG_STS",            BIT(14)},
+	{"FIACPCB_X_PGD0_PG_STS",        BIT(15)},
+	{"SBRG_PGD0_PG_STS",		 BIT(16)},
+	{"SOC_D2D_PGD1_PG_STS",          BIT(17)},
+	{"PSF4_PGD0_PG_STS",             BIT(18)},
+	{"CNVI_PGD0_PG_STS",             BIT(19)},
+	{"UFSX2_PGD0_PG_STS",            BIT(20)},
+	{"ENDBG_PGD0_PG_STS",            BIT(21)},
+	{"DBG_PSF_PGD0_PG_STS",          BIT(22)},
+	{"SBR6_PGD0_PG_STS",             BIT(23)},
+	{"SOC_D2D_PGD2_PG_STS",          BIT(24)},
+	{"NPK_PGD1_PG_STS",              BIT(25)},
+	{"DMI3_PGD0_PG_STS",             BIT(26)},
+	{"DBG_SBR_PGD0_PG_STS",          BIT(27)},
+	{"SOC_D2D_PGD0_PG_STS",          BIT(28)},
+	{"PSF6_PGD0_PG_STS",             BIT(29)},
+	{"PSF7_PGD0_PG_STS",             BIT(30)},
+	{"MPFPW3_PGD0_PG_STS",           BIT(31)},
+	{}
+};
+
+const struct pmc_bit_map mtl_socs_power_gating_status_2_map[] = {
+	{"PSF8_PGD0_PG_STS",             BIT(0)},
+	{"FIA_PGD0_PG_STS",              BIT(1)},
+	{"SOC_D2D_PGD3_PG_STS",          BIT(2)},
+	{"FIA_U_PGD0_PG_STS",            BIT(3)},
+	{"TAM_PGD0_PG_STS",              BIT(4)},
+	{"GBETSN_PGD0_PG_STS",           BIT(5)},
+	{"TBTLSX_PGD0_PG_STS",           BIT(6)},
+	{"THC0_PGD0_PG_STS",             BIT(7)},
+	{"THC1_PGD0_PG_STS",             BIT(8)},
+	{"PMC_PGD1_PG_STS",              BIT(9)},
+	{"FIA_P5x16_PGD0_PG_STS",        BIT(10)},
+	{"GNA_PGD0_PG_STS",              BIT(11)},
+	{"ACE_PGD0_PG_STS",              BIT(12)},
+	{"ACE_PGD1_PG_STS",              BIT(13)},
+	{"ACE_PGD2_PG_STS",              BIT(14)},
+	{"ACE_PGD3_PG_STS",              BIT(15)},
+	{"ACE_PGD4_PG_STS",              BIT(16)},
+	{"ACE_PGD5_PG_STS",              BIT(17)},
+	{"ACE_PGD6_PG_STS",              BIT(18)},
+	{"ACE_PGD7_PG_STS",              BIT(19)},
+	{"ACE_PGD8_PG_STS",              BIT(20)},
+	{"FIA_PGS_PGD0_PG_STS",          BIT(21)},
+	{"FIACPCB_PGS_PGD0_PG_STS",      BIT(22)},
+	{"FUSEPMSB_PGD0_PG_STS",         BIT(23)},
+	{}
+};
+
+const struct pmc_bit_map mtl_socs_d3_status_2_map[] = {
+	{"CSMERTC_D3_STS",               BIT(1)},
+	{"SUSRAM_D3_STS",                BIT(2)},
+	{"CSE_D3_STS",                   BIT(4)},
+	{"KVMCC_D3_STS",                 BIT(5)},
+	{"USBR0_D3_STS",                 BIT(6)},
+	{"ISH_D3_STS",                   BIT(7)},
+	{"SMT1_D3_STS",                  BIT(8)},
+	{"SMT2_D3_STS",                  BIT(9)},
+	{"SMT3_D3_STS",                  BIT(10)},
+	{"GNA_D3_STS",                   BIT(12)},
+	{"CLINK_D3_STS",                 BIT(14)},
+	{"PTIO_D3_STS",                  BIT(16)},
+	{"PMT_D3_STS",                   BIT(17)},
+	{"SMS1_D3_STS",                  BIT(18)},
+	{"SMS2_D3_STS",                  BIT(19)},
+	{}
+};
+
+const struct pmc_bit_map mtl_socs_d3_status_3_map[] = {
+	{"GBETSN_D3_STS",                BIT(13)},
+	{"THC0_D3_STS",                  BIT(14)},
+	{"THC1_D3_STS",                  BIT(15)},
+	{"ACE_D3_STS",                   BIT(23)},
+	{}
+};
+
+const struct pmc_bit_map mtl_socs_vnn_req_status_3_map[] = {
+	{"DTS0_VNN_REQ_STS",             BIT(7)},
+	{"GPIOCOM5_VNN_REQ_STS",         BIT(11)},
+	{}
+};
+
+const struct pmc_bit_map *mtl_socs_lpm_maps[] = {
+	mtl_socs_clocksource_status_map,
+	mtl_socs_power_gating_status_0_map,
+	mtl_socs_power_gating_status_1_map,
+	mtl_socs_power_gating_status_2_map,
+	mtl_socm_d3_status_0_map,
+	mtl_socm_d3_status_1_map,
+	mtl_socs_d3_status_2_map,
+	mtl_socs_d3_status_3_map,
+	mtl_socm_vnn_req_status_0_map,
+	mtl_socm_vnn_req_status_1_map,
+	mtl_socm_vnn_req_status_2_map,
+	mtl_socs_vnn_req_status_3_map,
+	mtl_socm_vnn_misc_status_map,
+	mtl_socm_signal_status_map,
+	NULL
+};
+
+const struct pmc_bit_map mtl_socs_pfear_map[] = {
+	{"RSVD64",                 BIT(0)},
+	{"RSVD65",                 BIT(1)},
+	{"RSVD66",                 BIT(2)},
+	{"RSVD67",                 BIT(3)},
+	{"RSVD68",                 BIT(4)},
+	{"GBETSN",                 BIT(5)},
+	{"TBTLSX",                 BIT(6)},
+	{}
+};
+
+const struct pmc_bit_map *ext_mtl_socs_pfear_map[] = {
+	mtl_socm_pfear_map,
+	mtl_socs_pfear_map,
+	NULL
+};
+
+const struct pmc_reg_map mtl_socs_reg_map = {
+	.pfear_sts = ext_mtl_socs_pfear_map,
+	.ppfear_buckets = MTL_SOCS_PPFEAR_NUM_ENTRIES,
+	.pm_read_disable_bit = CNP_PMC_READ_DISABLE_BIT,
+	.lpm_sts = mtl_socs_lpm_maps,
+	.ltr_ignore_max = MTL_SOCS_NUM_IP_IGN_ALLOWED,
+	.ltr_show_sts = mtl_socs_ltr_show_map,
+	.slp_s0_offset = CNP_PMC_SLP_S0_RES_COUNTER_OFFSET,
+	.slp_s0_res_counter_step = TGL_PMC_SLP_S0_RES_COUNTER_STEP,
+	.lpm_res_counter_step_x2 = TGL_PMC_LPM_RES_COUNTER_STEP_X2,
+	.msr_sts = msr_map,
+	.ltr_ignore_offset = CNP_PMC_LTR_IGNORE_OFFSET,
+	.regmap_length = MTL_SOC_PMC_MMIO_REG_LEN,
+	.ppfear0_offset = CNP_PMC_HOST_PPFEAR0A,
+	.pm_cfg_offset = CNP_PMC_PM_CFG_OFFSET,
+	.lpm_priority_offset = MTL_LPM_PRI_OFFSET,
+	.lpm_en_offset = MTL_LPM_EN_OFFSET,
+	.lpm_residency_offset = MTL_LPM_RESIDENCY_OFFSET,
+	.lpm_status_offset = MTL_LPM_STATUS_OFFSET,
+	.lpm_sts_latch_en_offset = MTL_LPM_STATUS_LATCH_EN_OFFSET,
+	.lpm_live_status_offset = MTL_LPM_LIVE_STATUS_OFFSET,
+	.lpm_num_maps = ADL_LPM_NUM_MAPS,
+	.etr3_offset = ETR3_OFFSET,
+};
+
+
 #define PMC_DEVID_SOCM	0x7e7f
 #define PMC_DEVID_IOEP	0x7ecf
 #define PMC_DEVID_IOEM	0x7ebf
+#define PMC_DEVID_SOCS	0xae7f
 static struct pmc_info mtl_pmc_info_list[] = {
 	{
 		.guid	= SOCP_LPM_REQ_GUID,
@@ -969,6 +1233,11 @@ static struct pmc_info mtl_pmc_info_list[] = {
 		.guid	= IOEM_LPM_REQ_GUID,
 		.devid	= PMC_DEVID_IOEM,
 		.map	= &mtl_ioem_reg_map
+	},
+	{
+		.guid	= SOCS_LPM_REQ_GUID,
+		.devid	= PMC_DEVID_SOCS,
+		.map	= &mtl_socs_reg_map,
 	},
 	{}
 };
@@ -1038,23 +1307,41 @@ static int mtl_resume(struct pmc_dev *pmcdev)
 	return pmc_core_resume_common(pmcdev);
 }
 
-int mtl_core_init(struct pmc_dev *pmcdev)
+int mtl_l_core_init(struct pmc_dev *pmcdev) {
+	return mtl_core_generic_init(pmcdev, SOC_M);
+}
+
+int mtl_core_init(struct pmc_dev *pmcdev) {
+	return mtl_core_generic_init(pmcdev, SOC_S);
+}
+
+int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp)
 {
 	struct pmc *pmc = pmcdev->pmcs[PMC_IDX_SOC];
 	int ret, i;
+	int func = 2;
 
 	mtl_d3_fixup();
 
 	pmcdev->resume = mtl_resume;
 	pmcdev->regmap_list = mtl_pmc_info_list;
 
+	if (soc_tp == SOC_M)
+		func = 0;
+
 	/*
 	 * If ssram init fails use legacy method to at least get the
 	 * primary PMC
 	 */
-	ret = pmc_core_ssram_init(pmcdev);
+	ret = pmc_core_ssram_init(pmcdev, func);
 	if (ret) {
-		pmc->map = &mtl_socm_reg_map;
+		if (soc_tp == SOC_M)
+			pmc->map = &mtl_socm_reg_map;
+		else if (soc_tp == SOC_S)
+			pmc->map = &mtl_socs_reg_map;
+		else
+			return -EINVAL;
+
 		ret = get_primary_reg_base(pmc);
 		if (ret)
 			return ret;

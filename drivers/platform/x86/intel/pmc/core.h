@@ -259,10 +259,14 @@ enum ppfear_regs {
 #define MTL_SOCM_NUM_IP_IGN_ALLOWED		25
 #define MTL_SOC_PMC_MMIO_REG_LEN		0x2708
 #define MTL_PMC_LTR_SPG				0x1B74
+#define MTL_SOCS_PMC_LTR_RESERVED		0x1B88
+#define MTL_SOCS_NUM_IP_IGN_ALLOWED		26
+#define MTL_PMC_LTR_DMI3			0x1BE4
 
 /* Meteor Lake PGD PFET Enable Ack Status */
 #define MTL_SOCM_PPFEAR_NUM_ENTRIES		8
 #define MTL_IOE_PPFEAR_NUM_ENTRIES		10
+#define MTL_SOCS_PPFEAR_NUM_ENTRIES		9
 
 extern const char *pmc_lpm_modes[];
 
@@ -335,6 +339,11 @@ struct pmc_info {
 	u32 guid;
 	u16 devid;
 	const struct pmc_reg_map *map;
+};
+
+enum soc_type {
+	SOC_M,
+	SOC_S
 };
 
 /**
@@ -490,6 +499,18 @@ extern const struct pmc_bit_map mtl_ioem_power_gating_status_1_map[];
 extern const struct pmc_bit_map mtl_ioem_vnn_req_status_1_map[];
 extern const struct pmc_bit_map *mtl_ioem_lpm_maps[];
 extern const struct pmc_reg_map mtl_ioem_reg_map;
+extern const struct pmc_bit_map mtl_socs_pfear_map[];
+extern const struct pmc_bit_map *ext_mtl_socs_pfear_map[];
+extern const struct pmc_bit_map mtl_socs_ltr_show_map[];
+extern const struct pmc_bit_map mtl_socs_clocksource_status_map[];
+extern const struct pmc_bit_map mtl_socs_power_gating_status_0_map[];
+extern const struct pmc_bit_map mtl_socs_power_gating_status_1_map[];
+extern const struct pmc_bit_map mtl_socs_power_gating_status_2_map[];
+extern const struct pmc_bit_map mtl_socs_d3_status_2_map[];
+extern const struct pmc_bit_map mtl_socs_d3_status_3_map[];
+extern const struct pmc_bit_map mtl_socs_vnn_req_status_3_map[];
+extern const struct pmc_bit_map *mtl_socs_lpm_maps[];
+extern const struct pmc_reg_map mtl_socs_reg_map;
 
 extern void pmc_core_get_tgl_lpm_reqs(struct platform_device *pdev);
 extern int pmc_core_get_lpm_reqs(struct pmc_dev *pmcdev);
@@ -499,7 +520,7 @@ int pmc_core_resume_common(struct pmc_dev *pmcdev);
 int get_primary_reg_base(struct pmc *pmc);
 extern void pmc_core_get_low_power_modes(struct pmc_dev *pmcdev, int index);
 
-extern int pmc_core_ssram_init(struct pmc_dev *pmcdev);
+extern int pmc_core_ssram_init(struct pmc_dev *pmcdev, int func);
 
 int spt_core_init(struct pmc_dev *pmcdev);
 int cnp_core_init(struct pmc_dev *pmcdev);
@@ -507,6 +528,8 @@ int icl_core_init(struct pmc_dev *pmcdev);
 int tgl_core_init(struct pmc_dev *pmcdev);
 int adl_core_init(struct pmc_dev *pmcdev);
 int mtl_core_init(struct pmc_dev *pmcdev);
+int mtl_l_core_init(struct pmc_dev *pmcdev);
+int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp);
 
 #define pmc_for_each_mode(i, mode, pmcdev)		\
 	for (i = 0, mode = pmcdev->lpm_en_modes[i];	\
