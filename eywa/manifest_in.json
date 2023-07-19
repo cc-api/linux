@@ -115,7 +115,7 @@
                     "value": "y"
                 },
                 {
-                    "name": "CONFIG_CONFIG_VFIO_CONTAINER",
+                    "name": "CONFIG_VFIO_CONTAINER",
                     "value": "n"
                 }
             ],
