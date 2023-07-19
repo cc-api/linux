@@ -1576,6 +1576,8 @@ const struct pmc_reg_map mtl_pchs_reg_map = {
 	.lpm_sts_latch_en_offset = MTL_LPM_STATUS_LATCH_EN_OFFSET,
 	.lpm_live_status_offset = MTL_LPM_LIVE_STATUS_OFFSET,
 	.etr3_offset = ETR3_OFFSET,
+	.pson_residency_offset = TGL_PSON_RESIDENCY_OFFSET,
+	.pson_residency_counter_step = TGL_PSON_RES_COUNTER_STEP,
 };
 
 #define PMC_DEVID_SOCM	0x7e7f
