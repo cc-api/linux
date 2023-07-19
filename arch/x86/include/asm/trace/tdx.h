@@ -48,14 +48,19 @@ TRACE_EVENT(tdx_virtualization_exception,
 	    );
 
 TRACE_EVENT(tdx_module_call_enter,
-	    TP_PROTO(u64 id, u64 rcx, u64 rdx, u64 r8, u64 r9),
-	    TP_ARGS(id, rcx, rdx, r8, r9),
+	    TP_PROTO(u64 id, u64 rcx, u64 rdx, u64 r8, u64 r9, u64 r10,
+		     u64 r11, u64 r12, u64 r13),
+	    TP_ARGS(id, rcx, rdx, r8, r9, r10, r11, r12, r13),
 	    TP_STRUCT__entry(
 		__field(u64, id)
 		__field(u64, rcx)
 		__field(u64, rdx)
 		__field(u64, r8)
 		__field(u64, r9)
+		__field(u64, r10)
+		__field(u64, r11)
+		__field(u64, r12)
+		__field(u64, r13)
 		),
 	    TP_fast_assign(
 		__entry->id  = id;
@@ -63,17 +68,22 @@ TRACE_EVENT(tdx_module_call_enter,
 		__entry->rdx = rdx;
 		__entry->r8  = r8;
 		__entry->r9  = r9;
+		__entry->r10 = r10;
+		__entry->r11 = r11;
+		__entry->r12 = r12;
+		__entry->r13 = r13;
 		),
-	    TP_printk("id %lld rcx 0x%016llx rdx 0x%016llx r8 0x%016llx r9 0x%016llx",
+	    TP_printk("id %lld rcx 0x%016llx rdx 0x%016llx r8 0x%016llx r9 0x%016llx r10 0x%016llx r11 0x%016llx r12 0x%016llx r13 0x%016llx",
 		      __entry->id, __entry->rcx, __entry->rdx,
-		      __entry->r8, __entry->r9
+		      __entry->r8, __entry->r9, __entry->r10, __entry->r11,
+		      __entry->r12, __entry->r13
 		      )
 	    );
 
 TRACE_EVENT(tdx_module_call_exit,
 	    TP_PROTO(u64 rax, u64 rcx, u64 rdx, u64 r8, u64 r9,
-		     u64 r10, u64 r11),
-	    TP_ARGS(rax, rcx, rdx, r8, r9, r10, r11),
+		     u64 r10, u64 r11, u64 r12, u64 r13),
+	    TP_ARGS(rax, rcx, rdx, r8, r9, r10, r11, r12, r13),
 	    TP_STRUCT__entry(
 		__field(u64, rax)
 		__field(u64, rcx)
@@ -82,6 +92,8 @@ TRACE_EVENT(tdx_module_call_exit,
 		__field(u64, r9)
 		__field(u64, r10)
 		__field(u64, r11)
+		__field(u64, r12)
+		__field(u64, r13)
 		),
 	    TP_fast_assign(
 		__entry->rax = rax;
@@ -91,10 +103,13 @@ TRACE_EVENT(tdx_module_call_exit,
 		__entry->r9  = r9;
 		__entry->r10 = r10;
 		__entry->r11 = r11;
+		__entry->r10 = r12;
+		__entry->r11 = r13;
 		),
-	    TP_printk("ret %lld rcx 0x%016llx rdx 0x%016llx r8 0x%016llx r9 0x%016llx r10 0x%016llx r11 0x%016llx",
+	    TP_printk("ret %lld rcx 0x%016llx rdx 0x%016llx r8 0x%016llx r9 0x%016llx r10 0x%016llx r11 0x%016llx r12 0x%016llx r13 0x%016llx",
 		      __entry->rax, __entry->rcx, __entry->rdx,
-		      __entry->r8, __entry->r9, __entry->r10, __entry->r11
+		      __entry->r8, __entry->r9, __entry->r10, __entry->r11,
+		      __entry->r12, __entry->r13
 		      )
 	    );
 

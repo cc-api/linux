@@ -158,7 +158,7 @@ static int __always_unused seamcall(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
 	 * Mimic rdrand_long() retry behavior.
 	 */
 	do {
-		sret = __seamcall(fn, rcx, rdx, r8, r9, out);
+		sret = __seamcall(fn, rcx, rdx, r8, r9, 0, 0, 0, 0, out);
 	} while (sret == TDX_RND_NO_ENTROPY && --retry);
 
 	put_cpu();
@@ -1518,7 +1518,7 @@ bool tdx_is_private_mem(unsigned long phys)
 
 	/* Get page type from the TDX module */
 	sret = __seamcall(TDH_PHYMEM_PAGE_RDMD, phys & PAGE_MASK,
-			0, 0, 0, &out);
+			  0, 0, 0, 0, 0, 0, 0, &out);
 	/*
 	 * Handle the case that CPU isn't in VMX operation.
 	 *
