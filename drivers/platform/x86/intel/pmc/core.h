@@ -553,6 +553,7 @@ int cnp_core_init(struct pmc_dev *pmcdev);
 int icl_core_init(struct pmc_dev *pmcdev);
 int tgl_core_init(struct pmc_dev *pmcdev);
 int adl_core_init(struct pmc_dev *pmcdev);
+int lkf_core_init(struct pmc_dev *pmcdev);
 int mtl_core_init(struct pmc_dev *pmcdev);
 int mtl_l_core_init(struct pmc_dev *pmcdev);
 int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp);
