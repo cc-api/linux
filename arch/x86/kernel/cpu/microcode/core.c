@@ -616,13 +616,13 @@ static ssize_t reload_store(struct device *dev,
 	}
 
 	if (microcode_ops->pre_apply)
-		ret = microcode_ops->pre_apply();
+		ret = microcode_ops->pre_apply(RELOAD_COMMIT);
 
 	if (!ret)
 		ret = microcode_reload_late();
 
 	if (microcode_ops->post_apply)
-		microcode_ops->post_apply(!ret);
+		microcode_ops->post_apply(RELOAD_COMMIT, !ret);
 
 	if (ret) {
 		ret = -EIO;
@@ -830,7 +830,7 @@ static int __init microcode_init(void)
 
 	/* Update cached ucode to reflect the recently applied ucode */
 	if (!ret && ucode_update_success && microcode_ops->post_apply)
-		microcode_ops->post_apply(true);
+		microcode_ops->post_apply(RELOAD_COMMIT, true);
 
 	register_syscore_ops(&mc_syscore_ops);
 	cpuhp_setup_state_nocalls(CPUHP_AP_MICROCODE_LOADER, "x86/microcode:starting",
