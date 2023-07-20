@@ -51,6 +51,7 @@ enum ucode_load_scope {
 
 enum reload_type {
 	RELOAD_COMMIT,
+	RELOAD_NO_COMMIT,
 	RELOAD_INVALID,
 };
 
