@@ -273,6 +273,11 @@ enum ppfear_regs {
 #define MTL_IOE_PPFEAR_NUM_ENTRIES		10
 #define MTL_SOCS_PPFEAR_NUM_ENTRIES		9
 
+#define LNL_PMC_MMIO_REG_LEN			0x2704
+#define LNL_PMC_LTR_OSSE			0x1B88
+#define LNL_NUM_IP_IGN_ALLOWED			27
+#define LNL_PPFEAR_NUM_ENTRIES			12
+
 extern const char *pmc_lpm_modes[];
 
 struct pmc_bit_map {
@@ -519,6 +524,7 @@ extern const struct pmc_bit_map mtl_socs_vnn_req_status_3_map[];
 extern const struct pmc_bit_map *mtl_socs_lpm_maps[];
 extern const struct pmc_reg_map mtl_socs_reg_map;
 extern const struct pmc_reg_map mtl_pchs_reg_map;
+extern const struct pmc_reg_map lnl_socm_reg_map;
 
 /* MTL PCH PMC */
 extern const struct pmc_bit_map mtl_pchs_ltr_show_map[];
@@ -537,6 +543,25 @@ extern const struct pmc_bit_map mtl_pchs_vnn_req_status_3_map[];
 extern const struct pmc_bit_map mtl_pchs_vnn_misc_status_map[];
 extern const struct pmc_bit_map mtl_pchs_signal_status_map[];
 extern const struct pmc_bit_map *mtl_pchs_lpm_maps[];
+
+/* LNL */
+extern const struct pmc_bit_map lnl_ltr_show_map[];
+extern const struct pmc_bit_map lnl_clocksource_status_map[];
+extern const struct pmc_bit_map lnl_power_gating_status_0_map[];
+extern const struct pmc_bit_map lnl_power_gating_status_1_map[];
+extern const struct pmc_bit_map lnl_power_gating_status_2_map[];
+extern const struct pmc_bit_map lnl_d3_status_0_map[];
+extern const struct pmc_bit_map lnl_d3_status_1_map[];
+extern const struct pmc_bit_map lnl_d3_status_2_map[];
+extern const struct pmc_bit_map lnl_d3_status_3_map[];
+extern const struct pmc_bit_map lnl_vnn_req_status_0_map[];
+extern const struct pmc_bit_map lnl_vnn_req_status_1_map[];
+extern const struct pmc_bit_map lnl_vnn_req_status_2_map[];
+extern const struct pmc_bit_map lnl_vnn_req_status_3_map[];
+extern const struct pmc_bit_map lnl_vnn_misc_status_map[];
+extern const struct pmc_bit_map *lnl_lpm_maps[];
+extern const struct pmc_bit_map lnl_pfear_map[];
+extern const struct pmc_bit_map *ext_lnl_pfear_map[];
 
 extern void pmc_core_get_tgl_lpm_reqs(struct platform_device *pdev);
 extern int pmc_core_get_lpm_reqs(struct pmc_dev *pmcdev);
@@ -557,6 +582,7 @@ int lkf_core_init(struct pmc_dev *pmcdev);
 int mtl_core_init(struct pmc_dev *pmcdev);
 int mtl_l_core_init(struct pmc_dev *pmcdev);
 int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp);
+int lnl_core_init(struct pmc_dev *pmcdev);
 
 #define pmc_for_each_mode(i, mode, pmcdev)		\
 	for (i = 0, mode = pmcdev->lpm_en_modes[i];	\
