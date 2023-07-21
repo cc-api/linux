@@ -52,6 +52,7 @@ enum ucode_load_scope {
 enum reload_type {
 	RELOAD_COMMIT,
 	RELOAD_NO_COMMIT,
+	RELOAD_ROLLBACK,
 	RELOAD_INVALID,
 };
 
@@ -73,7 +74,7 @@ struct microcode_ops {
 	 * are being called.
 	 * See also the "Synchronization" section in microcode_core.c.
 	 */
-	enum ucode_state (*apply_microcode)(int cpu);
+	enum ucode_state (*apply_microcode)(int cpu, enum reload_type type);
 	int (*collect_cpu_info)(int cpu, struct cpu_signature *csig);
 	u32 (*get_current_rev)(void);
 };
