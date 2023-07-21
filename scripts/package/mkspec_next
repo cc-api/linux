@@ -81,7 +81,7 @@ $S	Source: kernel-$__KERNELRELEASE.tar.gz
 	Summary: Header files for the Linux kernel for use by glibc
 	Group: Development/System
 	AutoReqProv: no
-	Obsoletes: kernel-headers
+	Obsoletes: kernel-headers <= %{version}
 	Provides: kernel-headers = %{version}
 	%description headers
 	Kernel-headers includes the C header files that specify the interface
@@ -95,7 +95,7 @@ $S	Source: kernel-$__KERNELRELEASE.tar.gz
 	Group: Development/System
 	AutoReqProv: no
 	Provides: kernel-tools = %{version}
-	Obsoletes: kernel-tools
+	Obsoletes: kernel-tools <= %{version}
 	%description tools
 	This package contains the tools/ directory from the kernel source
 
