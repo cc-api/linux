@@ -5,7 +5,6 @@
 
 #include <asm/fpu/xcr.h>
 #include <asm/virtext.h>
-#include <asm/cpu.h>
 #include <asm/tdx.h>
 
 #include "capabilities.h"
@@ -64,7 +63,6 @@ struct tdx_info {
 	u8 nr_tdcs_pages;
 	u8 nr_tdvpx_pages;
 	u8 sys_rd;
-	bool tsx_supported;
 	u32 max_servtds;
 };
 
@@ -1108,7 +1106,7 @@ static void tdx_user_return_update_cache(struct kvm_vcpu *vcpu)
 	 * TSX_CTRL is reset to 0 if guest TSX is supported. Otherwise
 	 * preserved.
 	 */
-	if (to_kvm_tdx(vcpu->kvm)->tsx_ctrl_reset)
+	if (to_kvm_tdx(vcpu->kvm)->tsx_supported && tdx_uret_tsx_ctrl_slot != -1)
 		kvm_user_return_update_cache(tdx_uret_tsx_ctrl_slot, 0);
 }
 
@@ -1275,16 +1273,6 @@ fastpath_t tdx_vcpu_run(struct kvm_vcpu *vcpu)
 	 */
 	if (kvm_tdx->attributes & TDX_TD_ATTRIBUTE_PERFMON)
 		apic_write(APIC_LVTPC, TDX_GUEST_PMI_VECTOR);
-
-	/*
-	 * Before 1.0.3.3, TDH.VP.ENTER has special environment requirements
-	 * that RTM_DISABLE(bit 0) and TSX_CPUID_CLEAR(bit 1) of IA32_TSX_CTRL
-	 * must be 0 if it's supported.  MSR_IA32_TSX_CTRL is restored by user
-	 * return msrs callback which is enabled by
-	 * tdx_user_return_update_cache().
-	 */
-	if (unlikely(!tdx_info.tsx_supported))
-		tsx_ctrl_clear();
 
 	tdx_vcpu_enter_exit(tdx);
 
@@ -3882,30 +3870,11 @@ static int setup_tdparams_xfam(struct kvm_cpuid2 *cpuid, struct td_params *td_pa
 	return 0;
 }
 
-/*
- * Determine TSX_CTRL value on tdexit
- *
- * tsx for guest:	TSX CTRL value on tdexit
- *
- * Pre 1.0.3.3 (tsx for guest isn't supported):
- * must be disabled	0 (the value must be 0 on tdentry)
- *
- * Post 1.0.3.3 (tsx for geust is supported):
- * disabled		preserved
- * enabled		0
- */
-static bool tdparams_tsx_ctrl_reset(struct kvm_cpuid2 *cpuid)
+static bool tdparams_tsx_supported(struct kvm_cpuid2 *cpuid)
 {
 	const struct kvm_cpuid_entry2 *entry;
 	u64 mask;
 	u32 ebx;
-
-	/* As TSX_CTRL isn't supported, No need restore TSX_CTRL. */
-	if (!boot_cpu_has(X86_FEATURE_MSR_TSX_CTRL))
-		return false;
-	/* Pre 1.0.3.3 (tsx for guest isn't supported): */
-	if (!tdx_info.tsx_supported)
-		return true;
 
 	entry = kvm_find_cpuid_entry2(cpuid->entries, cpuid->nent, 0x7, 0);
 	if (entry)
@@ -3952,7 +3921,7 @@ static int setup_tdparams(struct kvm *kvm, struct td_params *td_params,
 	MEMCPY_SAME_SIZE(td_params->mrowner, init_vm->mrowner);
 	MEMCPY_SAME_SIZE(td_params->mrownerconfig, init_vm->mrownerconfig);
 
-	to_kvm_tdx(kvm)->tsx_ctrl_reset = tdparams_tsx_ctrl_reset(cpuid);
+	to_kvm_tdx(kvm)->tsx_supported = tdparams_tsx_supported(cpuid);
 	return 0;
 }
 
@@ -4965,9 +4934,7 @@ static int __init tdx_module_setup(void)
 {
 	const struct tdsysinfo_struct *tdsysinfo;
 	struct tdx_module_output out;
-	bool tsx_supported = false;
 	int ret = 0;
-	int i;
 	u64 err;
 
 	BUILD_BUG_ON(sizeof(*tdsysinfo) > TDSYSINFO_STRUCT_SIZE);
@@ -4981,19 +4948,6 @@ static int __init tdx_module_setup(void)
 
 	tdsysinfo = tdx_get_sysinfo();
 	WARN_ON(tdsysinfo->num_cpuid_config > TDX_MAX_NR_CPUID_CONFIGS);
-
-	/* Check if guest TSX is supported or not. */
-	for (i = 0; i < tdsysinfo->num_cpuid_config; i++) {
-		const struct tdx_cpuid_config *c = &tdsysinfo->cpuid_configs[i];
-
-		if (c->leaf == 7 && c->sub_leaf == 0) {
-#define CPUID_07_EBX_TSX_MASK  (BIT(4) | BIT(11))
-			if ((c->ebx & CPUID_07_EBX_TSX_MASK) == CPUID_07_EBX_TSX_MASK)
-				tsx_supported = true;
-			break;
-		}
-	}
-
 	tdx_info = (struct tdx_info) {
 		.nr_tdcs_pages = tdsysinfo->tdcs_base_size / PAGE_SIZE,
 		/*
@@ -5002,7 +4956,6 @@ static int __init tdx_module_setup(void)
 		 */
 		.nr_tdvpx_pages = tdsysinfo->tdvps_base_size / PAGE_SIZE - 1,
 		.sys_rd = tdsysinfo->sys_rd,
-		.tsx_supported = tsx_supported,
 	};
 
 	pr_info("nr_tdcs %d nr_tdvpx %d\n",
