@@ -529,6 +529,13 @@ static const struct xe_rtp_entry_sr engine_was[] = {
 			     XE_RTP_NOCHECK))
 	},
 
+	/* Xe2_LPG */
+
+	{ XE_RTP_NAME("14018957109"),
+	  XE_RTP_RULES(GRAPHICS_VERSION_RANGE(2004, 2004), GRAPHICS_STEP(A0, B0),
+		       FUNC(xe_rtp_match_first_render_or_compute)),
+	  XE_RTP_ACTIONS(SET(HALF_SLICE_CHICKEN5, DISABLE_SAMPLE_G_PERFORMANCE))
+	},
 	{}
 };
 
