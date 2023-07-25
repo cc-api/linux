@@ -493,7 +493,7 @@ static int tgl_get_bw_info(struct drm_i915_private *dev_priv, const struct intel
 	int num_groups = ARRAY_SIZE(dev_priv->display.bw.max);
 	int i, ret;
 
-	if (IS_PRESILICON(dev_priv))
+	if (XE_PRESI_SKIP_FEATURE(dev_priv, SAGV))
 		return sim_get_bw_info(dev_priv);
 
 	ret = icl_get_qgv_points(dev_priv, &qi, is_y_tile);
