@@ -4433,7 +4433,7 @@
             ],
             "jira": "NEXT-3467",
             "name": "microcode",
-            "repourl": "https://github.com/intel-sandbox/microcode.git",
+            "repourl": "https://github.com/intel-sandbox/drivers.saf",
             "sdl_contact": [
                 {
                     "name": "Ashok Raj",
