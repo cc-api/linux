@@ -8082,6 +8082,10 @@ static int vmx_set_guest_virt_timer(struct kvm_vcpu *vcpu, u16 vector)
 {
 	struct vcpu_vmx *vmx;
 
+	/* This change is only for intel-next compatible with TDX */
+	if(!enable_apic_timer)
+		return -EPERM;
+
 	vmx = to_vmx(vcpu);
 	if (!enable_apic_timer ||
 	    !kvm_vcpu_apicv_active(vcpu) ||
@@ -8095,11 +8099,19 @@ static int vmx_set_guest_virt_timer(struct kvm_vcpu *vcpu, u16 vector)
 
 static void vmx_cancel_guest_virt_timer(struct kvm_vcpu *vcpu)
 {
+	/* This change is only for intel-next compatible with TDX */
+	if(!enable_apic_timer)
+		return;
+
 	to_vmx(vcpu)->guest_timer_vector = 0;
 }
 
 static u64 vmx_get_guest_tsc_deadline_virt(struct kvm_vcpu *vcpu)
 {
+	/* This change is only for intel-next compatible with TDX */
+	if(!enable_apic_timer)
+		return 0;
+
 	if (!lapic_in_kernel(vcpu))
 		return 0;
 
