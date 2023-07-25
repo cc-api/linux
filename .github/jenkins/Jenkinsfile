@@ -13,11 +13,11 @@ pipeline {
         script {
           if (env.CHANGE_ID != null) {
             BUILDNAME = "pr-${env.CHANGE_ID}-${env.GIT_COMMIT[0..6]}"
-            sh "curl -X POST 'http://gfx-ci-internal.igk.intel.com:8091/api/build?name=${BUILDNAME}&component=xe'"
+            sh "curl -X POST 'https://build-data.lgci.intel.com/api/build?name=xe-${BUILDNAME}&component=xe'"
           } else {
             ID = sh(script: 'docker run --rm registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest redis-cli -h intel-gfx-ci-internal incr xe-kernel-build-id', returnStdout: true).trim()
             BUILDNAME = "${ID}-${env.GIT_COMMIT[0..6]}"
-            sh "curl -X POST 'http://gfx-ci-internal.igk.intel.com:8091/api/component?component=xe&latest_build=${BUILDNAME}'"
+            sh "curl -X POST 'https://build-data.lgci.intel.com/api/component?component=xe&latest_build=xe-${BUILDNAME}'"
           }
           currentBuild.displayName = "$BUILDNAME"
         }
