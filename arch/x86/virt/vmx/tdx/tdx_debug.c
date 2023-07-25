@@ -37,7 +37,7 @@ static inline u64 tddebugconfig(u64 subleaf, u64 param1, u64 param2)
 
 	if (debugconfig_supported) {
 		ret = __seamcall(SEAMCALL_TDDEBUGCONFIG, subleaf, param1,
-				 param2, 0, 0, 0, 0, 0, NULL);
+				 param2, 0, 0, 0, 0, 0, 0, 0, NULL);
 		if (ret) {
 			pr_info("DEBUGCONFIG SEAMCALL isn't supported.\n");
 			debugconfig_supported = false;

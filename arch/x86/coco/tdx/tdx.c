@@ -86,13 +86,14 @@ static u64 __trace_tdx_hypercall_ret(struct tdx_hypercall_args *args)
 
 static inline u64 __tdx_module_call(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
 				    u64 r10, u64 r11, u64 r12, u64 r13,
+				    u64 r14, u64 r15,
 				    struct tdx_module_output *out)
 {
 	u64 err, err_masked, retries = 0;
 
 	do {
 		err = __tdx_module_call_asm(fn, rcx, rdx, r8, r9,
-					    r10, r11, r12, r13, out);
+					    r10, r11, r12, r13, r14, r15, out);
 		if (likely(!err) || retries++ > TDX_MODULECALL_RETRY_MAX)
 			break;
 
@@ -106,6 +107,7 @@ static inline u64 __tdx_module_call(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
 /* Traced version of __tdx_module_call */
 static u64 __trace_tdx_module_call(u64 fn, u64 rcx, u64 rdx, u64 r8,
 				   u64 r9, u64 r10, u64 r11, u64 r12, u64 r13,
+				   u64 r14, u64 r15,
 				   struct tdx_module_output *out)
 {
 	struct tdx_module_output dummy_out;
@@ -115,11 +117,13 @@ static u64 __trace_tdx_module_call(u64 fn, u64 rcx, u64 rdx, u64 r8,
 		out = &dummy_out;
 
 	trace_tdx_module_call_enter_rcuidle(fn, rcx, rdx, r8,
-					    r9, r10, r11, r12, r13);
-	err = __tdx_module_call(fn, rcx, rdx, r8, r9, r10, r11, r12, r13, out);
+					    r9, r10, r11, r12, r13, r14, r15);
+	err = __tdx_module_call(fn, rcx, rdx, r8, r9, r10, r11, r12, r13,
+				r14, r15, out);
 	trace_tdx_module_call_exit_rcuidle(err, out->rcx, out->rdx, out->r8,
 					   out->r9, out->r10, out->r11,
-					   out->r12, out->r13);
+					   out->r12, out->r13,
+					   out->r14, out->r15);
 
 	return err;
 }
@@ -155,10 +159,11 @@ EXPORT_SYMBOL_GPL(tdx_kvm_hypercall);
  */
 static inline void tdx_module_call(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
 				   u64 r10, u64 r11, u64 r12, u64 r13,
+				   u64 r14, u64 r15,
 				   struct tdx_module_output *out)
 {
 	if (__trace_tdx_module_call(fn, rcx, rdx, r8, r9,
-                                    r10, r11, r12, r13, out))
+                                    r10, r11, r12, r13, r14, r15, out))
 		panic("TDCALL %lld failed (Buggy TDX module!)\n", fn);
 }
 
@@ -182,7 +187,7 @@ int tdx_mcall_get_report0(u8 *reportdata, u8 *tdreport)
 
 	ret = __trace_tdx_module_call(TDX_GET_REPORT, virt_to_phys(tdreport),
 				      virt_to_phys(reportdata), TDREPORT_SUBTYPE_0,
-				      0, 0, 0, 0, 0, NULL);
+				      0, 0, 0, 0, 0, 0, 0, NULL);
 	if (ret) {
 		if (TDCALL_RETURN_CODE(ret) == TDCALL_INVALID_OPERAND)
 			return -EINVAL;
@@ -243,7 +248,7 @@ static void __noreturn tdx_panic(const char *msg)
 u64 tdx_mcall_verify_report(u8 *reportmac)
 {
 	return __tdx_module_call(TDX_VERIFYREPORT, virt_to_phys(reportmac),
-				0, 0, 0, 0, 0, 0, 0, NULL);
+				0, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
 }
 EXPORT_SYMBOL_GPL(tdx_mcall_verify_report);
 
@@ -266,7 +271,7 @@ int tdx_mcall_extend_rtmr(u8 *data, u8 index)
 	u64 ret;
 
 	ret = __tdx_module_call(TDX_EXTEND_RTMR, virt_to_phys(data), index,
-				0, 0, 0, 0, 0, 0, NULL);
+				0, 0, 0, 0, 0, 0, 0, 0, NULL);
 	if (ret) {
 		if (TDCALL_RETURN_CODE(ret) == TDCALL_INVALID_OPERAND)
 			return -EINVAL;
@@ -325,7 +330,7 @@ static void tdx_parse_tdinfo(u64 *cc_mask)
 	 * Guest-Host-Communication Interface (GHCI), section 2.4.2 TDCALL
 	 * [TDG.VP.INFO].
 	 */
-	tdx_module_call(TDX_GET_INFO, 0, 0, 0, 0, 0, 0, 0, 0, &out);
+	tdx_module_call(TDX_GET_INFO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, &out);
 
 	/*
 	 * The highest bit of a guest physical address is the "sharing" bit.
@@ -946,7 +951,7 @@ void tdx_get_ve_info(struct ve_info *ve)
 	 * Note, the TDX module treats virtual NMIs as inhibited if the #VE
 	 * valid flag is set. It means that NMI=>#VE will not result in a #DF.
 	 */
-	tdx_module_call(TDX_GET_VEINFO, 0, 0, 0, 0, 0, 0, 0, 0, &out);
+	tdx_module_call(TDX_GET_VEINFO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, &out);
 
 	/* Transfer the output parameters */
 	ve->exit_reason = out.rcx;
@@ -1176,7 +1181,7 @@ void __init tdx_early_init(void)
 
 	/* Kernel does not use NOTIFY_ENABLES and does not need random #VEs */
 	tdx_module_call(TDX_WR, 0, TDCS_NOTIFY_ENABLES,
-			0, -1ULL, 0, 0, 0, 0, NULL);
+			0, -1ULL, 0, 0, 0, 0, 0, 0, NULL);
 
 	/*
 	 * All bits above GPA width are reserved and kernel treats shared bit

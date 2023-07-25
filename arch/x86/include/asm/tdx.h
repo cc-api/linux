@@ -189,7 +189,8 @@ int tdx_guest_keyid_alloc(void);
 void tdx_guest_keyid_free(int keyid);
 
 u64 __seamcall(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9, u64 r10,
-	       u64 r11, u64 r12, u64 r13, struct tdx_module_output *out);
+	       u64 r11, u64 r12, u64 r13,
+	       u64 r14, u64 r15, struct tdx_module_output *out);
 
 #define DEBUGCONFIG_TRACE_ALL		0
 #define DEBUGCONFIG_TRACE_WARN		1
@@ -218,6 +219,7 @@ static inline void tdx_reset_memory(void) { }
 static inline bool tdx_is_private_mem(unsigned long phys) { return false; }
 static inline u64 __seamcall(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
 			     u64 r10, u64 r11, u64 r12, u64 r13,
+			     u64 r14, u64 r15,
 			     struct tdx_module_output *out)
 {
 	return TDX_SEAMCALL_UD;
