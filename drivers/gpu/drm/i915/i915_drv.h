@@ -419,6 +419,7 @@ static inline struct intel_gt *to_gt(struct drm_i915_private *i915)
 
 #define IS_SIMULATOR(i915) (0)
 #define IS_PRESILICON(i915) (0)
+#define XE_PRESI_SKIP_FEATURE(i915, feature) (0)
 
 #define INTEL_INFO(i915)	(&(i915)->__info)
 #define DISPLAY_INFO(i915)	(INTEL_INFO(i915)->display)
