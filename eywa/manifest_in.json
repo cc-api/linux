@@ -4401,7 +4401,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "for-next-6.4-ucode-ifs",
+            "branch": "v6.5-rc2-for-intel-next-ucode-ifs",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -4424,14 +4424,14 @@
                 }
             ],
             "description": "Ashok Raj's microcode patches",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Ashok Raj",
                     "email": "ashok.raj@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3467",
             "name": "microcode",
             "repourl": "https://github.com/intel-sandbox/microcode.git",
             "sdl_contact": [
@@ -4442,8 +4442,8 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
-            "maillist": "",
+            "last_enabled": "v6.5",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00059.html",
             "platforms": "GNR,SRF",
             "feature_jiras": "LFE-697"
         },
