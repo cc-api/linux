@@ -209,6 +209,54 @@ struct vmx_tdx_enabled {
 int vmxon_all(struct vmx_tdx_enabled *vmx_tdx);
 void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx);
 bool tdx_io_support(void);
+
+/* Temp solution, copied from tdx_error.h */
+#define TDX_INTERRUPTED_RESUMABLE		0x8000000300000000ULL
+#define TDX_VCPU_ASSOCIATED			0x8000070100000000ULL
+#define TDX_VCPU_NOT_ASSOCIATED			0x8000070200000000ULL
+
+static inline u64 seamcall_retry(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
+			         u64 r10, u64 r11, u64 r12, u64 r13,
+			         u64 r14, u64 r15,
+			         struct tdx_module_output *out)
+{
+	u64 ret, retries = 0;
+
+	do {
+		ret = __seamcall(op, rcx, rdx, r8, r9,
+				 r10, r11, r12, r13, r14, r15, out);
+		if (unlikely(ret == TDX_SEAMCALL_UD)) {
+			/*
+			 * SEAMCALLs fail with TDX_SEAMCALL_UD returned when
+			 * VMX is off. This can happen when the host gets
+			 * rebooted or live updated. In this case, the
+			 * instruction execution is ignored as KVM is shut
+			 * down, so the error code is suppressed. Other than
+			 * this, the error is unexpected and the execution
+			 * can't continue as the TDX features reply on VMX to
+			 * be on.
+			 */
+			pr_err("%s ret 0x%llx TDX_SEAMCALL_UD\n", __func__, ret);
+			return ret;
+		}
+
+		/*
+		 * On success, non-recoverable errors, or recoverable errors
+		 * that don't expect retries, hand it over to the caller.
+		 */
+		if (!ret ||
+		    ret == TDX_VCPU_ASSOCIATED ||
+		    ret == TDX_VCPU_NOT_ASSOCIATED ||
+		    ret == TDX_INTERRUPTED_RESUMABLE)
+			return ret;
+
+		if (retries++ > TDX_SEAMCALL_RETRY_MAX)
+			break;
+	} while (TDX_SEAMCALL_ERR_RECOVERABLE(ret));
+
+	return ret;
+}
+
 #else	/* !CONFIG_INTEL_TDX_HOST */
 struct tdsysinfo_struct;
 static inline const struct tdsysinfo_struct *tdx_get_sysinfo(void) { return NULL; }
@@ -233,6 +281,13 @@ struct vmx_tdx_enabled;
 static inline int vmxon_all(struct vmx_tdx_enabled *vmx_tdx) { return -EOPNOTSUPP; }
 static inline void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx) {}
 static inline bool tdx_io_support(void) { return false; }
+static inline u64 seamcall_retry(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
+			         u64 r10, u64 r11, u64 r12, u64 r13,
+			         u64 r14, u64 r15,
+			         struct tdx_module_output *out)
+{
+	return TDX_SEAMCALL_UD;
+}
 #endif	/* CONFIG_INTEL_TDX_HOST */
 
 #endif /* !__ASSEMBLY__ */
