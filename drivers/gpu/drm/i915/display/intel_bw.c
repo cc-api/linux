@@ -633,6 +633,9 @@ static int xe2_hpd_get_bw_info(struct drm_i915_private *i915,
 	int peakbw, maxdebw;
 	int ret, i;
 
+	if (XE_PRESI_SKIP_FEATURE(i915, SAGV))
+		return sim_get_bw_info(i915);
+
 	ret = icl_get_qgv_points(i915, &qi, true);
 	if (ret) {
 		drm_dbg_kms(&i915->drm,
