@@ -91,6 +91,9 @@ struct xe_uc_fw {
 	/** @bo: XE BO for uC firmware */
 	struct xe_bo *bo;
 
+	/** @has_gsc_headers: whether the FW starts with GSC headers instead of CSS */
+	bool has_gsc_headers;
+
 	/*
 	 * The firmware build process will generate a version header file with
 	 * major and minor version defined. The versions are built into CSS
@@ -113,6 +116,8 @@ struct xe_uc_fw {
 	u32 rsa_size;
 	/** @ucode_size: micro kernel size */
 	u32 ucode_size;
+	/** @dma_start_offset: offset within the blob at which the FW is located */
+	u32 dma_start_offset;
 
 	/** @private_data_size: size of private data found in uC css header */
 	u32 private_data_size;
