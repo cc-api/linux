@@ -10,6 +10,7 @@
 
 struct drm_printer;
 
+int xe_huc_parse_gsc_header(struct xe_uc_fw *huc_fw, const void *data, size_t size);
 int xe_huc_init(struct xe_huc *huc);
 int xe_huc_upload(struct xe_huc *huc);
 int xe_huc_auth(struct xe_huc *huc);
