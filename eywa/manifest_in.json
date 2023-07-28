@@ -2911,7 +2911,7 @@
                 }
             ],
             "description": "Add I2C support for MTl, Birchstream",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Rajesh Bhaskar",
@@ -2930,7 +2930,7 @@
                     "email": "raymond.tan@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3470",
             "name": "LPSS/SMBus",
             "repourl": "https://github.com/intel-sandbox/jarkkoni.linux.kernel.git",
             "sdl_contact": [
@@ -2941,8 +2941,8 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
-            "maillist": "",
+            "last_enabled": "v6.5",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00071.html",
             "platforms": "GNR,MTL",
             "feature_jiras": ""
         },
