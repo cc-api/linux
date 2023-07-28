@@ -2649,7 +2649,7 @@
                 }
             ],
             "description": "RDT MBA 4.0",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Andrew J Herdrich",
