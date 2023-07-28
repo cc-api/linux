@@ -18,6 +18,7 @@ struct device;
 
 struct sdsi_priv {
 	struct mutex			mb_lock;	/* Mailbox access lock */
+	struct mutex			meter_lock;
 	struct device			*dev;
 	struct intel_vsec_device	*ivdev;
 	struct list_head		node;
