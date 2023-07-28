@@ -68,6 +68,7 @@
 #define CTRL_COMPLETE			BIT(6)
 #define CTRL_READY			BIT(7)
 #define CTRL_INBAND_LOCK		BIT(32)
+#define CTRL_METER_ENABLE_DRAM		BIT(33)
 #define CTRL_STATUS			GENMASK(15, 8)
 #define CTRL_PACKET_SIZE		GENMASK(31, 16)
 #define CTRL_MSG_SIZE			GENMASK(63, 48)
@@ -492,6 +493,17 @@ state_certificate_read(struct file *filp, struct kobject *kobj,
 }
 static BIN_ATTR_ADMIN_RO(state_certificate, SDSI_SIZE_READ_MSG);
 
+static void sdsi_read_meter_from_nvram(struct sdsi_priv *priv)
+{
+	u64 control;
+
+	lockdep_assert_held(&priv->meter_lock);
+
+	control = readq(priv->control_addr);
+	control &= ~CTRL_METER_ENABLE_DRAM;
+	writeq(control, priv->control_addr);
+}
+
 static ssize_t
 meter_certificate_read(struct file *filp, struct kobject *kobj,
 		       struct bin_attribute *attr, char *buf, loff_t off,
@@ -499,10 +511,53 @@ meter_certificate_read(struct file *filp, struct kobject *kobj,
 {
 	struct device *dev = kobj_to_dev(kobj);
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
+	int ret = 0;
 
-	return certificate_read(SDSI_CMD_READ_METER, priv, buf, off, count);
+	ret = mutex_lock_interruptible(&priv->meter_lock);
+	if (ret)
+		return ret;
+
+	sdsi_read_meter_from_nvram(priv);
+	ret = certificate_read(SDSI_CMD_READ_METER, priv, buf, off, count);
+
+	mutex_unlock(&priv->meter_lock);
+
+	return ret;
 }
 static BIN_ATTR_ADMIN_RO(meter_certificate, SDSI_SIZE_READ_MSG);
+
+static void sdsi_read_meter_from_dram(struct sdsi_priv *priv)
+{
+	u64 control;
+
+	lockdep_assert_held(&priv->meter_lock);
+
+	control = readq(priv->control_addr);
+	control |= CTRL_METER_ENABLE_DRAM;
+	writeq(control, priv->control_addr);
+}
+
+static ssize_t
+meter_current_read(struct file *filp, struct kobject *kobj,
+		   struct bin_attribute *attr, char *buf, loff_t off,
+		   size_t count)
+{
+	struct device *dev = kobj_to_dev(kobj);
+	struct sdsi_priv *priv = dev_get_drvdata(dev);
+	int ret;
+
+	ret = mutex_lock_interruptible(&priv->meter_lock);
+	if (ret)
+		return ret;
+
+	sdsi_read_meter_from_dram(priv);
+	ret = certificate_read(SDSI_CMD_READ_METER, priv, buf, off, count);
+
+	mutex_unlock(&priv->meter_lock);
+
+	return ret;
+}
+static BIN_ATTR_ADMIN_RO(meter_current, SDSI_SIZE_READ_MSG);
 
 static ssize_t registers_read(struct file *filp, struct kobject *kobj,
 			      struct bin_attribute *attr, char *buf, loff_t off,
@@ -534,6 +589,7 @@ static struct bin_attribute *sdsi_bin_attrs[] = {
 	&bin_attr_registers,
 	&bin_attr_state_certificate,
 	&bin_attr_meter_certificate,
+	&bin_attr_meter_current,
 	&bin_attr_provision_akc,
 	&bin_attr_provision_cap,
 	NULL
@@ -553,7 +609,7 @@ sdsi_battr_is_visible(struct kobject *kobj, struct bin_attribute *attr, int n)
 	if (!(priv->features & SDSI_FEATURE_SDSI))
 		return 0;
 
-	if (attr == &bin_attr_meter_certificate)
+	if (attr == &bin_attr_meter_certificate || attr == &bin_attr_meter_current)
 		return (priv->features & SDSI_FEATURE_METERING) ?
 				attr->attr.mode : 0;
 
@@ -770,6 +826,7 @@ static int sdsi_probe(struct auxiliary_device *auxdev, const struct auxiliary_de
 
 	priv->dev = &auxdev->dev;
 	mutex_init(&priv->mb_lock);
+	mutex_init(&priv->meter_lock);
 	auxiliary_set_drvdata(auxdev, priv);
 
 	/* Get the SDSi discovery table */

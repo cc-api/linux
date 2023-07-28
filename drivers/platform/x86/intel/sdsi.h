@@ -10,6 +10,7 @@ struct sdsi_spdm_state;
 
 struct sdsi_priv {
 	struct mutex			mb_lock;	/* Mailbox access lock */
+	struct mutex			meter_lock;	/* Meter command lock */
 	struct device			*dev;
 	struct intel_vsec_device	*ivdev;
 	struct sdsi_spdm_state		*spdm_state;
