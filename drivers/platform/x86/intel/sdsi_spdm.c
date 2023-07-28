@@ -11,6 +11,7 @@
 
 #define dev_fmt(fmt) "SPDM: " fmt
 
+#include <linux/bitfield.h>
 #include <linux/cred.h>
 #include <linux/dev_printk.h>
 #include <linux/key.h>
@@ -342,6 +343,7 @@ struct spdm_cert_chain {
 
 #define SPDM_CHALLENGE 0x83
 #define SPDM_MAX_OPAQUE_DATA 1024 /* SPDM 1.0.0 table 21 */
+#define SPDM_OPAQUE_DATA_SIZE 2
 
 struct spdm_challenge_req {
 	u8 version;
@@ -368,6 +370,36 @@ struct spdm_challenge_rsp {
 	 * - RequesterContext: 8 bytes long      	 * from 1.3 *
 	 * - Signature
 	 */
+} __packed;
+
+#define SPDM_GET_MEASUREMENTS		0xE0
+#define MEASUREMENT_BLOCK_QUERY		0x00
+#define MEASUREMENT_BLOCK_ALL		0xFF
+#define MEASUREMENT_MAX_RECORD		BIT(16)
+#define MEASUREMENT_HAVE_RESP_KEY	0xF
+
+struct spdm_measurements_req {
+	u8 version;
+	u8 code;
+	u8 param1; /* Request attributes */
+	u8 param2; /* Measurement operation */
+	u8 nonce[32];
+	/* End of SPDM 1.0 structure */
+	u8 slot;
+} __packed;
+
+struct spdm_measurements_rsp {
+	u8 version;
+	u8 code;
+	u8 param1; /* number of measurements */
+	u8 param2;
+	u8 num_blocks;
+	u8 measurement_record_len[3];
+	/* Variable measurement record, up to 64k + 4 */
+	/* Nonce, 32 bytes */
+	/* 2 byte opaque length */
+	/* opaque data if length non 0 */
+	/* Signature */
 } __packed;
 
 #define SPDM_ERROR 0x7f
@@ -511,6 +543,10 @@ static int spdm_err(struct device *dev, struct spdm_error_rsp *rsp)
  * @h: Hash length of @base_hash_alg (in bytes).  H in SPDM specification.
  * @leaf_key: Leaf certificate against which to check responder's signatures.
  * @root_keyring: Keyring against which to check responder's root certificates.
+ * @slot: The slot number of the certificate that for which that was
+ *	successfully validated during GET_CERTIFICATES. The same slow is
+ *	used for signing during GET_MEASUREMENTS.
+ * @measuring: Set when GET_MEASUREMENTS is in progress.
  */
 struct sdsi_spdm_state {
 	struct mutex lock;
@@ -542,6 +578,9 @@ struct sdsi_spdm_state {
 	/* Certificates */
 	struct key *leaf_key;
 	struct key *root_keyring;
+	u8 slot;
+
+	bool measuring;
 };
 
 static int __spdm_exchange(struct sdsi_spdm_state *spdm_state,
@@ -1308,7 +1347,7 @@ static size_t spdm_challenge_rsp_sz(struct sdsi_spdm_state *spdm_state,
 	else
 		size += SPDM_MAX_OPAQUE_DATA;	/* OpaqueData */
 
-	size += 2;				/* OpaqueDataLength */
+	size += SPDM_OPAQUE_DATA_SIZE;		/* OpaqueDataLength */
 
 	if (spdm_state->version >= 0x13)
 		size += 8;			/* RequesterContext */
@@ -1383,6 +1422,19 @@ static void spdm_reset(struct sdsi_spdm_state *spdm_state)
 
 	crypto_free_shash(spdm_state->shash);
 	spdm_state->shash = NULL;
+
+	spdm_state->measuring = false;
+}
+
+static void spdm_measurement_prepare(struct sdsi_spdm_state *spdm_state)
+{
+	kfree(spdm_state->desc);
+	spdm_state->desc = NULL;
+
+	crypto_free_shash(spdm_state->shash);
+	spdm_state->shash = NULL;
+
+	spdm_state->measuring = true;
 }
 
 /**
@@ -1445,8 +1497,10 @@ int sdsi_spdm_authenticate(struct sdsi_spdm_state *spdm_state)
 
 	for_each_set_bit(slot, &spdm_state->slot_mask, SPDM_SLOTS) {
 		rc = spdm_get_certificate(spdm_state, slot);
-		if (rc == 0)
+		if (rc == 0) {
+			spdm_state->slot = slot;
 			break; /* success */
+		}
 		if (rc != -ENOKEY && rc != -EKEYREJECTED)
 			break; /* try next slot only on signature error */
 	}
@@ -1460,9 +1514,256 @@ unlock:
 		spdm_reset(spdm_state);
 	mutex_unlock(&spdm_state->lock);
 	kfree(transcript);
+
 	return rc;
 }
 EXPORT_SYMBOL_GPL(sdsi_spdm_authenticate);
+
+static int spdm_start_mhash(struct sdsi_spdm_state *spdm_state)
+{
+	int rc;
+
+	spdm_state->shash = crypto_alloc_shash(spdm_state->base_hash_alg_name,
+					       0, 0);
+	if (!spdm_state->shash)
+		return -ENOMEM;
+
+	spdm_state->desc = kzalloc(sizeof(*spdm_state->desc) +
+				   crypto_shash_descsize(spdm_state->shash),
+				   GFP_KERNEL);
+	if (!spdm_state->desc) {
+		rc = -ENOMEM;
+		goto err_free_shash;
+	}
+
+	spdm_state->desc->tfm = spdm_state->shash;
+
+	rc = crypto_shash_init(spdm_state->desc);
+	if (rc < 0)
+		goto err_free_desc;
+
+	return 0;
+
+err_free_desc:
+	kfree(spdm_state->desc);
+err_free_shash:
+	crypto_free_shash(spdm_state->shash);
+	return rc;
+}
+
+static int
+spdm_get_measurements_update_hash(struct sdsi_spdm_state *spdm_state, void *msg,
+				  size_t msg_size)
+{
+	u8 measurement_caps = FIELD_GET(SPDM_MEAS_CAP_MASK,
+					spdm_state->responder_caps);
+
+	/* Return without error if signature is not supported */
+	if (measurement_caps != SPDM_MEAS_CAP_MEAS_SIG)
+		return 0;
+
+	return crypto_shash_update(spdm_state->desc, msg, msg_size);
+}
+
+static void spdm_measurement_end(struct sdsi_spdm_state *spdm_state)
+{
+	/* desc is only set when the Responder supports signed measurements */
+	if (spdm_state->desc) {
+		kfree(spdm_state->desc);
+		spdm_state->desc = NULL;
+		crypto_free_shash(spdm_state->shash);
+	}
+
+	spdm_state->measuring = false;
+}
+
+static int __spdm_get_measurements(struct sdsi_spdm_state *spdm_state,
+				   struct spdm_measurement_request *m)
+{
+	struct spdm_measurements_req req = {
+		.code = SPDM_GET_MEASUREMENTS,
+		.nonce = {}, };
+	struct spdm_measurements_rsp *rsp;
+	enum measurement_op op = m->op;
+	size_t req_sz, rsp_sz;
+	size_t length;
+	int rc;
+
+	req.param1 = m->attribute;
+	rsp_sz = sizeof(*rsp) + sizeof(req.nonce) + SPDM_OPAQUE_DATA_SIZE +
+		 SPDM_MAX_OPAQUE_DATA + spdm_state->s;
+
+	switch (op) {
+	case MEASUREMENT_OP_QUERY:
+		req.param2 = MEASUREMENT_BLOCK_QUERY;
+		break;
+	case MEASUREMENT_OP_ONE:
+		req.param2 = m->block_no;
+		rsp_sz += MEASUREMENT_MAX_RECORD;
+		break;
+	case MEASUREMENT_OP_ALL:
+		req.param2 = MEASUREMENT_BLOCK_ALL;
+		rsp_sz += MEASUREMENT_MAX_RECORD;
+	}
+
+	rsp = kvzalloc(rsp_sz, GFP_KERNEL);
+	if (!rsp)
+		return -ENOMEM;
+
+	if (m->attribute & MEASUREMENT_ATTR_SIGN) {
+		/* Nonce */
+		get_random_bytes(&req.nonce, sizeof(req.nonce));
+
+		if (spdm_state->version == 0x10) {
+			req_sz = offsetof(typeof(req), slot);
+		} else {
+			/* SlotIDParam */
+			req.slot = MEASUREMENT_HAVE_RESP_KEY;
+			req_sz = sizeof(req);
+		}
+	} else {
+		req_sz = offsetof(typeof(req), nonce);
+	}
+
+	rc = spdm_exchange(spdm_state, &req, req_sz, rsp, rsp_sz);
+	if (rc < 0)
+		goto err_free_rsp;
+
+	length = rc;
+	if (length > rsp_sz) {
+		dev_err(spdm_state->dev,
+			"SPDM: GET_MEASUREMENTS: Need %ld, allocated %ld\n",
+			length, rsp_sz);
+		rc = -EIO;
+		goto err_free_rsp;
+	}
+
+	dev_dbg(spdm_state->dev, "Hashing the request\n");
+	rc = spdm_get_measurements_update_hash(spdm_state, &req, req_sz);
+	if (rc < 0)
+		goto err_free_rsp;
+
+	if (m->attribute & MEASUREMENT_ATTR_SIGN) {
+		size_t sig_offset = length - spdm_state->s;
+
+		dev_dbg(spdm_state->dev, "sig_offset is %ld length %ld s %ld\n",
+			sig_offset, length, spdm_state->s);
+
+		/* Hash the response, without the signature portion */
+		rc = spdm_get_measurements_update_hash(spdm_state, rsp,
+						       sig_offset);
+		if (rc < 0)
+			goto err_free_rsp;
+
+		rc = spdm_verify_signature(spdm_state, (u8 *)rsp + sig_offset,
+					   "responder-measurement signing");
+		if (rc) {
+			dev_err(spdm_state->dev,
+				"SPDM: GET_MEASUREMENTS: Failed to verify signature\n");
+			goto err_free_rsp;
+		}
+
+		dev_dbg(spdm_state->dev,
+			"SPDM: GET_MEASUREMENTS: Successfully verified signature\n");
+	} else {
+		/* Hash the response */
+		rc = spdm_get_measurements_update_hash(spdm_state, rsp, length);
+		if (rc) {
+			dev_err(spdm_state->dev, "SPDM: GET_MEASUREMENTS: Could not update hash\n");
+			goto err_free_rsp;
+		}
+	}
+
+	/* Invoke callback to return count or measurement */
+	if (m->meas_cb) {
+		if (op == MEASUREMENT_OP_QUERY)
+			m->meas_cb(NULL, rsp->param1, m->priv);
+		else {
+			u8 *measurement_record = (u8 *)rsp + sizeof(*rsp);
+			u32 len = *(u32 *)rsp->measurement_record_len & 0xFFFFFF;
+
+			m->meas_cb(measurement_record, len, m->priv);
+		}
+	}
+
+err_free_rsp:
+	kfree(rsp);
+	return rc;
+}
+
+/**
+ * sdsi_spdm_get_measurements() - Get device measurements
+ *
+ * @spdm_state: SPDM session state
+ * @m:
+ *
+ * Get device measurements using GET_MEASUREMENTS message
+ *
+ * Perform internal locking to serialize multiple concurrent invocations.
+ *
+ * Return 0 on success or a negative errno.  In particular, -EPROTONOSUPPORT
+ * indicates that measuring is not supported by the device.
+ */
+int sdsi_spdm_get_measurements(struct sdsi_spdm_state *spdm_state,
+			  struct spdm_measurement_request *m)
+{
+	u8 measurement_cap = FIELD_GET(SPDM_MEAS_CAP_MASK,
+				       spdm_state->responder_caps);
+	int rc;
+
+	mutex_lock(&spdm_state->lock);
+
+	/*
+	 * 3 conditions reset the measuring state:
+	 * 	1. spdm_authenticate()
+	 * 	2. a completed signed measurement
+	 * 	3. any error
+	 */
+	if (!spdm_state->measuring)
+		spdm_measurement_prepare(spdm_state);
+
+	if (!spdm_state->desc &&
+	    measurement_cap == SPDM_MEAS_CAP_MEAS_SIG) {
+		dev_dbg(spdm_state->dev,
+			"SPDM: GET_MEASUREMENTS: Starting new transcript\n");
+		rc = spdm_start_mhash(spdm_state);
+		if (rc < 0)
+			goto unlock;
+	}
+
+	if (!spdm_state->leaf_key) {
+		dev_dbg(spdm_state->dev,
+			"%s: Need to authenticate first\n", __func__);
+		rc = -EPROTO;
+		goto unlock;
+	}
+
+	if (measurement_cap == SPDM_MEAS_CAP_NO) {
+		dev_dbg(spdm_state->dev,
+			"%s: Responder does not support\n", __func__);
+		rc = -EPROTONOSUPPORT;
+		goto unlock;
+	}
+
+	if (m->attribute & MEASUREMENT_ATTR_SIGN &&
+	    measurement_cap != SPDM_MEAS_CAP_MEAS_SIG) {
+		dev_dbg(spdm_state->dev,
+			"%s: Responder does not support signed measurements\n",
+			__func__);
+		rc = -EOPNOTSUPP;
+		goto unlock;
+	}
+
+	rc = __spdm_get_measurements(spdm_state, m);
+
+unlock:
+	if (rc || m->attribute & MEASUREMENT_ATTR_SIGN)
+		spdm_measurement_end(spdm_state);
+
+	mutex_unlock(&spdm_state->lock);
+	return rc;
+}
+EXPORT_SYMBOL_GPL(sdsi_spdm_get_measurements);
 
 /**
  * sdsi_spdm_create() - Allocate SPDM session
