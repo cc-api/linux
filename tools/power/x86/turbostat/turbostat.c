@@ -269,7 +269,6 @@ unsigned int do_ring_perf_limit_reasons;
 unsigned int crystal_hz;
 unsigned long long tsc_hz;
 int base_cpu;
-double discover_bclk(unsigned int family, unsigned int model);
 unsigned int has_hwp;		/* IA32_PM_ENABLE, IA32_HWP_CAPABILITIES */
 			/* IA32_HWP_REQUEST, IA32_HWP_STATUS */
 unsigned int has_hwp_notify;	/* IA32_HWP_INTERRUPT */
@@ -298,6 +297,7 @@ int ignore_stdin;
 enum feature_id {
 	FID_MSR_MISC_FEATURE_CONTROL,	/* MSR_MISC_FEATURE_CONTROL */
 	FID_MSR_MISC_PWR_MGMT,		/* MSR_MISC_PWR_MGMT */
+	FID_BCLK,			/* CPU Base clock */
 	FID_MAX,
 };
 
@@ -353,6 +353,33 @@ void disable_feature(int fid)
 	set_feature(fid, 0);
 }
 
+/* Platform specific Feature Values for each Feature ID */
+
+/* FID_BCLK */
+int get_msr(int cpu, off_t offset, unsigned long long *msr);
+
+#define SLM_BCLK_FREQS 5
+int slm_freq_table[SLM_BCLK_FREQS] = { 8330, 10000, 13330, 11670, 8000 };
+
+int slm_bclk(void)
+{
+	unsigned long long msr = 3;
+	unsigned int i;
+	int freq;
+
+	if (get_msr(base_cpu, MSR_FSB_FREQ, &msr))
+		fprintf(outf, "SLM BCLK: unknown\n");
+
+	i = msr & 0xf;
+	if (i >= SLM_BCLK_FREQS) {
+		fprintf(outf, "SLM BCLK[%d] invalid\n", i);
+		i = 3;
+	}
+	freq = slm_freq_table[i];
+
+	return freq;
+}
+
 /*
  * Set the Feature Value for each Feature ID based on CPU model number.
  * Intel CPU model checks are allowed inside intel_check_model() only.
@@ -373,56 +400,69 @@ void intel_check_model(unsigned int family, unsigned int model)
 	case INTEL_FAM6_WESTMERE_EP:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 13333);
 		break;
 	case INTEL_FAM6_NEHALEM_EX:
 	case INTEL_FAM6_WESTMERE_EX:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 13333);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_IVYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_IVYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_HASWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_HASWELL_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_HASWELL_L:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_HASWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_BROADWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_BROADWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_BROADWELL_X:
 	case INTEL_FAM6_BROADWELL_D:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_SKYLAKE_L:
 	case INTEL_FAM6_SKYLAKE:
@@ -432,6 +472,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 	case INTEL_FAM6_COMETLAKE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_CANNONLAKE_L:
 	case INTEL_FAM6_ICELAKE_L:
@@ -450,58 +491,71 @@ void intel_check_model(unsigned int family, unsigned int model)
 	case INTEL_FAM6_METEORLAKE_L:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_SKYLAKE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_ICELAKE_D:
 	case INTEL_FAM6_ICELAKE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_EMERALDRAPIDS_X:
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		disable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, slm_bclk());
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, slm_bclk());
 		break;
 	case INTEL_FAM6_ATOM_AIRMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		disable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 13333);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_PLUS:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_L:
 	case INTEL_FAM6_ATOM_TREMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	case INTEL_FAM6_XEON_PHI_KNM:
 	case INTEL_FAM6_XEON_PHI_KNL:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		break;
 	/* Missing support for below platforms */
 	case INTEL_FAM6_ATOM_SILVERMONT_MID:
@@ -511,6 +565,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 	default:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		disable_feature(FID_MSR_MISC_PWR_MGMT);
+		set_feature(FID_BCLK, 10000);
 		return;
 	}
 }
@@ -3907,6 +3962,26 @@ void check_permissions(void)
 		exit(-6);
 }
 
+
+void probe_bclk(void)
+{
+	unsigned long long msr;
+	unsigned int base_ratio;
+
+	bclk = get_feature(FID_BCLK);
+
+	/* can be 0 for non Intel platforms */
+	if (!bclk)
+		return;
+	bclk /= 100;
+
+	get_msr(base_cpu, MSR_PLATFORM_INFO, &msr);
+	base_ratio = (msr >> 8) & 0xFF;
+
+	base_hz = base_ratio * bclk * 1000000;
+	has_base_hz = 1;
+}
+
 /*
  * NHM adds support for additional MSRs:
  *
@@ -3928,7 +4003,6 @@ void check_permissions(void)
 int probe_nhm_msrs(unsigned int family, unsigned int model)
 {
 	unsigned long long msr;
-	unsigned int base_ratio;
 	int *pkg_cstate_limits;
 
 	if (!genuine_intel)
@@ -3936,8 +4010,6 @@ int probe_nhm_msrs(unsigned int family, unsigned int model)
 
 	if (family != 6)
 		return 0;
-
-	bclk = discover_bclk(family, model);
 
 	switch (model) {
 	case INTEL_FAM6_NEHALEM:	/* Core i7 and i5 Processor - Clarksfield, Lynnfield, Jasper Forest */
@@ -3991,11 +4063,6 @@ int probe_nhm_msrs(unsigned int family, unsigned int model)
 	get_msr(base_cpu, MSR_PKG_CST_CONFIG_CONTROL, &msr);
 	pkg_cstate_limit = pkg_cstate_limits[msr & 0xF];
 
-	get_msr(base_cpu, MSR_PLATFORM_INFO, &msr);
-	base_ratio = (msr >> 8) & 0xFF;
-
-	base_hz = base_ratio * bclk * 1000000;
-	has_base_hz = 1;
 	return 1;
 }
 
@@ -5402,41 +5469,6 @@ unsigned int get_aperf_mperf_multiplier(unsigned int family, unsigned int model)
 	return 1;
 }
 
-#define SLM_BCLK_FREQS 5
-double slm_freq_table[SLM_BCLK_FREQS] = { 83.3, 100.0, 133.3, 116.7, 80.0 };
-
-double slm_bclk(void)
-{
-	unsigned long long msr = 3;
-	unsigned int i;
-	double freq;
-
-	if (get_msr(base_cpu, MSR_FSB_FREQ, &msr))
-		fprintf(outf, "SLM BCLK: unknown\n");
-
-	i = msr & 0xf;
-	if (i >= SLM_BCLK_FREQS) {
-		fprintf(outf, "SLM BCLK[%d] invalid\n", i);
-		i = 3;
-	}
-	freq = slm_freq_table[i];
-
-	if (!quiet)
-		fprintf(outf, "SLM BCLK: %.1f Mhz\n", freq);
-
-	return freq;
-}
-
-double discover_bclk(unsigned int family, unsigned int model)
-{
-	if (has_snb_msrs(family, model) || is_knl(family, model))
-		return 100.00;
-	else if (is_slm(family, model))
-		return slm_bclk();
-	else
-		return 133.33;
-}
-
 int get_cpu_type(struct thread_data *t, struct core_data *c, struct pkg_data *p)
 {
 	unsigned int eax, ebx, ecx, edx;
@@ -5919,6 +5951,8 @@ void process_cpuid()
 
 	BIC_PRESENT(BIC_IRQ);
 	BIC_PRESENT(BIC_TSC_MHz);
+
+	probe_bclk();
 
 	if (probe_nhm_msrs(family, model)) {
 		do_nhm_platform_info = 1;
