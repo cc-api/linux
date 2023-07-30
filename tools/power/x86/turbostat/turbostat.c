@@ -259,11 +259,8 @@ unsigned int tj_max_override;
 double rapl_power_units, rapl_time_units;
 double rapl_dram_energy_units, rapl_energy_units;
 double rapl_joule_counter_range;
-unsigned int do_core_perf_limit_reasons;
 unsigned int has_automatic_cstate_conversion;
 unsigned int dis_cstate_prewake;
-unsigned int do_gfx_perf_limit_reasons;
-unsigned int do_ring_perf_limit_reasons;
 unsigned int crystal_hz;
 unsigned long long tsc_hz;
 int base_cpu;
@@ -301,6 +298,7 @@ enum feature_id {
 	FID_TRL_MSRS,			/* MSR_TURBO_RATIO_LIMIT/LIMIT1/LIMIT2/SECONDARY, Atom TRL MSRs */
 	FID_CONFIG_TDP_MSRS,		/* MSR_CONFIG_TDP_NOMINAL/LEVEL_1/LEVEL_2/CONTROL, MSR_TURBO_ACTIVATION_RATIO */
 	FID_TCC_OFFSET,			/* TCC OFFSET bits in MSR_IA32_TEMPERATURE_TARGET */
+	FID_PERF_LIMIT_REASONS,		/* MSR_CORE/GFX/RING_PERF_LIMIT_REASONS */
 	FID_MAX,
 };
 
@@ -404,6 +402,11 @@ int slm_bclk(void)
 #define FEATURE_TRL_KNL		BIT(5)
 #define FEATURE_TRL_CORECOUNT	BIT(6)
 
+/* FID_PERF_LIMIT_REASONS */
+#define FEATURE_PRL_CORE	BIT(1)
+#define FEATURE_PRL_GFX		BIT(2)
+#define FEATURE_PRL_RING	BIT(3)
+
 /*
  * Set the Feature Value for each Feature ID based on CPU model number.
  * Intel CPU model checks are allowed inside intel_check_model() only.
@@ -430,6 +433,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_NEHALEM_EX:
 	case INTEL_FAM6_WESTMERE_EX:
@@ -441,6 +445,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TRL_MSRS);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -451,6 +456,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_SANDYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -461,6 +467,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_IVYBRIDGE:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -471,6 +478,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_IVYBRIDGE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -481,6 +489,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_LIMIT1);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_HASWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -491,6 +500,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		set_feature(FID_PERF_LIMIT_REASONS, FEATURE_PRL_GFX);
 		break;
 	case INTEL_FAM6_HASWELL_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -501,6 +511,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_LIMIT1 | FEATURE_TRL_LIMIT2);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		set_feature(FID_PERF_LIMIT_REASONS, FEATURE_PRL_GFX | FEATURE_PRL_CORE | FEATURE_PRL_RING);
 		break;
 	case INTEL_FAM6_HASWELL_L:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -511,6 +522,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		set_feature(FID_PERF_LIMIT_REASONS, FEATURE_PRL_GFX);
 		break;
 	case INTEL_FAM6_HASWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -521,6 +533,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		set_feature(FID_PERF_LIMIT_REASONS, FEATURE_PRL_GFX);
 		break;
 	case INTEL_FAM6_BROADWELL:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -531,6 +544,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_BROADWELL_G:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -541,6 +555,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_BROADWELL_X:
 	case INTEL_FAM6_BROADWELL_D:
@@ -552,6 +567,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_SKYLAKE_L:
 	case INTEL_FAM6_SKYLAKE:
@@ -567,6 +583,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		set_feature(FID_TCC_OFFSET, 6);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_CANNONLAKE_L:
 	case INTEL_FAM6_ICELAKE_L:
@@ -591,6 +608,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		set_feature(FID_TCC_OFFSET, 6);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_SKYLAKE_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -601,6 +619,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_ICELAKE_D:
 	case INTEL_FAM6_ICELAKE_X:
@@ -612,6 +631,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_EMERALDRAPIDS_X:
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:
@@ -623,6 +643,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -633,6 +654,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_ATOM);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_ATOM_SILVERMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -643,6 +665,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_ATOM_AIRMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -653,6 +676,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -663,6 +687,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -673,6 +698,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_ATOM_GOLDMONT_PLUS:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -683,6 +709,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_D:
 		disable_feature(FID_MSR_MISC_FEATURE_CONTROL);
@@ -693,6 +720,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE | FEATURE_TRL_CORECOUNT);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_ATOM_TREMONT_L:
 	case INTEL_FAM6_ATOM_TREMONT:
@@ -704,6 +732,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_BASE);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	case INTEL_FAM6_XEON_PHI_KNM:
 	case INTEL_FAM6_XEON_PHI_KNL:
@@ -715,6 +744,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		set_feature(FID_TRL_MSRS, FEATURE_TRL_KNL);
 		enable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		break;
 	/* Missing support for below platforms */
 	case INTEL_FAM6_ATOM_SILVERMONT_MID:
@@ -730,6 +760,7 @@ void intel_check_model(unsigned int family, unsigned int model)
 		disable_feature(FID_TRL_MSRS);
 		disable_feature(FID_CONFIG_TDP_MSRS);
 		disable_feature(FID_TCC_OFFSET);
+		disable_feature(FID_PERF_LIMIT_REASONS);
 		return;
 	}
 }
@@ -4684,6 +4715,7 @@ int print_perf_limit(struct thread_data *t, struct core_data *c, struct pkg_data
 {
 	unsigned long long msr;
 	int cpu;
+	int feature_prl = get_feature(FID_PERF_LIMIT_REASONS);
 
 	UNUSED(c);
 	UNUSED(p);
@@ -4699,7 +4731,7 @@ int print_perf_limit(struct thread_data *t, struct core_data *c, struct pkg_data
 		return -1;
 	}
 
-	if (do_core_perf_limit_reasons) {
+	if (feature_prl & FEATURE_PRL_CORE) {
 		get_msr(cpu, MSR_CORE_PERF_LIMIT_REASONS, &msr);
 		fprintf(outf, "cpu%d: MSR_CORE_PERF_LIMIT_REASONS, 0x%08llx", cpu, msr);
 		fprintf(outf, " (Active: %s%s%s%s%s%s%s%s%s%s%s%s%s%s)",
@@ -4732,7 +4764,7 @@ int print_perf_limit(struct thread_data *t, struct core_data *c, struct pkg_data
 			(msr & 1 << 17) ? "ThermStatus, " : "", (msr & 1 << 16) ? "PROCHOT, " : "");
 
 	}
-	if (do_gfx_perf_limit_reasons) {
+	if (feature_prl & FEATURE_PRL_GFX) {
 		get_msr(cpu, MSR_GFX_PERF_LIMIT_REASONS, &msr);
 		fprintf(outf, "cpu%d: MSR_GFX_PERF_LIMIT_REASONS, 0x%08llx", cpu, msr);
 		fprintf(outf, " (Active: %s%s%s%s%s%s%s%s)",
@@ -4752,7 +4784,7 @@ int print_perf_limit(struct thread_data *t, struct core_data *c, struct pkg_data
 			(msr & 1 << 25) ? "GFXPwr, " : "",
 			(msr & 1 << 26) ? "PkgPwrL1, " : "", (msr & 1 << 27) ? "PkgPwrL2, " : "");
 	}
-	if (do_ring_perf_limit_reasons) {
+	if (feature_prl & FEATURE_PRL_RING) {
 		get_msr(cpu, MSR_RING_PERF_LIMIT_REASONS, &msr);
 		fprintf(outf, "cpu%d: MSR_RING_PERF_LIMIT_REASONS, 0x%08llx", cpu, msr);
 		fprintf(outf, " (Active: %s%s%s%s%s%s)",
@@ -5042,28 +5074,6 @@ void rapl_probe(unsigned int family, unsigned int model)
 		rapl_probe_intel(family, model);
 	if (authentic_amd || hygon_genuine)
 		rapl_probe_amd(family, model);
-}
-
-void perf_limit_reasons_probe(unsigned int family, unsigned int model)
-{
-	if (!genuine_intel)
-		return;
-
-	if (family != 6)
-		return;
-
-	switch (model) {
-	case INTEL_FAM6_HASWELL:	/* HSW */
-	case INTEL_FAM6_HASWELL_L:	/* HSW */
-	case INTEL_FAM6_HASWELL_G:	/* HSW */
-		do_gfx_perf_limit_reasons = 1;
-		/* FALLTHRU */
-	case INTEL_FAM6_HASWELL_X:	/* HSX */
-		do_core_perf_limit_reasons = 1;
-		do_ring_perf_limit_reasons = 1;
-	default:
-		return;
-	}
 }
 
 void automatic_cstate_conversion_probe(unsigned int family, unsigned int model)
@@ -6001,7 +6011,6 @@ void process_cpuid()
 		decode_c6_demotion_policy_msr();
 
 	rapl_probe(family, model);
-	perf_limit_reasons_probe(family, model);
 	automatic_cstate_conversion_probe(family, model);
 	prewake_cstate_probe(family, model);
 
