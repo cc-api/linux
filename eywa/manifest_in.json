@@ -4181,7 +4181,7 @@
                 }
             ],
             "description": "TDX KVM support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Isaku Yamahata",
@@ -4198,7 +4198,7 @@
                 }
             ],
             "status": "public",
-            "stuck_at_ref": "fe039d07785d2d7ee7d95f856654f09fef8a017e",
+            "stuck_at_ref": "",
             "last_enabled": "v6.5",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00029.html",
             "platforms": "EMR,GNR,SPR,SRF",
