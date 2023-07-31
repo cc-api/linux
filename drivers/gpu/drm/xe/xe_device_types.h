@@ -410,6 +410,12 @@ struct xe_device {
 	/** @heci_gsc: graphics security controller */
 	struct xe_heci_gsc heci_gsc;
 
+	struct {
+		/** @capture_obj: PSMI buffer for VRAM0-1 and SMEM (future) */
+		struct xe_bo *capture_obj[XE_MAX_TILES_PER_DEVICE + 1];
+		u8 region_mask;
+	} psmi;
+
 	/* private: */
 
 #if IS_ENABLED(CONFIG_DRM_XE_DISPLAY)

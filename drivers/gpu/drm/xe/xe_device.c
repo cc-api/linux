@@ -29,6 +29,7 @@
 #include "xe_pat.h"
 #include "xe_pcode.h"
 #include "xe_pm.h"
+#include "xe_psmi.h"
 #include "xe_query.h"
 #include "xe_tile.h"
 #include "xe_ttm_stolen_mgr.h"
@@ -393,6 +394,8 @@ static void xe_device_remove_display(struct xe_device *xe)
 
 void xe_device_remove(struct xe_device *xe)
 {
+	xe_psmi_cleanup(xe);
+
 	xe_device_remove_display(xe);
 
 	xe_display_fini(xe);
