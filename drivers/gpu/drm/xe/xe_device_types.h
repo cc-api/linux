@@ -385,6 +385,12 @@ struct xe_device {
 
 	struct xe_hwmon *hwmon;
 
+	struct {
+		/** @capture_obj: PSMI buffer for VRAM0-1 and SMEM (future) */
+		struct xe_bo *capture_obj[XE_MAX_TILES_PER_DEVICE + 1];
+		u8 region_mask;
+	} psmi;
+
 	/* private: */
 
 #if IS_ENABLED(CONFIG_DRM_XE_DISPLAY)
