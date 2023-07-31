@@ -3427,4 +3427,4 @@ int iommu_get_hw_info(struct device *dev, enum iommu_device_data_type type,
 
 	return ops->hw_info(dev, data, length);
 }
-EXPORT_SYMBOL_NS_GPL(iommu_get_hw_info, IOMMUFD_INTERNAL);
+EXPORT_SYMBOL_GPL(iommu_get_hw_info);
