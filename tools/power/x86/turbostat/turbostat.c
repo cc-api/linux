@@ -984,6 +984,10 @@ void intel_check_model(unsigned int family, unsigned int model)
 		break;
 	case INTEL_FAM6_EMERALDRAPIDS_X:
 	case INTEL_FAM6_SAPPHIRERAPIDS_X:
+	case INTEL_FAM6_GRANITERAPIDS_X:
+	case INTEL_FAM6_GRANITERAPIDS_D:
+	case INTEL_FAM6_GRANDRIDGE:
+	case INTEL_FAM6_SIERRAFOREST_X:
 		enable_feature(FID_MSR_MISC_FEATURE_CONTROL);
 		enable_feature(FID_MSR_MISC_PWR_MGMT);
 		set_feature(FID_BCLK, 10000);
