@@ -557,7 +557,18 @@ void xe_mocs_init_early(struct xe_gt *gt)
 
 	get_mocs_settings(gt_to_xe(gt), &table);
 	gt->mocs.uc_index = table.uc_index;
-	gt->mocs.wb_index = table.wb_index;
+
+	if (IS_PIPEGT_EMULATOR(gt_to_xe(gt))) {
+		/*
+		 * Can't mark engines cacheable on the pipeGT
+		 * emulator or we risk the engine seeing stale data
+		 * if the host writes to local memoryover back door
+		 * hen the engine attempts to prefetch from the L3.
+		 */
+		gt->mocs.wb_index = table.uc_index;
+	} else {
+		gt->mocs.wb_index = table.wb_index;
+	}
 }
 
 void xe_mocs_init(struct xe_gt *gt)
