@@ -1636,7 +1636,7 @@
                 }
             ],
             "description": "SPI-NOR/PCI/Thunderbolt/USB4 enabling for LNL-M, Barlow Ridge",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Kevin Zhenyu Zhu",
@@ -1647,7 +1647,7 @@
                     "email": "reuven.rozic@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3473",
             "name": "SPI-NOR/PCI/Thunderbolt/USB4",
             "repourl": "https://github.com/intel-sandbox/mwesterb-linux.git",
             "sdl_contact": [
@@ -1658,8 +1658,8 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.4",
-            "maillist": "",
+            "last_enabled": "v6.5",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00078.html",
             "platforms": "LNL-M",
             "feature_jiras": ""
         },
