@@ -1,3 +1,10 @@
+This is a template to use for documenting some category of kernel changes.
+We request this is filled out because we cannot rely on git history to
+establish why changes were made. Yes, commit messages can be pretty bad,
+but the way SVOS Next and Intel Next code are merged together destroys a
+lot of our history. So even if we had a great commit message for a change,
+we'd likely have lost it.
+
 # <Replace with Kernel Capability Term/Phrase Here>
 
 # Description
@@ -10,9 +17,12 @@ documentation.
 # Change Log
 YYYY-MM-DD: Initial Changes (we always want this to know how old this is)
 
-YYYY-MM-DD: Something that was done worth noting.
+YYYY-MM-DD: Something new that was done worth noting.
 
 # Responsible Contacts
+For this section, imagine who would be mad if the change was arbitrarily reverted
+without notifying anybody. Then list people who should be included.
+
 * Developers
    * First Last <first.last@intel.com>
 * Maintainers, including anybody involved in SVOS core team.
@@ -20,6 +30,10 @@ YYYY-MM-DD: Something that was done worth noting.
 * Touched As-Needed
    * First Last <first.last@intel.com>
      * Description of what and when
+* Also consider mentioning teams instead of individuals that may be impacted since
+  individuals can change roles or outright leave the company. Having a team name
+  even if all the people in it are gone goes a long way to getting context to
+  establish a new conversation about this work.
 
 # Files Affected
 Though it doesn't have to be comprehensive, try your best.
