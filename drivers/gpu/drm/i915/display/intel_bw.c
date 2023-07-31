@@ -395,16 +395,29 @@ static const struct intel_sa_info xe2_hpd_sa_info = {
 
 static int sim_get_bw_info(struct drm_i915_private *i915)
 {
-	struct intel_bw_info *bi = &i915->display.bw.max[0];
+	int num_groups = ARRAY_SIZE(i915->display.bw.max);
+	int i;
 
 	/*
 	 * If running in simulation the SAGV isn't modelled and we can't query
 	 * the pcode for QGV data.  We'll just create a single dummy QGV point
-	 * with max bandwidth.
+	 * with max bandwidth for each group.
 	 */
-	bi->num_planes = 1;
-	bi->num_qgv_points = 1;
-	bi->deratedbw[0] = UINT_MAX;
+	for (i = 0; i < num_groups; i++) {
+		struct intel_bw_info *bi = &i915->display.bw.max[i];
+
+		bi->num_planes = 1;
+		/* Need only one dummy QGV point per group */
+		bi->num_qgv_points = 1;
+		/*
+		 * HACK: Use UINT_MAX - 1 because mtl_find_qgv_points() initializes
+		 * best_rate with UINT_MAX, which would case the difference between
+		 * bi->deratedbw[0] and a zero data_rate be the same as best_rate
+		 * and cause no QGV point to be selected.
+		 */
+		bi->deratedbw[0] = UINT_MAX - 1;
+		bi->peakbw[0] = UINT_MAX;
+	}
 
 	i915->display.sagv.status = I915_SAGV_NOT_CONTROLLED;
 
