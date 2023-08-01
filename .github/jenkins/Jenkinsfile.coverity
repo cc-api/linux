@@ -28,7 +28,7 @@ pipeline {
               -v ${COVAUTHKEY}:/tmp/cov_auth.key:ro,z \
               -e BUILDNAME=${BUILDNAME} \
               -e STREAM=${STREAM} \
-              registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest /common/xe/coverity_scan.sh
+              registry.lgci.intel.com/build-infra/lgci-coverity:latest /common/xe/coverity_scan.sh
           """
         }
       }
