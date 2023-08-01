@@ -13,7 +13,7 @@ pipeline {
         script {
 	  GITHUBCOMMITSHA = sh(script: "git rev-parse refs/remotes/origin/${env.BRANCH_NAME}", returnStdout: true).trim()
           if (env.CHANGE_ID != null) {
-            BUILDNAME = "pr-${env.CHANGE_ID}-${GITHUBCOMMITSHA[0..11]}"
+            BUILDNAME = "pr-${env.CHANGE_ID}-${GITHUBCOMMITSHA[0..11]}-${env.BUILD_ID}"
             sh "curl -X POST 'https://build-data.lgci.intel.com/api/build?name=xe-${BUILDNAME}&component=xe'"
           } else {
             ID = sh(script: 'docker run --rm registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest redis-cli -h intel-gfx-ci-internal incr xe-kernel-build-id', returnStdout: true).trim()
