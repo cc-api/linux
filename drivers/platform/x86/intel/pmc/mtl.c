@@ -1688,7 +1688,8 @@ int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp)
 {
 	struct pmc *pmc = pmcdev->pmcs[PMC_IDX_SOC];
 	int ret;
-	int func = 2;
+	int func = 0;
+	bool ssram_init = true;
 
 	mtl_d3_fixup();
 
@@ -1696,7 +1697,7 @@ int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp)
 	pmcdev->regmap_list = mtl_pmc_info_list;
 
 	if (soc_tp == SOC_M)
-		func = 0;
+		func = 2;
 
 	/*
 	 * If ssram init fails use legacy method to at least get the
@@ -1704,6 +1705,7 @@ int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp)
 	 */
 	ret = pmc_core_ssram_init(pmcdev, func);
 	if (ret) {
+		ssram_init = false;
 		if (soc_tp == SOC_M)
 			pmc->map = &mtl_socm_reg_map;
 		else if (soc_tp == SOC_S)
@@ -1725,7 +1727,12 @@ int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp)
 	dev_dbg(&pmcdev->pdev->dev, "ignoring GBE LTR\n");
 	pmc_core_send_ltr_ignore(pmcdev, 3);
 
-	ret = pmc_core_ssram_get_lpm_reqs(pmcdev);
+	if (ssram_init)
+	{
+		ret = pmc_core_ssram_get_lpm_reqs(pmcdev);
+		if(ret)
+			return ret;
+	}
 
 	return 0;
 }
