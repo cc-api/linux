@@ -168,7 +168,7 @@ static const struct xe_graphics_desc graphics_xelpg = {
 	.vm_max_level = 4, \
 	.hw_engine_mask = \
 		BIT(XE_HW_ENGINE_RCS0) | \
-		GENMASK(XE_HW_ENGINE_BCS8, XE_HW_ENGINE_BCS0) | \
+		BIT(XE_HW_ENGINE_BCS8) | BIT(XE_HW_ENGINE_BCS0) | \
 		GENMASK(XE_HW_ENGINE_CCS3, XE_HW_ENGINE_CCS0)
 
 static const struct xe_graphics_desc graphics_xe2 = {
