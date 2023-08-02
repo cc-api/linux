@@ -18,6 +18,11 @@ struct key;
 struct device;
 struct sdsi_spdm_state;
 
+struct spdm_callbacks {
+	void (*get_cert_chain)(u8 *cert, size_t count, void *priv);
+	void *priv;
+};
+
 enum measurement_op {
 	MEASUREMENT_OP_QUERY,
 	MEASUREMENT_OP_ONE,
@@ -49,7 +54,7 @@ typedef int (sdsi_spdm_transport)(void *priv, struct device *dev,
 
 struct sdsi_spdm_state *sdsi_spdm_create(struct device *dev, sdsi_spdm_transport *transport,
 			       void *transport_priv, u32 transport_sz,
-			       struct key *keyring);
+			       struct key *keyring, struct spdm_callbacks *cb);
 
 int sdsi_spdm_authenticate(struct sdsi_spdm_state *spdm_state);
 

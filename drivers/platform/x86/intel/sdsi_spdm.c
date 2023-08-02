@@ -546,6 +546,7 @@ static int spdm_err(struct device *dev, struct spdm_error_rsp *rsp)
  * @slot: The slot number of the certificate that for which that was
  *	successfully validated during GET_CERTIFICATES. The same slow is
  *	used for signing during GET_MEASUREMENTS.
+ * @cb: For caller provided callbacks.
  * @measuring: Set when GET_MEASUREMENTS is in progress.
  */
 struct sdsi_spdm_state {
@@ -580,6 +581,7 @@ struct sdsi_spdm_state {
 	struct key *root_keyring;
 	u8 slot;
 
+	struct spdm_callbacks *cb;
 	bool measuring;
 };
 
@@ -1195,6 +1197,11 @@ static int spdm_get_certificate(struct sdsi_spdm_state *spdm_state, u8 slot)
 				       (u8 *)certs + header_length,
 				       total_length - header_length);
 
+	if (!rc && spdm_state->cb && spdm_state->cb->get_cert_chain)
+		spdm_state->cb->get_cert_chain((u8 *)certs + header_length,
+					 total_length - header_length,
+					 spdm_state->cb->priv);
+
 err_free_certs:
 	kvfree(certs);
 	kvfree(rsp);
@@ -1773,12 +1780,13 @@ EXPORT_SYMBOL_GPL(sdsi_spdm_get_measurements);
  * @transport_priv: Transport private data
  * @transport_sz: Maximum message size the transport is capable of (in bytes)
  * @keyring: Trusted root certificates
+ * @cb: Caller callbacks
  *
  * Returns a pointer to the allocated SPDM session state or NULL on error.
  */
 struct sdsi_spdm_state *sdsi_spdm_create(struct device *dev, sdsi_spdm_transport *transport,
 			       void *transport_priv, u32 transport_sz,
-			       struct key *keyring)
+			       struct key *keyring, struct spdm_callbacks *cb)
 {
 	struct sdsi_spdm_state *spdm_state = kzalloc(sizeof(*spdm_state), GFP_KERNEL);
 
@@ -1790,6 +1798,7 @@ struct sdsi_spdm_state *sdsi_spdm_create(struct device *dev, sdsi_spdm_transport
 	spdm_state->transport_priv = transport_priv;
 	spdm_state->transport_sz = transport_sz;
 	spdm_state->root_keyring = keyring;
+	spdm_state->cb = cb;
 
 	mutex_init(&spdm_state->lock);
 
