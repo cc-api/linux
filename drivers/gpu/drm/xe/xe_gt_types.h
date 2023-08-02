@@ -9,6 +9,7 @@
 #include "xe_force_wake_types.h"
 #include "xe_gt_idle_sysfs_types.h"
 #include "xe_hw_engine_types.h"
+#include "xe_hw_error.h"
 #include "xe_hw_fence_types.h"
 #include "xe_reg_sr_types.h"
 #include "xe_sa_types.h"
@@ -347,6 +348,11 @@ struct xe_gt {
 		/** @oob: bitmap with active OOB workaroudns */
 		unsigned long *oob;
 	} wa_active;
+
+	/** @errors: count of hardware errors reported for the gt */
+	struct gt_hw_errors {
+		struct xarray hw_error;
+	} errors;
 };
 
 #endif
