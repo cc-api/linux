@@ -6,6 +6,19 @@
 #ifndef _INTEL_TPMI_H_
 #define _INTEL_TPMI_H_
 
+/*
+ * List of supported TMPI IDs.
+ * Some TMPI IDs are not used by Linux, so the numbers are not consecutive.
+ */
+enum intel_tpmi_id {
+	TPMI_ID_RAPL = 0, /* Running Average Power Limit */
+	TPMI_ID_PEM = 1, /* Power and Perf excursion Monitor */
+	TPMI_ID_UNCORE = 2, /* Uncore Frequency Scaling */
+	TPMI_ID_SST = 5, /* Speed Select Technology */
+	TPMI_CONTROL_ID = 0x80, /* Special ID for getting feature status */
+	TPMI_INFO_ID = 0x81, /* Special ID for PCI BDF and Package ID information */
+};
+
 /**
  * struct intel_tpmi_plat_info - Platform information for a TPMI device instance
  * @package_id:	CPU Package id
