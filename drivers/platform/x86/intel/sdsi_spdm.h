@@ -46,6 +46,8 @@ struct spdm_measurement_request {
 	u8 slot_id;
 	void *priv;
 	void (*meas_cb)(u8 *measurement, size_t count, void *priv);
+	void (*trans_cb)(u8 *transcript, size_t count, void *priv);
+	void (*sig_cb)(u8 *signature, size_t count, void *priv);
 };
 
 typedef int (sdsi_spdm_transport)(void *priv, struct device *dev,

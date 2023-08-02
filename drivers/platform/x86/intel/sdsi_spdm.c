@@ -548,6 +548,8 @@ static int spdm_err(struct device *dev, struct spdm_error_rsp *rsp)
  *	used for signing during GET_MEASUREMENTS.
  * @cb: For caller provided callbacks.
  * @measuring: Set when GET_MEASUREMENTS is in progress.
+ * @l: measurment current req/rsp pair transcript
+ * @l_length: length of measurement transcript
  */
 struct sdsi_spdm_state {
 	struct mutex lock;
@@ -583,6 +585,9 @@ struct sdsi_spdm_state {
 
 	struct spdm_callbacks *cb;
 	bool measuring;
+	void *l;
+	size_t l_length;
+
 };
 
 static int __spdm_exchange(struct sdsi_spdm_state *spdm_state,
@@ -1558,18 +1563,41 @@ err_free_shash:
 	return rc;
 }
 
+static int spdm_append_buffer_l(struct sdsi_spdm_state *spdm_state, void *data,
+				size_t data_size)
+{
+	u8 *l_new;
+
+	l_new = krealloc(spdm_state->l, spdm_state->l_length + data_size, GFP_KERNEL);
+	if (!l_new)
+		return -ENOMEM;
+
+	spdm_state->l = l_new;
+	memcpy(spdm_state->l + spdm_state->l_length, data, data_size);
+	spdm_state->l_length += data_size;
+
+	return 0;
+}
+
 static int
 spdm_get_measurements_update_hash(struct sdsi_spdm_state *spdm_state, void *msg,
 				  size_t msg_size)
 {
 	u8 measurement_caps = FIELD_GET(SPDM_MEAS_CAP_MASK,
 					spdm_state->responder_caps);
+	int rc;
 
 	/* Return without error if signature is not supported */
 	if (measurement_caps != SPDM_MEAS_CAP_MEAS_SIG)
 		return 0;
 
-	return crypto_shash_update(spdm_state->desc, msg, msg_size);
+	rc = crypto_shash_update(spdm_state->desc, msg, msg_size);
+	if (rc)
+		return rc;
+
+	rc = spdm_append_buffer_l(spdm_state, msg, msg_size);
+
+	return rc;
 }
 
 static void spdm_measurement_end(struct sdsi_spdm_state *spdm_state)
@@ -1577,6 +1605,9 @@ static void spdm_measurement_end(struct sdsi_spdm_state *spdm_state)
 	/* desc is only set when the Responder supports signed measurements */
 	if (spdm_state->desc) {
 		kfree(spdm_state->desc);
+		kfree(spdm_state->l);
+		spdm_state->l = NULL;
+		spdm_state->l_length = 0;
 		spdm_state->desc = NULL;
 		crypto_free_shash(spdm_state->shash);
 	}
@@ -1591,6 +1622,8 @@ static int __spdm_get_measurements(struct sdsi_spdm_state *spdm_state,
 		.code = SPDM_GET_MEASUREMENTS,
 		.nonce = {}, };
 	struct spdm_measurements_rsp *rsp;
+	u8 measurement_caps = FIELD_GET(SPDM_MEAS_CAP_MASK,
+					spdm_state->responder_caps);
 	enum measurement_op op = m->op;
 	size_t req_sz, rsp_sz;
 	size_t length;
@@ -1662,6 +1695,15 @@ static int __spdm_get_measurements(struct sdsi_spdm_state *spdm_state,
 		if (rc < 0)
 			goto err_free_rsp;
 
+
+		/* Send back the transcript */
+		if (m->trans_cb)
+			m->trans_cb(spdm_state->l, spdm_state->l_length, m->priv);
+
+		/* Send the signature now */
+		if (m->sig_cb)
+			m->sig_cb((u8 *)rsp + sig_offset, spdm_state->s, m->priv);
+
 		rc = spdm_verify_signature(spdm_state, (u8 *)rsp + sig_offset,
 					   "responder-measurement signing");
 		if (rc) {
@@ -1679,6 +1721,12 @@ static int __spdm_get_measurements(struct sdsi_spdm_state *spdm_state,
 			dev_err(spdm_state->dev, "SPDM: GET_MEASUREMENTS: Could not update hash\n");
 			goto err_free_rsp;
 		}
+
+		/* Send back the transcript */
+		if (measurement_caps != SPDM_MEAS_CAP_MEAS_SIG && m->trans_cb)
+			m->trans_cb(spdm_state->l, spdm_state->l_length,
+				    m->priv);
+
 	}
 
 	/* Invoke callback to return count or measurement */
