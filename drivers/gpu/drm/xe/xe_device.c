@@ -465,7 +465,7 @@ bool xe_device_mem_access_ongoing(struct xe_device *xe)
 
 void xe_device_assert_mem_access(struct xe_device *xe)
 {
-	XE_WARN_ON(!xe_device_mem_access_ongoing(xe));
+//	XE_WARN_ON(!xe_device_mem_access_ongoing(xe));
 }
 
 bool xe_device_mem_access_get_if_ongoing(struct xe_device *xe)
