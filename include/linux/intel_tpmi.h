@@ -6,6 +6,8 @@
 #ifndef _INTEL_TPMI_H_
 #define _INTEL_TPMI_H_
 
+#include <linux/bitfield.h>
+
 /*
  * List of supported TMPI IDs.
  * Some TMPI IDs are not used by Linux, so the numbers are not consecutive.
@@ -18,6 +20,10 @@ enum intel_tpmi_id {
 	TPMI_CONTROL_ID = 0x80, /* Special ID for getting feature status */
 	TPMI_INFO_ID = 0x81, /* Special ID for PCI BDF and Package ID information */
 };
+
+#define TPMI_VERSION_INVALID	0xff
+#define TPMI_MINOR_VERSION(val)	FIELD_GET(GENMASK(4, 0), val)
+#define TPMI_MAJOR_VERSION(val)	FIELD_GET(GENMASK(7, 5), val)
 
 /**
  * struct intel_tpmi_plat_info - Platform information for a TPMI device instance
