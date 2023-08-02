@@ -21,6 +21,7 @@
 #include "xe_guc_pc.h"
 #include "xe_guc_submit.h"
 #include "xe_mmio.h"
+#include "xe_module.h"
 #include "xe_platform_types.h"
 #include "xe_uc.h"
 #include "xe_uc_fw.h"
@@ -70,11 +71,16 @@ static u32 guc_ctl_debug_flags(struct xe_guc *guc)
 
 static u32 guc_ctl_feature_flags(struct xe_guc *guc)
 {
-	if (XE_PRESI_SKIP_FEATURE(guc_to_xe(guc), GUC_SLPC) ||
-	    GRAPHICS_VERx100(guc_to_xe(guc)) >= 2000)
-		return 0;
+	u32 flags = 0;
 
-	return GUC_CTL_ENABLE_SLPC;
+	if (enable_psmi)
+		flags |= GUC_CTL_ENABLE_PSMI;
+
+	if (!(XE_PRESI_SKIP_FEATURE(guc_to_xe(guc), GUC_SLPC) ||
+	      GRAPHICS_VERx100(guc_to_xe(guc)) >= 2000))
+		flags |= GUC_CTL_ENABLE_SLPC;
+
+	return flags;
 }
 
 static u32 guc_ctl_log_params_flags(struct xe_guc *guc)
