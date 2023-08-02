@@ -57,6 +57,29 @@ static bool bw_validate(char *buf, unsigned long *data, struct rdt_resource *r)
 	return true;
 }
 
+/*
+ * Check CMBA values are in legal range [0 .. r->membw.min_bw]
+ */
+static bool cmba_validate(char *buf, unsigned long *data, struct rdt_resource *r)
+{
+	unsigned long throttle;
+	int ret;
+
+	ret = kstrtoul(buf, 10, &throttle);
+	if (ret) {
+		rdt_last_cmd_printf("Non-decimal digit in CMBA value %s\n", buf);
+		return false;
+	}
+	if (throttle > r->membw.min_bw) {
+		rdt_last_cmd_printf("CMBA value %ld out of range [0,%d]\n", throttle,
+				    r->membw.min_bw);
+		return false;
+	}
+
+	*data = throttle;
+	return true;
+}
+
 int parse_bw(struct rdt_parse_data *data, struct resctrl_schema *s,
 	     struct rdt_domain *d)
 {
@@ -71,8 +94,17 @@ int parse_bw(struct rdt_parse_data *data, struct resctrl_schema *s,
 		return -EINVAL;
 	}
 
-	if (!bw_validate(data->buf, &bw_val, r))
-		return -EINVAL;
+	switch (r->rid) {
+	case RDT_RESOURCE_MBA:
+	case RDT_RESOURCE_SMBA:
+		if (!bw_validate(data->buf, &bw_val, r))
+			return -EINVAL;
+		break;
+	case RDT_RESOURCE_CMBA:
+		if (!cmba_validate(data->buf, &bw_val, r))
+			return -EINVAL;
+		break;
+	}
 
 	if (is_mba_sc(r)) {
 		d->mbps_val[closid] = bw_val;
