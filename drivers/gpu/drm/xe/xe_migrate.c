@@ -508,12 +508,18 @@ static void emit_copy(struct xe_gt *gt, struct xe_bb *bb,
 		      u64 src_ofs, u64 dst_ofs, unsigned int size,
 		      unsigned int pitch)
 {
+	struct xe_device *xe = gt_to_xe(gt);
+
 	XE_WARN_ON(size / pitch > S16_MAX);
 	XE_WARN_ON(pitch / 4 > S16_MAX);
 	XE_WARN_ON(pitch > U16_MAX);
 
 	bb->cs[bb->len++] = XY_FAST_COPY_BLT_CMD | (10 - 2);
-	bb->cs[bb->len++] = XY_FAST_COPY_BLT_DEPTH_32 | pitch;
+	if (GRAPHICS_VERx100(xe) >= 2000)
+		bb->cs[bb->len++] = XY_FAST_COPY_BLT_DEPTH_32 | pitch |
+				    XY_FAST_COPY_BLT_D1_SRC_TILE4 | XY_FAST_COPY_BLT_D1_DST_TILE4;
+	else
+		bb->cs[bb->len++] = XY_FAST_COPY_BLT_DEPTH_32 | pitch;
 	bb->cs[bb->len++] = 0;
 	bb->cs[bb->len++] = (size / pitch) << 16 | pitch / 4;
 	bb->cs[bb->len++] = lower_32_bits(dst_ofs);
