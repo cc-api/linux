@@ -532,3 +532,5 @@ unsigned long svoskern_kallsyms_lookup_name(const char *name)
 }
 EXPORT_SYMBOL(svoskern_kallsyms_lookup_name);
 #endif
+
+EXPORT_SYMBOL(__pte_offset_map);
