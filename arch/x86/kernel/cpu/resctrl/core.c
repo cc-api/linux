@@ -311,6 +311,21 @@ static void rdt_get_cdp_l2_config(void)
 	rdt_get_cdp_config(RDT_RESOURCE_L2);
 }
 
+static void rdt_get_mba_core_cfg(struct rdt_resource *r)
+{
+	struct rdt_hw_resource *hw_res = resctrl_to_arch_res(r);
+	union cpuid_0x10_5_eax eax;
+	union cpuid_0x10_x_edx edx;
+	u32 ebx, ecx;
+
+	cpuid_count(0x00000010, 5, &eax.full, &ebx, &ecx, &edx.full);
+	hw_res->num_closid = edx.split.cos_max + 1;
+	r->membw.arch_needs_linear = !!(ecx & MBA_IS_LINEAR);
+	r->membw.min_bw = eax.split.max_levels;
+	r->default_ctrl = 0;
+	r->alloc_capable = true;
+}
+
 static void
 mba_wrmsr_amd(struct rdt_domain *d, struct msr_param *m, struct rdt_resource *r)
 {
@@ -499,6 +514,19 @@ static int arch_domain_mbm_alloc(u32 num_rmid, struct rdt_hw_domain *hw_dom)
 	return 0;
 }
 
+static int get_rdt_domain(int cpu, struct rdt_resource *r)
+{
+	switch (r->scope) {
+	case RDT_L2_CACHE:
+	case RDT_L3_CACHE:
+		return get_cpu_cacheinfo_id(cpu, r->scope);
+	case RDT_CPU:
+		return cpu;
+	}
+
+	return -1;
+}
+
 /*
  * domain_add_cpu - Add a cpu to a resource's domain list.
  *
@@ -514,11 +542,17 @@ static int arch_domain_mbm_alloc(u32 num_rmid, struct rdt_hw_domain *hw_dom)
  */
 static void domain_add_cpu(int cpu, struct rdt_resource *r)
 {
-	int id = get_cpu_cacheinfo_id(cpu, r->scope);
 	struct list_head *add_pos = NULL;
+	int id = get_rdt_domain(cpu, r);
 	struct rdt_hw_domain *hw_dom;
 	struct rdt_domain *d;
 	int err;
+
+	if (id < 0) {
+		pr_warn_once("Resource: %s: couldn't find scope for type %d\n",
+			     r->name, r->scope);
+		return;
+	}
 
 	d = rdt_find_domain(r, id, &add_pos);
 	if (IS_ERR(d)) {
@@ -816,6 +850,11 @@ static __init bool get_rdt_alloc_resources(void)
 			rdt_get_cdp_l2_config();
 		ret = true;
 	}
+	if (rdt_cpu_has(X86_FEATURE_CMBA)) {
+		r = &rdt_resources_all[RDT_RESOURCE_CMBA].r_resctrl;
+		rdt_get_mba_core_cfg(r);
+		ret = true;
+	}
 
 	if (get_mem_config())
 		ret = true;
@@ -892,6 +931,8 @@ static __init void rdt_init_res_defs_intel(void)
 		} else if (r->rid == RDT_RESOURCE_MBA) {
 			hw_res->msr_base = MSR_IA32_MBA_THRTL_BASE;
 			hw_res->msr_update = mba_wrmsr_intel;
+		} else if (r->rid == RDT_RESOURCE_CMBA) {
+			hw_res->msr_base = MSR_IA32_CMBA_THRTL_BASE;
 		}
 	}
 }
