@@ -23,6 +23,10 @@ bool enable_display = true;
 module_param_named(enable_display, enable_display, bool, 0444);
 MODULE_PARM_DESC(enable_display, "Enable display");
 
+bool enable_psmi;
+module_param_named(enable_psmi, enable_psmi, bool, 0444);
+MODULE_PARM_DESC(enable_psmi, "Enable PSMI capture support and associated GuC feature flag.");
+
 u32 xe_force_vram_bar_size;
 module_param_named(vram_bar_size, xe_force_vram_bar_size, uint, 0600);
 MODULE_PARM_DESC(vram_bar_size, "Set the vram bar size(in MiB)");
