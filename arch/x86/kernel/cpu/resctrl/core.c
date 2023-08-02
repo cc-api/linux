@@ -23,6 +23,7 @@
 
 #include <asm/intel-family.h>
 #include <asm/resctrl.h>
+#include <asm/unaligned.h>
 #include "internal.h"
 
 /* Mutex to protect rdtgroup access. */
@@ -51,6 +52,9 @@ bool rdt_alloc_capable;
 static void
 mba_wrmsr_intel(struct rdt_domain *d, struct msr_param *m,
 		struct rdt_resource *r);
+static void
+cmba_wrmsr_intel(struct rdt_domain *d, struct msr_param *m,
+		 struct rdt_resource *r);
 static void
 cat_wrmsr(struct rdt_domain *d, struct msr_param *m, struct rdt_resource *r);
 static void
@@ -362,6 +366,44 @@ mba_wrmsr_intel(struct rdt_domain *d, struct msr_param *m,
 	/*  Write the delay values for mba. */
 	for (i = m->low; i < m->high; i++)
 		wrmsrl(hw_res->msr_base + i, delay_bw_map(hw_dom->ctrl_val[i], r));
+}
+
+#define CMBA_PER_MSR 8
+/*
+ * Multiple CMBA control values are packed into each MSR. E.g. if there
+ * are 12 supported CLOSIDs they map like this:
+ * bits:    63 56   55 48   47 40   39 32   31 24   23 16   15  8   7   0
+ * MSR[0]   clos7 | clos6 | clos5 | clos4 | clos3 | clos2 | clos1 | clos0
+ * MSR[1]    RSVD |  RSVD |  RSVD |  RSVD | closB | closA | clos9 | clos8
+ * Since wrmsrl() always writes all 64-bits on an MSR, code must round
+ * start MSR down and end MSR up and copy the surrounding values from
+ * hw_dom->ctrl_val[], taking care to fill out reserved fields with zeroes
+ * for cases where hw_res->num_closid is not a multiple of CMBA_PER_MSR.
+ */
+static void
+cmba_wrmsr_intel(struct rdt_domain *d, struct msr_param *m,
+		 struct rdt_resource *r)
+{
+	struct rdt_hw_domain *hw_dom = resctrl_to_arch_dom(d);
+	struct rdt_hw_resource *hw_res = resctrl_to_arch_res(r);
+	int msrhigh, msrlow;
+	int i, j, idx;
+
+	msrlow = m->low / CMBA_PER_MSR;
+	msrhigh = round_up(m->high, CMBA_PER_MSR) / CMBA_PER_MSR;
+
+	for (i = msrlow; i < msrhigh; i++) {
+		u8 msrval[CMBA_PER_MSR];
+
+		memset(msrval, 0, sizeof(msrval));
+		for (j = 0; j < CMBA_PER_MSR; j++) {
+			idx = i * CMBA_PER_MSR + j;
+			if (idx >= hw_res->num_closid)
+				break;
+			msrval[j] = hw_dom->ctrl_val[idx];
+		}
+		wrmsrl(hw_res->msr_base + i, get_unaligned_le64(msrval));
+	}
 }
 
 static void
@@ -933,6 +975,7 @@ static __init void rdt_init_res_defs_intel(void)
 			hw_res->msr_update = mba_wrmsr_intel;
 		} else if (r->rid == RDT_RESOURCE_CMBA) {
 			hw_res->msr_base = MSR_IA32_CMBA_THRTL_BASE;
+			hw_res->msr_update = cmba_wrmsr_intel;
 		}
 	}
 }
