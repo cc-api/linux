@@ -54,6 +54,14 @@
 /* Max event bits supported */
 #define MAX_EVT_CONFIG_BITS		GENMASK(6, 0)
 
+/* Scope of RDT resources */
+enum rdt_scope {
+	RDT_INVALID_SCOPE,
+	RDT_L2_CACHE = 2,
+	RDT_L3_CACHE = 3,
+	RDT_CPU,
+};
+
 struct rdt_fs_context {
 	struct kernfs_fs_context	kfc;
 	bool				enable_cdpl2;
