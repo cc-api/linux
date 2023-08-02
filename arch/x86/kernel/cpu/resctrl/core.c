@@ -112,6 +112,18 @@ struct rdt_hw_resource rdt_resources_all[] = {
 			.fflags			= RFTYPE_RES_MB,
 		},
 	},
+	[RDT_RESOURCE_CMBA] =
+	{
+		.r_resctrl = {
+			.rid			= RDT_RESOURCE_CMBA,
+			.name			= "CMBA",
+			.scope			= RDT_CPU,
+			.domains		= domain_init(RDT_RESOURCE_CMBA),
+			.parse_ctrlval		= parse_bw,
+			.format_str		= "%d=%*u",
+			.fflags			= RFTYPE_RES_MBC,
+		},
+	},
 };
 
 /*
@@ -674,6 +686,7 @@ enum {
 	RDT_FLAG_MBA,
 	RDT_FLAG_SMBA,
 	RDT_FLAG_BMEC,
+	RDT_FLAG_CMBA,
 };
 
 #define RDT_OPT(idx, n, f)	\
@@ -699,6 +712,7 @@ static struct rdt_options rdt_options[]  __initdata = {
 	RDT_OPT(RDT_FLAG_MBA,	    "mba",	X86_FEATURE_MBA),
 	RDT_OPT(RDT_FLAG_SMBA,	    "smba",	X86_FEATURE_SMBA),
 	RDT_OPT(RDT_FLAG_BMEC,	    "bmec",	X86_FEATURE_BMEC),
+	RDT_OPT(RDT_FLAG_CMBA,	    "cmba",	X86_FEATURE_CMBA),
 };
 #define NUM_RDT_OPTIONS ARRAY_SIZE(rdt_options)
 
