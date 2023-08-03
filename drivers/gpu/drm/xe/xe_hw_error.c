@@ -131,10 +131,47 @@ static const struct err_name_index_pair dg2_stat_gt_correctable_reg[] = {
 	[16 ... 31] = {"Undefined",             XE_HW_ERR_GT_CORR_UNKNOWN},
 };
 
+static const struct err_name_index_pair pvc_err_stat_gt_fatal_reg[] = {
+	[0 ... 2]   =  {"Undefined",		XE_HW_ERR_GT_FATAL_UNKNOWN},
+	[3]         =  {"FPU",			XE_HW_ERR_GT_FATAL_FPU},
+	[4 ... 5]   =  {"Undefined",            XE_HW_ERR_GT_FATAL_UNKNOWN},
+	[6]         =  {"GUC SRAM",		XE_HW_ERR_GT_FATAL_GUC},
+	[7 ... 12]  =  {"Undefined",		XE_HW_ERR_GT_FATAL_UNKNOWN},
+	[13]        =  {"SLM",			XE_HW_ERR_GT_FATAL_SLM},
+	[14]        =  {"Undefined",		XE_HW_ERR_GT_FATAL_UNKNOWN},
+	[15]        =  {"EU GRF",		XE_HW_ERR_GT_FATAL_EU_GRF},
+	[16 ... 31] =  {"Undefined",            XE_HW_ERR_GT_FATAL_UNKNOWN},
+};
+
+static const struct err_name_index_pair pvc_err_stat_gt_correctable_reg[] = {
+	[0]         = {"Undefined",             XE_HW_ERR_GT_CORR_UNKNOWN},
+	[1]         = {"SINGLE BIT GUC SRAM",	XE_HW_ERR_GT_CORR_GUC},
+	[2 ... 12]  = {"Undefined",		XE_HW_ERR_GT_CORR_UNKNOWN},
+	[13]        = {"SINGLE BIT SLM",	XE_HW_ERR_GT_CORR_SLM},
+	[14]        = {"SINGLE BIT EU IC",	XE_HW_ERR_GT_CORR_EU_IC},
+	[15]        = {"SINGLE BIT EU GRF",	XE_HW_ERR_GT_CORR_EU_GRF},
+	[16 ... 31] = {"Undefined",             XE_HW_ERR_GT_CORR_UNKNOWN},
+};
+
+static const struct err_name_index_pair pvc_err_vectr_gt_fatal_reg[] = {
+	[0 ... 1]         = {"SUBSLICE",	XE_HW_ERR_GT_FATAL_SUBSLICE},
+	[2 ... 3]         = {"L3BANK",		XE_HW_ERR_GT_FATAL_L3BANK},
+	[4 ... 5]         = {"Undefined",	XE_HW_ERR_GT_FATAL_UNKNOWN},
+	[6]               = {"TLB",		XE_HW_ERR_GT_FATAL_TLB},
+	[7]               = {"L3 FABRIC",	XE_HW_ERR_GT_FATAL_L3_FABRIC},
+};
+
+static const struct err_name_index_pair pvc_err_vectr_gt_correctable_reg[] = {
+	[0 ... 1]         = {"SUBSLICE",	XE_HW_ERR_GT_CORR_SUBSLICE},
+	[2 ... 3]         = {"L3BANK",		XE_HW_ERR_GT_CORR_L3BANK},
+	[4 ... 7]         = {"Undefined",       XE_HW_ERR_GT_CORR_UNKNOWN},
+};
+
 void xe_assign_hw_err_regs(struct xe_device *xe)
 {
 	const struct err_name_index_pair **dev_err_stat = xe->hw_err_regs.dev_err_stat;
 	const struct err_name_index_pair **err_stat_gt = xe->hw_err_regs.err_stat_gt;
+	const struct err_name_index_pair **err_vctr_gt = xe->hw_err_regs.err_vctr_gt;
 
 	/* Error reporting is supported only for DG2 and PVC currently. */
 	if (xe->info.platform == XE_DG2) {
@@ -149,6 +186,10 @@ void xe_assign_hw_err_regs(struct xe_device *xe)
 		dev_err_stat[HARDWARE_ERROR_CORRECTABLE] = pvc_err_stat_correctable_reg;
 		dev_err_stat[HARDWARE_ERROR_NONFATAL] = pvc_err_stat_nonfatal_reg;
 		dev_err_stat[HARDWARE_ERROR_FATAL] = pvc_err_stat_fatal_reg;
+		err_stat_gt[HARDWARE_ERROR_CORRECTABLE] = pvc_err_stat_gt_correctable_reg;
+		err_stat_gt[HARDWARE_ERROR_FATAL] = pvc_err_stat_gt_fatal_reg;
+		err_vctr_gt[HARDWARE_ERROR_CORRECTABLE] = pvc_err_vectr_gt_correctable_reg;
+		err_vctr_gt[HARDWARE_ERROR_FATAL] = pvc_err_vectr_gt_fatal_reg;
 	}
 
 }
@@ -162,19 +203,26 @@ static bool xe_platform_has_ras(struct xe_device *xe)
 }
 
 static void
-xe_update_hw_error_cnt(struct drm_device *drm, struct xarray *hw_error, unsigned long index)
+xe_update_hw_error_cnt_with_value(struct drm_device *drm, struct xarray *hw_error,
+				  unsigned long index, unsigned long val)
 {
 	unsigned long flags;
 	void *entry;
 
 	entry = xa_load(hw_error, index);
-	entry = xa_mk_value(xa_to_value(entry) + 1);
+	entry = xa_mk_value(xa_to_value(entry) + val);
 
 	xa_lock_irqsave(hw_error, flags);
 	if (xa_is_err(__xa_store(hw_error, index, entry, GFP_ATOMIC)))
 		drm_err_ratelimited(drm,
 				    HW_ERR "Error reported by index %ld is lost\n", index);
 	xa_unlock_irqrestore(hw_error, flags);
+}
+
+static void
+xe_update_hw_error_cnt(struct drm_device *drm, struct xarray *hw_error, unsigned long index)
+{
+	xe_update_hw_error_cnt_with_value(drm, hw_error, index, 1);
 }
 
 static void
@@ -188,6 +236,7 @@ xe_gt_hw_error_log_status_reg(struct xe_gt *gt, const enum hardware_error hw_err
 	u32 indx;
 	u32 errbit;
 
+	lockdep_assert_held(&gt_to_xe(gt)->irq.lock);
 	err_regs = &gt_to_xe(gt)->hw_err_regs;
 	errsrc = xe_mmio_read32(gt, ERR_STAT_GT_REG(hw_err));
 	if (!errsrc) {
@@ -225,12 +274,83 @@ clear_reg:
 }
 
 static void
+xe_gt_hw_error_log_vector_reg(struct xe_gt *gt, const enum hardware_error hw_err)
+{
+	const char *hw_err_str = hardware_error_type_to_str(hw_err);
+	const struct err_name_index_pair *errvctr;
+	struct hardware_errors_regs *err_regs;
+	const char *name;
+	bool errstat_read;
+	unsigned long val;
+	u32 num_vctr_reg;
+	u32 indx;
+	u32 vctr;
+	u32 i;
+
+	if (hw_err == HARDWARE_ERROR_NONFATAL) {
+		/*  The GT Non Fatal Error Status Register has only reserved bits
+		 *  Nothing to service.
+		 */
+		xe_gt_log_hw_err(gt, "%s error\n", hw_err_str);
+		return;
+	}
+
+	errstat_read = false;
+	num_vctr_reg = ERR_STAT_GT_VCTR_LEN;
+	err_regs = &gt_to_xe(gt)->hw_err_regs;
+	errvctr = err_regs->err_vctr_gt[hw_err];
+	for (i = 0 ; i < num_vctr_reg; i++) {
+		vctr = xe_mmio_read32(gt, ERR_STAT_GT_VCTR_REG(hw_err, i));
+		if (!vctr)
+			continue;
+
+		name = errvctr[i].name;
+		indx = errvctr[i].index;
+
+		if (hw_err == HARDWARE_ERROR_FATAL)
+			xe_gt_log_hw_err(gt, "%s %s error. ERR_VECT_GT_%s[%d]:0x%08x\n",
+					 name, hw_err_str, hw_err_str, i, vctr);
+		else
+			xe_gt_log_hw_warn(gt, "%s %s error. ERR_VECT_GT_%s[%d]:0x%08x\n",
+					  name, hw_err_str, hw_err_str, i, vctr);
+
+		switch (i) {
+		case ERR_STAT_GT_VCTR0:
+		case ERR_STAT_GT_VCTR1:
+		case ERR_STAT_GT_VCTR2:
+		case ERR_STAT_GT_VCTR3:
+			val = hweight32(vctr);
+			if (i < ERR_STAT_GT_VCTR2 && !errstat_read) {
+				xe_gt_hw_error_log_status_reg(gt, hw_err);
+				errstat_read = true;
+			}
+			xe_update_hw_error_cnt_with_value(&gt_to_xe(gt)->drm,
+							  &gt->errors.hw_error, indx, val);
+			break;
+		case ERR_STAT_GT_VCTR6:
+		case ERR_STAT_GT_VCTR7:
+			val = (i == ERR_STAT_GT_VCTR6) ? hweight16(vctr) : hweight8(vctr);
+			xe_update_hw_error_cnt_with_value(&gt_to_xe(gt)->drm,
+							  &gt->errors.hw_error, indx, val);
+			break;
+		default:
+			break;
+		}
+
+		xe_mmio_write32(gt, ERR_STAT_GT_VCTR_REG(hw_err, i), vctr);
+	}
+}
+
+static void
 xe_gt_hw_error_handler(struct xe_gt *gt, const enum hardware_error hw_err)
 {
 	lockdep_assert_held(&gt_to_xe(gt)->irq.lock);
 
 	if (gt_to_xe(gt)->info.platform == XE_DG2)
 		xe_gt_hw_error_log_status_reg(gt, hw_err);
+
+	if (gt_to_xe(gt)->info.platform == XE_PVC)
+		xe_gt_hw_error_log_vector_reg(gt, hw_err);
 }
 
 static void
