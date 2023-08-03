@@ -747,6 +747,9 @@ int xe_guc_pc_gucrc_disable(struct xe_guc_pc *pc)
 	struct xe_gt *gt = pc_to_gt(pc);
 	int ret = 0;
 
+	if (XE_PRESI_SKIP_FEATURE(pc_to_xe(pc), GUC_SLPC))
+		return 0;
+
 	xe_device_mem_access_get(pc_to_xe(pc));
 
 	ret = pc_action_setup_gucrc(pc, XE_GUCRC_HOST_CONTROL);
