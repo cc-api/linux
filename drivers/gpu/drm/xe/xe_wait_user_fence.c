@@ -15,6 +15,8 @@
 #include "xe_macros.h"
 #include "xe_vm.h"
 
+#include "presi/xe_presi.h"
+
 static int do_compare(u64 addr, u64 value, u64 mask, u16 op)
 {
 	u64 rvalue;
@@ -179,6 +181,7 @@ int xe_wait_user_fence_ioctl(struct drm_device *dev, void *data,
 		args->timeout = MAX_SCHEDULE_TIMEOUT;
 
 	timeout = to_jiffies_timeout(args);
+	timeout *= XE_PRESI_TIMEOUT_MULTIPLIER(xe);
 
 	start = ktime_get();
 
