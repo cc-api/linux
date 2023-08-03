@@ -717,13 +717,37 @@ static int match_free_decoder(struct device *dev, void *data)
 	return 0;
 }
 
+static int match_auto_decoder(struct device *dev, void *data)
+{
+	struct cxl_endpoint_decoder *cxled = data;
+	struct cxl_decoder *cxld;
+
+	if (!is_switch_decoder(dev))
+		return 0;
+
+	cxld = to_cxl_decoder(dev);
+
+	if (!range_contains(&cxld->hpa_range, &cxled->cxld.hpa_range))
+		return 0;
+
+	if (!cxld->region)
+		return 1;
+
+	return 0;
+}
+
 static struct cxl_decoder *cxl_region_find_decoder(struct cxl_port *port,
-						   struct cxl_region *cxlr)
+						   struct cxl_region *cxlr,
+						   struct cxl_endpoint_decoder *cxled)
 {
 	struct device *dev;
 	int id = 0;
 
-	dev = device_find_child(&port->dev, &id, match_free_decoder);
+	if (test_bit(CXL_REGION_F_AUTO, &cxlr->flags))
+		dev = device_find_child(&port->dev, cxled, match_auto_decoder);
+	else
+		dev = device_find_child(&port->dev, &id, match_free_decoder);
+
 	if (!dev)
 		return NULL;
 	/*
@@ -839,7 +863,8 @@ static int cxl_rr_alloc_decoder(struct cxl_port *port, struct cxl_region *cxlr,
 	if (port == cxled_to_port(cxled))
 		cxld = &cxled->cxld;
 	else
-		cxld = cxl_region_find_decoder(port, cxlr);
+		cxld = cxl_region_find_decoder(port, cxlr, cxled);
+
 	if (!cxld) {
 		dev_dbg(&cxlr->dev, "%s: no decoder available\n",
 			dev_name(&port->dev));
