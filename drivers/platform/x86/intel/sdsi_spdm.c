@@ -978,6 +978,25 @@ err_free_req:
 	return rc;
 }
 
+static void print_transcript(struct sdsi_spdm_state *spdm_state, const char *s, u8 *p, int l)
+{
+	struct device *dev = spdm_state->dev;
+
+	dev_dbg(dev, "TRANSCRIPT FOR %s: %d\n", s, l);
+	while (l >= 4) {
+		dev_dbg(dev, "\t0x%08x\n", *(u32 *)p);
+		p += 4;
+		l -= 4;
+	}
+
+	if (l == 3)
+		dev_dbg(dev, "\t0x%06x\n", *(u32 *)p);
+	else if (l == 2)
+		dev_dbg(dev, "\t0x%04x\n", *(u16 *)p);
+	else if (l == 1)
+		dev_dbg(dev, "\t0x%02x\n", *(u8 *)p);
+}
+
 static int spdm_get_digests(struct sdsi_spdm_state *spdm_state)
 {
 	struct spdm_get_digests_req req = { .code = SPDM_GET_DIGESTS };
@@ -1025,7 +1044,11 @@ static int spdm_get_digests(struct sdsi_spdm_state *spdm_state)
 	if (rc)
 		goto err_free_rsp;
 
+	print_transcript(spdm_state, "GET_DIGESTS REQ", (u8 *)&req, sizeof(req));
+
 	rc = crypto_shash_update(spdm_state->desc, (u8 *)rsp, rsp_sz);
+
+	print_transcript(spdm_state, "GET_DIGESTS RSP", (u8 *)rsp, rsp_sz);
 
 err_free_rsp:
 	kfree(rsp);
@@ -1182,10 +1205,14 @@ static int spdm_get_certificate(struct sdsi_spdm_state *spdm_state, u8 slot)
 		if (rc)
 			goto err_free_certs;
 
+		print_transcript(spdm_state, "GET_CERT REQ", (u8 *)&req, sizeof(req));
+
 		rc = crypto_shash_update(spdm_state->desc, (u8 *)rsp,
 					 sizeof(*rsp) + portion_length);
 		if (rc)
 			goto err_free_certs;
+
+		print_transcript(spdm_state, "GET_CERT RSP", (u8 *)rsp, sizeof(*rsp) + portion_length);
 
 	} while (remainder_length > 0);
 
@@ -1326,6 +1353,7 @@ static int spdm_verify_signature(struct sdsi_spdm_state *spdm_state, u8 *s,
 	}
 
 	rc = verify_signature(spdm_state->leaf_key, &sig);
+	dev_dbg(spdm_state->dev, "%s\n", (rc == 0) ? "VERIFY PASS" : "VERIFY FAIL");
 
 err_free_mhash:
 	kfree(mhash);
@@ -1494,14 +1522,20 @@ int sdsi_spdm_authenticate(struct sdsi_spdm_state *spdm_state)
 	if (rc)
 		goto unlock;
 
+	print_transcript(spdm_state, "GET_VERSION", transcript, transcript_sz);
+
 	rc = spdm_get_capabilities(spdm_state, transcript + transcript_sz,
 				   &transcript_sz);
 	if (rc)
 		goto unlock;
 
+	print_transcript(spdm_state, "GET_CAPABILITIES", transcript, transcript_sz);
+
 	rc = spdm_negotiate_algs(spdm_state, transcript, transcript_sz);
 	if (rc)
 		goto unlock;
+
+	print_transcript(spdm_state, "NEGOTIATE_ALGORITHMS", transcript, transcript_sz);
 
 	rc = spdm_get_digests(spdm_state);
 	if (rc)
@@ -1683,6 +1717,8 @@ static int __spdm_get_measurements(struct sdsi_spdm_state *spdm_state,
 	if (rc < 0)
 		goto err_free_rsp;
 
+	print_transcript(spdm_state, "MEASUREMENT REQ", (u8 *)&req, req_sz);
+
 	if (m->attribute & MEASUREMENT_ATTR_SIGN) {
 		size_t sig_offset = length - spdm_state->s;
 
@@ -1690,11 +1726,13 @@ static int __spdm_get_measurements(struct sdsi_spdm_state *spdm_state,
 			sig_offset, length, spdm_state->s);
 
 		/* Hash the response, without the signature portion */
+		dev_dbg(spdm_state->dev, "Hashing the response+\n");
 		rc = spdm_get_measurements_update_hash(spdm_state, rsp,
 						       sig_offset);
 		if (rc < 0)
 			goto err_free_rsp;
 
+		print_transcript(spdm_state, "MEASUREMENT RSP+", (u8 *)rsp, sig_offset);
 
 		/* Send back the transcript */
 		if (m->trans_cb)
@@ -1716,11 +1754,14 @@ static int __spdm_get_measurements(struct sdsi_spdm_state *spdm_state,
 			"SPDM: GET_MEASUREMENTS: Successfully verified signature\n");
 	} else {
 		/* Hash the response */
+		dev_dbg(spdm_state->dev, "Hashing the respone\n");
 		rc = spdm_get_measurements_update_hash(spdm_state, rsp, length);
 		if (rc) {
 			dev_err(spdm_state->dev, "SPDM: GET_MEASUREMENTS: Could not update hash\n");
 			goto err_free_rsp;
 		}
+
+		print_transcript(spdm_state, "MEASUREMENT RSP", (u8 *)rsp, length);
 
 		/* Send back the transcript */
 		if (measurement_caps != SPDM_MEAS_CAP_MEAS_SIG && m->trans_cb)
