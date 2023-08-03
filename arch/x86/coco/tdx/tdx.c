@@ -199,7 +199,7 @@ static void* acpi_ccel_next_event(void)
 	return evhead;
 }
 
-static void ccel_record_eventlog(void *data, u8 index)
+void ccel_record_eventlog(void *data, u8 index)
 {
 	struct cc_sha384_event *event = next_event;
 	char event_data[] = "Runtime RTMR event log extend success";
