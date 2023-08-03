@@ -191,6 +191,7 @@ extern u32 tdx_global_keyid __read_mostly;
 u32 tdx_get_num_keyid(void);
 int tdx_keyid_alloc(void);
 void tdx_keyid_free(int keyid);
+void ccel_record_eventlog(void *data, u8 index);
 
 u64 __seamcall(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9, u64 r10,
 	       u64 r11, u64 r12, u64 r13, struct tdx_module_output *out);

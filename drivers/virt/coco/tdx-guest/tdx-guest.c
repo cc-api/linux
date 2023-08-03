@@ -163,7 +163,7 @@ static void acpi_ccel_release(void)
 	acpi_os_unmap_iomem(ccel_addr, ccel_len);
 }
 
-static void ccel_record_eventlog(void *data, u8 index)
+void ccel_record_eventlog(void *data, u8 index)
 {
 	struct cc_sha384_event *event = next_event;
 	char event_data[] = "Runtime RTMR event log extend success";

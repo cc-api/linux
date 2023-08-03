@@ -75,6 +75,9 @@ int ima_extend_rtmr(struct tpm_chip *chip, u32 rtmr_idx,
 
     /* Extend RTMR registers using "TDG.MR.RTMR.EXTEND" TDCALL */
     rc = tdx_mcall_extend_rtmr(data, (u8)rtmr_idx);
+
+    if (!rc)
+		ccel_record_eventlog(data, (u8)rtmr_idx);
     kfree(data);
 
     return rc;
