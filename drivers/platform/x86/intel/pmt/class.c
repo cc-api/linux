@@ -251,6 +251,7 @@ static int intel_pmt_dev_register(struct intel_pmt_entry *entry,
 				  struct intel_pmt_namespace *ns,
 				  struct device *parent)
 {
+	struct intel_vsec_device *ivdev = dev_to_ivdev(parent);
 	struct resource res = {0};
 	struct device *dev;
 	int ret;
@@ -308,7 +309,7 @@ static int intel_pmt_dev_register(struct intel_pmt_entry *entry,
 		goto fail_ioremap;
 
 	if (ns->pmt_add_endpoint) {
-		ret = ns->pmt_add_endpoint(entry, parent);
+		ret = ns->pmt_add_endpoint(entry, ivdev->pcidev);
 		if (ret)
 			goto fail_add_endpoint;
 	}

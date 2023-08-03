@@ -22,9 +22,8 @@ struct xarray;
 struct pci_dev;
 
 struct telem_endpoint {
-	struct pci_dev		*parent;
+	struct pci_dev		*pcidev;
 	struct telem_header	header;
-	struct device		*dev;
 	void __iomem		*base;
 	bool			present;
 	struct kref		kref;
@@ -60,7 +59,7 @@ struct intel_pmt_namespace {
 				 struct device *dev,
 				 struct resource *disc_res);
 	int (*pmt_add_endpoint)(struct intel_pmt_entry *entry,
-				struct device *dev);
+				struct pci_dev *pdev);
 };
 
 bool intel_pmt_is_early_client_hw(struct device *dev);

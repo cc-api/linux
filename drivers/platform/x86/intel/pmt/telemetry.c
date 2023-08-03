@@ -101,7 +101,7 @@ static int pmt_telem_header_decode(struct intel_pmt_entry *entry,
 }
 
 static int pmt_telem_add_endpoint(struct intel_pmt_entry *entry,
-				  struct device *dev)
+				  struct pci_dev *pdev)
 {
 	struct telem_endpoint *ep;
 
@@ -113,8 +113,7 @@ static int pmt_telem_add_endpoint(struct intel_pmt_entry *entry,
 		return -ENOMEM;
 
 	ep = entry->ep;
-	ep->dev = dev;
-	ep->parent = to_pci_dev(dev->parent);
+	ep->pcidev = pdev;
 	ep->header.access_type = entry->header.access_type;
 	ep->header.guid = entry->header.guid;
 	ep->header.base_offset = entry->header.base_offset;
@@ -214,7 +213,7 @@ int pmt_telem_get_endpoint_info(int devid,
 		goto unlock;
 	}
 
-	info->pdev = entry->ep->parent;
+	info->pdev = entry->ep->pcidev;
 	info->header = entry->ep->header;
 
 unlock:
@@ -264,10 +263,10 @@ pmt_telem_read32(struct telem_endpoint *ep, u32 id, u32 *data, u32 count)
 	pr_debug("%s: Reading id %d, offset 0x%x, count %d, base %p\n",
 		 __func__, id, SAMPLE_ID_OFFSET32(id), count, ep->base);
 
-	pm_runtime_get_sync(&ep->parent->dev);
+	pm_runtime_get_sync(&ep->pcidev->dev);
 	memcpy_fromio(data, ep->base + offset, NUM_BYTES_DWORD(count));
-	pm_runtime_mark_last_busy(&ep->parent->dev);
-	pm_runtime_put_autosuspend(&ep->parent->dev);
+	pm_runtime_mark_last_busy(&ep->pcidev->dev);
+	pm_runtime_put_autosuspend(&ep->pcidev->dev);
 
 	return ep->present ? 0 : -EPIPE;
 }
