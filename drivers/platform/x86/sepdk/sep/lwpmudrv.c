@@ -1120,8 +1120,9 @@ lwpmudrv_Initialize(PVOID buf_usr_to_drv, size_t len_usr_to_drv)
 	/* Create core to device ID map */
 	for (cpu_num = 0; cpu_num < GLOBAL_STATE_num_cpus(driver_state);
 		 cpu_num++) {
-		if (CPU_STATE_core_type(&pcb[cpu_num]) ==
-			DEV_CONFIG_core_type(cur_pcfg)) {
+		if (CPU_STATE_core_type(&pcb[cpu_num]) == DEV_CONFIG_core_type(cur_pcfg) &&
+			(DEV_CONFIG_core_model_id(cur_pcfg) == 0 ||
+			(DEV_CONFIG_core_model_id(cur_pcfg) == CPU_STATE_core_model_id(&pcb[cpu_num])))) {
 			core_to_dev_map[cpu_num] = cur_device;
 		}
 	}
@@ -2968,6 +2969,7 @@ lwpmudrv_Read_Allowlist_MSR_All_Cores(IOCTL_ARGS arg)
 	}
 
 	for (i = 0; i < GLOBAL_STATE_num_cpus(driver_state); i++) {
+#if !defined(DISABLE_REGISTER_CHECK)
 		if (!PMU_LIST_Check_MSR(req_msr_ops[i].reg_id)) {
 			SEP_DRV_LOG_ERROR("Invalid MSR information! 0x%x",
 					  req_msr_ops[i].reg_id);
@@ -2977,7 +2979,7 @@ lwpmudrv_Read_Allowlist_MSR_All_Cores(IOCTL_ARGS arg)
 			SEP_DRV_LOG_TRACE("Verified the MSR 0x%x",
 					  req_msr_ops[i].reg_id);
 		}
-
+#endif
 		node                = &msr_data[i];
 		MSR_DATA_addr(node) = req_msr_ops[i].reg_id;
 	}
@@ -3127,6 +3129,7 @@ lwpmudrv_Write_Allowlist_MSR_All_Cores(IOCTL_ARGS arg)
 	}
 
 	for (i = 0; i < GLOBAL_STATE_num_cpus(driver_state); i++) {
+#if !defined(DISABLE_REGISTER_CHECK)
 		if (!PMU_LIST_Check_MSR(req_msr_ops[i].reg_id)) {
 			SEP_DRV_LOG_ERROR("Invalid MSR information! 0x%x",
 					  req_msr_ops[i].reg_id);
@@ -3136,7 +3139,7 @@ lwpmudrv_Write_Allowlist_MSR_All_Cores(IOCTL_ARGS arg)
 			SEP_DRV_LOG_TRACE("Verified the MSR 0x%x",
 					  req_msr_ops[i].reg_id);
 		}
-
+#endif
 		node                 = &msr_data[i];
 		MSR_DATA_addr(node)  = req_msr_ops[i].reg_id;
 		MSR_DATA_value(node) = req_msr_ops[i].reg_write_val;
@@ -4452,6 +4455,7 @@ lwpmudrv_LBR_Info(IOCTL_ARGS arg)
 			if (reg_id == 0) {
 				continue;
 			}
+#if !defined(DISABLE_REGISTER_CHECK)
 			if (!PMU_LIST_Check_MSR(reg_id)) {
 				LBR_entries_reg_id(lbr_list, idx) = 0;
 				SEP_DRV_LOG_ERROR(
@@ -4463,6 +4467,7 @@ lwpmudrv_LBR_Info(IOCTL_ARGS arg)
 				SEP_DRV_LOG_TRACE("Verified the msr 0x%x\n",
 						  reg_id);
 			}
+#endif
 		}
 	}
 
@@ -5488,6 +5493,7 @@ lwpmudrv_Setup_Cpu_Topology(IOCTL_ARGS args)
 			(U16)DRV_TOPOLOGY_INFO_cpu_module_master(
 				&drv_topology[iter]);
 		CPU_STATE_system_master(&pcb[cpu_num]) = (iter) ? 0 : 1;
+		CPU_STATE_core_model_id(&pcb[cpu_num]) = DRV_TOPOLOGY_INFO_cpu_core_model_id(dt);
 		SEP_DRV_LOG_TRACE("Cpu %d sm = %d cm = %d tm = %d.", cpu_num,
 				  CPU_STATE_socket_master(&pcb[cpu_num]),
 				  CPU_STATE_core_master(&pcb[cpu_num]),
@@ -6563,7 +6569,7 @@ lwpmu_PMT_Add_Telemetry_Info(struct telem_endpoint      *ep,
 	if (pmt_dev_index < MAX_PMT_DEVICES) {
 		pmt_devices[pmt_dev_index].device_id = ep_info->pdev->device;
 		pmt_devices[pmt_dev_index].vendor_id = ep_info->pdev->vendor;
-		pmt_devices[pmt_dev_index].domain = 0; // TODO: fix the domain
+		pmt_devices[pmt_dev_index].domain = pci_domain_nr(ep_info->pdev->bus);
 		pmt_devices[pmt_dev_index].bus    = ep_info->pdev->bus->number;
 		pmt_devices[pmt_dev_index].device =
 			PCI_SLOT(ep_info->pdev->devfn);

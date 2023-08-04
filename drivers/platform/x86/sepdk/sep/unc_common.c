@@ -218,9 +218,15 @@ UNC_COMMON_Scan_PMT_Device(void)
 	for (i = 0; i < PMT_TOPOLOGY_DISCOVERY_LIST_num_pmt_devices(&pmt_topology); i++) {
 		for (j = 0; j < PMT_TOPOLOGY_DISCOVERY_LIST_num_tiles(&pmt_topology, i); j++) {
 			for (k = 0; k < pmt_dev_index; k++) {
+				// Added PMT tile OOBMSM bus number check
+				// matching with GPU PCI device bus number + 1
+				// as a workaround. This can't be assumed but
+				// should move to PMT OOBMSM PCI devices
+				// enumeration logic later
 				if (PMT_TOPOLOGY_DISCOVERY_LIST_tile_domain(&pmt_topology, i, j) ==
 					    pmt_devices[k].domain &&
-				    //PMT_TOPOLOGY_DISCOVERY_LIST_tile_bus(&pmt_topology, i, j) == pmt_devices[k].bus &&
+				    PMT_TOPOLOGY_DISCOVERY_LIST_tile_bus(&pmt_topology, i, j) + 1 ==
+					    pmt_devices[k].bus &&
 				    PMT_TOPOLOGY_DISCOVERY_LIST_tile_device(&pmt_topology, i, j) ==
 					    pmt_devices[k].device &&
 				    PMT_TOPOLOGY_DISCOVERY_LIST_tile_function(

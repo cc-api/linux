@@ -456,27 +456,26 @@ unc_pmt_Read_PMU_Data(PVOID param, U32 dev_idx)
 /*
  * Initialize the dispatch table
  */
-DISPATCH_NODE  unc_pmt_dispatch =
-{
-    .init                     = NULL,
-    .fini                     = NULL,
-    .write                    = unc_pmt_Write_PMU,
-    .freeze                   = NULL,
-    .restart                  = unc_pmt_Enable_PMU,
-    .read_data                = unc_pmt_Read_PMU_Data,
-    .check_overflow           = NULL,
-    .swap_group               = NULL,
-    .read_lbrs                = NULL,
-    .cleanup                  = UNC_COMMON_Dummy_Func,
-    .hw_errata                = NULL,
-    .read_power               = NULL,
-    .check_overflow_errata    = NULL,
-    .read_counts              = NULL,
-    .check_overflow_gp_errata = NULL,
-    .read_ro                  = NULL,
-    .platform_info            = NULL,
-    .trigger_read             = unc_pmt_Trigger_Read,
-    .scan_for_uncore          = NULL,
-    .read_metrics             = NULL
+DISPATCH_NODE unc_pmt_dispatch = {
+	NULL,                  // initialize
+	NULL,                  // destroy
+	unc_pmt_Write_PMU,     // write
+	NULL,                  // freeze
+	unc_pmt_Enable_PMU,    // restart
+	unc_pmt_Read_PMU_Data, // read
+	NULL,                  // check for overflow
+	NULL,                  // swap group
+	NULL,                  // read lbrs
+	UNC_COMMON_Dummy_Func, // cleanup
+	NULL,                  // hw errata
+	NULL,                  // read power
+	NULL,                  // check overflow errata
+	NULL,                  // read counts
+	NULL,                  // check overflow gp errata
+	NULL,                  // read_ro
+	NULL,                  // platform info
+	unc_pmt_Trigger_Read,  // trigger read
+	NULL,                  // scan for uncore
+	NULL                   // read metrics
 };
 

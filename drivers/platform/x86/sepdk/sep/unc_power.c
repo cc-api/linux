@@ -665,51 +665,49 @@ unc_power_Read_PMU_Data(PVOID param, U32 dev_idx)
 /*
  * Initialize the dispatch table
  */
-DISPATCH_NODE  unc_power_dispatch =
-{
-    .init                     = unc_power_Allocate,
-    .fini                     = unc_power_Free,
-    .write                    = UNC_COMMON_Dummy_Func,
-    .freeze                   = NULL,
-    .restart                  = unc_power_Enable_PMU,
-    .read_data                = unc_power_Read_PMU_Data,
-    .check_overflow           = NULL,
-    .swap_group               = NULL,
-    .read_lbrs                = NULL,
-    .cleanup                  = NULL,
-    .hw_errata                = NULL,
-    .read_power               = NULL,
-    .check_overflow_errata    = NULL,
-    .read_counts              = NULL,
-    .check_overflow_gp_errata = NULL,
-    .read_ro                  = NULL,
-    .platform_info            = NULL,
-    .trigger_read             = unc_power_Trigger_Read,
-    .scan_for_uncore          = NULL,
-    .read_metrics             = NULL
+DISPATCH_NODE unc_power_dispatch = {
+	unc_power_Allocate,      // initialize
+	unc_power_Free,          // destroy
+	UNC_COMMON_Dummy_Func,   // write
+	NULL,                    // freeze
+	unc_power_Enable_PMU,    // restart
+	unc_power_Read_PMU_Data, // read
+	NULL,                    // check for overflow
+	NULL,                    // swap group
+	NULL,                    // read lbrs
+	NULL,                    // cleanup
+	NULL,                    // hw errata
+	NULL,                    // read power
+	NULL,                    // check overflow errata
+	NULL,                    // read counts
+	NULL,                    // check overflow gp errata
+	NULL,                    // read_ro
+	NULL,                    // platform info
+	unc_power_Trigger_Read,  // trigger read
+	NULL,                    // scan for uncore
+	NULL                     // read metrics
 };
 
-DISPATCH_NODE   unc_rdt_dispatch =
-{
-    .init                     = unc_power_Allocate,
-    .fini                     = unc_power_Free,
-    .write                    = NULL,
-    .freeze                   = NULL,
-    .restart                  = unc_power_Enable_PMU,
-    .read_data                = unc_power_Read_PMU_Data,
-    .check_overflow           = NULL,
-    .swap_group               = NULL,
-    .read_lbrs                = NULL,
-    .cleanup                  = NULL,
-    .hw_errata                = NULL,
-    .read_power               = NULL,
-    .check_overflow_errata    = NULL,
-    .read_counts              = NULL,
-    .check_overflow_gp_errata = NULL,
-    .read_ro                  = NULL,
-    .platform_info            = NULL,
-    .trigger_read             = unc_power_Trigger_Read,
-    .scan_for_uncore          = NULL,
-    .read_metrics             = NULL
+DISPATCH_NODE unc_rdt_dispatch = {
+	unc_power_Allocate,      // initialize
+	unc_power_Free,          // destroy
+	NULL,                    // write
+	NULL,                    // freeze
+	unc_power_Enable_PMU,    // restart
+	unc_power_Read_PMU_Data, // read
+	NULL,                    // check for overflow
+	NULL,                    // swap group
+	NULL,                    // read lbrs
+	NULL,                    // cleanup
+	NULL,                    // hw errata
+	NULL,                    // read power
+	NULL,                    // check overflow errata
+	NULL,                    // read counts
+	NULL,                    // check overflow gp errata
+	NULL,                    // read_ro
+	NULL,                    // platform info
+	unc_power_Trigger_Read,  // trigger read
+	NULL,                    // scan for uncore
+	NULL                     // read metrics
 };
 

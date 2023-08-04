@@ -643,6 +643,7 @@ sys_info_Fill_CPUID(U32               num_cpuids,
 				   is_hetero_platform) {
 				VTSA_GEN_PER_CPU_cpu_core_type(local_gpc) =
 					(U32)((rax >> 24) & 0xFF);
+				VTSA_GEN_PER_CPU_cpu_core_model_id(local_gpc) = (U32)(rax & 0xFFFFFF);
 			}
 		}
 	}
@@ -887,6 +888,7 @@ sys_info_Build_Percpu(VOID *buffer)
 	VTSA_GEN_PER_CPU_cpu_core_type(local_gpc) = 0;
 	VTSA_GEN_PER_CPU_cpu_speed_mhz(local_gpc) = VTSA_NA32;
 	VTSA_GEN_PER_CPU_cpu_fsb_mhz(local_gpc)   = VTSA_NA32;
+	VTSA_GEN_PER_CPU_cpu_core_model_id(local_gpc) = 0;
 
 	fsp = &VTSA_GEN_PER_CPU_cpu_cpuid_array(local_gpc);
 	VTSA_FIXED_SIZE_PTR_is_ptr(fsp) = 0;

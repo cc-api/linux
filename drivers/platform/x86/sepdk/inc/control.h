@@ -182,6 +182,7 @@ struct CPU_STATE_NODE_S {
 	U32      num_ebs_sampled;     // number of attempted EBS sample generation
 	U32      num_dropped_ebs_samples; // number of dropped EBS samples
 	U64      ipt_data_offset;         // the offset for flushed IPT data
+	U32		 core_model_id;
 };
 
 #define CPU_STATE_apic_id(cpu)                 ((cpu)->apic_id)
@@ -237,6 +238,7 @@ struct CPU_STATE_NODE_S {
 #define CPU_STATE_num_ebs_sampled(cpu)         ((cpu)->num_ebs_sampled)
 #define CPU_STATE_num_dropped_ebs_samples(cpu) ((cpu)->num_dropped_ebs_samples)
 #define CPU_STATE_ipt_data_offset(cpu)         ((cpu)->ipt_data_offset)
+#define CPU_STATE_core_model_id(cpu)		   ((cpu)->core_model_id)
 
 /*
  * For storing data for --read/--write-msr command line options

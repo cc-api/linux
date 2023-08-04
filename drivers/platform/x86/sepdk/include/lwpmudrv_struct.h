@@ -56,7 +56,6 @@ extern "C" {
 #define EFLAGS_IOPL3               0x00003000
 #define MAX_EMON_GROUPS            1000
 #define MAX_PCI_BUSNO              256
-#define MAX_DEVICES                30
 #define MAX_REGS                   64
 #define MAX_EMON_GROUPS            1000
 #define MAX_PCI_DEVNO              32
@@ -226,10 +225,10 @@ struct DEV_CONFIG_NODE_S {
 	U32 device_scope;
 	U32 num_events;
 	U16 device_index;
+	U32 core_model_id;
 	U16 reserved1;
-	U32 reserved2;
+	U64 reserved2;
 	U64 reserved3;
-	U64 reserved4;
 };
 
 #define DEV_CONFIG_dispatch_id(cfg)     ((cfg)->dispatch_id)
@@ -274,6 +273,7 @@ struct DEV_CONFIG_NODE_S {
 #define DEV_CONFIG_device_scope(cfg)             ((cfg)->device_scope)
 #define DEV_CONFIG_num_events(cfg)               ((cfg)->num_events)
 #define DEV_CONFIG_device_index(cfg)             ((cfg)->device_index)
+#define DEV_CONFIG_core_model_id(cfg)            ((cfg)->core_model_id)
 
 typedef struct DEV_UNC_CONFIG_NODE_S  DEV_UNC_CONFIG_NODE;
 typedef DEV_UNC_CONFIG_NODE          *DEV_UNC_CONFIG;
@@ -907,9 +907,9 @@ typedef struct __generic_per_cpu {
 	U32 arch_perfmon_ver;
 	U32 num_gp_counters;
 	U32 num_fixed_counters;
-	U32 reserved1;
+	U32 cpu_core_model_id;
+	U64 reserved1;
 	U64 reserved2;
-	U64 reserved3;
 
 } VTSA_GEN_PER_CPU;
 
@@ -934,6 +934,7 @@ typedef struct __generic_per_cpu {
 #define VTSA_GEN_PER_CPU_arch_perfmon_ver(p_cpu)   ((p_cpu)->arch_perfmon_ver)
 #define VTSA_GEN_PER_CPU_num_gp_counters(p_cpu)    ((p_cpu)->num_gp_counters)
 #define VTSA_GEN_PER_CPU_num_fixed_counters(p_cpu) ((p_cpu)->num_fixed_counters)
+#define VTSA_GEN_PER_CPU_cpu_core_model_id(p_cpu)  ((p_cpu)->cpu_core_model_id)
 
 typedef struct __node_info {
 	U32 node_type_from_shell;
@@ -1005,9 +1006,9 @@ struct DRV_TOPOLOGY_INFO_NODE_S {
 	U32 arch_perfmon_ver;
 	U32 num_gp_counters;
 	U32 num_fixed_counters;
-	U32 reserved2;
+	U32 cpu_core_model_id;
+	U64 reserved2;
 	U64 reserved3;
-	U64 reserved4;
 };
 
 #define DRV_TOPOLOGY_INFO_cpu_number(dti)         ((dti)->cpu_number)
@@ -1024,6 +1025,7 @@ struct DRV_TOPOLOGY_INFO_NODE_S {
 #define DRV_TOPOLOGY_INFO_arch_perfmon_ver(dti)   ((dti)->arch_perfmon_ver)
 #define DRV_TOPOLOGY_INFO_num_gp_counters(dti)    ((dti)->num_gp_counters)
 #define DRV_TOPOLOGY_INFO_num_fixed_counters(dti) ((dti)->num_fixed_counters)
+#define DRV_TOPOLOGY_INFO_cpu_core_model_id(dti)  ((dti)->cpu_core_model_id)
 
 #define VALUE_TO_BE_DISCOVERED 0
 
@@ -1262,7 +1264,9 @@ struct DEVICE_INFO_NODE_S {
 	U32            pmu_clone_id; // cti_type of platform to impersonate in device DLLs
 	U32            device_scope;
 	U32            num_subunits;
-	U64            reserved1;
+	U32            core_model_id;
+	U8            *core_arch_name;
+	U32            reserved1;
 	U64            reserved2;
 	PMT_DEVICE_INFO_NODE pmt_device;
 };
@@ -1295,6 +1299,8 @@ struct DEVICE_INFO_NODE_S {
 #define DEVICE_INFO_core_type(pdev)           ((pdev)->core_type)
 #define DEVICE_INFO_device_scope(pdev)        ((pdev)->device_scope)
 #define DEVICE_INFO_num_subunits(pdev)        ((pdev)->num_subunits)
+#define DEVICE_INFO_core_model_id(pdev)       ((pdev)->core_model_id)
+#define DEVICE_INFO_core_arch_name(pdev)      ((pdev)->core_arch_name)
 #define DEVICE_INFO_pmt_device(pdev)          ((pdev)->pmt_device)
 #define DEVICE_INFO_pmt_device_id(pdev)       ((pdev)->pmt_device.device_id)
 #define DEVICE_INFO_pmt_device_domain(pdev)   ((pdev)->pmt_device.domain)
@@ -2720,8 +2726,8 @@ typedef PERF_DEVICE_CONFIG_INFO_NODE         *PERF_DEVICE_CONFIG_INFO;
 
 struct PERF_DEVICE_CONFIG_INFO_NODE_S {
 	S8  name[MAX_EVENT_NAME_LENGTH]; // unit name
-	U32 device_type;      // device which unit belongs to
-	U32 unit_scope; // maps to socket level/ thread level/ system level  { enum EVENT_SCOPE_TYPES }
+	U32 device_type;       // device which unit belongs to
+	U32 unit_scope; 	   // maps to socket/thread/system  { enum EVENT_SCOPE_TYPES }
 	U32 unc_unit_type;     // freerun / programmable counters
 	U32 type_config_value; // type value in /sys/bus/event_source/devices/*/type
 	U32 mux_value;         // Multiplex value
@@ -2729,8 +2735,8 @@ struct PERF_DEVICE_CONFIG_INFO_NODE_S {
 	S8  cpu_mask[MAX_EVENT_NAME_LENGTH]; // cpumask value in /sys/bus/event_source/devices/*/cpumask
 	// dependent on unit_scope, {socket (entry for each socket) / thread level(no entry)/ system level (one entry)}
 	// We don't expect cpu_mask to over flow the specified size, but on event of overflow it goes into reserved fields
-	U32 perf_unit_id;               // Index to identify different units
-	U32 device_sub_type;
+	U32 perf_unit_id;      // Index to identify different units
+	U32 device_sub_type;   // used to save core subtype
 };
 
 #define PERF_DEVICE_CONFIG_INFO_name(x)              ((x)->name)
