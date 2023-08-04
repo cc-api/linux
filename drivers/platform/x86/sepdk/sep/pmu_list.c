@@ -666,6 +666,12 @@ PMU_LIST_Build_MSR_List(void)
 
 	SEP_DRV_LOG_TRACE_IN("");
 
+	if (pmu_info_index == -1) {
+		SEP_DRV_LOG_LOAD("No MSR list information detected - pmu_info_index is -1!\n");
+		SEP_DRV_LOG_TRACE_OUT("Success");
+		return status;
+	}
+
 	if (arch_pmu_info_used) {
 		msr_info_list = architectural_pmu_info_list[pmu_info_index]
 					.msr_info_list;
@@ -673,7 +679,7 @@ PMU_LIST_Build_MSR_List(void)
 		msr_info_list = pmu_info_list[pmu_info_index].msr_info_list;
 	}
 
-	if (pmu_info_index == -1 || !msr_info_list) {
+	if (!msr_info_list) {
 		SEP_DRV_LOG_LOAD("No MSR list information detected!\n");
 		SEP_DRV_LOG_TRACE_OUT("Success");
 		return status;
@@ -706,6 +712,12 @@ PMU_LIST_Build_PCI_List(void)
 
 	SEP_DRV_LOG_TRACE_IN("");
 
+	if (pmu_info_index == -1) {
+		SEP_DRV_LOG_LOAD("No PCI list information detected - pmu_info_index is -1!\n");
+		SEP_DRV_LOG_TRACE_OUT("Success");
+		return OS_SUCCESS;
+	}
+
 	if (arch_pmu_info_used) {
 		unit_info_list = architectural_pmu_info_list[pmu_info_index]
 					 .pci_info_list;
@@ -713,7 +725,7 @@ PMU_LIST_Build_PCI_List(void)
 		unit_info_list = pmu_info_list[pmu_info_index].pci_info_list;
 	}
 
-	if (pmu_info_index == -1 || !unit_info_list) {
+	if (!unit_info_list) {
 		SEP_DRV_LOG_LOAD("No PCI list information detected!\n");
 		SEP_DRV_LOG_TRACE_OUT("Success");
 		return OS_SUCCESS;
@@ -753,6 +765,12 @@ PMU_LIST_Build_MMIO_List(void)
 
 	SEP_DRV_LOG_TRACE_IN("");
 
+	if (pmu_info_index == -1) {
+		SEP_DRV_LOG_LOAD("No MMIO list information detected - pmu_info_index is -1!\n");
+		SEP_DRV_LOG_TRACE_OUT("Success");
+		return OS_SUCCESS;
+	}
+
 	if (arch_pmu_info_used) {
 		unit_info_list = architectural_pmu_info_list[pmu_info_index]
 					 .mmio_info_list;
@@ -760,7 +778,7 @@ PMU_LIST_Build_MMIO_List(void)
 		unit_info_list = pmu_info_list[pmu_info_index].mmio_info_list;
 	}
 
-	if (pmu_info_index == -1 || !unit_info_list) {
+	if (!unit_info_list) {
 		SEP_DRV_LOG_LOAD("No MMIO list information detected!\n");
 		SEP_DRV_LOG_TRACE_OUT("Success");
 		return OS_SUCCESS;

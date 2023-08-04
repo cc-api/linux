@@ -503,6 +503,7 @@ extern "C" {
 #define DRV_STOP_ASYNC  2
 #define DRV_STOP_CANCEL 3
 
+#define MAX_DEVICES	30
 #define MAX_EVENTS 256 // Limiting maximum multiplexing events to 256.
 #if defined(DRV_OS_UNIX)
 #define UNREFERENCED_PARAMETER(p) ((p) = (p))

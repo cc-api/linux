@@ -192,6 +192,9 @@ static const PMU_INFO_NODE pmu_info_list[] = {
 	// CTI number = 156
 	{ 0x6, 0xBE, 0x0, 0xF, plat5_msr_list,   NULL,            plat5_mmio_info_list   },
 
+	// CTI number = 160
+	{ 0x6, 0x9A, 0x0, 0xF, plat5_msr_list,   NULL,            plat5_mmio_info_list   },
+
 	// CTI number = 144
 	{ 0x6, 0x6C, 0x0, 0xF, icx_r_msr_list,   icx_r_pci_list,  icx_mmio_info_list     },
 

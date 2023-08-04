@@ -163,27 +163,26 @@ hswunc_sa_Read_PMU_Data(PVOID param, U32 dev_idx)
 /*
  * Initialize the dispatch table
  */
-DISPATCH_NODE  hswunc_sa_dispatch =
-{
-    .init                     = hswunc_sa_Initialize,
-    .fini                     = NULL,
-    .write                    = NULL,
-    .freeze                   = NULL,
-    .restart                  = NULL,
-    .read_data                = hswunc_sa_Read_PMU_Data,
-    .check_overflow           = NULL,
-    .swap_group               = NULL,
-    .read_lbrs                = NULL,
-    .cleanup                  = NULL,
-    .hw_errata                = NULL,
-    .read_power               = NULL,
-    .check_overflow_errata    = NULL,
-    .read_counts              = NULL,
-    .check_overflow_gp_errata = NULL,
-    .read_ro                  = NULL,
-    .platform_info            = NULL,
-    .trigger_read             = hswunc_sa_Trigger_Read,
-    .scan_for_uncore          = NULL,
-    .read_metrics             = NULL
+DISPATCH_NODE hswunc_sa_dispatch = {
+	hswunc_sa_Initialize,    // initialize
+	NULL,                    // destroy
+	NULL,                    // write
+	NULL,                    // freeze
+	NULL,                    // restart
+	hswunc_sa_Read_PMU_Data, // read
+	NULL,                    // check for overflow
+	NULL,                    // swap group
+	NULL,                    // read lbrs
+	NULL,                    // cleanup
+	NULL,                    // hw errata
+	NULL,                    // read power
+	NULL,                    // check overflow errata
+	NULL,                    // read counts
+	NULL,                    // check overflow gp errata
+	NULL,                    // read_ro
+	NULL,                    // platform info
+	hswunc_sa_Trigger_Read,  // trigger read
+	NULL,                    // scan for uncore
+	NULL                     // read metrics
 };
 
