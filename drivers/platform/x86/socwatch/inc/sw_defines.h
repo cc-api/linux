@@ -5,7 +5,7 @@
  *
  * GPL LICENSE SUMMARY
  *
- * Copyright(c) 2014 - 2021 Intel Corporation.
+ * Copyright(c) 2014 Intel Corporation.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -24,7 +24,7 @@
  *
  * BSD LICENSE
  *
- * Copyright(c) 2014 - 2021 Intel Corporation.
+ * Copyright(c) 2014 Intel Corporation.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -113,12 +113,6 @@
  * Max size of process name retrieved from kernel.
  */
 #define SW_MAX_PROC_NAME_SIZE 16
-
-/*
- * Number of SOCPERF counters.
- * Needed by both Ring-0 and Ring-3
- */
-#define SW_NUM_SOCPERF_COUNTERS 9
 
 /*
  * Max size of process name retrieved from kernel space.

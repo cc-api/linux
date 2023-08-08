@@ -133,7 +133,7 @@ enum sw_io_type {
 	SW_IO_CONFIGDB		= 4,
 	SW_IO_TRACE_ARGS	= 5,
 	SW_IO_WAKEUP		= 6,
-	SW_IO_SOCPERF		= 7,
+	SW_IO_SOCPERF		= 7, // deprecated, but keeping for compatibility
 	SW_IO_PROC_NAME		= 8,
 	SW_IO_IRQ_NAME		= 9,
 	SW_IO_WAKELOCK		= 10,
@@ -182,7 +182,6 @@ void sw_read_pch_mailbox_info_i(char *dst_vals, int cpu, const struct sw_driver_
 void sw_read_mailbox_info_i(char *dst_vals, int cpu, const struct sw_driver_io_descriptor *descriptor, u16 counter_size_in_bytes);
 void sw_read_pci_info_i(char *dst_vals, int cpu, const struct sw_driver_io_descriptor *descriptor, u16 counter_size_in_bytes);
 void sw_read_configdb_info_i(char *dst_vals, int cpu, const struct sw_driver_io_descriptor *descriptor, u16 counter_size_in_bytes);
-void sw_read_socperf_info_i(char *dst_vals, int cpu, const struct sw_driver_io_descriptor *descriptor, u16 counter_size_in_bytes);
 
 /*
  * Write functions.
@@ -195,7 +194,6 @@ void sw_write_pci_info_i(char *dst_vals, int cpu, const struct sw_driver_io_desc
 void sw_write_configdb_info_i(char *dst_vals, int cpu, const struct sw_driver_io_descriptor *descriptor, u16 counter_size_in_bytes);
 void sw_write_trace_args_info_i(char *dst_vals, int cpu, const struct sw_driver_io_descriptor *descriptor, u16 counter_size_in_bytes);
 void sw_write_wakeup_info_i(char *dst_vals, int cpu, const struct sw_driver_io_descriptor *descriptor, u16 counter_size_in_bytes);
-void sw_write_socperf_info_i(char *dst_vals, int cpu, const struct sw_driver_io_descriptor *descriptor, u16 counter_size_in_bytes);
 
 /*
  * Print functions.
@@ -208,11 +206,6 @@ int sw_print_msr_io_descriptor(const struct sw_driver_io_descriptor *descriptor)
 int sw_ipc_mmio_descriptor_reset_func_i(const struct sw_driver_io_descriptor *descriptor);
 int sw_pch_mailbox_descriptor_reset_func_i(const struct sw_driver_io_descriptor *descriptor);
 int sw_mailbox_descriptor_reset_func_i(const struct sw_driver_io_descriptor *descriptor);
-
-/*
- * Available functions.
- */
-bool sw_socperf_available_i(void);
 
 /*
  * Validate functions.
@@ -277,8 +270,6 @@ static const struct sw_hw_ops s_hw_ops[] = {
 	},
 	[SW_IO_SOCPERF] = {
 		.name = "SOCPERF",
-		.read = &sw_read_socperf_info_i,
-		.available = &sw_socperf_available_i,
 		/* Other fields are don't care (will be set to NULL) */
 	},
 	[SW_IO_PROC_NAME] = {
@@ -832,24 +823,6 @@ void sw_read_configdb_info_i(char *dst_vals, int cpu,
 	 */
 	*((u32 *)dst_vals) = data;
 }
-void sw_read_socperf_info_i(char *dst_vals, int cpu,
-	const struct sw_driver_io_descriptor *descriptors,
-	u16 counter_size_in_bytes)
-{
-	u64 *socperf_buffer = (u64 *)dst_vals;
-
-	memset(socperf_buffer, 0, counter_size_in_bytes);
-}
-
-/**
- * Decide if the socperf interface is available for use
- * @returns	 true if available
- */
-bool sw_socperf_available_i(void)
-{
-	return false;
-}
-
 
 /**
  * sw_platform_configdb_read32 - for reading PCI space through config registers
