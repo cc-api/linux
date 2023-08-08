@@ -6298,6 +6298,62 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.5"
+        },
+        {
+            "branch": "kvm_dan",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "W",
+                    "email": "W"
+                },
+                {
+                    "name": " Dan",
+                    "email": "dan1.wu@intel.com"
+                }
+            ],
+            "description": "KVM: MSRLIST CPUID Enabling for v6.5-rc5",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3480",
+            "name": "kvm_msr_list",
+            "repourl": "https://github.com/intel-sandbox/kvm_dan.git",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-08/msg00020.html",
+            "platforms": "",
+            "feature_jiras": "",
+            "last_enabled": "v6.5"
+        },
+        {
+            "branch": "cwf-dmr-nis",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "S",
+                    "email": "S"
+                },
+                {
+                    "name": " Tao",
+                    "email": "tao1.su@intel.com"
+                }
+            ],
+            "description": "Advertise CPUID of CWF/DMR instructions to userspace",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3481",
+            "name": "cpuid_cwf_dmr_nis",
+            "repourl": "https://github.com/intel-sandbox/taosu.linux.git    ",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-08/msg00019.html",
+            "platforms": "CWF,DMR",
+            "feature_jiras": "",
+            "last_enabled": "v6.5"
         }
     ]
 }
