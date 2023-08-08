@@ -126,4 +126,6 @@ int pmt_telem_read(struct telem_endpoint *ep, u32 id, u64 *data,
 int pmt_telem_read32(struct telem_endpoint *ep, u32 id, u32 *data,
 		   u32 count);
 
+void pmt_telem_runtime_pm_put(struct telem_endpoint *ep);
+void pmt_telem_runtime_pm_get(struct telem_endpoint *ep);
 #endif

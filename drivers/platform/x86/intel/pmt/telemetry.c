@@ -12,6 +12,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/pci.h>
+#include <linux/pm_runtime.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <linux/overflow.h>
@@ -215,6 +216,18 @@ unlock:
 
 }
 EXPORT_SYMBOL_NS_GPL(pmt_telem_get_endpoint_info, INTEL_PMT_TELEMETRY);
+
+void pmt_telem_runtime_pm_put(struct telem_endpoint *ep)
+{
+        pm_runtime_put_sync(&ep->pcidev->dev);
+}
+EXPORT_SYMBOL(pmt_telem_runtime_pm_put);
+
+void pmt_telem_runtime_pm_get(struct telem_endpoint *ep)
+{
+        pm_runtime_get_sync(&ep->pcidev->dev);
+}
+EXPORT_SYMBOL(pmt_telem_runtime_pm_get);
 
 int
 pmt_telem_read(struct telem_endpoint *ep, u32 id, u64 *data, u32 count)
