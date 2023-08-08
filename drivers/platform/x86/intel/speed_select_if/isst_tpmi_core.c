@@ -46,6 +46,12 @@
 /* All SST regs are 64 bit size */
 #define SST_REG_SIZE   8
 
+/* Max number of PCI device in one package (means partitions) */
+#define SST_MAX_PARTITIONS		2
+
+/* Max possible power domain id */
+#define SST_MAX_POWER_DOMAIN_ID	15
+
 /**
  * struct sst_header -	SST main header
  * @interface_version:	Version number for this interface
@@ -269,6 +275,7 @@ struct tpmi_per_power_domain_info {
  * @package_id:			Package id for this aux device instance
  * @number_of_power_domains:	Number of power_domains pointed by power_domain_info pointer
  * @power_domain_info:		Pointer to power domains information
+ * @cd_mask:		Mask of compute dies for this instance
  *
  * This structure is used store full SST information for a package.
  * Each package has a unique OOB PCI device, which enumerates TPMI.
@@ -278,6 +285,7 @@ struct tpmi_sst_struct {
 	int package_id;
 	int number_of_power_domains;
 	struct tpmi_per_power_domain_info *power_domain_info;
+	u16 cdie_mask;
 };
 
 /**
@@ -396,17 +404,18 @@ static struct tpmi_per_power_domain_info *get_instance(int pkg_id, int power_dom
 {
 	struct tpmi_per_power_domain_info *power_domain_info;
 	struct tpmi_sst_struct *sst_inst;
+	int i;
 
 	if (pkg_id < 0 || pkg_id > isst_common.max_index ||
-	    pkg_id >= topology_max_packages())
+	    pkg_id >= topology_max_packages() || power_domain_id > SST_MAX_POWER_DOMAIN_ID ||
+	    power_domain_id < 0)
 		return NULL;
 
-	sst_inst = isst_common.sst_inst[pkg_id];
-	if (!sst_inst)
-		return NULL;
-
-	if (power_domain_id < 0 || power_domain_id >= sst_inst->number_of_power_domains)
-		return NULL;
+	for (i = 0; i < SST_MAX_PARTITIONS; ++i) {
+		sst_inst = isst_common.sst_inst[pkg_id + i * topology_max_packages()];
+		if (!sst_inst->cdie_mask || (sst_inst->cdie_mask & BIT(power_domain_id)))
+			break;
+	}
 
 	power_domain_info = &sst_inst->power_domain_info[power_domain_id];
 
@@ -1377,7 +1386,7 @@ int tpmi_sst_dev_add(struct auxiliary_device *auxdev)
 	struct intel_tpmi_plat_info *plat_info;
 	struct tpmi_sst_struct *tpmi_sst;
 	int i, ret, pkg = 0, inst = 0;
-	int num_resources;
+	int num_resources, partition;
 
 	ret = tpmi_get_feature_status(auxdev, TPMI_ID_SST, &read_blocked, &write_blocked);
 	if (ret)
@@ -1400,6 +1409,12 @@ int tpmi_sst_dev_add(struct auxiliary_device *auxdev)
 		return -EINVAL;
 	}
 
+	partition = plat_info->partition;
+	if (partition >= SST_MAX_PARTITIONS) {
+		dev_err(&auxdev->dev, "Invalid partition :%x\n", partition);
+		return -EINVAL;
+	}
+
 	if (isst_common.sst_inst[pkg])
 		return -EEXIST;
 
@@ -1411,6 +1426,8 @@ int tpmi_sst_dev_add(struct auxiliary_device *auxdev)
 	tpmi_sst = devm_kzalloc(&auxdev->dev, sizeof(*tpmi_sst), GFP_KERNEL);
 	if (!tpmi_sst)
 		return -ENOMEM;
+
+	tpmi_sst->cdie_mask = plat_info->cdie_mask;
 
 	tpmi_sst->power_domain_info = devm_kcalloc(&auxdev->dev, num_resources,
 						   sizeof(*tpmi_sst->power_domain_info),
@@ -1456,7 +1473,7 @@ int tpmi_sst_dev_add(struct auxiliary_device *auxdev)
 	mutex_lock(&isst_tpmi_dev_lock);
 	if (isst_common.max_index < pkg)
 		isst_common.max_index = pkg;
-	isst_common.sst_inst[pkg] = tpmi_sst;
+	isst_common.sst_inst[pkg + partition * topology_max_packages()] = tpmi_sst;
 	mutex_unlock(&isst_tpmi_dev_lock);
 
 	pm_runtime_set_active(&auxdev->dev);
@@ -1535,7 +1552,7 @@ int tpmi_sst_init(void)
 		goto init_done;
 	}
 
-	isst_common.sst_inst = kcalloc(topology_max_packages(),
+	isst_common.sst_inst = kcalloc(topology_max_packages() * SST_MAX_PARTITIONS,
 				       sizeof(*isst_common.sst_inst),
 				       GFP_KERNEL);
 	if (!isst_common.sst_inst) {
