@@ -436,8 +436,8 @@ int x86_reserve_hardware(void)
 			if (!reserve_pmc_hardware()) {
 				err = -EBUSY;
 			} else {
+				reserve_ds_buffers();
 				__intel_reserve_lbr_buffers();
-				reserve_lbr_buffers();
 			}
 		}
 		if (!err)
@@ -452,8 +452,8 @@ void x86_release_hardware(void)
 {
 	if (atomic_dec_and_mutex_lock(&pmc_refcount, &pmc_reserve_mutex)) {
 		release_pmc_hardware();
+		release_ds_buffers();
 		__intel_release_lbr_buffers();
-		release_lbr_buffers();
 		mutex_unlock(&pmc_reserve_mutex);
 	}
 }
