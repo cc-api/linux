@@ -378,21 +378,13 @@ static const struct xe_mocs_entry mtl_mocs_desc[] = {
 
 static const struct xe_mocs_entry xe2_mocs_table[] = {
 	/* Defer to PAT */
-	MOCS_ENTRY(0,
-		   XE2_L3_0_WB | L4_0_WB,
-		   0),
+	MOCS_ENTRY(0, XE2_L3_0_WB | L4_0_WB, 0),
 	/* Cached L3 + L4 */
-	MOCS_ENTRY(1,
-		   IG_PAT | XE2_L3_0_WB | L4_0_WB,
-		   0),
+	MOCS_ENTRY(1, IG_PAT | XE2_L3_0_WB | L4_0_WB, 0),
 	/* Uncached L3, Cached L4 */
-	MOCS_ENTRY(2,
-		   IG_PAT | XE2_L3_3_UC | L4_0_WB,
-		   0),
+	MOCS_ENTRY(2, IG_PAT | XE2_L3_3_UC | L4_0_WB, 0),
 	/* Uncached L3 + L4 */
-	MOCS_ENTRY(3,
-		   IG_PAT | XE2_L3_3_UC | L4_3_UC,
-		   0),
+	MOCS_ENTRY(3, IG_PAT | XE2_L3_3_UC | L4_3_UC, 0),
 };
 
 static unsigned int get_mocs_settings(struct xe_device *xe,
