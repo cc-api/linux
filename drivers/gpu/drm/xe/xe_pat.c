@@ -87,8 +87,8 @@ static const u32 mtl_pat_table[] = {
  * in the table.
  */
 #define XE2_PAT(no_promote, comp_en, l3clos, l3_policy, l4_policy, coh_mode) \
-	no_promote ? XE2_NO_PROMOTE : 0 | \
-	comp_en ? XE2_COMP_EN : 0 | \
+	(no_promote ? XE2_NO_PROMOTE : 0) | \
+	(comp_en ? XE2_COMP_EN : 0) | \
 	XE2_L3_CLOS(l3clos) | XE2_L3_POLICY(l3_policy) | \
 	XE2_L4_POLICY(l4_policy) | XE2_COH_MODE(coh_mode)
 
