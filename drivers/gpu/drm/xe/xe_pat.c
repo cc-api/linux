@@ -16,12 +16,12 @@
 								   0x4848, 0x484c)
 #define _PAT_PTA				0x4820
 
-#define XE2_NO_PROMOTE				REG_BIT(10)
-#define XE2_COMP_EN				REG_BIT(9)
-#define XE2_L3_CLOS(x)				REG_FIELD_PREP(REG_GENMASK(7, 6), x)
-#define XE2_L3_POLICY(x)			REG_FIELD_PREP(REG_GENMASK(5, 4), x)
-#define XE2_L4_POLICY(x)			REG_FIELD_PREP(REG_GENMASK(3, 2), x)
-#define XE2_COH_MODE(x)				REG_FIELD_PREP(REG_GENMASK(1, 0), x)
+#define XE2_NO_PROMOTE                          REG_BIT(10)
+#define XE2_COMP_EN                             REG_BIT(9)
+#define XE2_L3_CLOS                             REG_GENMASK(7, 6)
+#define XE2_L3_POLICY                           REG_GENMASK(5, 4)
+#define XE2_L4_POLICY                           REG_GENMASK(3, 2)
+#define XE2_COH_MODE                            REG_GENMASK(1, 0)
 
 #define MTL_L4_POLICY_MASK			REG_GENMASK(3, 2)
 #define MTL_PAT_3_UC				REG_FIELD_PREP(MTL_L4_POLICY_MASK, 3)
@@ -89,8 +89,10 @@ static const u32 mtl_pat_table[] = {
 #define XE2_PAT(no_promote, comp_en, l3clos, l3_policy, l4_policy, coh_mode) \
 	(no_promote ? XE2_NO_PROMOTE : 0) | \
 	(comp_en ? XE2_COMP_EN : 0) | \
-	XE2_L3_CLOS(l3clos) | XE2_L3_POLICY(l3_policy) | \
-	XE2_L4_POLICY(l4_policy) | XE2_COH_MODE(coh_mode)
+	REG_FIELD_PREP(XE2_L3_CLOS, l3clos) | \
+	REG_FIELD_PREP(XE2_L3_POLICY, l3_policy) | \
+	REG_FIELD_PREP(XE2_L4_POLICY, l4_policy) | \
+	REG_FIELD_PREP(XE2_COH_MODE, coh_mode)
 
 static const u32 xe2_pat_table[] = {
 	[ 0] = XE2_PAT( 0, 0, 0, 0, 0, 0 ),
