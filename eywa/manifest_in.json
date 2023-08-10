@@ -6342,7 +6342,7 @@
                 }
             ],
             "description": "Advertise CPUID of CWF/DMR instructions to userspace",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3481",
             "name": "cpuid_cwf_dmr_nis",
