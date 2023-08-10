@@ -5157,7 +5157,7 @@
                 }
             ],
             "description": "KVM: Arch LBR and CET features",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Weijiang Yang",
