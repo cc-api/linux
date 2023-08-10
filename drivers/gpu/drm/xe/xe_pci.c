@@ -622,13 +622,6 @@ static void handle_gmdid(struct xe_device *xe,
 		if (ver == media_ip_map[i].ver) {
 			xe->info.media_verx100 = ver;
 			*media = media_ip_map[i].ip;
-
-			/* FIXME: Remove once standalone media is ready */
-			drm_info(&xe->drm, "Detected %s media, but leaving disabled until support is ready.\n", (*media)->name);
-			*media = NULL;
-			xe->info.media_verx100 = 0;
-			return;
-
 			break;
 		}
 	}
