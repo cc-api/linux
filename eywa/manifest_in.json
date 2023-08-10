@@ -6314,7 +6314,7 @@
                 }
             ],
             "description": "KVM: MSRLIST CPUID Enabling for v6.5-rc5",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3480",
             "name": "kvm_msr_list",
