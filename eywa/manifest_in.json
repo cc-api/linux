@@ -6276,7 +6276,7 @@
                 }
             ],
             "description": "RDT CMBA",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Venkateswara Madduri",
