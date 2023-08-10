@@ -5157,7 +5157,7 @@
                 }
             ],
             "description": "KVM: Arch LBR and CET features",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Weijiang Yang",
@@ -6044,7 +6044,7 @@
                 }
             ],
             "description": "Expose LASS to VM guest",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Gil Neiger",
@@ -6314,7 +6314,7 @@
                 }
             ],
             "description": "KVM: MSRLIST CPUID Enabling for v6.5-rc5",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3480",
             "name": "kvm_msr_list",
