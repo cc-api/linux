@@ -46,6 +46,26 @@ static struct xe_pt *xe_pt_entry(struct xe_pt_dir *pt_dir, unsigned int index)
 	return container_of(pt_dir->dir.entries[index], struct xe_pt, base);
 }
 
+static u64 xe2_pat_encode(unsigned int pat_index)
+{
+	u64 ret = 0;
+
+	XE_WARN_ON(pat_index >= 32);
+
+	if (pat_index & BIT(4))
+		ret |= XE2_PPGTT_PTE_PAT4;
+	if (pat_index & BIT(3))
+		ret |= XE2_PPGTT_PTE_PAT3;
+	if (pat_index & BIT(2))
+		ret |= XE2_PPGTT_PTE_PAT2;
+	if (pat_index & BIT(1))
+		ret |= XE2_PPGTT_PTE_PAT1;
+	if (pat_index & BIT(0))
+		ret |= XE2_PPGTT_PTE_PAT0;
+
+	return ret;
+}
+
 /**
  * xe_pde_encode() - Encode a page-table directory entry pointing to
  * another page-table.
@@ -65,17 +85,28 @@ u64 xe_pde_encode(struct xe_bo *bo, u64 bo_offset,
 	pde = xe_bo_addr(bo, bo_offset, XE_PAGE_SIZE);
 	pde |= XE_PAGE_PRESENT | XE_PAGE_RW;
 
-	/* FIXME: I don't think the PPAT handling is correct for MTL */
-
-	if (level != XE_CACHE_NONE)
-		pde |= PPAT_CACHED_PDE;
-	else
-		pde |= PPAT_UNCACHED;
+	/*
+	 * FIXME: this should not be here: it needs a proper abstraction for
+	 * getting the index and encoding it to the pd/pt entry
+	 */
+	if (GRAPHICS_VER(xe_bo_device(bo)) >= 20) {
+		if (level != XE_CACHE_NONE)
+			/* 2-way coherent mapping (new table) */
+			pde |= xe2_pat_encode(2);
+		else
+			pde |= xe2_pat_encode(3);
+	} else {
+		if (level != XE_CACHE_NONE)
+			pde |= PPAT_CACHED_PDE;
+		else
+			pde |= PPAT_UNCACHED;
+	}
 
 	return pde;
 }
 
-static u64 __pte_encode(u64 pte, enum xe_cache_level cache,
+static u64 __pte_encode(struct xe_device *xe,
+			u64 pte, enum xe_cache_level cache,
 			struct xe_vma *vma, u32 pt_level)
 {
 	pte |= XE_PAGE_PRESENT | XE_PAGE_RW;
@@ -86,18 +117,35 @@ static u64 __pte_encode(u64 pte, enum xe_cache_level cache,
 	if (unlikely(vma && xe_vma_is_null(vma)))
 		pte |= XE_PTE_NULL;
 
-	/* FIXME: I don't think the PPAT handling is correct for MTL */
-
-	switch (cache) {
-	case XE_CACHE_NONE:
-		pte |= PPAT_UNCACHED;
-		break;
-	case XE_CACHE_WT:
-		pte |= PPAT_DISPLAY_ELLC;
-		break;
-	default:
-		pte |= PPAT_CACHED;
-		break;
+	/*
+	 * FIXME: this should not be here: it needs a proper abstraction for
+	 * getting the index and encoding it to the pd/pt entry
+	 */
+	if (GRAPHICS_VERx100(xe) >= 20) {
+		switch (cache) {
+		case XE_CACHE_NONE:
+			pte |= xe2_pat_encode(3);
+			break;
+		case XE_CACHE_WT:
+			pte |= xe2_pat_encode(6);
+			break;
+		default:
+			/* 2-way coherent */
+			pte |= xe2_pat_encode(2);
+			break;
+		}
+	} else {
+		switch (cache) {
+		case XE_CACHE_NONE:
+			pte |= PPAT_UNCACHED;
+			break;
+		case XE_CACHE_WT:
+			pte |= PPAT_DISPLAY_ELLC;
+			break;
+		default:
+			pte |= PPAT_CACHED;
+			break;
+		}
 	}
 
 	if (pt_level == 1)
@@ -130,7 +178,7 @@ u64 xe_pte_encode(struct xe_bo *bo, u64 offset, enum xe_cache_level cache,
 	if (xe_bo_is_vram(bo) || xe_bo_is_stolen_devmem(bo))
 		pte |= XE_PPGTT_PTE_DM;
 
-	return __pte_encode(pte, cache, NULL, pt_level);
+	return __pte_encode(xe_bo_device(bo), pte, cache, NULL, pt_level);
 }
 
 static u64 __xe_pt_empty_pte(struct xe_tile *tile, struct xe_vm *vm,
@@ -611,7 +659,7 @@ xe_pt_stage_bind_entry(struct xe_ptw *parent, pgoff_t offset,
 
 		XE_WARN_ON(xe_walk->va_curs_start != addr);
 
-		pte = __pte_encode(is_null ? 0 :
+		pte = __pte_encode(tile_to_xe(xe_walk->tile), is_null ? 0 :
 				   xe_res_dma(curs) + xe_walk->dma_offset,
 				   xe_walk->cache, xe_walk->vma, level);
 		pte |= xe_walk->default_pte;

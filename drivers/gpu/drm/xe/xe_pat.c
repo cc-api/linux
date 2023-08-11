@@ -6,6 +6,7 @@
 #include "xe_pat.h"
 
 #include "regs/xe_reg_defs.h"
+#include "xe_device.h"
 #include "xe_gt.h"
 #include "xe_gt_mcr.h"
 #include "xe_mmio.h"
@@ -16,12 +17,12 @@
 								   0x4848, 0x484c)
 #define _PAT_PTA				0x4820
 
-#define XE2_NO_PROMOTE				REG_BIT(10)
-#define XE2_COMP_EN				REG_BIT(9)
-#define XE2_L3_CLOS(x)				REG_FIELD_PREP(REG_GENMASK(7, 6), x)
-#define XE2_L3_POLICY(x)			REG_FIELD_PREP(REG_GENMASK(5, 4), x)
-#define XE2_L4_POLICY(x)			REG_FIELD_PREP(REG_GENMASK(3, 2), x)
-#define XE2_COH_MODE(x)				REG_FIELD_PREP(REG_GENMASK(1, 0), x)
+#define XE2_NO_PROMOTE                          REG_BIT(10)
+#define XE2_COMP_EN                             REG_BIT(9)
+#define XE2_L3_CLOS                             REG_GENMASK(7, 6)
+#define XE2_L3_POLICY                           REG_GENMASK(5, 4)
+#define XE2_L4_POLICY                           REG_GENMASK(3, 2)
+#define XE2_COH_MODE                            REG_GENMASK(1, 0)
 
 #define MTL_L4_POLICY_MASK			REG_GENMASK(3, 2)
 #define MTL_PAT_3_UC				REG_FIELD_PREP(MTL_L4_POLICY_MASK, 3)
@@ -87,19 +88,21 @@ static const u32 mtl_pat_table[] = {
  * in the table.
  */
 #define XE2_PAT(no_promote, comp_en, l3clos, l3_policy, l4_policy, coh_mode) \
-	no_promote ? XE2_NO_PROMOTE : 0 | \
-	comp_en ? XE2_COMP_EN : 0 | \
-	XE2_L3_CLOS(l3clos) | XE2_L3_POLICY(l3_policy) | \
-	XE2_L4_POLICY(l4_policy) | XE2_COH_MODE(coh_mode)
+	(no_promote ? XE2_NO_PROMOTE : 0) | \
+	(comp_en ? XE2_COMP_EN : 0) | \
+	REG_FIELD_PREP(XE2_L3_CLOS, l3clos) | \
+	REG_FIELD_PREP(XE2_L3_POLICY, l3_policy) | \
+	REG_FIELD_PREP(XE2_L4_POLICY, l4_policy) | \
+	REG_FIELD_PREP(XE2_COH_MODE, coh_mode)
 
 static const u32 xe2_pat_table[] = {
 	[ 0] = XE2_PAT( 0, 0, 0, 0, 0, 0 ),
-	[ 1] = XE2_PAT( 1, 0, 0, 1, 1, 0 ),
-	[ 2] = XE2_PAT( 0, 0, 0, 3, 3, 0 ),
-	[ 3] = XE2_PAT( 0, 0, 0, 0, 0, 2 ),
+	[ 1] = XE2_PAT( 0, 0, 0, 0, 0, 2 ),
+	[ 2] = XE2_PAT( 0, 0, 0, 0, 0, 3 ),
+	[ 3] = XE2_PAT( 0, 0, 0, 3, 3, 0 ),
 	[ 4] = XE2_PAT( 0, 0, 0, 3, 0, 2 ),
 	[ 5] = XE2_PAT( 0, 0, 0, 3, 3, 2 ),
-	[ 6] = XE2_PAT( 0, 0, 0, 0, 0, 3 ),
+	[ 6] = XE2_PAT( 1, 0, 0, 1, 1, 0 ),
 	[ 7] = XE2_PAT( 0, 0, 0, 3, 0, 3 ),
 	[ 8] = XE2_PAT( 0, 0, 0, 3, 0, 0 ),
 	[ 9] = XE2_PAT( 0, 1, 0, 0, 0, 0 ),
@@ -192,4 +195,61 @@ void xe_pat_init(struct xe_gt *gt)
 		drm_err(&xe->drm, "Missing PAT table for platform with graphics version %d.%2d!\n",
 			GRAPHICS_VER(xe), GRAPHICS_VERx100(xe) % 100);
 	}
+}
+
+void xe_pat_dump(struct xe_gt *gt, struct drm_printer *p)
+{
+	u32 pat;
+	int i, err;
+
+	if (GRAPHICS_VERx100(gt_to_xe(gt)) < 2000)
+		/* Not implemented yet */
+		return;
+
+	xe_device_mem_access_get(gt_to_xe(gt));
+	err = xe_force_wake_get(gt_to_fw(gt), XE_FW_GT);
+	if (err)
+		goto err_fw;
+
+	drm_printf(p, "PAT table:\n");
+
+	for (i = 0; i < 32; i++) {
+		if (xe_gt_is_media_type(gt))
+			pat = xe_mmio_read32(gt, XE_REG(_PAT_INDEX(i)));
+		else
+			pat = xe_gt_mcr_unicast_read_any(gt, XE_REG_MCR(_PAT_INDEX(i)));
+
+		drm_printf(p, "PAT[%2d] = [ %u, %u, %u, %u, %u, %u ]  (%#8x)\n", i,
+			   !!(pat & XE2_NO_PROMOTE),
+			   !!(pat & XE2_COMP_EN),
+			   REG_FIELD_GET(XE2_L3_CLOS, pat),
+			   REG_FIELD_GET(XE2_L3_POLICY, pat),
+			   REG_FIELD_GET(XE2_L4_POLICY, pat),
+			   REG_FIELD_GET(XE2_COH_MODE, pat),
+			   pat);
+	}
+
+	/*
+	 * Also print PTA_MODE, which describes how the hardware accesses
+	 * PPGTT entries.
+	 */
+	if (xe_gt_is_media_type(gt))
+		pat = xe_mmio_read32(gt, XE_REG(_PAT_PTA));
+	else
+		pat = xe_gt_mcr_unicast_read_any(gt, XE_REG_MCR(_PAT_PTA));
+
+	drm_printf(p, "Page Table Access:\n");
+	drm_printf(p, "PTA_MODE= [ %u, %u, %u, %u, %u, %u ]  (%#8x)\n",
+		   !!(pat & XE2_NO_PROMOTE),
+		   !!(pat & XE2_COMP_EN),
+		   REG_FIELD_GET(XE2_L3_CLOS, pat),
+		   REG_FIELD_GET(XE2_L3_POLICY, pat),
+		   REG_FIELD_GET(XE2_L4_POLICY, pat),
+		   REG_FIELD_GET(XE2_COH_MODE, pat),
+		   pat);
+
+	err = xe_force_wake_put(gt_to_fw(gt), XE_FW_GT);
+err_fw:
+	XE_WARN_ON(err);
+	xe_device_mem_access_put(gt_to_xe(gt));
 }
