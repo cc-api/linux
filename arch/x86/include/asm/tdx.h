@@ -57,6 +57,8 @@ bool tdx_allowed_port(short int port);
 
 int tdx_mcall_extend_rtmr(u8 *data, u8 index);
 
+void ccel_record_eventlog(void *data, u8 index);
+
 #else
 
 static inline void tdx_early_init(void) { };
@@ -141,7 +143,6 @@ u32 tdx_get_global_keyid(void);
 u32 tdx_get_num_keyid(void);
 int tdx_keyid_alloc(void);
 void tdx_keyid_free(int keyid);
-void ccel_record_eventlog(void *data, u8 index);
 
 u64 __seamcall(u64 op, u64 rcx, u64 rdx, u64 r8, u64 r9,
 	       struct tdx_module_output *out);
