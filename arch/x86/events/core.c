@@ -1914,9 +1914,9 @@ ssize_t events_hybrid_sysfs_show(struct device *dev,
 
 	str = pmu_attr->event_str;
 	for (i = 0; i < x86_pmu.num_hybrid_pmus; i++) {
-		if (!(pmu_get_core_type(&x86_pmu.hybrid_pmu[i]) & pmu_attr->pmu_type))
+		if (!(x86_pmu.hybrid_pmu[i].cpu_type & pmu_attr->pmu_type))
 			continue;
-		if (x86_pmu.hybrid_pmu[i].cpu_type == pmu->cpu_type) {
+		if (x86_pmu.hybrid_pmu[i].cpu_type & pmu->cpu_type) {
 			next_str = strchr(str, ';');
 			if (next_str)
 				return snprintf(page, next_str - str + 1, "%s", str);
@@ -1924,10 +1924,7 @@ ssize_t events_hybrid_sysfs_show(struct device *dev,
 				return sprintf(page, "%s", str);
 		}
 		str = strchr(str, ';');
-		if (str)
-			str++;
-		else
-			return 0;
+		str++;
 	}
 
 	return 0;
@@ -2213,8 +2210,7 @@ static int __init init_hw_perf_events(void)
 				x86_pmu_format_group.attrs = hybrid_pmu->format_attrs;
 
 			err = perf_pmu_register(&hybrid_pmu->pmu, hybrid_pmu->name,
-						(pmu_get_core_type(hybrid_pmu) == hybrid_big) ?
-						PERF_TYPE_RAW : -1);
+						(hybrid_pmu->cpu_type == hybrid_big) ? PERF_TYPE_RAW : -1);
 			if (err)
 				break;
 		}

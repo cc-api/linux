@@ -657,7 +657,7 @@ enum {
 struct x86_hybrid_pmu {
 	struct pmu			pmu;
 	const char			*name;
-	u32				cpu_type;
+	u8				cpu_type;
 	cpumask_t			supported_cpus;
 	union perf_capabilities		intel_cap;
 	u64				intel_ctrl;
@@ -705,20 +705,6 @@ struct x86_hybrid_pmu {
 static __always_inline struct x86_hybrid_pmu *hybrid_pmu(struct pmu *pmu)
 {
 	return container_of(pmu, struct x86_hybrid_pmu, pmu);
-}
-
-static __always_inline u32 get_hybrid_core_id(void)
-{
-	if (!cpu_feature_enabled(X86_FEATURE_HYBRID_CPU))
-		return 0;
-
-	return cpuid_eax(0x0000001a);
-}
-
-#define X86_HYBRID_CORE_TYPE_ID_SHIFT	24
-static __always_inline u8 pmu_get_core_type(struct x86_hybrid_pmu *pmu)
-{
-	return pmu->cpu_type >> X86_HYBRID_CORE_TYPE_ID_SHIFT;
 }
 
 extern struct static_key_false perf_is_hybrid;

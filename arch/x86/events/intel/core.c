@@ -2583,7 +2583,7 @@ static int adl_set_topdown_event_period(struct perf_event *event)
 {
 	struct x86_hybrid_pmu *pmu = hybrid_pmu(event->pmu);
 
-	if (pmu_get_core_type(pmu) != hybrid_big)
+	if (pmu->cpu_type != hybrid_big)
 		return 0;
 
 	return icl_set_topdown_event_period(event);
@@ -2735,7 +2735,7 @@ static u64 adl_update_topdown_event(struct perf_event *event)
 {
 	struct x86_hybrid_pmu *pmu = hybrid_pmu(event->pmu);
 
-	if (pmu_get_core_type(pmu) != hybrid_big)
+	if (pmu->cpu_type != hybrid_big)
 		return 0;
 
 	return icl_update_topdown_event(event);
@@ -3906,7 +3906,7 @@ static inline bool require_mem_loads_aux_event(struct perf_event *event)
 		return false;
 
 	if (is_hybrid())
-		return pmu_get_core_type(hybrid_pmu(event->pmu)) == hybrid_big;
+		return hybrid_pmu(event->pmu)->cpu_type == hybrid_big;
 
 	return true;
 }
@@ -4421,9 +4421,9 @@ adl_get_event_constraints(struct cpu_hw_events *cpuc, int idx,
 {
 	struct x86_hybrid_pmu *pmu = hybrid_pmu(event->pmu);
 
-	if (pmu_get_core_type(pmu) == hybrid_big)
+	if (pmu->cpu_type == hybrid_big)
 		return spr_get_event_constraints(cpuc, idx, event);
-	else if (pmu_get_core_type(pmu) == hybrid_small)
+	else if (pmu->cpu_type == hybrid_small)
 		return tnt_get_event_constraints(cpuc, idx, event);
 
 	WARN_ON(1);
@@ -4493,9 +4493,9 @@ mtl_get_event_constraints(struct cpu_hw_events *cpuc, int idx,
 {
 	struct x86_hybrid_pmu *pmu = hybrid_pmu(event->pmu);
 
-	if (pmu_get_core_type(pmu) == hybrid_big)
+	if (pmu->cpu_type == hybrid_big)
 		return rwc_get_event_constraints(cpuc, idx, event);
-	if (pmu_get_core_type(pmu) == hybrid_small)
+	if (pmu->cpu_type == hybrid_small)
 		return cmt_get_event_constraints(cpuc, idx, event);
 
 	WARN_ON(1);
@@ -4506,9 +4506,9 @@ static int adl_hw_config(struct perf_event *event)
 {
 	struct x86_hybrid_pmu *pmu = hybrid_pmu(event->pmu);
 
-	if (pmu_get_core_type(pmu) == hybrid_big)
+	if (pmu->cpu_type == hybrid_big)
 		return hsw_hw_config(event);
-	else if (pmu_get_core_type(pmu) == hybrid_small)
+	else if (pmu->cpu_type == hybrid_small)
 		return intel_pmu_hw_config(event);
 
 	WARN_ON(1);
@@ -4929,7 +4929,7 @@ static void intel_pmu_check_hybrid_pmus(void)
 static bool init_hybrid_pmu(int cpu)
 {
 	struct cpu_hw_events *cpuc = &per_cpu(cpu_hw_events, cpu);
-	u32 cpu_type = get_hybrid_core_id();
+	u8 cpu_type = get_this_hybrid_cpu_type();
 	struct x86_hybrid_pmu *pmu = NULL;
 	int i;
 
@@ -5987,7 +5987,7 @@ static bool is_attr_for_this_pmu(struct kobject *kobj, struct attribute *attr)
 	struct perf_pmu_events_hybrid_attr *pmu_attr =
 		container_of(attr, struct perf_pmu_events_hybrid_attr, attr.attr);
 
-	return pmu_get_core_type(pmu) & pmu_attr->pmu_type;
+	return pmu->cpu_type & pmu_attr->pmu_type;
 }
 
 static umode_t hybrid_events_is_visible(struct kobject *kobj,
@@ -6024,7 +6024,7 @@ static umode_t hybrid_format_is_visible(struct kobject *kobj,
 		container_of(attr, struct perf_pmu_format_hybrid_attr, attr.attr);
 	int cpu = hybrid_find_supported_cpu(pmu);
 
-	return (cpu >= 0) && (pmu_get_core_type(pmu) & pmu_attr->pmu_type) ? attr->mode : 0;
+	return (cpu >= 0) && (pmu->cpu_type & pmu_attr->pmu_type) ? attr->mode : 0;
 }
 
 static struct attribute_group hybrid_group_events_td  = {
@@ -6887,7 +6887,7 @@ __init int intel_pmu_init(void)
 		/* Initialize big core specific PerfMon capabilities.*/
 		pmu = &x86_pmu.hybrid_pmu[X86_HYBRID_PMU_CORE_IDX];
 		pmu->name = "cpu_core";
-		pmu->cpu_type = get_hybrid_core_id();
+		pmu->cpu_type = hybrid_big;
 		pmu->late_ack = true;
 		if (cpu_feature_enabled(X86_FEATURE_HYBRID_CPU)) {
 			pmu->num_counters = x86_pmu.num_counters + 2;
@@ -6928,7 +6928,7 @@ __init int intel_pmu_init(void)
 		/* Initialize Atom core specific PerfMon capabilities.*/
 		pmu = &x86_pmu.hybrid_pmu[X86_HYBRID_PMU_ATOM_IDX];
 		pmu->name = "cpu_atom";
-		pmu->cpu_type = get_hybrid_core_id();
+		pmu->cpu_type = hybrid_small;
 		pmu->mid_ack = true;
 		pmu->num_counters = x86_pmu.num_counters;
 		pmu->num_counters_fixed = x86_pmu.num_counters_fixed;
@@ -7018,7 +7018,7 @@ __init int intel_pmu_init(void)
 		/* Initialize big core specific PerfMon capabilities.*/
 		pmu = &x86_pmu.hybrid_pmu[X86_HYBRID_PMU_CORE_IDX];
 		pmu->name = "cpu_core";
-		pmu->cpu_type = get_hybrid_core_id();
+		pmu->cpu_type = hybrid_big;
 		pmu->late_ack = true;
 		pmu->num_counters = x86_pmu.num_counters;
 		pmu->num_counters_fixed = x86_pmu.num_counters_fixed + 1;
@@ -7041,7 +7041,7 @@ __init int intel_pmu_init(void)
 		/* Initialize Atom core specific PerfMon capabilities.*/
 		pmu = &x86_pmu.hybrid_pmu[X86_HYBRID_PMU_ATOM_IDX];
 		pmu->name = "cpu_atom";
-		pmu->cpu_type = get_hybrid_core_id();
+		pmu->cpu_type = hybrid_small;
 		pmu->mid_ack = true;
 		pmu->num_counters = x86_pmu.num_counters;
 		pmu->num_counters_fixed = x86_pmu.num_counters_fixed;
