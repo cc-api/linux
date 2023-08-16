@@ -640,6 +640,25 @@ static const struct spdm_get_version_req spdm_get_version_req = {
 	.code = SPDM_GET_VERSION,
 };
 
+static void print_transcript(struct sdsi_spdm_state *spdm_state, const char *s, u8 *p, int l)
+{
+	struct device *dev = spdm_state->dev;
+
+	dev_dbg(dev, "TRANSCRIPT FOR %s: %d\n", s, l);
+	while (l >= 4) {
+		dev_dbg(dev, "\t0x%08x\n", *(u32 *)p);
+		p += 4;
+		l -= 4;
+	}
+
+	if (l == 3)
+		dev_dbg(dev, "\t0x%06x\n", *(u32 *)p);
+	else if (l == 2)
+		dev_dbg(dev, "\t0x%04x\n", *(u16 *)p);
+	else if (l == 1)
+		dev_dbg(dev, "\t0x%02x\n", *(u8 *)p);
+}
+
 static int spdm_get_version(struct sdsi_spdm_state *spdm_state,
 			    struct spdm_get_version_rsp *rsp, size_t *rsp_sz)
 {
@@ -656,6 +675,9 @@ static int spdm_get_version(struct sdsi_spdm_state *spdm_state,
 			     struct_size(rsp, version_number_entries, 255));
 	if (rc < 0)
 		return rc;
+
+	print_transcript(spdm_state, "GET_VERSION REQ", (u8 *)&spdm_get_version_req,
+			 sizeof(spdm_get_version_req));
 
 	length = rc;
 	if (length < sizeof(*rsp) ||
@@ -970,31 +992,15 @@ static int spdm_negotiate_algs(struct sdsi_spdm_state *spdm_state,
 	rc = spdm_start_hash(spdm_state, transcript, transcript_sz,
 			     req, req_sz, rsp, rsp_sz);
 
+	print_transcript(spdm_state, "NEGOTIATE_ALGORITHMS REQ", (u8 *)req, req_sz);
+	print_transcript(spdm_state, "NEGOTIATE_ALGORITHMS RSP", (u8 *)rsp, rsp_sz);
+
 err_free_rsp:
 	kfree(rsp);
 err_free_req:
 	kfree(req);
 
 	return rc;
-}
-
-static void print_transcript(struct sdsi_spdm_state *spdm_state, const char *s, u8 *p, int l)
-{
-	struct device *dev = spdm_state->dev;
-
-	dev_dbg(dev, "TRANSCRIPT FOR %s: %d\n", s, l);
-	while (l >= 4) {
-		dev_dbg(dev, "\t0x%08x\n", *(u32 *)p);
-		p += 4;
-		l -= 4;
-	}
-
-	if (l == 3)
-		dev_dbg(dev, "\t0x%06x\n", *(u32 *)p);
-	else if (l == 2)
-		dev_dbg(dev, "\t0x%04x\n", *(u16 *)p);
-	else if (l == 1)
-		dev_dbg(dev, "\t0x%02x\n", *(u8 *)p);
 }
 
 static int spdm_get_digests(struct sdsi_spdm_state *spdm_state)
@@ -1522,7 +1528,7 @@ int sdsi_spdm_authenticate(struct sdsi_spdm_state *spdm_state)
 	if (rc)
 		goto unlock;
 
-	print_transcript(spdm_state, "GET_VERSION", transcript, transcript_sz);
+	print_transcript(spdm_state, "GET_VERSION RSP", transcript, transcript_sz);
 
 	rc = spdm_get_capabilities(spdm_state, transcript + transcript_sz,
 				   &transcript_sz);
@@ -1534,8 +1540,6 @@ int sdsi_spdm_authenticate(struct sdsi_spdm_state *spdm_state)
 	rc = spdm_negotiate_algs(spdm_state, transcript, transcript_sz);
 	if (rc)
 		goto unlock;
-
-	print_transcript(spdm_state, "NEGOTIATE_ALGORITHMS", transcript, transcript_sz);
 
 	rc = spdm_get_digests(spdm_state);
 	if (rc)
