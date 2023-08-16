@@ -1362,7 +1362,7 @@
                 }
             ],
             "description": "AMX FP16 CPUID enumeration",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Bob Valentine",
@@ -1380,7 +1380,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.0",
+            "last_enabled": "v6.5",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
@@ -6356,6 +6356,30 @@
             "stuck_at_ref": "",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-08/msg00019.html",
             "platforms": "CWF,DMR",
+            "feature_jiras": "",
+            "last_enabled": "v6.5"
+        },
+        {
+            "branch": "as/LKPMEM-129-inext",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Williams J. Dan",
+                    "email": "dan.j.williams@intel.com"
+                }
+            ],
+            "description": "CXL Driver Fixes for Jira LKPMEM-129",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3485",
+            "name": "CXL_driver_fixes",
+            "repourl": "https://github.com/intel-sandbox/cxl.git",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-08/msg00042.html",
+            "platforms": "CXL",
             "feature_jiras": "",
             "last_enabled": "v6.5"
         }
