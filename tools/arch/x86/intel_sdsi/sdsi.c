@@ -185,6 +185,7 @@ struct sdsi_dev {
 enum command {
 	CMD_SOCKET_INFO,
 	CMD_METER_CERT,
+	CMD_RAW_METER_CERT,
 	CMD_STATE_CERT,
 	CMD_PROV_AKC,
 	CMD_PROV_CAP,
@@ -347,7 +348,7 @@ static void get_feature(uint32_t encoding, char *feature)
 	feature[0] = name[3];
 }
 
-static int sdsi_meter_cert_show(struct sdsi_dev *s)
+static int sdsi_meter_cert_show(struct sdsi_dev *s, bool show_raw_meter)
 {
 	char buf[METER_CERT_MAX_SIZE] = {0};
 	struct bundle_encoding_counter *bec;
@@ -377,7 +378,11 @@ static int sdsi_meter_cert_show(struct sdsi_dev *s)
 		return ret;
 	}
 
-	cert_ptr = fopen("meter_certificate", "r");
+	if (!show_raw_meter)
+		cert_ptr = fopen("meter_certificate", "r");
+	else
+		cert_ptr = fopen("meter_current", "r");
+
 	if (!cert_ptr) {
 		perror("Could not open 'meter_certificate' file");
 		return -1;
@@ -385,7 +390,8 @@ static int sdsi_meter_cert_show(struct sdsi_dev *s)
 
 	size = fread(buf, 1, sizeof(buf), cert_ptr);
 	if (!size) {
-		fprintf(stderr, "Could not read 'meter_certificate' file\n");
+		fprintf(stderr, "Could not read '%s' file\n",
+			show_raw_meter ? "meter_current" : "meter_certificate");
 		fclose(cert_ptr);
 		return -1;
 	}
@@ -958,7 +964,7 @@ static void sdsi_free_dev(struct sdsi_dev *s)
 
 static void usage(char *prog)
 {
-	printf("Usage: %s [-l] [-d DEVNO [-i] [-s] [-m] [-a FILE] [-c FILE] [-v SLOTNO] [-M state|meter]]\n"
+	printf("Usage: %s [-l] [-d DEVNO [-i] [-s] [-m | -r] [-a FILE] [-c FILE] [-v SLOTNO] [-M state|meter]]\n"
 	       "          [-k KEY_FILE]\n", prog);
 }
 
@@ -970,6 +976,7 @@ static void show_help(void)
 	printf("  %-18s\t%s\n", "-i, --info",           "show socket information");
 	printf("  %-18s\t%s\n", "-s, --state",          "show state certificate data");
 	printf("  %-18s\t%s\n", "-m, --meter",          "show meter certificate data");
+	printf("  %-18s\t%s\n", "-r, --raw_meter",      "show unattested meter data");
 	printf("  %-18s\t%s\n", "-a, --akc FILE",       "provision socket with AKC FILE");
 	printf("  %-18s\t%s\n", "-c, --cap FILE>",      "provision socket with CAP FILE");
 	printf("  %-18s\t%s\n", "-v, --verify SLOTNO",  "verify certificate chain of select slot");
@@ -1030,6 +1037,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'm':
 			command = CMD_METER_CERT;
+			break;
+		case 'r':
+			command = CMD_RAW_METER_CERT;
 			break;
 		case 's':
 			command = CMD_STATE_CERT;
@@ -1108,7 +1118,10 @@ int main(int argc, char *argv[])
 			ret = sdsi_read_reg(s);
 			break;
 		case CMD_METER_CERT:
-			ret = sdsi_meter_cert_show(s);
+			ret = sdsi_meter_cert_show(s, false);
+			break;
+		case CMD_RAW_METER_CERT:
+			ret = sdsi_meter_cert_show(s, true);
 			break;
 		case CMD_STATE_CERT:
 			ret = sdsi_state_cert_show(s);
