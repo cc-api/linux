@@ -6370,7 +6370,7 @@
                 }
             ],
             "description": "CXL Driver Fixes for Jira LKPMEM-129",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3485",
             "name": "CXL_driver_fixes",
