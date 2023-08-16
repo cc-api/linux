@@ -180,6 +180,13 @@ static int sdsi_mbox_poll(struct sdsi_priv *priv, struct sdsi_mbox_info *info,
 		packet_size = FIELD_GET(CTRL_PACKET_SIZE, control);
 		message_size = FIELD_GET(CTRL_MSG_SIZE, control);
 
+		dev_info(priv->dev,
+			 "\n"
+			 "Packet:        %d\n"
+			 "Packet Size:   %d\n"
+			 "Messags Size:  %d\n",
+			 loop, packet_size, message_size);
+
 		ret = sdsi_status_to_errno(status);
 		if (ret)
 			break;
@@ -228,9 +235,15 @@ static int sdsi_mbox_poll(struct sdsi_priv *priv, struct sdsi_mbox_info *info,
 		dev_warn(dev, "Read count %u differs from expected count %u\n",
 			 total, message_size);
 
-	if (data_size)
+	if (data_size) {
+		dev_dbg(priv->dev, "%s: Received %d bytes\n", __func__,
+			total);
 		*data_size = total;
+	}
 
+	dev_dbg(priv->dev,
+		"%s: Mailbox transaction completely successfully\n",
+		__func__);
 	return 0;
 }
 
@@ -238,6 +251,8 @@ static int sdsi_mbox_cmd_read(struct sdsi_priv *priv, struct sdsi_mbox_info *inf
 			      size_t *data_size)
 {
 	u64 control;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	lockdep_assert_held(&priv->mb_lock);
 
@@ -255,6 +270,8 @@ static int sdsi_mbox_cmd_write(struct sdsi_priv *priv, struct sdsi_mbox_info *in
 			       size_t *data_size)
 {
 	u64 control;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	lockdep_assert_held(&priv->mb_lock);
 
@@ -285,14 +302,20 @@ static int sdsi_mbox_acquire(struct sdsi_priv *priv, struct sdsi_mbox_info *info
 	/* Check mailbox is available */
 	control = readq(priv->control_addr);
 	owner = FIELD_GET(CTRL_OWNER, control);
-	if (owner != MBOX_OWNER_NONE)
+	if (owner != MBOX_OWNER_NONE) {
+		dev_err(priv->dev,
+			"%s: Unable to acquire mailbox, owner is %s\n",
+			__func__,
+			owner == MBOX_OWNER_INBAND ? "INBAND" : "OOB");
 		return -EBUSY;
+	}
 
 	/*
 	 * If there has been no recent transaction and no one owns the mailbox,
 	 * we should acquire it in under 1ms. However, if we've accessed it
 	 * recently it may take up to 2.1 seconds to acquire it again.
 	 */
+	dev_dbg(priv->dev, "%s: Attemping to acquire mailbox\n", __func__);
 	do {
 		/* Write first qword of payload */
 		writeq(info->payload[0], priv->mbox_addr);
@@ -304,6 +327,9 @@ static int sdsi_mbox_acquire(struct sdsi_priv *priv, struct sdsi_mbox_info *info
 
 		if (FIELD_GET(CTRL_OWNER, control) == MBOX_OWNER_NONE &&
 		    retries++ < MBOX_ACQUIRE_NUM_RETRIES) {
+			dev_dbg(priv->dev,
+				"%s: Not acquired. Delaying %dms\n",
+				__func__, MBOX_ACQUIRE_RETRY_DELAY_MS);
 			msleep(MBOX_ACQUIRE_RETRY_DELAY_MS);
 			continue;
 		}
@@ -312,6 +338,12 @@ static int sdsi_mbox_acquire(struct sdsi_priv *priv, struct sdsi_mbox_info *info
 		break;
 	} while (true);
 
+	if (ret)
+		dev_dbg(priv->dev,
+			"%s: Failed to acquire mailbox\n", __func__);
+	else
+		dev_dbg(priv->dev,
+			"%s: Successfully acquired mailbox\n", __func__);
 	return ret;
 }
 
@@ -319,6 +351,8 @@ static int sdsi_mbox_write(struct sdsi_priv *priv, struct sdsi_mbox_info *info,
 			   size_t *data_size)
 {
 	int ret;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	lockdep_assert_held(&priv->mb_lock);
 
@@ -332,6 +366,8 @@ static int sdsi_mbox_write(struct sdsi_priv *priv, struct sdsi_mbox_info *info,
 static int sdsi_mbox_read(struct sdsi_priv *priv, struct sdsi_mbox_info *info, size_t *data_size)
 {
 	int ret;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	lockdep_assert_held(&priv->mb_lock);
 
@@ -353,9 +389,15 @@ static ssize_t sdsi_provision(struct sdsi_priv *priv, char *buf, size_t count,
 	struct sdsi_mbox_info info = {};
 	int ret;
 
+	dev_dbg(priv->dev, "%s\n", __func__);
+
 	/* Make sure In-band lock is not set */
-	if (sdsi_ib_locked(priv))
+	if (sdsi_ib_locked(priv)) {
+		dev_dbg(priv->dev,
+			"%s: Unable to provision due to In-band lock enabled by BIOS\n",
+			__func__);
 		return -EPERM;
+	}
 
 	if (count > (SDSI_SIZE_WRITE_MSG - SDSI_SIZE_CMD))
 		return -EOVERFLOW;
@@ -397,6 +439,8 @@ static ssize_t provision_akc_write(struct file *filp, struct kobject *kobj,
 	struct device *dev = kobj_to_dev(kobj);
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
 
+	dev_dbg(priv->dev, "%s\n", __func__);
+
 	if (off)
 		return -ESPIPE;
 
@@ -410,6 +454,8 @@ static ssize_t provision_cap_write(struct file *filp, struct kobject *kobj,
 {
 	struct device *dev = kobj_to_dev(kobj);
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	if (off)
 		return -ESPIPE;
@@ -425,6 +471,8 @@ certificate_read(u64 command, struct sdsi_priv *priv, char *buf, loff_t off,
 	struct sdsi_mbox_info info = {};
 	size_t size;
 	int ret;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	if (off)
 		return 0;
@@ -467,6 +515,8 @@ state_certificate_read(struct file *filp, struct kobject *kobj,
 	struct device *dev = kobj_to_dev(kobj);
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
 
+	dev_dbg(priv->dev, "%s\n", __func__);
+
 	return certificate_read(SDSI_CMD_READ_STATE, priv, buf, off, count);
 }
 static BIN_ATTR_ADMIN_RO(state_certificate, SDSI_SIZE_READ_MSG);
@@ -474,6 +524,8 @@ static BIN_ATTR_ADMIN_RO(state_certificate, SDSI_SIZE_READ_MSG);
 static void sdsi_read_meter_from_nvram(struct sdsi_priv *priv)
 {
 	u64 control;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	lockdep_assert_held(&priv->meter_lock);
 
@@ -490,6 +542,8 @@ meter_certificate_read(struct file *filp, struct kobject *kobj,
 	struct device *dev = kobj_to_dev(kobj);
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
 	int ret = 0;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	ret = mutex_lock_interruptible(&priv->meter_lock);
 	if (ret)
@@ -508,6 +562,8 @@ static void sdsi_read_meter_from_dram(struct sdsi_priv *priv)
 {
 	u64 control;
 
+	dev_dbg(priv->dev, "%s\n", __func__);
+
 	lockdep_assert_held(&priv->meter_lock);
 
 	control = readq(priv->control_addr);
@@ -523,6 +579,8 @@ meter_current_read(struct file *filp, struct kobject *kobj,
 	struct device *dev = kobj_to_dev(kobj);
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
 	int ret;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	ret = mutex_lock_interruptible(&priv->meter_lock);
 	if (ret)
@@ -545,6 +603,8 @@ static ssize_t registers_read(struct file *filp, struct kobject *kobj,
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
 	void __iomem *addr = priv->regs_addr;
 	int size =  priv->registers_size;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	/*
 	 * The check below is performed by the sysfs caller based on the static
