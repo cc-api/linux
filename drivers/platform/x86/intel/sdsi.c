@@ -642,7 +642,7 @@ int sdsi_spdm_exchange(void *private, struct device *dev, const void *request,
 {
 	struct sdsi_priv *priv = private;
 	struct sdsi_mbox_info info = {};
-	size_t size;
+	size_t spdm_msg_size, size;
 	int ret;
 
 	/*
@@ -695,18 +695,47 @@ int sdsi_spdm_exchange(void *private, struct device *dev, const void *request,
 	if (ret < 0)
 		goto free_payload;
 
-	if (size < response_sz)
-		dev_dbg(priv->dev, "Attestation warning: Expected response size %ld, got %ld\n",
-			 response_sz, size);
+	if (size < 8) {
+		dev_err(priv->dev, "Attestation error: Mailbox reply size, %ld, too small\n",
+			size);
+		ret = -EINVAL;
+		goto free_payload;
+	}
 
-	if (size > response_sz) {
+	if (!IS_ALIGNED(size, 8)) {
+		dev_err(priv->dev,
+			"Attestation error: Mailbox reply size, %ld, is not aligned\n",
+			size);
+		ret = -EINVAL;
+		goto free_payload;
+	}
+
+	/* Get the SPDM payload size from the last QWORD and validate */
+	spdm_msg_size = ((u64 *)info.buffer)[(size - SDSI_SIZE_CMD) / SDSI_SIZE_CMD];
+
+	/* Sanity check */
+	if (spdm_msg_size > (size - SDSI_SIZE_CMD) ||
+	    spdm_msg_size < (size - SDSI_SIZE_CMD - 7))	{ /* 7 is max padding amount */
+		dev_err(priv->dev, "Attestation error: SPDM message size, %ld, not in range\n",
+			spdm_msg_size);
+		ret = -EINVAL;
+		goto free_payload;
+	}
+
+	dev_warn(priv->dev, "Mailbox reply size is %ld\n", size);
+
+	if (spdm_msg_size < response_sz)
+		dev_info(priv->dev, "Attestation info: Allocated for %ld bytes, got %ld\n",
+			 response_sz, spdm_msg_size);
+
+	if (spdm_msg_size > response_sz) {
 		dev_err(priv->dev, "Attestation error: Expected response size %ld, got %ld\n",
-			 response_sz, size);
+			 response_sz, spdm_msg_size);
 		ret = -EOVERFLOW;
 		goto free_payload;
 	}
 
-	memcpy(response, info.buffer, size);
+	memcpy(response, info.buffer, spdm_msg_size);
 
 free_payload:
 	kfree(info.payload);
@@ -715,7 +744,7 @@ free_payload:
 	if (ret)
 		return ret;
 
-	return size;
+	return spdm_msg_size;
 }
 
 static int sdsi_init_spdm(struct sdsi_priv *priv)
