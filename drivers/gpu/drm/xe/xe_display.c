@@ -429,6 +429,14 @@ void xe_display_info_init(struct xe_device *xe)
 	if (!xe->info.enable_display)
 		goto no_display;
 
+	/*
+	 * Disable dc_state temporarily for LNL till VLK-48289 is resolved.
+	 * VLK-48289 needs a fix in the dmc firmware. Without that warnings
+	 * reported in the ticket is observed when the dc_state is enabled.
+	 */
+	if (xe->info.platform == XE_LUNARLAKE)
+		xe->params.enable_dc = 0;
+
 	xe->info.display = intel_display_device_probe(xe, has_gmdid, &gmdid_ver,
 						      &gmdid_rel, &gmdid_step);
 	memcpy(&xe->info.display_runtime,
