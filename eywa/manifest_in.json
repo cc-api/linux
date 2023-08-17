@@ -1362,7 +1362,7 @@
                 }
             ],
             "description": "AMX FP16 CPUID enumeration",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Bob Valentine",
