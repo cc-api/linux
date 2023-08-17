@@ -1063,6 +1063,12 @@ void intel_display_device_info_runtime_init(struct drm_i915_private *i915)
 		if (IS_DISPLAY_VER(i915, 10, 12) &&
 		    (dfsm & GLK_DFSM_DISPLAY_DSC_DISABLE))
 			display_runtime->has_dsc = 0;
+
+		if (DISPLAY_VER(i915) >= 20 &&
+		    !(dfsm & XE2LPD_DFSM_DBUF_OVERLAP_DISABLE))
+			display_runtime->has_dbuf_overlap_detection = 1;
+		else
+			display_runtime->has_dbuf_overlap_detection = 0;
 	}
 
 	if (DISPLAY_VER(i915) >= 20) {
