@@ -1150,6 +1150,7 @@
 
 /* Hardware History Reset  */
 #define MSR_IA32_HW_HRESET_ENABLE	0x17da
+#define HRESET_ITD_ENABLE		BIT_ULL(0)
 
 /* x2APIC locked status */
 #define MSR_IA32_XAPIC_DISABLE_STATUS	0xBD
