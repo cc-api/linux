@@ -59,8 +59,11 @@ def get_callbacks(path=None):
 
 def get_sha(repo, credentials, remote_url, branch):
     remote = repo.remotes[sanitize_repo_name(remote_url)]
-    return next(str(dct["oid"]) for dct in remote.ls_remotes(callbacks=credentials, proxy=PROXY)
-        if dct["name"] == f"refs/heads/{branch}")
+    try:
+        return next(str(dct["oid"]) for dct in remote.ls_remotes(callbacks=credentials, proxy=PROXY)
+            if dct["name"] == f"refs/heads/{branch}")
+    except StopIteration:
+        raise Exception(f"Error: Remote repo {remote_url} does not contain branch {branch}")
 
 def add_absent_remotes(repo, manifest):
     branches = [dct for dct in manifest["topic_branches"] if dct["enabled"]]
