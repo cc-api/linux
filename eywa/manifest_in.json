@@ -1362,7 +1362,7 @@
                 }
             ],
             "description": "AMX FP16 CPUID enumeration",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Bob Valentine",
@@ -6356,6 +6356,30 @@
             "stuck_at_ref": "",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-08/msg00019.html",
             "platforms": "CWF,DMR",
+            "feature_jiras": "",
+            "last_enabled": "v6.5"
+        },
+        {
+            "branch": "as/LKPMEM-129-inext",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Alison Schofield",
+                    "email": "alison.schofield@intel.com"
+                }
+            ],
+            "description": "",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3485",
+            "name": "cxl_driver_changes",
+            "repourl": "  https://github.com/intel-sandbox/cxl.git",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-08/msg00042.html",
+            "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.5"
         }
