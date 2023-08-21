@@ -6370,7 +6370,7 @@
                 }
             ],
             "description": "CXL Driver Fixes",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3485",
             "name": "cxl_driver_changes",
