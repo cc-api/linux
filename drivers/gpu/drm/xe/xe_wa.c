@@ -245,6 +245,12 @@ static const struct xe_rtp_entry_sr gt_was[] = {
 	  XE_RTP_ACTIONS(SET(SQCNT1, ENFORCE_RAR))
 	},
 
+	/* Xe2_LPG */
+	{ XE_RTP_NAME("16020975621"),
+	  XE_RTP_RULES(GRAPHICS_VERSION(2004), GRAPHICS_STEP(A0, B0)),
+	  XE_RTP_ACTIONS(SET(XEHP_SLICE_UNIT_LEVEL_CLKGATE, SBEUNIT_CLKGATE_DIS))
+	},
+
 	{}
 };
 
@@ -529,6 +535,13 @@ static const struct xe_rtp_entry_sr engine_was[] = {
 			     XE_RTP_NOCHECK))
 	},
 
+	/* Xe2_LPG */
+
+	{ XE_RTP_NAME("14018957109"),
+	  XE_RTP_RULES(GRAPHICS_VERSION_RANGE(2004, 2004), GRAPHICS_STEP(A0, B0),
+		       FUNC(xe_rtp_match_first_render_or_compute)),
+	  XE_RTP_ACTIONS(SET(HALF_SLICE_CHICKEN5, DISABLE_SAMPLE_G_PERFORMANCE))
+	},
 	{}
 };
 
@@ -608,6 +621,12 @@ static const struct xe_rtp_entry_sr lrc_was[] = {
 	{ XE_RTP_NAME("18019271663"),
 	  XE_RTP_RULES(GRAPHICS_VERSION_RANGE(1270, 1271)),
 	  XE_RTP_ACTIONS(SET(CACHE_MODE_1, MSAA_OPTIMIZATION_REDUC_DISABLE))
+	},
+
+	/* Xe2_LPG */
+	{ XE_RTP_NAME("16018712365"),
+	  XE_RTP_RULES(GRAPHICS_VERSION(2004), FUNC(xe_rtp_match_first_render_or_compute)),
+	  XE_RTP_ACTIONS(SET(LSC_CHICKEN_BIT_0_UDW, XE2_ALLOC_DPA_STARVE_FIX_DIS))
 	},
 
 	{}
