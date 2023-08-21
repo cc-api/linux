@@ -6251,7 +6251,7 @@
                 }
             ],
             "description": "CXL Hotplug Updates for GNR",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3448",
             "name": "cxl_hotplug",
@@ -6370,7 +6370,7 @@
                 }
             ],
             "description": "CXL Driver Fixes",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3485",
             "name": "cxl_driver_changes",
