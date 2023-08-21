@@ -6251,7 +6251,7 @@
                 }
             ],
             "description": "CXL Hotplug Updates for GNR",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3448",
             "name": "cxl_hotplug",
