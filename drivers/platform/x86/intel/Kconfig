@@ -166,6 +166,14 @@ config INTEL_RST
 	  firmware will copy the memory contents back to RAM and resume the OS
 	  as usual.
 
+config INTEL_SDSI_SPDM
+	tristate
+	select KEYS
+	select ASYMMETRIC_KEY_TYPE
+	select ASYMMETRIC_PUBLIC_KEY_SUBTYPE
+	select X509_CERTIFICATE_PARSER
+	select ASN1_ENCODER
+
 config INTEL_SDSI
 	tristate "Intel On Demand (Software Defined Silicon) Driver"
 	depends on INTEL_VSEC
