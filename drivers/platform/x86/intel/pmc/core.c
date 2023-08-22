@@ -1237,6 +1237,7 @@ static const struct x86_cpu_id intel_pmc_core_ids[] = {
 	X86_MATCH_INTEL_FAM6_MODEL(METEORLAKE,		mtl_core_init),
 	X86_MATCH_INTEL_FAM6_MODEL(LAKEFIELD,		lkf_core_init),
 	X86_MATCH_INTEL_FAM6_MODEL(ARROWLAKE,		mtl_core_init),
+	X86_MATCH_INTEL_FAM6_MODEL(ARROWLAKE_H,		mtl_l_core_init),
 	{}
 };
 
