@@ -1,0 +1,7387 @@
+[
+	{
+
+		"EventName": "LOCAL_REVISION",
+		"datatypeID": "tstring",
+		"offset": 0,
+		"BriefDescription": "Local Revision ID for this product.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PRODUCT_ID",
+		"datatypeID": "tproduct_id",
+		"offset": 0,
+		"BriefDescription": "Product ID",
+		"sampleType": "Snapshot",
+		"size": "12",
+		"lsb": "12",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RECORD_TYPE",
+		"datatypeID": "trecord_type",
+		"offset": 0,
+		"BriefDescription": "Record Type",
+		"sampleType": "Snapshot",
+		"size": "5",
+		"lsb": "24",
+		"msb": "28",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "XTAL_FREQ",
+		"datatypeID": "txtal_strap",
+		"offset": 0,
+		"BriefDescription": "Represents the clock rate of the XTAL on this silicon.",
+		"sampleType": "Snapshot",
+		"size": "2",
+		"lsb": "32",
+		"msb": "33",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IS_ICCMAX_LEVEL",
+		"datatypeID": "tstring",
+		"offset": 0,
+		"BriefDescription": "ICCMAX level for the IPU's IS system",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "40",
+		"msb": "43",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_ICCMAX_LEVEL",
+		"datatypeID": "tstring",
+		"offset": 0,
+		"BriefDescription": "ICCMAX level for the IPU's PS system",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "44",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CDCLK_FREQ",
+		"datatypeID": "tcdclk_freq",
+		"offset": 0,
+		"BriefDescription": "CDCLK frequency for display",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "48",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE",
+		"datatypeID": "tshort_volts",
+		"offset": 0,
+		"BriefDescription": "Display input voltage (vccsa)",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "56",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_FREQ",
+		"datatypeID": "tisp_ps_pstate",
+		"offset": 8,
+		"BriefDescription": "Processing system frequency. Frequency is ratio*25MHz. Zero means power down.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IS_FREQ",
+		"datatypeID": "tisp_is_pstate",
+		"offset": 8,
+		"BriefDescription": "Input system divisor ratio. frequency is 1600MHz/divisor. Zero means power down.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "8",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "QOS_FLOOR",
+		"datatypeID": "tisp_ps_pstate",
+		"offset": 8,
+		"BriefDescription": "IPU PS QoS floor",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "16",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_1",
+		"datatypeID": "twp_volts",
+		"offset": 8,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "32",
+		"msb": "42",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT",
+		"datatypeID": "tps_icc",
+		"offset": 8,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "43",
+		"msb": "52",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE",
+		"datatypeID": "tstring",
+		"offset": 8,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "53",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FREQ",
+		"datatypeID": "tia_pstate",
+		"offset": 8,
+		"BriefDescription": "IA Cores clock ratio, in units of 100MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "56",
+		"msb": "62",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_2",
+		"datatypeID": "twp_volts",
+		"offset": 16,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "0",
+		"msb": "10",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_1",
+		"datatypeID": "tps_icc",
+		"offset": 16,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "11",
+		"msb": "20",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_1",
+		"datatypeID": "tstring",
+		"offset": 16,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "21",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FREQ_1",
+		"datatypeID": "tia_pstate",
+		"offset": 16,
+		"BriefDescription": "IA Cores clock ratio, in units of 100MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "24",
+		"msb": "30",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_3",
+		"datatypeID": "twp_volts",
+		"offset": 16,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "32",
+		"msb": "42",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_2",
+		"datatypeID": "tps_icc",
+		"offset": 16,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "43",
+		"msb": "52",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_2",
+		"datatypeID": "tstring",
+		"offset": 16,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "53",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FREQ_2",
+		"datatypeID": "tia_pstate",
+		"offset": 16,
+		"BriefDescription": "IA Cores clock ratio, in units of 100MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "56",
+		"msb": "62",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_4",
+		"datatypeID": "twp_volts",
+		"offset": 24,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "0",
+		"msb": "10",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_3",
+		"datatypeID": "tps_icc",
+		"offset": 24,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "11",
+		"msb": "20",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_3",
+		"datatypeID": "tstring",
+		"offset": 24,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "21",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FREQ_3",
+		"datatypeID": "tia_pstate",
+		"offset": 24,
+		"BriefDescription": "IA Cores clock ratio, in units of 100MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "24",
+		"msb": "30",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_5",
+		"datatypeID": "twp_volts",
+		"offset": 24,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "32",
+		"msb": "42",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_4",
+		"datatypeID": "tps_icc",
+		"offset": 24,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "43",
+		"msb": "52",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_4",
+		"datatypeID": "tstring",
+		"offset": 24,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "53",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FREQ_4",
+		"datatypeID": "tia_pstate",
+		"offset": 24,
+		"BriefDescription": "IA Cores clock ratio, in units of 100MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "56",
+		"msb": "62",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_6",
+		"datatypeID": "twp_volts",
+		"offset": 32,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "0",
+		"msb": "10",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_5",
+		"datatypeID": "tps_icc",
+		"offset": 32,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "11",
+		"msb": "20",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_5",
+		"datatypeID": "tstring",
+		"offset": 32,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "21",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FREQ_5",
+		"datatypeID": "tia_pstate",
+		"offset": 32,
+		"BriefDescription": "IA Cores clock ratio, in units of 100MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "24",
+		"msb": "30",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_7",
+		"datatypeID": "twp_volts",
+		"offset": 32,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "32",
+		"msb": "42",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_6",
+		"datatypeID": "tps_icc",
+		"offset": 32,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "43",
+		"msb": "52",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_6",
+		"datatypeID": "tstring",
+		"offset": 32,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "53",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FREQ_6",
+		"datatypeID": "tia_pstate",
+		"offset": 32,
+		"BriefDescription": "IA Cores clock ratio, in units of 100MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "56",
+		"msb": "62",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_8",
+		"datatypeID": "twp_volts",
+		"offset": 40,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "0",
+		"msb": "10",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_7",
+		"datatypeID": "tps_icc",
+		"offset": 40,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "11",
+		"msb": "20",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_7",
+		"datatypeID": "tstring",
+		"offset": 40,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "21",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FREQ_7",
+		"datatypeID": "tia_pstate",
+		"offset": 40,
+		"BriefDescription": "IA Cores clock ratio, in units of 100MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "24",
+		"msb": "30",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_9",
+		"datatypeID": "twp_volts",
+		"offset": 40,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "32",
+		"msb": "42",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_8",
+		"datatypeID": "tps_icc",
+		"offset": 40,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "43",
+		"msb": "52",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_8",
+		"datatypeID": "tstring",
+		"offset": 40,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "53",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_10",
+		"datatypeID": "twp_volts",
+		"offset": 48,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "0",
+		"msb": "10",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_9",
+		"datatypeID": "tps_icc",
+		"offset": 48,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "11",
+		"msb": "20",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_9",
+		"datatypeID": "tstring",
+		"offset": 48,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "21",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_11",
+		"datatypeID": "twp_volts",
+		"offset": 48,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "32",
+		"msb": "42",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_10",
+		"datatypeID": "tps_icc",
+		"offset": 48,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "43",
+		"msb": "52",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_10",
+		"datatypeID": "tstring",
+		"offset": 48,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "53",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VOLTAGE_12",
+		"datatypeID": "twp_volts",
+		"offset": 56,
+		"BriefDescription": "Voltage, to be sent as-is to FIVR, linear, in steps of 2.5mV",
+		"sampleType": "Snapshot",
+		"size": "11",
+		"lsb": "0",
+		"msb": "10",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CURRENT_11",
+		"datatypeID": "tps_icc",
+		"offset": 56,
+		"BriefDescription": "Current, in U7.3 amps. This is the maximal virus current at state.",
+		"sampleType": "Snapshot",
+		"size": "10",
+		"lsb": "11",
+		"msb": "20",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_OVERRIDE_11",
+		"datatypeID": "tstring",
+		"offset": 56,
+		"BriefDescription": "The FIVR power state (PS), to be sent to FIVR.  If 000, P-unit will calculate the PS value to based on CURRENT field.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "21",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE",
+		"datatypeID": "tccp_wp_cstate",
+		"offset": 56,
+		"BriefDescription": "IA Core C-state for Core 0",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "32",
+		"msb": "34",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_1",
+		"datatypeID": "tccp_wp_cstate",
+		"offset": 56,
+		"BriefDescription": "IA Core C-state for Core 1",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "35",
+		"msb": "37",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_2",
+		"datatypeID": "tccp_wp_cstate",
+		"offset": 56,
+		"BriefDescription": "IA Core C-state for Core 2",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "38",
+		"msb": "40",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_3",
+		"datatypeID": "tccp_wp_cstate",
+		"offset": 56,
+		"BriefDescription": "IA Core C-state for Core 3",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "41",
+		"msb": "43",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_4",
+		"datatypeID": "tccp_wp_cstate",
+		"offset": 56,
+		"BriefDescription": "IA Core C-state for Core 4",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "44",
+		"msb": "46",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_5",
+		"datatypeID": "tccp_wp_cstate",
+		"offset": 56,
+		"BriefDescription": "IA Core C-state for Core 5",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "47",
+		"msb": "49",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_6",
+		"datatypeID": "tccp_wp_cstate",
+		"offset": 56,
+		"BriefDescription": "IA Core C-state for Core 6",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "50",
+		"msb": "52",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_7",
+		"datatypeID": "tccp_wp_cstate",
+		"offset": 56,
+		"BriefDescription": "IA Core C-state for Core 7",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "53",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT",
+		"datatypeID": "tccp_wp_cstate",
+		"offset": 56,
+		"BriefDescription": "GT RC-state",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "56",
+		"msb": "58",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LLC",
+		"datatypeID": "tllc_cstate",
+		"offset": 56,
+		"BriefDescription": "LLC/Ring C-state",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "59",
+		"msb": "61",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LLC_FREQ",
+		"datatypeID": "tllc_pstate",
+		"offset": 64,
+		"BriefDescription": "LLC/Ring Clock Ratio. Units of 100MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "8",
+		"msb": "14",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_UNSLICE_FREQ",
+		"datatypeID": "tgt_pstate",
+		"offset": 64,
+		"BriefDescription": "GT Unslice Clock Ratio. Units of 50MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "16",
+		"msb": "22",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_SLICE_FREQ",
+		"datatypeID": "tgt_pstate",
+		"offset": 64,
+		"BriefDescription": "GT Slice Clock Ratio. Units of 50MHz.",
+		"sampleType": "Snapshot",
+		"size": "7",
+		"lsb": "24",
+		"msb": "30",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "EU_COUNT",
+		"datatypeID": "tstring",
+		"offset": 64,
+		"BriefDescription": "Count of active execution units (EUs). May also be set if the EU is offand the graphics domain is holding this request high to provision for fast wake to the EU.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "36",
+		"msb": "43",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "MEDIA_ENGINE_COUNT",
+		"datatypeID": "tstring",
+		"offset": 64,
+		"BriefDescription": "Count of active media engines. May also be set if the media engines is offand the graphics domain is holding this request high to provision for fast wake to the media.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "44",
+		"msb": "46",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "SUBSLICE_COUNT",
+		"datatypeID": "tstring",
+		"offset": 64,
+		"BriefDescription": "Count of active render subslices. May also be set if the render subslice is offand the graphics domain is holding this request high to provision for fast wake to the subslice.",
+		"sampleType": "Snapshot",
+		"size": "5",
+		"lsb": "47",
+		"msb": "51",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RENDER_SLICE_COUNT",
+		"datatypeID": "tstring",
+		"offset": 64,
+		"BriefDescription": "Count of active render slices. May also be set if the render slice is offand the graphics domain is holding this request high to provision for fast wake to the slice.",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "52",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VID",
+		"datatypeID": "tvid",
+		"offset": 72,
+		"BriefDescription": "VID Code. Encoding is based on SVID spec.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS",
+		"datatypeID": "tsvid_ps",
+		"offset": 72,
+		"BriefDescription": "VCCIN VR Power state.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "8",
+		"msb": "10",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FAST",
+		"datatypeID": "tstring",
+		"offset": 72,
+		"BriefDescription": "Issue FAST ramp, instead of SLOW ramp.",
+		"sampleType": "Snapshot",
+		"size": "1",
+		"lsb": "11",
+		"msb": "11",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DECAY",
+		"datatypeID": "tstring",
+		"offset": 72,
+		"BriefDescription": "Issue DECAY ramp, instead of SLOW ramp. Only going down.",
+		"sampleType": "Snapshot",
+		"size": "1",
+		"lsb": "12",
+		"msb": "12",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VID_1",
+		"datatypeID": "tvid",
+		"offset": 72,
+		"BriefDescription": "VID Code. Encoding is based on SVID spec.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "16",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PS_1",
+		"datatypeID": "tsvid_ps",
+		"offset": 72,
+		"BriefDescription": "VCCIN VR Power state.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "24",
+		"msb": "26",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FAST_1",
+		"datatypeID": "tstring",
+		"offset": 72,
+		"BriefDescription": "Issue FAST ramp, instead of SLOW ramp.",
+		"sampleType": "Snapshot",
+		"size": "1",
+		"lsb": "27",
+		"msb": "27",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DECAY_1",
+		"datatypeID": "tstring",
+		"offset": 72,
+		"BriefDescription": "Issue DECAY ramp, instead of SLOW ramp. Only going down.",
+		"sampleType": "Snapshot",
+		"size": "1",
+		"lsb": "28",
+		"msb": "28",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS",
+		"datatypeID": "tfivr_icc",
+		"offset": 72,
+		"BriefDescription": "Last current sample for Core 0, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "32",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_1",
+		"datatypeID": "tfivr_icc",
+		"offset": 72,
+		"BriefDescription": "Last current sample for Core 1, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "48",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_2",
+		"datatypeID": "tfivr_icc",
+		"offset": 80,
+		"BriefDescription": "Last current sample for Core 2, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "0",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_3",
+		"datatypeID": "tfivr_icc",
+		"offset": 80,
+		"BriefDescription": "Last current sample for Core 3, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "16",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_4",
+		"datatypeID": "tfivr_icc",
+		"offset": 80,
+		"BriefDescription": "Last current sample for Core 4, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "32",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_5",
+		"datatypeID": "tfivr_icc",
+		"offset": 80,
+		"BriefDescription": "Last current sample for Core 5, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "48",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_6",
+		"datatypeID": "tfivr_icc",
+		"offset": 88,
+		"BriefDescription": "Last current sample for Core 6, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "0",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_7",
+		"datatypeID": "tfivr_icc",
+		"offset": 88,
+		"BriefDescription": "Last current sample for Core 7, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "16",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_8",
+		"datatypeID": "tfivr_icc",
+		"offset": 88,
+		"BriefDescription": "Last current sample, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "32",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_9",
+		"datatypeID": "tfivr_icc",
+		"offset": 88,
+		"BriefDescription": "Last current sample, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "48",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_10",
+		"datatypeID": "tfivr_icc",
+		"offset": 96,
+		"BriefDescription": "Last current sample, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "0",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "AMPS_11",
+		"datatypeID": "tfivr_icc",
+		"offset": 96,
+		"BriefDescription": "Last current sample, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "16",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LEVEL",
+		"datatypeID": "ticcreq",
+		"offset": 96,
+		"BriefDescription": "Allowed ICCP license that Core 0 can use. Core must accept thislicense and it must not exceed this license level. The meaning of thelicense level is the max capacity that Core can use.",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "32",
+		"msb": "35",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LEVEL_1",
+		"datatypeID": "ticcreq",
+		"offset": 96,
+		"BriefDescription": "Allowed ICCP license that Core 1 can use. Core must accept thislicense and it must not exceed this license level. The meaning of thelicense level is the max capacity that Core can use.",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "36",
+		"msb": "39",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LEVEL_2",
+		"datatypeID": "ticcreq",
+		"offset": 96,
+		"BriefDescription": "Allowed ICCP license that Core 2 can use. Core must accept thislicense and it must not exceed this license level. The meaning of thelicense level is the max capacity that Core can use.",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "40",
+		"msb": "43",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LEVEL_3",
+		"datatypeID": "ticcreq",
+		"offset": 96,
+		"BriefDescription": "Allowed ICCP license that Core 3 can use. Core must accept thislicense and it must not exceed this license level. The meaning of thelicense level is the max capacity that Core can use.",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "44",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LEVEL_4",
+		"datatypeID": "ticcreq",
+		"offset": 96,
+		"BriefDescription": "Allowed ICCP license that Core 4 can use. Core must accept thislicense and it must not exceed this license level. The meaning of thelicense level is the max capacity that Core can use.",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "48",
+		"msb": "51",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LEVEL_5",
+		"datatypeID": "ticcreq",
+		"offset": 96,
+		"BriefDescription": "Allowed ICCP license that Core 5 can use. Core must accept thislicense and it must not exceed this license level. The meaning of thelicense level is the max capacity that Core can use.",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "52",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LEVEL_6",
+		"datatypeID": "ticcreq",
+		"offset": 96,
+		"BriefDescription": "Allowed ICCP license that Core 6 can use. Core must accept thislicense and it must not exceed this license level. The meaning of thelicense level is the max capacity that Core can use.",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "56",
+		"msb": "59",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LEVEL_7",
+		"datatypeID": "ticcreq",
+		"offset": 96,
+		"BriefDescription": "Allowed ICCP license that Core 7 can use. Core must accept thislicense and it must not exceed this license level. The meaning of thelicense level is the max capacity that Core can use.",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "60",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "TYPEC",
+		"datatypeID": "tTBD",
+		"offset": 104,
+		"BriefDescription": null,
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "0",
+		"msb": "3",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PCIE",
+		"datatypeID": "tTBD",
+		"offset": 104,
+		"BriefDescription": "Link state returned from PMrsp from PCIe as part of PkgC entry negotiation.",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "4",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IPU",
+		"datatypeID": "tTBD",
+		"offset": 104,
+		"BriefDescription": null,
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "8",
+		"msb": "11",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DISPLAY",
+		"datatypeID": "tTBD",
+		"offset": 104,
+		"BriefDescription": "Current Display PHY link state",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "12",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VCCIOE_CURRENT",
+		"datatypeID": "tfivr_icc",
+		"offset": 104,
+		"BriefDescription": "Last VCCIOE current sample, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "16",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VCCION_CURRENT",
+		"datatypeID": "tfivr_icc",
+		"offset": 104,
+		"BriefDescription": "Last VCCION current sample, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "32",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "SA_CURRENT",
+		"datatypeID": "tfivr_icc",
+		"offset": 112,
+		"BriefDescription": "Last VCC_SA current sample, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "0",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "TYPEC_CURRENT",
+		"datatypeID": "tfivr_icc",
+		"offset": 112,
+		"BriefDescription": "Last VCC_TYPEC current sample, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "16",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VDDQ_TX_CURRENT",
+		"datatypeID": "tfivr_icc",
+		"offset": 112,
+		"BriefDescription": "Last VDDQ_TX current sample, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "32",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PCIE_CURRENT",
+		"datatypeID": "tfivr_icc",
+		"offset": 112,
+		"BriefDescription": "Last VCC_PCIE current sample, in amps.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "48",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VCCIO",
+		"datatypeID": "ttypec_icc",
+		"offset": 120,
+		"BriefDescription": "VCCIO icc-max requirement by TypeC subsystem.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VCCTPC",
+		"datatypeID": "ttypec_icc",
+		"offset": 120,
+		"BriefDescription": "TypeC icc-max requirement by TypeC subsystem on the VCCTPC rail.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "8",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VCC1P8",
+		"datatypeID": "ttypec_icc",
+		"offset": 120,
+		"BriefDescription": "TypeC icc-max requirement by TypeC subsystem on the 1.8V rail (VCCIN_AUX).",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "16",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PCH_TEMP",
+		"datatypeID": "ttemperature",
+		"offset": 128,
+		"BriefDescription": "Current PCH temperature",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DRAM_TEMP",
+		"datatypeID": "tstring",
+		"offset": 128,
+		"BriefDescription": "Current DRAM temperature.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "8",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "SA_TEMP",
+		"datatypeID": "ttemperature",
+		"offset": 128,
+		"BriefDescription": "Current reading from System Agent \"always on\" temperature sensor",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "16",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IPU_TEMP",
+		"datatypeID": "ttemperature",
+		"offset": 128,
+		"BriefDescription": "Current reading from IPU subsystem temperature sensor",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "24",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DE_TEMP",
+		"datatypeID": "ttemperature",
+		"offset": 128,
+		"BriefDescription": "Current reading from Display subsystem temperature sensor",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "32",
+		"msb": "39",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PCIE_TEMP",
+		"datatypeID": "ttemperature",
+		"offset": 128,
+		"BriefDescription": "Current reading from PCIE subsystem temperature sensor",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "40",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "TYPEC_TEMP",
+		"datatypeID": "ttemperature",
+		"offset": 128,
+		"BriefDescription": "Current reading from TypeC subsystem temperature sensor",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "48",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IA",
+		"datatypeID": "ttemperature",
+		"offset": 136,
+		"BriefDescription": "Current temperature",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_1",
+		"datatypeID": "ttemperature",
+		"offset": 136,
+		"BriefDescription": "Current temperature",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "8",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LLC_1",
+		"datatypeID": "ttemperature",
+		"offset": 136,
+		"BriefDescription": "Current temperature",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "16",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "MAX_TEMP",
+		"datatypeID": "ttemperature",
+		"offset": 144,
+		"BriefDescription": "Current temperature on Core 0",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "MAX_TEMP_1",
+		"datatypeID": "ttemperature",
+		"offset": 144,
+		"BriefDescription": "Current temperature on Core 1",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "8",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "MAX_TEMP_2",
+		"datatypeID": "ttemperature",
+		"offset": 144,
+		"BriefDescription": "Current temperature on Core 2",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "16",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "MAX_TEMP_3",
+		"datatypeID": "ttemperature",
+		"offset": 144,
+		"BriefDescription": "Current temperature on Core 3",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "24",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "MAX_TEMP_4",
+		"datatypeID": "ttemperature",
+		"offset": 144,
+		"BriefDescription": "Current temperature on Core 4",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "32",
+		"msb": "39",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "MAX_TEMP_5",
+		"datatypeID": "ttemperature",
+		"offset": 144,
+		"BriefDescription": "Current temperature on Core 5",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "40",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "MAX_TEMP_6",
+		"datatypeID": "ttemperature",
+		"offset": 144,
+		"BriefDescription": "Current temperature on Core 6",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "48",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "MAX_TEMP_7",
+		"datatypeID": "ttemperature",
+		"offset": 144,
+		"BriefDescription": "Current temperature on Core 7",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "56",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PKG_CSTATE",
+		"datatypeID": "tpkg_cstate",
+		"offset": 152,
+		"BriefDescription": "SOC resolved C-state",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "0",
+		"msb": "2",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DISPLAY_CSTATE",
+		"datatypeID": "tdisplay_cstate",
+		"offset": 152,
+		"BriefDescription": "Current display C-state",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "3",
+		"msb": "5",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IPU_PS_CSTATE",
+		"datatypeID": "tipu_ps_cstate",
+		"offset": 152,
+		"BriefDescription": "Current IPU PS C-state",
+		"sampleType": "Snapshot",
+		"size": "2",
+		"lsb": "8",
+		"msb": "9",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IPU_IS_CSTATE",
+		"datatypeID": "tipu_is_cstate",
+		"offset": 152,
+		"BriefDescription": "Current IPU IS C-state",
+		"sampleType": "Snapshot",
+		"size": "2",
+		"lsb": "10",
+		"msb": "11",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "TYPEC_CSTATE",
+		"datatypeID": "ttypec_cstate",
+		"offset": 152,
+		"BriefDescription": "Current Display C-state",
+		"sampleType": "Snapshot",
+		"size": "4",
+		"lsb": "12",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PCIE_CSTATE",
+		"datatypeID": "tpcie_cstate",
+		"offset": 152,
+		"BriefDescription": "Current PCIe C-state.  This is the same as the link state for PCIe.",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "16",
+		"msb": "18",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "MEMSS_CSTATE",
+		"datatypeID": "tmemss_cstate",
+		"offset": 152,
+		"BriefDescription": "Current Memory C-state",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "19",
+		"msb": "21",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IA_CSTATE",
+		"datatypeID": "tcore_cstate",
+		"offset": 152,
+		"BriefDescription": "Current resolved IA core C-state",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "22",
+		"msb": "24",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_CSTATE",
+		"datatypeID": "tgt_cstate",
+		"offset": 152,
+		"BriefDescription": "Current GT C-state",
+		"sampleType": "Snapshot",
+		"size": "2",
+		"lsb": "25",
+		"msb": "26",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LLC_CSTATE",
+		"datatypeID": "tllc_cstate",
+		"offset": 152,
+		"BriefDescription": "Current resolved LLC / Ring C-state",
+		"sampleType": "Snapshot",
+		"size": "3",
+		"lsb": "27",
+		"msb": "29",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IA_WAKE_TIME",
+		"datatypeID": "twake_latency",
+		"offset": 152,
+		"BriefDescription": "Max observed wake time",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "32",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_WAKE_TIME",
+		"datatypeID": "twake_latency",
+		"offset": 152,
+		"BriefDescription": "Max observed wake time",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "48",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_8",
+		"datatypeID": "tscalability",
+		"offset": 160,
+		"BriefDescription": "Current core 0 scalability measurement.  Calculated as unstalled clocks divided by totalactive clocks.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "0",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_9",
+		"datatypeID": "tscalability",
+		"offset": 160,
+		"BriefDescription": "Current core 1 scalability measurement.  Calculated as unstalled clocks divided by totalactive clocks.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "16",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_10",
+		"datatypeID": "tscalability",
+		"offset": 160,
+		"BriefDescription": "Current core 2 scalability measurement.  Calculated as unstalled clocks divided by totalactive clocks.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "32",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_11",
+		"datatypeID": "tscalability",
+		"offset": 160,
+		"BriefDescription": "Current core 3 scalability measurement.  Calculated as unstalled clocks divided by totalactive clocks.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "48",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_12",
+		"datatypeID": "tscalability",
+		"offset": 168,
+		"BriefDescription": "Current core 4 scalability measurement.  Calculated as unstalled clocks divided by totalactive clocks.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "0",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_13",
+		"datatypeID": "tscalability",
+		"offset": 168,
+		"BriefDescription": "Current core 5 scalability measurement.  Calculated as unstalled clocks divided by totalactive clocks.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "16",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_14",
+		"datatypeID": "tscalability",
+		"offset": 168,
+		"BriefDescription": "Current core 6 scalability measurement.  Calculated as unstalled clocks divided by totalactive clocks.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "32",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_15",
+		"datatypeID": "tscalability",
+		"offset": 168,
+		"BriefDescription": "Current core 7 scalability measurement.  Calculated as unstalled clocks divided by totalactive clocks.",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "48",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_16",
+		"datatypeID": "tia_pstate",
+		"offset": 176,
+		"BriefDescription": "Core 0 P_alpha calculation.  This represents the maximum allowed clock frequency on thatcore.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_17",
+		"datatypeID": "tia_pstate",
+		"offset": 176,
+		"BriefDescription": "Core 1 P_alpha calculation.  This represents the maximum allowed clock frequency on thatcore.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "8",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_18",
+		"datatypeID": "tia_pstate",
+		"offset": 176,
+		"BriefDescription": "Core 2 P_alpha calculation.  This represents the maximum allowed clock frequency on thatcore.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "16",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_19",
+		"datatypeID": "tia_pstate",
+		"offset": 176,
+		"BriefDescription": "Core 3 P_alpha calculation.  This represents the maximum allowed clock frequency on thatcore.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "24",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_20",
+		"datatypeID": "tia_pstate",
+		"offset": 176,
+		"BriefDescription": "Core 4 P_alpha calculation.  This represents the maximum allowed clock frequency on thatcore.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "32",
+		"msb": "39",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_21",
+		"datatypeID": "tia_pstate",
+		"offset": 176,
+		"BriefDescription": "Core 5 P_alpha calculation.  This represents the maximum allowed clock frequency on thatcore.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "40",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_22",
+		"datatypeID": "tia_pstate",
+		"offset": 176,
+		"BriefDescription": "Core 6 P_alpha calculation.  This represents the maximum allowed clock frequency on thatcore.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "48",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_23",
+		"datatypeID": "tia_pstate",
+		"offset": 176,
+		"BriefDescription": "Core 7 P_alpha calculation.  This represents the maximum allowed clock frequency on thatcore.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "56",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_UTIL",
+		"datatypeID": "tutil",
+		"offset": 184,
+		"BriefDescription": "Core 0 utilization calculation. Represented in U1.7 format.  100% is 0x80.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_UTIL_1",
+		"datatypeID": "tutil",
+		"offset": 184,
+		"BriefDescription": "Core 1 utilization calculation. Represented in U1.7 format.  100% is 0x80.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "8",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_UTIL_2",
+		"datatypeID": "tutil",
+		"offset": 184,
+		"BriefDescription": "Core 2 utilization calculation. Represented in U1.7 format.  100% is 0x80.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "16",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_UTIL_3",
+		"datatypeID": "tutil",
+		"offset": 184,
+		"BriefDescription": "Core 3 utilization calculation. Represented in U1.7 format.  100% is 0x80.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "24",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_UTIL_4",
+		"datatypeID": "tutil",
+		"offset": 184,
+		"BriefDescription": "Core 4 utilization calculation. Represented in U1.7 format.  100% is 0x80.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "32",
+		"msb": "39",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_UTIL_5",
+		"datatypeID": "tutil",
+		"offset": 184,
+		"BriefDescription": "Core 5 utilization calculation. Represented in U1.7 format.  100% is 0x80.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "40",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_UTIL_6",
+		"datatypeID": "tutil",
+		"offset": 184,
+		"BriefDescription": "Core 6 utilization calculation. Represented in U1.7 format.  100% is 0x80.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "48",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_UTIL_7",
+		"datatypeID": "tutil",
+		"offset": 184,
+		"BriefDescription": "Core 7 utilization calculation. Represented in U1.7 format.  100% is 0x80.",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "56",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RATIO",
+		"datatypeID": "tia_pstate",
+		"offset": 192,
+		"BriefDescription": "Current autonomous frequency target for Core 0",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RATIO_1",
+		"datatypeID": "tia_pstate",
+		"offset": 192,
+		"BriefDescription": "Current autonomous frequency target for Core 1",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "8",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RATIO_2",
+		"datatypeID": "tia_pstate",
+		"offset": 192,
+		"BriefDescription": "Current autonomous frequency target for Core 2",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "16",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RATIO_3",
+		"datatypeID": "tia_pstate",
+		"offset": 192,
+		"BriefDescription": "Current autonomous frequency target for Core 3",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "24",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RATIO_4",
+		"datatypeID": "tia_pstate",
+		"offset": 192,
+		"BriefDescription": "Current autonomous frequency target for Core 4",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "32",
+		"msb": "39",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RATIO_5",
+		"datatypeID": "tia_pstate",
+		"offset": 192,
+		"BriefDescription": "Current autonomous frequency target for Core 5",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "40",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RATIO_6",
+		"datatypeID": "tia_pstate",
+		"offset": 192,
+		"BriefDescription": "Current autonomous frequency target for Core 6",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "48",
+		"msb": "55",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RATIO_7",
+		"datatypeID": "tia_pstate",
+		"offset": 192,
+		"BriefDescription": "Current autonomous frequency target for Core 7",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "56",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IA_PE",
+		"datatypeID": "tia_pstate",
+		"offset": 200,
+		"BriefDescription": "Current IA Efficient P-state (used as the floor for autonomous control)",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_PE",
+		"datatypeID": "tgt_pstate",
+		"offset": 200,
+		"BriefDescription": "Current GT Efficient P-state (used as the floor for autonomous control)",
+		"sampleType": "Snapshot",
+		"size": "8",
+		"lsb": "8",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RSVD",
+		"datatypeID": "tTBD",
+		"offset": 200,
+		"BriefDescription": "Reserved 16bits of the counter",
+		"sampleType": "Snapshot",
+		"size": "16",
+		"lsb": "16",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "XTAL",
+		"datatypeID": "txtal_time",
+		"offset": 264,
+		"BriefDescription": "Crystal clock count. Used as a reference count in converting many of the counters presented in this telemetry space.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCK_REFCNT",
+		"datatypeID": "tevent_counter",
+		"offset": 272,
+		"BriefDescription": "Reference count for block cause counters. Counts the number of 1ms intervals during which PkgC entry was blocked at least once by any reason. To calculate percent blocked by a specific reason, divide corresponding block reason counter by this counter value.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_REFCNT",
+		"datatypeID": "tevent_counter",
+		"offset": 272,
+		"BriefDescription": "Reference count for wake cause counters. To calculate percent for each wake reason, divide by this number.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_UNKNOWN",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 280,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by an unknown device.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_CORE",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 280,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by the CORE.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_PCH",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 288,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by PCH.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_DISPLAY",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 288,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by DISPLAY.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_IPU",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 296,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by IPU.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_MEMORY",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 296,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by MEMORY.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_PUNIT",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 304,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by PUNIT.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_PEG",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 304,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by PEG.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_LLC",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 312,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by LLC.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_PECI",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 312,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by PECI.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_DFX",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 320,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by DFX.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_TYPEC",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 320,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by TYPEC.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_DEVICE_BLOCK_CAUSE_OPIO",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 328,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by OPIO.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCK_CATEGORY_TIMER",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 328,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by TIMER.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCK_CATEGORY_LATENCY",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 336,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by LATENCY.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCK_CATEGORY_IP_BUSY",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 336,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by IP_BUSY.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCK_CATEGORY_HYSTERESIS",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 344,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by HYSTERESIS.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCK_CATEGORY_TRANSIENT",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 344,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by TRANSIENT.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCK_CATEGORY_DEMOTION",
+		"datatypeID": "tpkgc_block_cause",
+		"offset": 352,
+		"BriefDescription": "Counts the number of 1ms intervals during which PkgC entry was blocked at least once by DEMOTION.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_NONSNOOP",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 352,
+		"BriefDescription": "Package C-state wake from NONSNOOP.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_RING_CF",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 360,
+		"BriefDescription": "Package C-state wake from RING_CF.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_RING",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 360,
+		"BriefDescription": "Package C-state wake from RING.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_UNDEMOTE",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 368,
+		"BriefDescription": "Package C-state wake from UNDEMOTE.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_PCH_USB",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 368,
+		"BriefDescription": "Package C-state wake from PCH_USB.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_MAILBOX",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 376,
+		"BriefDescription": "Package C-state wake from MAILBOX.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_ESPI",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 376,
+		"BriefDescription": "Package C-state wake from ESPI.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_TIMER",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 384,
+		"BriefDescription": "Package C-state wake from TIMER.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_PECI",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 384,
+		"BriefDescription": "Package C-state wake from PECI.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_PEG_DMI",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 392,
+		"BriefDescription": "Package C-state wake from PEG_DMI.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_DISPLAY",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 392,
+		"BriefDescription": "Package C-state wake from DISPLAY.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_DFX",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 400,
+		"BriefDescription": "Package C-state wake from DFX.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_IPU",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 400,
+		"BriefDescription": "Package C-state wake from IPU.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_TYPEC",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 408,
+		"BriefDescription": "Package C-state wake from TYPEC.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_PUNIT",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 408,
+		"BriefDescription": "Package C-state wake from PUNIT.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_IOP",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 416,
+		"BriefDescription": "Package C-state wake from IOP.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_LTR",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 416,
+		"BriefDescription": "Package C-state wake from LTR.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_CORE",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 424,
+		"BriefDescription": "Package C-state wake from CORE.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_WAKE_GRAPHICS",
+		"datatypeID": "tpkgc_wake_cause",
+		"offset": 424,
+		"BriefDescription": "Package C-state wake from GRAPHICS.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_THRESHOLDS_C2",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 432,
+		"BriefDescription": "Package C State LTR thresholds.",
+		"sampleType": "Counter",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_THRESHOLDS_C2R",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 432,
+		"BriefDescription": "Package C State LTR thresholds.",
+		"sampleType": "Counter",
+		"size": "8",
+		"lsb": "8",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_THRESHOLDS_C6",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 432,
+		"BriefDescription": "Package C State LTR thresholds.",
+		"sampleType": "Counter",
+		"size": "8",
+		"lsb": "16",
+		"msb": "23",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_THRESHOLDS_C7",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 432,
+		"BriefDescription": "Package C State LTR thresholds.",
+		"sampleType": "Counter",
+		"size": "8",
+		"lsb": "24",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_THRESHOLDS_C8",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 432,
+		"BriefDescription": "Package C State LTR thresholds.",
+		"sampleType": "Counter",
+		"size": "8",
+		"lsb": "32",
+		"msb": "39",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_THRESHOLDS_C9",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 432,
+		"BriefDescription": "Package C State LTR thresholds.",
+		"sampleType": "Counter",
+		"size": "8",
+		"lsb": "40",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_THRESHOLDS_C10",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 432,
+		"BriefDescription": "Package C State LTR thresholds.",
+		"sampleType": "Counter",
+		"size": "16",
+		"lsb": "48",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_VALUES_DISPLAY",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 448,
+		"BriefDescription": "Current display latency tolerance",
+		"sampleType": "Counter",
+		"size": "16",
+		"lsb": "0",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_VALUES_IPU",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 448,
+		"BriefDescription": "Current IPU latency tolerance",
+		"sampleType": "Counter",
+		"size": "16",
+		"lsb": "16",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_VALUES_PCH",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 448,
+		"BriefDescription": "Current PCH latency tolerance",
+		"sampleType": "Counter",
+		"size": "16",
+		"lsb": "32",
+		"msb": "47",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_VALUES_TYPEC",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 448,
+		"BriefDescription": "Current TypeC latency tolerance",
+		"sampleType": "Counter",
+		"size": "16",
+		"lsb": "48",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LTR_VALUES_PCIE",
+		"datatypeID": "tpkgc_ltr",
+		"offset": 456,
+		"BriefDescription": "Current PCIE latency tolerance",
+		"sampleType": "Counter",
+		"size": "16",
+		"lsb": "0",
+		"msb": "15",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 464,
+		"BriefDescription": "slow limit THERM has limited performance for CORE 0.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_RESIDENCY_1",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 472,
+		"BriefDescription": "slow limit THERM has limited performance for CORE 1.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_RESIDENCY_2",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 480,
+		"BriefDescription": "slow limit THERM has limited performance for CORE 2.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_RESIDENCY_3",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 488,
+		"BriefDescription": "slow limit THERM has limited performance for CORE 3.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_RESIDENCY_4",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 496,
+		"BriefDescription": "slow limit THERM has limited performance for CORE 4.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_RESIDENCY_5",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 504,
+		"BriefDescription": "slow limit THERM has limited performance for CORE 5.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_RESIDENCY_6",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 512,
+		"BriefDescription": "slow limit THERM has limited performance for CORE 6.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_RESIDENCY_7",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 520,
+		"BriefDescription": "slow limit THERM has limited performance for CORE 7.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_GT_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 528,
+		"BriefDescription": "slow limit THERM has limited performance for GT.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_LLC_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 536,
+		"BriefDescription": "slow limit THERM has limited performance for LLC.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_IPU_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 544,
+		"BriefDescription": "slow limit THERM has limited performance for IPU.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_PKG_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 552,
+		"BriefDescription": "slow limit THERM has limited performance for PKG.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 560,
+		"BriefDescription": "slow limit POWER has limited performance for CORE 0.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_RESIDENCY_1",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 568,
+		"BriefDescription": "slow limit POWER has limited performance for CORE 1.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_RESIDENCY_2",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 576,
+		"BriefDescription": "slow limit POWER has limited performance for CORE 2.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_RESIDENCY_3",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 584,
+		"BriefDescription": "slow limit POWER has limited performance for CORE 3.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_RESIDENCY_4",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 592,
+		"BriefDescription": "slow limit POWER has limited performance for CORE 4.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_RESIDENCY_5",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 600,
+		"BriefDescription": "slow limit POWER has limited performance for CORE 5.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_RESIDENCY_6",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 608,
+		"BriefDescription": "slow limit POWER has limited performance for CORE 6.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_RESIDENCY_7",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 616,
+		"BriefDescription": "slow limit POWER has limited performance for CORE 7.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_GT_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 624,
+		"BriefDescription": "slow limit POWER has limited performance for GT.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_LLC_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 632,
+		"BriefDescription": "slow limit POWER has limited performance for LLC.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_IPU_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 640,
+		"BriefDescription": "slow limit POWER has limited performance for IPU.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_PKG_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 648,
+		"BriefDescription": "slow limit POWER has limited performance for PKG.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 656,
+		"BriefDescription": "slow limit EDP has limited performance for CORE 0.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_RESIDENCY_1",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 664,
+		"BriefDescription": "slow limit EDP has limited performance for CORE 1.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_RESIDENCY_2",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 672,
+		"BriefDescription": "slow limit EDP has limited performance for CORE 2.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_RESIDENCY_3",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 680,
+		"BriefDescription": "slow limit EDP has limited performance for CORE 3.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_RESIDENCY_4",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 688,
+		"BriefDescription": "slow limit EDP has limited performance for CORE 4.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_RESIDENCY_5",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 696,
+		"BriefDescription": "slow limit EDP has limited performance for CORE 5.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_RESIDENCY_6",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 704,
+		"BriefDescription": "slow limit EDP has limited performance for CORE 6.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_RESIDENCY_7",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 712,
+		"BriefDescription": "slow limit EDP has limited performance for CORE 7.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_GT_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 720,
+		"BriefDescription": "slow limit EDP has limited performance for GT.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_LLC_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 728,
+		"BriefDescription": "slow limit EDP has limited performance for LLC.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_IPU_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 736,
+		"BriefDescription": "slow limit EDP has limited performance for IPU.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_PKG_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 744,
+		"BriefDescription": "slow limit EDP has limited performance for PKG.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 752,
+		"BriefDescription": "slow limit OTHER has limited performance for CORE 0.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_RESIDENCY_1",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 760,
+		"BriefDescription": "slow limit OTHER has limited performance for CORE 1.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_RESIDENCY_2",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 768,
+		"BriefDescription": "slow limit OTHER has limited performance for CORE 2.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_RESIDENCY_3",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 776,
+		"BriefDescription": "slow limit OTHER has limited performance for CORE 3.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_RESIDENCY_4",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 784,
+		"BriefDescription": "slow limit OTHER has limited performance for CORE 4.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_RESIDENCY_5",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 792,
+		"BriefDescription": "slow limit OTHER has limited performance for CORE 5.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_RESIDENCY_6",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 800,
+		"BriefDescription": "slow limit OTHER has limited performance for CORE 6.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_RESIDENCY_7",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 808,
+		"BriefDescription": "slow limit OTHER has limited performance for CORE 7.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_GT_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 816,
+		"BriefDescription": "slow limit OTHER has limited performance for GT.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_LLC_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 824,
+		"BriefDescription": "slow limit OTHER has limited performance for LLC.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_IPU_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 832,
+		"BriefDescription": "slow limit OTHER has limited performance for IPU.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_PKG_RESIDENCY",
+		"datatypeID": "tperf_limit_sample",
+		"offset": 840,
+		"BriefDescription": "slow limit OTHER has limited performance for PKG.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PROCHOT_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 848,
+		"BriefDescription": "prochot assertions.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VRHOT_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 856,
+		"BriefDescription": "VR asserted VRHOT.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PL4_LIMITED_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 864,
+		"BriefDescription": "SOC was PL4 limited",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PL3_LIMITED_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 872,
+		"BriefDescription": "SOC was PL3 limited",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PL2_LIMITED_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 880,
+		"BriefDescription": "SOC was PL2 limited",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PL1_LIMITED_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 888,
+		"BriefDescription": "SOC was PL1 limited",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSYS_PL4_LIMITED_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 896,
+		"BriefDescription": "SOC was Psys PL4 limited",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSYS_PL3_LIMITED_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 904,
+		"BriefDescription": "SOC was Psys PL3 limited",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSYS_PL2_LIMITED_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 912,
+		"BriefDescription": "SOC was Psys PL2 limited",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSYS_PL1_LIMITED_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 920,
+		"BriefDescription": "SOC was Psys PL1 limited",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 928,
+		"BriefDescription": "Core 0 C6 residency counter",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_RESIDENCY_1",
+		"datatypeID": "txtal_time",
+		"offset": 936,
+		"BriefDescription": "Core 1 C6 residency counter",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_RESIDENCY_2",
+		"datatypeID": "txtal_time",
+		"offset": 944,
+		"BriefDescription": "Core 2 C6 residency counter",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_RESIDENCY_3",
+		"datatypeID": "txtal_time",
+		"offset": 952,
+		"BriefDescription": "Core 3 C6 residency counter",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_RESIDENCY_4",
+		"datatypeID": "txtal_time",
+		"offset": 960,
+		"BriefDescription": "Core 4 C6 residency counter",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_RESIDENCY_5",
+		"datatypeID": "txtal_time",
+		"offset": 968,
+		"BriefDescription": "Core 5 C6 residency counter",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_RESIDENCY_6",
+		"datatypeID": "txtal_time",
+		"offset": 976,
+		"BriefDescription": "Core 6 C6 residency counter",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_RESIDENCY_7",
+		"datatypeID": "txtal_time",
+		"offset": 984,
+		"BriefDescription": "Core 7 C6 residency counter",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_RC6_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 992,
+		"BriefDescription": "GT RC6",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IPU_IS_C6_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1000,
+		"BriefDescription": "IPU IS C6",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IPU_PS_C6_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1008,
+		"BriefDescription": "IPU PS C6",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LLC_C3_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1016,
+		"BriefDescription": "LLC retention",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LLC_C6_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1024,
+		"BriefDescription": "LLC flushed and off",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_C2_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1032,
+		"BriefDescription": "Measures the residency in Package C-state C2.  Units are XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_C3_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1040,
+		"BriefDescription": "Measures the residency in Package C-state C3.  Units are XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_C6_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1048,
+		"BriefDescription": "Measures the residency in Package C-state C6.  Units are XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_C7_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1056,
+		"BriefDescription": "Measures the residency in Package C-state C7.  Units are XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_C8_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1064,
+		"BriefDescription": "Measures the residency in Package C-state C8.  Units are XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_C9_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1072,
+		"BriefDescription": "Measures the residency in Package C-state C9.  Units are XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_C10_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1080,
+		"BriefDescription": "Measures the residency in Package C-state C10.  Units are XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_LLC_FLUSHED_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1088,
+		"BriefDescription": "Measures the residency in Package C-state LLC_FLUSHED.  Units are XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "OS_REQUESTED_CSTATE_PC6_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1096,
+		"BriefDescription": "Measures the time that the OS requested C-state is PC6.  Units in XTAL clocks",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "OS_REQUESTED_CSTATE_PC7_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1104,
+		"BriefDescription": "Measures the time that the OS requested C-state is PC7.  Units in XTAL clocks",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "OS_REQUESTED_CSTATE_PC8_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1112,
+		"BriefDescription": "Measures the time that the OS requested C-state is PC8.  Units in XTAL clocks",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "OS_REQUESTED_CSTATE_PC9_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1120,
+		"BriefDescription": "Measures the time that the OS requested C-state is PC9.  Units in XTAL clocks",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "OS_REQUESTED_CSTATE_PC10_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1128,
+		"BriefDescription": "Measures the time that the OS requested C-state is PC10.  Units in XTAL clocks",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCKED_PC6_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1136,
+		"BriefDescription": "Measures the time that the OS requested C-state of PC6 is blocked. Units in XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCKED_PC7_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1144,
+		"BriefDescription": "Measures the time that the OS requested C-state of PC7 is blocked. Units in XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCKED_PC8_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1152,
+		"BriefDescription": "Measures the time that the OS requested C-state of PC8 is blocked. Units in XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCKED_PC9_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1160,
+		"BriefDescription": "Measures the time that the OS requested C-state of PC9 is blocked. Units in XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_BLOCKED_PC10_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 1168,
+		"BriefDescription": "Measures the time that the OS requested C-state of PC10 is blocked. Units in XTAL clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_CORE",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1176,
+		"BriefDescription": "IA Core 0 FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_CORE_1",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1184,
+		"BriefDescription": "IA Core 1 FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_CORE_2",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1192,
+		"BriefDescription": "IA Core 2 FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_CORE_3",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1200,
+		"BriefDescription": "IA Core 3 FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_CORE_4",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1208,
+		"BriefDescription": "IA Core 4 FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_CORE_5",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1216,
+		"BriefDescription": "IA Core 5 FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_CORE_6",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1224,
+		"BriefDescription": "IA Core 6 FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_CORE_7",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1232,
+		"BriefDescription": "IA Core 7 FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_GT",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1240,
+		"BriefDescription": "GT FIVR(s) input rail energy (per-FIVR)",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_GT_1",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1248,
+		"BriefDescription": "GT FIVR(s) input rail energy (per-FIVR)",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_RING",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1256,
+		"BriefDescription": "Ring FIVR(s) input rail energy (per-FIVR)",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_RING_1",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1264,
+		"BriefDescription": "Ring FIVR(s) input rail energy (per-FIVR)",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_IOE",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1272,
+		"BriefDescription": "Total FIVR input rail energy (per-FIVR)",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_ION",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1280,
+		"BriefDescription": "IO_N FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_SA",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1288,
+		"BriefDescription": "SA FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_TYPEC",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1296,
+		"BriefDescription": "Type-C FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_VDDQTX",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1304,
+		"BriefDescription": "VDDQ_TX FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FIVR_IMON_ENERGY_PCIE",
+		"datatypeID": "tfivr_imon_energy",
+		"offset": 1312,
+		"BriefDescription": "PCIE FIVR input rail energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSYS_ENERGY",
+		"datatypeID": "tpackage_energy",
+		"offset": 1320,
+		"BriefDescription": "Energy reported by the Psys VR.  U18.14",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_ENERGY",
+		"datatypeID": "tpackage_energy",
+		"offset": 1328,
+		"BriefDescription": "Total package energy including CPU + PCH",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VCCIN_ENERGY",
+		"datatypeID": "timon_energy",
+		"offset": 1336,
+		"BriefDescription": "Total FIVR input rail energy (per-FIVR)",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PCH_ENERGY",
+		"datatypeID": "tpch_energy",
+		"offset": 1344,
+		"BriefDescription": "PCH energy",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_READS",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1352,
+		"BriefDescription": "Total LLC read bandwidth from core  0",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_READS_1",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1360,
+		"BriefDescription": "Total LLC read bandwidth from core  1",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_READS_2",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1368,
+		"BriefDescription": "Total LLC read bandwidth from core  2",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_READS_3",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1376,
+		"BriefDescription": "Total LLC read bandwidth from core  3",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_READS_4",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1384,
+		"BriefDescription": "Total LLC read bandwidth from core  4",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_READS_5",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1392,
+		"BriefDescription": "Total LLC read bandwidth from core  5",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_READS_6",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1400,
+		"BriefDescription": "Total LLC read bandwidth from core  6",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_READS_7",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1408,
+		"BriefDescription": "Total LLC read bandwidth from core  7",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_WRITES",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1416,
+		"BriefDescription": "Total LLC write bandwidth from core  0",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_WRITES_1",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1424,
+		"BriefDescription": "Total LLC write bandwidth from core  1",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_WRITES_2",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1432,
+		"BriefDescription": "Total LLC write bandwidth from core  2",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_WRITES_3",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1440,
+		"BriefDescription": "Total LLC write bandwidth from core  3",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_WRITES_4",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1448,
+		"BriefDescription": "Total LLC write bandwidth from core  4",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_WRITES_5",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1456,
+		"BriefDescription": "Total LLC write bandwidth from core  5",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_WRITES_6",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1464,
+		"BriefDescription": "Total LLC write bandwidth from core  6",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_LLC_WRITES_7",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1472,
+		"BriefDescription": "Total LLC write bandwidth from core  7",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_LLC_READS",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1480,
+		"BriefDescription": "Total LLC read bandwidth from graphics.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_LLC_WRITES",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1488,
+		"BriefDescription": "Total LLC write bandwidth from graphics.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LLC_CLOCKS_ACTIVE",
+		"datatypeID": "tuclk_counter",
+		"offset": 1496,
+		"BriefDescription": "Total active LLC clocks.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DISPLAY_IO_WRITE_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1504,
+		"BriefDescription": "Total I/O write bandwidth for display",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IPU_IO_WRITE_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1512,
+		"BriefDescription": "Total I/O write bandwidth for IPU",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PCIE_GEN4_IO_WRITE_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1520,
+		"BriefDescription": "Total I/O write bandwidth for PCIe Gen4",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "TYPEC_IO_WRITE_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1528,
+		"BriefDescription": "Total I/O write bandwidth for TypeC",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_TOTAL_WRITE_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1536,
+		"BriefDescription": "Total I/O write bandwidth.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DISPLAY_IO_READ_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1544,
+		"BriefDescription": "Total I/O read bandwidth for Display",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IPU_IO_READ_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1552,
+		"BriefDescription": "Total I/O read bandwidth for IPU",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PCIE_GEN4_IO_READ_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1560,
+		"BriefDescription": "Total I/O read bandwidth for PCIe Gen4",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "TYPEC_IO_READ_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1568,
+		"BriefDescription": "Total I/O read bandwidth for TypeC",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_TOTAL_READ_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1576,
+		"BriefDescription": "Total I/O read bandwidth.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DISPLAY_VC1_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 1584,
+		"BriefDescription": "Total display VC1 (non-coherent read) bandwidth.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_CORE",
+		"datatypeID": "tevent_counter",
+		"offset": 1592,
+		"BriefDescription": "Count of the number of P-state transitions for CORE 0.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_CORE_1",
+		"datatypeID": "tevent_counter",
+		"offset": 1592,
+		"BriefDescription": "Count of the number of P-state transitions for CORE 1.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_CORE_2",
+		"datatypeID": "tevent_counter",
+		"offset": 1600,
+		"BriefDescription": "Count of the number of P-state transitions for CORE 2.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_CORE_3",
+		"datatypeID": "tevent_counter",
+		"offset": 1600,
+		"BriefDescription": "Count of the number of P-state transitions for CORE 3.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_CORE_4",
+		"datatypeID": "tevent_counter",
+		"offset": 1608,
+		"BriefDescription": "Count of the number of P-state transitions for CORE 4.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_CORE_5",
+		"datatypeID": "tevent_counter",
+		"offset": 1608,
+		"BriefDescription": "Count of the number of P-state transitions for CORE 5.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_CORE_6",
+		"datatypeID": "tevent_counter",
+		"offset": 1616,
+		"BriefDescription": "Count of the number of P-state transitions for CORE 6.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_CORE_7",
+		"datatypeID": "tevent_counter",
+		"offset": 1616,
+		"BriefDescription": "Count of the number of P-state transitions for CORE 7.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_GT",
+		"datatypeID": "tevent_counter",
+		"offset": 1624,
+		"BriefDescription": "Count of the number of P-state transitions for GT.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_LLC",
+		"datatypeID": "tevent_counter",
+		"offset": 1624,
+		"BriefDescription": "Count of the number of P-state transitions for LLC.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_IPU",
+		"datatypeID": "tevent_counter",
+		"offset": 1632,
+		"BriefDescription": "Count of the number of P-state transitions for IPU.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_PSF",
+		"datatypeID": "tevent_counter",
+		"offset": 1632,
+		"BriefDescription": "Count of the number of P-state transitions for PSF.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_COUNTER_QCLK",
+		"datatypeID": "tevent_counter",
+		"offset": 1640,
+		"BriefDescription": "Count of the number of P-state transitions for QCLK.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_CORE",
+		"datatypeID": "tevent_counter",
+		"offset": 1640,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for CORE 0.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_CORE_1",
+		"datatypeID": "tevent_counter",
+		"offset": 1648,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for CORE 1.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_CORE_2",
+		"datatypeID": "tevent_counter",
+		"offset": 1648,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for CORE 2.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_CORE_3",
+		"datatypeID": "tevent_counter",
+		"offset": 1656,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for CORE 3.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_CORE_4",
+		"datatypeID": "tevent_counter",
+		"offset": 1656,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for CORE 4.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_CORE_5",
+		"datatypeID": "tevent_counter",
+		"offset": 1664,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for CORE 5.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_CORE_6",
+		"datatypeID": "tevent_counter",
+		"offset": 1664,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for CORE 6.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_CORE_7",
+		"datatypeID": "tevent_counter",
+		"offset": 1672,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for CORE 7.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_GT",
+		"datatypeID": "tevent_counter",
+		"offset": 1672,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for GT.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_LLC",
+		"datatypeID": "tevent_counter",
+		"offset": 1680,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for LLC.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_IPU",
+		"datatypeID": "tevent_counter",
+		"offset": 1680,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for IPU.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_PSF",
+		"datatypeID": "tevent_counter",
+		"offset": 1688,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for PSF.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SAMPLECNT_QCLK",
+		"datatypeID": "tevent_counter",
+		"offset": 1688,
+		"BriefDescription": "Number of samples collected with the P-state integrator. Used in calculating average and stdev.  Excludes idle time for QCLK.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_CORE",
+		"datatypeID": "tpstate_integrator_core",
+		"offset": 1696,
+		"BriefDescription": "Integrated sum of clock ratio on Core 0.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_CORE_1",
+		"datatypeID": "tpstate_integrator_core",
+		"offset": 1704,
+		"BriefDescription": "Integrated sum of clock ratio on Core 1.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_CORE_2",
+		"datatypeID": "tpstate_integrator_core",
+		"offset": 1712,
+		"BriefDescription": "Integrated sum of clock ratio on Core 2.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_CORE_3",
+		"datatypeID": "tpstate_integrator_core",
+		"offset": 1720,
+		"BriefDescription": "Integrated sum of clock ratio on Core 3.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_CORE_4",
+		"datatypeID": "tpstate_integrator_core",
+		"offset": 1728,
+		"BriefDescription": "Integrated sum of clock ratio on Core 4.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_CORE_5",
+		"datatypeID": "tpstate_integrator_core",
+		"offset": 1736,
+		"BriefDescription": "Integrated sum of clock ratio on Core 5.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_CORE_6",
+		"datatypeID": "tpstate_integrator_core",
+		"offset": 1744,
+		"BriefDescription": "Integrated sum of clock ratio on Core 6.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_CORE_7",
+		"datatypeID": "tpstate_integrator_core",
+		"offset": 1752,
+		"BriefDescription": "Integrated sum of clock ratio on Core 7.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_GT",
+		"datatypeID": "tpstate_integrator_gt",
+		"offset": 1760,
+		"BriefDescription": "Integrated sum of clock ratio.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the GT is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_LLC",
+		"datatypeID": "tpstate_integrator_llc",
+		"offset": 1768,
+		"BriefDescription": "Integrated sum of clock ratio.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the LLC is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_IPU",
+		"datatypeID": "tpstate_integrator_ipu",
+		"offset": 1776,
+		"BriefDescription": "Integrated sum of clock ratio.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the IPU is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_PSF",
+		"datatypeID": "tpstate_integrator_psf",
+		"offset": 1784,
+		"BriefDescription": "Integrated sum of clock ratio.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the PSF is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_INTEGRATOR_QCLK",
+		"datatypeID": "tpstate_integrator_qclk",
+		"offset": 1792,
+		"BriefDescription": "Integrated sum of clock ratio.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the QCLK is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_CORE",
+		"datatypeID": "tpstate_sumsq_core",
+		"offset": 1800,
+		"BriefDescription": "Integrated sum of squares of clock ratio on Core 0.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_CORE_1",
+		"datatypeID": "tpstate_sumsq_core",
+		"offset": 1808,
+		"BriefDescription": "Integrated sum of squares of clock ratio on Core 1.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_CORE_2",
+		"datatypeID": "tpstate_sumsq_core",
+		"offset": 1816,
+		"BriefDescription": "Integrated sum of squares of clock ratio on Core 2.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_CORE_3",
+		"datatypeID": "tpstate_sumsq_core",
+		"offset": 1824,
+		"BriefDescription": "Integrated sum of squares of clock ratio on Core 3.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_CORE_4",
+		"datatypeID": "tpstate_sumsq_core",
+		"offset": 1832,
+		"BriefDescription": "Integrated sum of squares of clock ratio on Core 4.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_CORE_5",
+		"datatypeID": "tpstate_sumsq_core",
+		"offset": 1840,
+		"BriefDescription": "Integrated sum of squares of clock ratio on Core 5.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_CORE_6",
+		"datatypeID": "tpstate_sumsq_core",
+		"offset": 1848,
+		"BriefDescription": "Integrated sum of squares of clock ratio on Core 6.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_CORE_7",
+		"datatypeID": "tpstate_sumsq_core",
+		"offset": 1856,
+		"BriefDescription": "Integrated sum of squares of clock ratio on Core 7.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the CORE is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_GT",
+		"datatypeID": "tpstate_sumsq_gt",
+		"offset": 1864,
+		"BriefDescription": "Integrated sum of squares of clock ratio.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the GT is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_LLC",
+		"datatypeID": "tpstate_sumsq_llc",
+		"offset": 1872,
+		"BriefDescription": "Integrated sum of squares of clock ratio.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the LLC is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_IPU",
+		"datatypeID": "tpstate_sumsq_ipu",
+		"offset": 1880,
+		"BriefDescription": "Integrated sum of squares of clock ratio.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the IPU is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_PSF",
+		"datatypeID": "tpstate_sumsq_psf",
+		"offset": 1888,
+		"BriefDescription": "Integrated sum of squares of clock ratio.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the PSF is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSTATE_SUMSQ_QCLK",
+		"datatypeID": "tpstate_sumsq_qclk",
+		"offset": 1896,
+		"BriefDescription": "Integrated sum of squares of clock ratio.  Incremented by the current P-state clock ratio at periodic intervals.  Not incremented when the QCLK is off.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "C1E_COUNTER",
+		"datatypeID": "tTBD",
+		"offset": 1904,
+		"BriefDescription": "Counts the number of transitions into C1E at the core level.  OPEN: does the core actually have this?",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 1912,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for CORE 0.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_COUNTER_1",
+		"datatypeID": "tevent_counter",
+		"offset": 1912,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for CORE 1.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_COUNTER_2",
+		"datatypeID": "tevent_counter",
+		"offset": 1920,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for CORE 2.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_COUNTER_3",
+		"datatypeID": "tevent_counter",
+		"offset": 1920,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for CORE 3.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_COUNTER_4",
+		"datatypeID": "tevent_counter",
+		"offset": 1928,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for CORE 4.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_COUNTER_5",
+		"datatypeID": "tevent_counter",
+		"offset": 1928,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for CORE 5.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_COUNTER_6",
+		"datatypeID": "tevent_counter",
+		"offset": 1936,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for CORE 6.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_CORE_COUNTER_7",
+		"datatypeID": "tevent_counter",
+		"offset": 1936,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for CORE 7.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_GT_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 1944,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for GT.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_LLC_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 1944,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for LLC.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_IPU_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 1952,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for IPU.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_THERM_PKG_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 1952,
+		"BriefDescription": "Transition counter for when slow limit THERM has limited performance for PKG.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 1960,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for CORE 0.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_COUNTER_1",
+		"datatypeID": "tevent_counter",
+		"offset": 1960,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for CORE 1.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_COUNTER_2",
+		"datatypeID": "tevent_counter",
+		"offset": 1968,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for CORE 2.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_COUNTER_3",
+		"datatypeID": "tevent_counter",
+		"offset": 1968,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for CORE 3.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_COUNTER_4",
+		"datatypeID": "tevent_counter",
+		"offset": 1976,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for CORE 4.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_COUNTER_5",
+		"datatypeID": "tevent_counter",
+		"offset": 1976,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for CORE 5.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_COUNTER_6",
+		"datatypeID": "tevent_counter",
+		"offset": 1984,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for CORE 6.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_CORE_COUNTER_7",
+		"datatypeID": "tevent_counter",
+		"offset": 1984,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for CORE 7.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_GT_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 1992,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for GT.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_LLC_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 1992,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for LLC.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_IPU_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2000,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for IPU.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_POWER_PKG_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2000,
+		"BriefDescription": "Transition counter for when slow limit POWER has limited performance for PKG.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2008,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for CORE 0.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_COUNTER_1",
+		"datatypeID": "tevent_counter",
+		"offset": 2008,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for CORE 1.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_COUNTER_2",
+		"datatypeID": "tevent_counter",
+		"offset": 2016,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for CORE 2.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_COUNTER_3",
+		"datatypeID": "tevent_counter",
+		"offset": 2016,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for CORE 3.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_COUNTER_4",
+		"datatypeID": "tevent_counter",
+		"offset": 2024,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for CORE 4.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_COUNTER_5",
+		"datatypeID": "tevent_counter",
+		"offset": 2024,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for CORE 5.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_COUNTER_6",
+		"datatypeID": "tevent_counter",
+		"offset": 2032,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for CORE 6.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_CORE_COUNTER_7",
+		"datatypeID": "tevent_counter",
+		"offset": 2032,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for CORE 7.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_GT_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2040,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for GT.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_LLC_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2040,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for LLC.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_IPU_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2048,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for IPU.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_EDP_PKG_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2048,
+		"BriefDescription": "Transition counter for when slow limit EDP has limited performance for PKG.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2056,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for CORE 0.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_COUNTER_1",
+		"datatypeID": "tevent_counter",
+		"offset": 2056,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for CORE 1.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_COUNTER_2",
+		"datatypeID": "tevent_counter",
+		"offset": 2064,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for CORE 2.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_COUNTER_3",
+		"datatypeID": "tevent_counter",
+		"offset": 2064,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for CORE 3.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_COUNTER_4",
+		"datatypeID": "tevent_counter",
+		"offset": 2072,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for CORE 4.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_COUNTER_5",
+		"datatypeID": "tevent_counter",
+		"offset": 2072,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for CORE 5.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_COUNTER_6",
+		"datatypeID": "tevent_counter",
+		"offset": 2080,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for CORE 6.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_CORE_COUNTER_7",
+		"datatypeID": "tevent_counter",
+		"offset": 2080,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for CORE 7.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_GT_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2088,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for GT.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_LLC_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2088,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for LLC.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_IPU_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2096,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for IPU.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_OTHER_PKG_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2096,
+		"BriefDescription": "Transition counter for when slow limit OTHER has limited performance for PKG.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_SAMPLE_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2104,
+		"BriefDescription": "Total sample count for perf limit accounting for Core 0.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_SAMPLE_COUNTER_1",
+		"datatypeID": "tevent_counter",
+		"offset": 2112,
+		"BriefDescription": "Total sample count for perf limit accounting for Core 1.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_SAMPLE_COUNTER_2",
+		"datatypeID": "tevent_counter",
+		"offset": 2120,
+		"BriefDescription": "Total sample count for perf limit accounting for Core 2.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_SAMPLE_COUNTER_3",
+		"datatypeID": "tevent_counter",
+		"offset": 2128,
+		"BriefDescription": "Total sample count for perf limit accounting for Core 3.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_SAMPLE_COUNTER_4",
+		"datatypeID": "tevent_counter",
+		"offset": 2136,
+		"BriefDescription": "Total sample count for perf limit accounting for Core 4.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_SAMPLE_COUNTER_5",
+		"datatypeID": "tevent_counter",
+		"offset": 2144,
+		"BriefDescription": "Total sample count for perf limit accounting for Core 5.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_SAMPLE_COUNTER_6",
+		"datatypeID": "tevent_counter",
+		"offset": 2152,
+		"BriefDescription": "Total sample count for perf limit accounting for Core 6.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PERF_LIMIT_SAMPLE_COUNTER_7",
+		"datatypeID": "tevent_counter",
+		"offset": 2160,
+		"BriefDescription": "Total sample count for perf limit accounting for Core 7.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_COUNTS_C2",
+		"datatypeID": "tevent_counter",
+		"offset": 2168,
+		"BriefDescription": "Measures the number of transitions to Package C-state C2.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_COUNTS_C3",
+		"datatypeID": "tevent_counter",
+		"offset": 2168,
+		"BriefDescription": "Measures the number of transitions to Package C-state C3.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_COUNTS_C6",
+		"datatypeID": "tevent_counter",
+		"offset": 2176,
+		"BriefDescription": "Measures the number of transitions to Package C-state C6.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_COUNTS_C7",
+		"datatypeID": "tevent_counter",
+		"offset": 2176,
+		"BriefDescription": "Measures the number of transitions to Package C-state C7.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_COUNTS_C8",
+		"datatypeID": "tevent_counter",
+		"offset": 2184,
+		"BriefDescription": "Measures the number of transitions to Package C-state C8.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_COUNTS_C9",
+		"datatypeID": "tevent_counter",
+		"offset": 2184,
+		"BriefDescription": "Measures the number of transitions to Package C-state C9.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_COUNTS_C10",
+		"datatypeID": "tevent_counter",
+		"offset": 2192,
+		"BriefDescription": "Measures the number of transitions to Package C-state C10.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PACKAGE_CSTATE_COUNTS_LLC_FLUSHED",
+		"datatypeID": "tevent_counter",
+		"offset": 2192,
+		"BriefDescription": "Measures the number of transitions to Package C-state LLC_FLUSHED.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PROCHOT_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2200,
+		"BriefDescription": "prochot assertions.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "VRHOT_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2200,
+		"BriefDescription": "VR asserted VRHOT.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PL4_LIMITED_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2208,
+		"BriefDescription": "SOC was PL4 limited",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PL3_LIMITED_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2208,
+		"BriefDescription": "SOC was PL3 limited",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PL2_LIMITED_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2216,
+		"BriefDescription": "SOC was PL2 limited",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PL1_LIMITED_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2216,
+		"BriefDescription": "SOC was PL1 limited",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSYS_PL4_LIMITED_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2224,
+		"BriefDescription": "SOC was Psys PL4 limited",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSYS_PL3_LIMITED_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2224,
+		"BriefDescription": "SOC was Psys PL3 limited",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSYS_PL2_LIMITED_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2232,
+		"BriefDescription": "SOC was Psys PL2 limited",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PSYS_PL1_LIMITED_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2232,
+		"BriefDescription": "SOC was Psys PL1 limited",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "OPPORTUNISTIC_POWERDOWN",
+		"datatypeID": "tevent_counter",
+		"offset": 2240,
+		"BriefDescription": "Core was requested to enter opportunistic powerdown.  Per-core, set at write to IO_OPD_REQ_ADDRESS",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_UP_CORE",
+		"datatypeID": "tevent_counter",
+		"offset": 2240,
+		"BriefDescription": "LIMC hint UP for Core 0.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_UP_CORE_1",
+		"datatypeID": "tevent_counter",
+		"offset": 2248,
+		"BriefDescription": "LIMC hint UP for Core 1.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_UP_CORE_2",
+		"datatypeID": "tevent_counter",
+		"offset": 2248,
+		"BriefDescription": "LIMC hint UP for Core 2.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_UP_CORE_3",
+		"datatypeID": "tevent_counter",
+		"offset": 2256,
+		"BriefDescription": "LIMC hint UP for Core 3.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_UP_CORE_4",
+		"datatypeID": "tevent_counter",
+		"offset": 2256,
+		"BriefDescription": "LIMC hint UP for Core 4.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_UP_CORE_5",
+		"datatypeID": "tevent_counter",
+		"offset": 2264,
+		"BriefDescription": "LIMC hint UP for Core 5.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_UP_CORE_6",
+		"datatypeID": "tevent_counter",
+		"offset": 2264,
+		"BriefDescription": "LIMC hint UP for Core 6.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_UP_CORE_7",
+		"datatypeID": "tevent_counter",
+		"offset": 2272,
+		"BriefDescription": "LIMC hint UP for Core 7.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_UP_GT",
+		"datatypeID": "tevent_counter",
+		"offset": 2272,
+		"BriefDescription": "LIMC hint UP.  Send from GT to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_DOWN_CORE",
+		"datatypeID": "tevent_counter",
+		"offset": 2280,
+		"BriefDescription": "LIMC hint DOWN for Core 0.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_DOWN_CORE_1",
+		"datatypeID": "tevent_counter",
+		"offset": 2280,
+		"BriefDescription": "LIMC hint DOWN for Core 1.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_DOWN_CORE_2",
+		"datatypeID": "tevent_counter",
+		"offset": 2288,
+		"BriefDescription": "LIMC hint DOWN for Core 2.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_DOWN_CORE_3",
+		"datatypeID": "tevent_counter",
+		"offset": 2288,
+		"BriefDescription": "LIMC hint DOWN for Core 3.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_DOWN_CORE_4",
+		"datatypeID": "tevent_counter",
+		"offset": 2296,
+		"BriefDescription": "LIMC hint DOWN for Core 4.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_DOWN_CORE_5",
+		"datatypeID": "tevent_counter",
+		"offset": 2296,
+		"BriefDescription": "LIMC hint DOWN for Core 5.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_DOWN_CORE_6",
+		"datatypeID": "tevent_counter",
+		"offset": 2304,
+		"BriefDescription": "LIMC hint DOWN for Core 6.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_DOWN_CORE_7",
+		"datatypeID": "tevent_counter",
+		"offset": 2304,
+		"BriefDescription": "LIMC hint DOWN for Core 7.  Send from CORE to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LIMC_HINT_DOWN_GT",
+		"datatypeID": "tevent_counter",
+		"offset": 2312,
+		"BriefDescription": "LIMC hint DOWN.  Send from GT to Punit when LIMC indications change.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2312,
+		"BriefDescription": "Core 0 C6 transition counter",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_COUNTER_1",
+		"datatypeID": "tevent_counter",
+		"offset": 2320,
+		"BriefDescription": "Core 1 C6 transition counter",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_COUNTER_2",
+		"datatypeID": "tevent_counter",
+		"offset": 2320,
+		"BriefDescription": "Core 2 C6 transition counter",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_COUNTER_3",
+		"datatypeID": "tevent_counter",
+		"offset": 2328,
+		"BriefDescription": "Core 3 C6 transition counter",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_COUNTER_4",
+		"datatypeID": "tevent_counter",
+		"offset": 2328,
+		"BriefDescription": "Core 4 C6 transition counter",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_COUNTER_5",
+		"datatypeID": "tevent_counter",
+		"offset": 2336,
+		"BriefDescription": "Core 5 C6 transition counter",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_COUNTER_6",
+		"datatypeID": "tevent_counter",
+		"offset": 2336,
+		"BriefDescription": "Core 6 C6 transition counter",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "CORE_CSTATE_C6_COUNTER_7",
+		"datatypeID": "tevent_counter",
+		"offset": 2344,
+		"BriefDescription": "Core 7 C6 transition counter",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_RC6_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2344,
+		"BriefDescription": "GT RC6",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IPU_IS_C6_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2352,
+		"BriefDescription": "IPU IS C6",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IPU_PS_C6_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2352,
+		"BriefDescription": "IPU PS C6",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LLC_C3_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2360,
+		"BriefDescription": "LLC retention",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "LLC_C6_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2360,
+		"BriefDescription": "LLC flushed and off",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_CONFIG_REQ",
+		"datatypeID": "tevent_counter",
+		"offset": 2368,
+		"BriefDescription": "GT config req",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 2376,
+		"BriefDescription": "Virtual bandwidth counter based on PWM_GT_REQCOUNT bulkcr sample",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IA_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 2384,
+		"BriefDescription": "Virtual bandwidth counter based on PWM_IA_REQCOUNT bulkcr sample",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 2392,
+		"BriefDescription": "Virtual bandwidth counter based on PWM_IO_REQCOUNT bulkcr sample",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "WRITE_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 2400,
+		"BriefDescription": "Virtual bandwidth counter based on PWM_WRDATA bulkcr sample",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "READ_BANDWIDTH",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 2408,
+		"BriefDescription": "Virtual bandwidth counter based on PWM_RDDATA bulkcr sample",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "PCIE_GEN4_POWER_STATE_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2416,
+		"BriefDescription": "TBD: need to figure out how to sample PCIe link state and convert  to status/residency.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "FAST_PROCHOT",
+		"datatypeID": "tevent_counter",
+		"offset": 2416,
+		"BriefDescription": "Count of the number of assertions of fast prochot trip.  OPEN: do we have a counter for this?",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RELIABILITY_STRESS_CORE",
+		"datatypeID": "tstress_counter",
+		"offset": 2424,
+		"BriefDescription": "Stress counter for CORE 0",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RELIABILITY_STRESS_CORE_1",
+		"datatypeID": "tstress_counter",
+		"offset": 2432,
+		"BriefDescription": "Stress counter for CORE 1",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RELIABILITY_STRESS_CORE_2",
+		"datatypeID": "tstress_counter",
+		"offset": 2440,
+		"BriefDescription": "Stress counter for CORE 2",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RELIABILITY_STRESS_CORE_3",
+		"datatypeID": "tstress_counter",
+		"offset": 2448,
+		"BriefDescription": "Stress counter for CORE 3",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RELIABILITY_STRESS_CORE_4",
+		"datatypeID": "tstress_counter",
+		"offset": 2456,
+		"BriefDescription": "Stress counter for CORE 4",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RELIABILITY_STRESS_CORE_5",
+		"datatypeID": "tstress_counter",
+		"offset": 2464,
+		"BriefDescription": "Stress counter for CORE 5",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RELIABILITY_STRESS_CORE_6",
+		"datatypeID": "tstress_counter",
+		"offset": 2472,
+		"BriefDescription": "Stress counter for CORE 6",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RELIABILITY_STRESS_CORE_7",
+		"datatypeID": "tstress_counter",
+		"offset": 2480,
+		"BriefDescription": "Stress counter for CORE 7",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RELIABILITY_STRESS_GT",
+		"datatypeID": "tstress_counter",
+		"offset": 2488,
+		"BriefDescription": "Stress counter for GT",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RELIABILITY_STRESS_LLC",
+		"datatypeID": "tstress_counter",
+		"offset": 2496,
+		"BriefDescription": "Stress counter for LLC",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_PKG_IA_C0_ANY_SUM",
+		"datatypeID": "txtal_time",
+		"offset": 2504,
+		"BriefDescription": "The counter value is incremented as a function of the number of cores that reside in C0 and active.  If N cores are simultaneously in C0, then the number of \"clock ticks\" that are incremented is N. Counts in XTAL units.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_PKG_GT_C0_EUS_SUM",
+		"datatypeID": "txtal_time",
+		"offset": 2504,
+		"BriefDescription": "The counter value is incremented by the number of EUs active at any time that a slice is active. Reference clock is XTAL.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_PKG_GT_C0_MEDIA_SUM",
+		"datatypeID": "txtal_time",
+		"offset": 2512,
+		"BriefDescription": "TBD",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_PKG_GT_C0_SLICES_SUM",
+		"datatypeID": "txtal_time",
+		"offset": 2512,
+		"BriefDescription": "Integrated count of the number of active slices.  Reference clock is XTAL.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_PKG_GT_C0_ANY_MEDIA",
+		"datatypeID": "txtal_time",
+		"offset": 2520,
+		"BriefDescription": "Counts clocks that any GT media engine is active. Reference clock is XTAL.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_PKG_IA_C0_ANY_RATIO",
+		"datatypeID": "txtal_time",
+		"offset": 2520,
+		"BriefDescription": "Counts clocks that any IA core is active. Reference clock is XTAL.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_PKG_GT_C0_ANY_SLICE",
+		"datatypeID": "txtal_time",
+		"offset": 2528,
+		"BriefDescription": "Counts clocks that any GT slice is active. Reference clock is XTAL.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "0",
+		"msb": "31",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "IO_PKG_GT_AND_IA_OVERLAP",
+		"datatypeID": "txtal_time",
+		"offset": 2528,
+		"BriefDescription": "This counter increments whenever GT slices or un slices are active and in C0 state and in overlap with one of the IA cores that is active and in C0This counter increments whenever GT slices or un slices are active and in C0 state and in overlap with one of the IA cores that is active and in C0 state. Counts in XTAL units.",
+		"sampleType": "Counter",
+		"size": "32",
+		"lsb": "32",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DRAM_CHANNEL_ACTIVATE_COUNTER",
+		"datatypeID": "tevent_counter",
+		"offset": 2536,
+		"BriefDescription": "Total activate counts for a single DRAM channel.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DRAM_CHANNEL_DCLK_ACTIVE_COUNTER",
+		"datatypeID": "tdclk_counter",
+		"offset": 2544,
+		"BriefDescription": "Total DCLK active clocks for a single DRAM channel.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DRAM_CHANNEL_CKE_LOW_COUNTER",
+		"datatypeID": "tdclk_counter",
+		"offset": 2552,
+		"BriefDescription": "Total CKE low counts for a single DRAM channel.  Measures the time that all ranks are in CKE low",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DRAM_CHANNEL_RD_COUNTER",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 2560,
+		"BriefDescription": "Total read bandwidth for a single DRAM channel.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "DRAM_CHANNEL_WR_COUNTER",
+		"datatypeID": "tbandwidth_64B",
+		"offset": 2568,
+		"BriefDescription": "Total write bandwidth for a single DRAM channel.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_RC0_CLOCKS",
+		"datatypeID": "tgt_clk_counter_div64",
+		"offset": 2576,
+		"BriefDescription": "Accumulates the number of active (RC0) GT clock cycles. The original counter is in 64 clocks increments.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_ENGINE_BUSY_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 2584,
+		"BriefDescription": "Counts the time that any Gfx engine is truly busy (not simply powered up)",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "GT_RC0_IDLE_RESIDENCY",
+		"datatypeID": "txtal_time",
+		"offset": 2592,
+		"BriefDescription": "Counts the time from when the all the streamers have indicated idle to GT making a Rc6 entry request",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RC6_ENTRY_OVERHEAD",
+		"datatypeID": "txtal_time",
+		"offset": 2600,
+		"BriefDescription": "Counts the time that GT took to go through the RC6 flow (including context save) after all conditions to enter RC6 were met.",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RC6_WAKE_OVERHEAD",
+		"datatypeID": "txtal_time",
+		"offset": 2608,
+		"BriefDescription": "Counts the dead time spent between end of GT RC6 wake sequence and GT engine actually starting to execute",
+		"sampleType": "Counter",
+		"size": "64",
+		"lsb": "0",
+		"msb": "63",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	},
+	{
+
+		"EventName": "RING_RATIO",
+		"datatypeID": "txtal_time",
+		"offset": 2616,
+		"BriefDescription": "Current Ring Ratio. If AutoGV is enabled, current ratio is the last sent telemetry from CCFPMA. Note SOCWatch to use its own timestamp to calculate residency.",
+		"sampleType": "Counter",
+		"size": "8",
+		"lsb": "0",
+		"msb": "7",
+		"Unit": "intel_pmt",
+		"guid": "0x1601"
+	}
+]
+
