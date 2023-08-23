@@ -5323,7 +5323,7 @@
                 }
             ],
             "description": "Adds the KVM support for TDX 1.5 features including TD preserving and TD live migration.",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Caspi Dror",
