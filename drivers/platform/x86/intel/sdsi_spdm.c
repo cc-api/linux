@@ -1124,6 +1124,9 @@ static int spdm_validate_certificate(struct sdsi_spdm_state *spdm_state, u8 slot
 err_put_keyring:
 	key_put(keyring);
 
+	if (rc < 0)
+		return rc;
+
 	return 0;
 }
 
