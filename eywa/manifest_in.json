@@ -5323,14 +5323,14 @@
                 }
             ],
             "description": "Adds the KVM support for TDX 1.5 features including TD preserving and TD live migration.",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Caspi Dror",
                     "email": "dror.caspi@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3487",
             "name": "kvm_tdx_1_5",
             "repourl": "https://github.com/intel-sandbox/cqiang-tdx-kvm.git",
             "sdl_contact": [
@@ -5341,8 +5341,8 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2",
-            "maillist": "",
+            "last_enabled": "v6.5",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-08/msg00077.html",
             "platforms": "",
             "feature_jiras": ""
         },
