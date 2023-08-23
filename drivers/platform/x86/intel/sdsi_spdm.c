@@ -1441,10 +1441,14 @@ static int spdm_challenge(struct sdsi_spdm_state *spdm_state, u8 slot)
 	if (rc)
 		goto err_free_rsp;
 
+	print_transcript(spdm_state, "CHALLENGE REQ", (u8 *)&req, req_sz);
+
 	sig_offset = rsp_sz - spdm_state->s;
 	rc = crypto_shash_update(spdm_state->desc, (u8 *)rsp, sig_offset);
 	if (rc)
 		goto err_free_rsp;
+
+	print_transcript(spdm_state, "CHALLENGE_AUTH RSP MINUS SIG", (u8 *)&rsp, sig_offset);
 
 	/* Hash is complete and signature received; verify against leaf key */
 	rc = spdm_verify_signature(spdm_state, (u8 *)rsp + sig_offset,
