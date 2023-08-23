@@ -82,6 +82,10 @@ static void fs1_sim_init_disabled_features(struct xe_device *xe)
  */
 #define XE_PRESI_SIM_COMMON_DISABLED_FEATURES 0
 
+#define XE_EMU_COMMON_DISABLED_FEATURES (XE_PRESI_FEATURE_BIT(UC_AUTH)  | \
+					 XE_PRESI_FEATURE_BIT(GUC_SLPC) | \
+					 XE_PRESI_FEATURE_BIT(PCODE))
+
 static void xe_presi_init_disabled_features(struct xe_device *xe)
 {
 	BUILD_BUG_ON(sizeof(xe->presi_info.disabled_features) * BITS_PER_BYTE <
@@ -108,8 +112,12 @@ static void xe_presi_init_disabled_features(struct xe_device *xe)
 			default:
 				; /* Added just to satisfy the warning */
 		}
+	} else if (IS_PIPEGT_EMULATOR(xe)) {
+		xe->presi_info.disabled_features =
+			XE_EMU_COMMON_DISABLED_FEATURES;
 	}
-	/* Other presilicon environments like PipeGT and Pipe2D are yet to be handled */
+
+	/* Other presilicon environments like Pipe2D are yet to be handled */
 }
 
 static struct xe_presi_ops xe_presi_nops;
