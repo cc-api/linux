@@ -1386,7 +1386,7 @@ The flags field supports following flags:
   read-only. In this case, writes to this memory will be posted to userspace as
   KVM_EXIT_MMIO exits.
 
-- KVM_MEM_PRIVATE, if KVM_MEMORY_ATTRIBUTE_PRIVATE is supported (see
+- KVM_MEM_PRIVATE, if KVM_MEMORY_ATTRIBUTE_SHARED is supported (see
   KVM_GET_SUPPORTED_MEMORY_ATTRIBUTES ioctl), to indicate a new slot has private
   memory backed by a file descriptor(fd) and userspace access to the fd may be
   restricted. Userspace should use restricted_fd/restricted_offset in the
@@ -6058,6 +6058,9 @@ The following memory attributes are defined::
   #define KVM_MEMORY_ATTRIBUTE_WRITE             (1ULL << 1)
   #define KVM_MEMORY_ATTRIBUTE_EXECUTE           (1ULL << 2)
   #define KVM_MEMORY_ATTRIBUTE_PRIVATE           (1ULL << 3)
+  #define KVM_MEMORY_ATTRIBUTE_SHARED            (1ULL << 4)
+
+KVM_MEMORY_ATTRIBUTE_PRIVATE is deprecated.
 
 4.139 KVM_SET_MEMORY_ATTRIBUTES
 -----------------------------------------
