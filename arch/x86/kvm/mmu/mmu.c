@@ -1811,7 +1811,7 @@ bool kvm_unmap_gfn_range(struct kvm *kvm, struct kvm_gfn_range *range)
 			 */
 			zap_private = true;
 		} else if (range->flags & KVM_GFN_RANGE_FLAGS_SET_MEM_ATTR)
-			zap_private = !(range->attrs & KVM_MEMORY_ATTRIBUTE_PRIVATE);
+			zap_private = range->attrs & KVM_MEMORY_ATTRIBUTE_SHARED;
 		else
 			/*
 			 * For now private pages are pinned during VM's life
@@ -5037,7 +5037,7 @@ kvm_slot_prealloc_private_pages(struct kvm_memory_slot *memslot, bool nonleaf)
 	gfn_t start = memslot->base_gfn;
 	gfn_t end = memslot->base_gfn + npages;
 	gpa_t gpa = gfn_to_gpa(memslot->base_gfn);
-	u64 attrs = KVM_MEMORY_ATTRIBUTE_PRIVATE;
+	u64 attrs = 0;
 	kvm_pfn_t pfn;
 
 	if (mutex_lock_killable(&vcpu->mutex))
@@ -7529,7 +7529,7 @@ static int __kvm_mmu_map_private(struct kvm *kvm, gfn_t *startp, gfn_t end,
 	if (!kvm_gfn_shared_mask(kvm))
 		return -EOPNOTSUPP;
 
-	attrs = map_private ? KVM_MEMORY_ATTRIBUTE_PRIVATE : 0;
+	attrs = map_private ? 0 : KVM_MEMORY_ATTRIBUTE_SHARED;
 	start = start & ~kvm_gfn_shared_mask(kvm);
 	end = end & ~kvm_gfn_shared_mask(kvm);
 
@@ -8037,9 +8037,9 @@ static void linfo_set_mixed(gfn_t gfn, struct kvm_memory_slot *slot,
 
 static bool is_expected_attr_entry(void *entry, unsigned long expected_attrs)
 {
-	bool expect_private = expected_attrs & KVM_MEMORY_ATTRIBUTE_PRIVATE;
+	bool expect_private = !(expected_attrs & KVM_MEMORY_ATTRIBUTE_SHARED);
 
-	if (xa_to_value(entry) & KVM_MEMORY_ATTRIBUTE_PRIVATE) {
+	if (!(xa_to_value(entry) & KVM_MEMORY_ATTRIBUTE_SHARED)) {
 		if (!expect_private)
 			return false;
 	} else if (expect_private)

@@ -2349,5 +2349,6 @@ struct kvm_memory_attributes {
 #define KVM_MEMORY_ATTRIBUTE_WRITE             (1ULL << 1)
 #define KVM_MEMORY_ATTRIBUTE_EXECUTE           (1ULL << 2)
 #define KVM_MEMORY_ATTRIBUTE_PRIVATE           (1ULL << 3)
+#define KVM_MEMORY_ATTRIBUTE_SHARED            (1ULL << 4)
 
 #endif /* __LINUX_KVM_H */

@@ -2357,8 +2357,9 @@ static inline int kvm_vm_set_memory_attributes(struct kvm *kvm, u64 attributes, 
 #ifdef CONFIG_HAVE_KVM_MEMORY_ATTRIBUTES
 static inline bool kvm_mem_is_private(struct kvm *kvm, gfn_t gfn)
 {
-	return xa_to_value(xa_load(&kvm->mem_attr_array, gfn)) &
-	       KVM_MEMORY_ATTRIBUTE_PRIVATE;
+	return kvm_arch_has_private_mem(kvm) &&
+	       !(xa_to_value(xa_load(&kvm->mem_attr_array, gfn)) &
+	       KVM_MEMORY_ATTRIBUTE_SHARED);
 }
 
 static inline int kvm_mem_set_attr(struct kvm *kvm, gfn_t gfn, uint64_t attrs)
