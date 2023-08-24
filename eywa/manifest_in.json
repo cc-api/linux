@@ -5322,7 +5322,7 @@
                     "email": "chao.gao@intel.com"
                 }
             ],
-            "description": "Adds the KVM support for TDX 1.5 features including TD preserving and TD live migration.",
+            "description": "Adds the KVM support for tdxio",
             "enabled": true,
             "ip_owner": [
                 {
@@ -5331,7 +5331,7 @@
                 }
             ],
             "jira": "NEXT-3487",
-            "name": "kvm_tdx_1_5",
+            "name": "kvm_tdxio",
             "repourl": "https://github.com/intel-sandbox/cqiang-tdx-kvm.git",
             "sdl_contact": [
                 {
