@@ -6394,7 +6394,7 @@
                 }
             ],
             "description": "Enable User Timer support",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3486",
             "name": "utimer_next",
