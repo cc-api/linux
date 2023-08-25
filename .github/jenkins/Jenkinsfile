@@ -43,11 +43,19 @@ pipeline {
         sh "docker run --rm -v \$(pwd):/kernel registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest /common/xe/build.sh"
         sh """
           docker run --rm -v \$(pwd):/kernel registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest \
-          gta-asset push gfx-osgc-assets-igk/builds/kernel-xe-internal ${DEPLOY_DIR} ${BUILDNAME} /kernel/archive/kernel.tar.gz -u ${ARTIFACTORY_USR} -p ${ARTIFACTORY_PSW} -v --no-archive
+          gta-asset push gfx-osgc-assets-igk/builds/kernel-xe-internal ${DEPLOY_DIR} ${BUILDNAME} /kernel/kernel.tar.gz -u ${ARTIFACTORY_USR} -p ${ARTIFACTORY_PSW} -v --no-archive
         """
         script {
           if (env.CHANGE_ID != null) {
-	    sh "python3 ./pipelines/scripts/cancel_gta_run.py --component kernel --pr-num ${env.CHANGE_ID} --keep-sha ${GITHUBCOMMITSHA[0..11]} --gta-user ${ARTIFACTORY_USR} --gta-pass ${ARTIFACTORY_PSW}"
+            // Premerge
+            sh "python3 ./pipelines/scripts/cancel_gta_run.py --component kernel --pr-num ${env.CHANGE_ID} --keep-sha ${GITHUBCOMMITSHA[0..11]} --gta-user ${ARTIFACTORY_USR} --gta-pass ${ARTIFACTORY_PSW}"
+          }
+          if (env.CHANGE_ID == null) {
+            // Postmerge
+            sh """
+              docker run --rm -v \$(pwd):/kernel registry.lgci.intel.com/build-infra/lgci-ubuntu2004:latest \
+              gta-asset push gfx-osgc-assets-igk/builds/kernel-xe-internal ${DEPLOY_DIR}-nodebug ${BUILDNAME} /kernel/kernel-nodebug.tar.gz -u ${ARTIFACTORY_USR} -p ${ARTIFACTORY_PSW} -v --no-archive
+            """
           }
         }
       }
