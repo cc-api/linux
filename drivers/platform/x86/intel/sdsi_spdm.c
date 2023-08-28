@@ -739,6 +739,9 @@ static int spdm_get_capabilities(struct sdsi_spdm_state *spdm_state,
 	if (rc < 0)
 		return rc;
 
+	print_transcript(spdm_state, "GET_CAPABILITIES REQ", (u8 *)req, req_sz);
+	print_transcript(spdm_state, "GET_CAPABILITIES RSP", (u8 *)rsp, rsp_sz);
+
 	length = rc;
 	if (length < rsp_sz) {
 		dev_err(spdm_state->dev, "Truncated capabilities response\n");
@@ -1451,7 +1454,9 @@ static int spdm_challenge(struct sdsi_spdm_state *spdm_state, u8 slot)
 	if (rc)
 		goto err_free_rsp;
 
-	print_transcript(spdm_state, "CHALLENGE_AUTH RSP MINUS SIG", (u8 *)&rsp, sig_offset);
+	print_transcript(spdm_state, "CHALLENGE_AUTH RSP MINUS SIG", (u8 *)rsp, sig_offset);
+
+	print_transcript(spdm_state, "SIGNATURE", (u8 *)rsp + sig_offset, spdm_state->s);
 
 	/* Hash is complete and signature received; verify against leaf key */
 	rc = spdm_verify_signature(spdm_state, (u8 *)rsp + sig_offset,
@@ -1541,8 +1546,6 @@ int sdsi_spdm_authenticate(struct sdsi_spdm_state *spdm_state)
 				   &transcript_sz);
 	if (rc)
 		goto unlock;
-
-	print_transcript(spdm_state, "GET_CAPABILITIES", transcript, transcript_sz);
 
 	rc = spdm_negotiate_algs(spdm_state, transcript, transcript_sz);
 	if (rc)
