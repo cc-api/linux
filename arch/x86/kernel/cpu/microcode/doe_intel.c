@@ -204,10 +204,10 @@ struct uc_doe_rsp {
 };
 
 /*
- * Polling interval in millisecond
+ * Polling interval in microsecond
  */
-#define DOE_POLL_INTERVAL		2
-#define DOE_POLL_NUM			512
+#define DOE_POLL_INTERVAL		100
+#define DOE_POLL_NUM			10000
 
 static DEFINE_MUTEX(doe_mutex);
 
@@ -252,7 +252,7 @@ static int doe_reset(struct uc_doe_mbox *mbox)
 
 	i = DOE_POLL_NUM;
 	do {
-		msleep(DOE_POLL_INTERVAL);
+		udelay(DOE_POLL_INTERVAL);
 
 		status.data = readl(mbox->base + DOE_REG_STATUS);
 		if (!status.busy && !status.error)
@@ -272,7 +272,7 @@ static int doe_wait_for_dword(struct uc_doe_mbox *mbox, int set)
 		if (ctrl.data_ready == set)
 			return 0;
 
-		msleep(DOE_POLL_INTERVAL);
+		udelay(DOE_POLL_INTERVAL);
 	} while (--i);
 
 	pr_err("Timeout to wait for dword %s\n", set ? "ready" : "consumed");
@@ -489,7 +489,7 @@ static int doe_wait_for_response_ready(struct uc_doe_mbox *mbox, struct uc_doe_t
 		if (t->rsp_len && !status.busy && status.object_ready)
 			break;
 
-		msleep(DOE_POLL_INTERVAL);
+		udelay(DOE_POLL_INTERVAL);
 	} while (--i);
 
 	if (!i) {
