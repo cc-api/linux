@@ -1,0 +1,81 @@
+INTEL CONFIDENTIAL. FOR INTERNAL USE ONLY.
+------------------------------------------------------------------------
+README.intel.mei:
+
+======================
+CSE post v6.5 changes
+======================
+
+Base: v6.5-rc1
+---------------------
+
+Affected IP: CSE/CSME
+----------------------
+
+Non public MEI Devices
+======================
+
+Tiger Lake Point
+-----------------
+0x42E0  /* Tiger Lake K */
+
+Lake Field
+-----------
+0x98E0  /* Lake Field */
+
+Inovation Engine
+-----------------
+0xA1F8  /* Lewisburg IE (SPT) */
+0xA278  /* Lewisburg IE SSX (SPT) */
+
+Jasper Lake
+------------
+0x38E0  /* Jasper Point - testing only */
+
+Denverton
+----------
+0x19D3  /* Denverton (BXT) */
+
+Meteor Lake
+-------------
+0x7E58  /* Meteor Lake Point M ESE */
+
+Meteor Lake
+-------------
+0x7F68  /* Meteor Lake Point S */
+
+Embargoed Supported MEI Devices
+===============================
+
+Lunar Lake
+-----------
+0xA870  /* Lunar Lake Point M */
+
+Panter Lake
+-----------
+0xE470  /* Panter Lake P */
+
+Not upstreamed yet MEI Devices
+==============================
+
+New Features:
+=============
+
+PVC force wake workaround
+Prevent HW access whil devioce is offline
+Suppress unexpected reset error print in some case
+
+New Drivers:
+============
+MEI_IAF - MEI Intel Accelerator Fabric Connector
+MEI_VIRTIO - MEI Virtio frontend driver
+MEI_BUS_DMA_TEST - test driver for client DMA feature
+
+
+Known Issues:
+=============
+PXP is not functional over consumer SKU
+
+
+------------------------------------------------------------------------
+Intel Next Maintainers <intel-next-maintainers@eclists.intel.com>
