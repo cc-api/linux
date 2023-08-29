@@ -1407,6 +1407,41 @@ static size_t spdm_challenge_rsp_sz(struct sdsi_spdm_state *spdm_state,
 	return  size  + spdm_state->s;		/* Signature */
 }
 
+static void spdm_convert_to_be(struct sdsi_spdm_state *spdm_state, u8 *sig)
+{
+	int num_dwords = spdm_state->s / 4;
+	int n = num_dwords;
+	int i = 0;
+	u32 *dword = (u32 *)sig;
+	__be32 *tmp;
+
+	if (spdm_state->s % 4) {
+		dev_err(spdm_state->dev,
+			"Did not convert signature to big endian\n");
+		return;
+	}
+
+	tmp = kmalloc(spdm_state->s, GFP_KERNEL);
+	if (!tmp) {
+		dev_err(spdm_state->dev, "Out of memory\n");
+		return;
+	}
+
+	while (i < num_dwords) {
+		tmp[i] = cpu_to_be32(dword[n - 1]);
+		i++;
+		n--;
+	}
+
+	i = 0;
+	while (i < num_dwords) {
+		dword[i] = *(u32 *)&tmp[i];
+		i++;
+	}
+
+	kfree(tmp);
+}
+
 static int spdm_challenge(struct sdsi_spdm_state *spdm_state, u8 slot)
 {
 	size_t req_sz, rsp_sz, rsp_sz_max, sig_offset;
@@ -1459,6 +1494,7 @@ static int spdm_challenge(struct sdsi_spdm_state *spdm_state, u8 slot)
 	print_transcript(spdm_state, "SIGNATURE", (u8 *)rsp + sig_offset, spdm_state->s);
 
 	/* Hash is complete and signature received; verify against leaf key */
+	spdm_convert_to_be(spdm_state, (u8 *)rsp + sig_offset);
 	rc = spdm_verify_signature(spdm_state, (u8 *)rsp + sig_offset,
 				   "responder-challenge_auth signing");
 	if (rc)
@@ -1747,6 +1783,8 @@ static int __spdm_get_measurements(struct sdsi_spdm_state *spdm_state,
 			goto err_free_rsp;
 
 		print_transcript(spdm_state, "MEASUREMENT RSP+", (u8 *)rsp, sig_offset);
+
+		spdm_convert_to_be(spdm_state, (u8 *)rsp + sig_offset);
 
 		/* Send back the transcript */
 		if (m->trans_cb)
