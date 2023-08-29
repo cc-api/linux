@@ -87,9 +87,8 @@ static DEFINE_MUTEX(vsec_ida_lock);
 static void intel_vsec_dev_release(struct device *dev)
 {
 	struct intel_vsec_device *intel_vsec_dev = dev_to_ivdev(dev);
-	struct auxiliary_device *auxdev = &intel_vsec_dev->auxdev;
 
-	xa_erase(&auxdev_array, auxdev->id);
+	xa_erase(&auxdev_array, intel_vsec_dev->id);
 
 	mutex_lock(&vsec_ida_lock);
 	ida_free(intel_vsec_dev->ida, intel_vsec_dev->auxdev.id);
@@ -106,19 +105,24 @@ int intel_vsec_add_aux(struct pci_dev *pdev, struct device *parent,
 	struct auxiliary_device *auxdev = &intel_vsec_dev->auxdev;
 	int ret, id;
 
+	/* IDAs are vsec specific */
 	mutex_lock(&vsec_ida_lock);
-	ret = ida_alloc(intel_vsec_dev->ida, GFP_KERNEL);
+	id = ida_alloc(intel_vsec_dev->ida, GFP_KERNEL);
 	mutex_unlock(&vsec_ida_lock);
-	if (ret < 0) {
+	if (id < 0) {
 		kfree(intel_vsec_dev->resource);
 		kfree(intel_vsec_dev);
 		return ret;
 	}
 
-	/* Add auxdev to list */
-	ret = xa_alloc(&auxdev_array, &id, intel_vsec_dev, PMT_XA_LIMIT,
-		       GFP_KERNEL);
+	/* XA contains all vsecs */
+	ret = xa_alloc(&auxdev_array, &intel_vsec_dev->id, intel_vsec_dev,
+		       PMT_XA_LIMIT, GFP_KERNEL);
 	if (ret < 0) {
+		mutex_lock(&vsec_ida_lock);
+		ida_free(intel_vsec_dev->ida, id);
+		mutex_unlock(&vsec_ida_lock);
+
 		kfree(intel_vsec_dev->resource);
 		kfree(intel_vsec_dev);
 		return ret;
