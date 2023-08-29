@@ -4962,7 +4962,7 @@
                 }
             ],
             "description": "Enable Intel Thread Director (ITD) in virtualization scenario",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Eliezer Weissmann",
