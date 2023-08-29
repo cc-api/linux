@@ -6130,7 +6130,7 @@ enum x86_hybrid_pmu_type {
 static u32 x86_model_to_core_native_id(u8 x86_model,
 				       enum x86_hybrid_pmu_type pmu_type)
 {
-	u32 native_id;
+	u32 native_id = core_unknown_id;
 
 	switch (x86_model) {
 	case INTEL_FAM6_ALDERLAKE:
