@@ -1495,6 +1495,7 @@ static int spdm_challenge(struct sdsi_spdm_state *spdm_state, u8 slot)
 
 	/* Hash is complete and signature received; verify against leaf key */
 	spdm_convert_to_be(spdm_state, (u8 *)rsp + sig_offset);
+	print_transcript(spdm_state, "SIGNATURE CONVERTED", (u8 *)rsp + sig_offset, spdm_state->s);
 	rc = spdm_verify_signature(spdm_state, (u8 *)rsp + sig_offset,
 				   "responder-challenge_auth signing");
 	if (rc)
@@ -1784,7 +1785,9 @@ static int __spdm_get_measurements(struct sdsi_spdm_state *spdm_state,
 
 		print_transcript(spdm_state, "MEASUREMENT RSP+", (u8 *)rsp, sig_offset);
 
+		print_transcript(spdm_state, "SIGNATURE", (u8 *)rsp + sig_offset, spdm_state->s);
 		spdm_convert_to_be(spdm_state, (u8 *)rsp + sig_offset);
+		print_transcript(spdm_state, "SIGNATURE CONVERTED", (u8 *)rsp + sig_offset, spdm_state->s);
 
 		/* Send back the transcript */
 		if (m->trans_cb)
