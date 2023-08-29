@@ -6390,7 +6390,7 @@
                 }
             ],
             "description": "Enable User Timer support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3486",
             "name": "utimer_next",
