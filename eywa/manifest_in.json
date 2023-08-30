@@ -6385,7 +6385,7 @@
                 }
             ],
             "description": "Intel FRED support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3489",
             "name": "fred_support",
