@@ -854,12 +854,18 @@ gen8_de_misc_irq_handler(struct drm_i915_private *dev_priv, u32 iir)
 {
 	bool found = false;
 
-
 	if (iir & GEN8_DE_RM_TIMEOUT) {
 		u32 val = intel_uncore_read(&dev_priv->uncore,
 				RMTIMEOUTREG_CAPTURE);
 		drm_warn(&dev_priv->drm, "Register Access Timeout = 0x%x\n", val);
 		found = true;
+	}
+
+	if (HAS_DBUF_OVERLAP_DETECTION(dev_priv)) {
+		if (iir & XE2LPD_DBUF_OVERLAP_DETECTED) {
+			drm_warn(&dev_priv->drm,  "DBuf overlap detected\n");
+			found = true;
+		}
 	}
 
 	if (DISPLAY_VER(dev_priv) >= 14) {
