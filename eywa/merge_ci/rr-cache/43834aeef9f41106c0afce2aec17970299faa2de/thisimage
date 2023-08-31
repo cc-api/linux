@@ -244,13 +244,10 @@ static int check_pending(void)
 
 static bool check_pending_commits(void)
 {
-	int ret;
-
 	if (!mcu_cap.rollback_supported)
 		return false;
 
-	ret = check_pending();
-	return (ret == 0 ? false : true);
+	return !!check_pending();
 }
 
 static long read_msr_mcu_config(void *arg)
@@ -1460,12 +1457,13 @@ static bool is_ucode_listed(struct ucode_meta *rb_meta)
 	//int i;
 	int cpu = raw_smp_processor_id();
 	struct ucode_cpu_info *uci;
-	int rev, svn;
+	//int rev, svn;
 
 	uci = ucode_cpu_info + cpu;
-	rev = uci->cpu_sig.rev;
-	svn = bsp_svn_info.committed_mcu_svn;
+	//rev = uci->cpu_sig.rev;
+	//svn = bsp_svn_info.committed_mcu_svn;
 
+	/* TODO: Uncomment this check when ucode supports rollback_id and rollback_svn */
 #if 0
 	for (i = 0; i < NUM_RB_INFO; i++) {
 		if (!rb_meta->rollback_id[i])
