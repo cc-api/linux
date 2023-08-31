@@ -1344,6 +1344,17 @@ void vmx_prepare_switch_to_guest(struct kvm_vcpu *vcpu)
 	}
 
 	wrmsrl(MSR_KERNEL_GS_BASE, vmx->msr_guest_kernel_gs_base);
+
+	if (cpu_feature_enabled(X86_FEATURE_FRED) &&
+	    guest_cpuid_has(vcpu, X86_FEATURE_FRED)) {
+		/*
+		 * MSR_IA32_FRED_RSP0 is top of task stack, which never changes.
+		 * Thus it should be initialized only once.
+		 */
+		if (unlikely(vmx->msr_host_fred_rsp0 == 0))
+			vmx->msr_host_fred_rsp0 = read_msr(MSR_IA32_FRED_RSP0);
+		wrmsrl(MSR_IA32_FRED_RSP0, vmx->msr_guest_fred_rsp0);
+	}
 #else
 	savesegment(fs, fs_sel);
 	savesegment(gs, gs_sel);
@@ -1388,6 +1399,12 @@ static void vmx_prepare_switch_to_host(struct vcpu_vmx *vmx)
 	invalidate_tss_limit();
 #ifdef CONFIG_X86_64
 	wrmsrl(MSR_KERNEL_GS_BASE, vmx->msr_host_kernel_gs_base);
+
+	if (cpu_feature_enabled(X86_FEATURE_FRED) &&
+	    guest_cpuid_has(&vmx->vcpu, X86_FEATURE_FRED)) {
+		vmx->msr_guest_fred_rsp0 = read_msr(MSR_IA32_FRED_RSP0);
+		wrmsrl(MSR_IA32_FRED_RSP0, vmx->msr_host_fred_rsp0);
+	}
 #endif
 	load_fixmap_gdt(raw_smp_processor_id());
 	vmx->guest_state_loaded = false;
