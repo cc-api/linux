@@ -4454,6 +4454,9 @@ static u32 vmx_vmentry_ctrl(void)
 	if (cpu_has_perf_global_ctrl_bug())
 		vmentry_ctrl &= ~VM_ENTRY_LOAD_IA32_PERF_GLOBAL_CTRL;
 
+	/* Whether to save/load FRED MSRs is decided until CPUID is set */
+	vmentry_ctrl &= ~VM_ENTRY_LOAD_IA32_FRED;
+
 	return vmentry_ctrl;
 }
 
@@ -4489,7 +4492,13 @@ static u32 vmx_vmexit_ctrl(void)
 
 static u64 vmx_secondary_vmexit_ctrl(void)
 {
-	return vmcs_config.secondary_vmexit_ctrl;
+	u64 secondary_vmexit_ctrl = vmcs_config.secondary_vmexit_ctrl;
+
+	/* Whether to save/load FRED MSRs is decided until CPUID is set */
+	secondary_vmexit_ctrl &= ~(SECONDARY_VM_EXIT_SAVE_IA32_FRED |
+				   SECONDARY_VM_EXIT_LOAD_IA32_FRED);
+
+	return secondary_vmexit_ctrl;
 }
 
 static void vmx_refresh_apicv_exec_ctrl(struct kvm_vcpu *vcpu)
@@ -7830,9 +7839,33 @@ static void update_intel_pt_cfg(struct kvm_vcpu *vcpu)
 		vmx->pt_desc.ctl_bitmask &= ~(0xfULL << (32 + i * 4));
 }
 
+static void vmx_vcpu_config_fred_after_set_cpuid(struct kvm_vcpu *vcpu)
+{
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+
+	if (!cpu_feature_enabled(X86_FEATURE_FRED) ||
+	    !guest_cpuid_has(vcpu, X86_FEATURE_FRED))
+		return;
+
+	/* Enable loading guest FRED MSRs from VMCS */
+	vm_entry_controls_setbit(vmx, VM_ENTRY_LOAD_IA32_FRED);
+
+	/*
+	 * Enable saving guest FRED MSRs into VMCS and loading host FRED MSRs
+	 * from VMCS.
+	 */
+	WARN_ON(!cpu_has_secondary_vmexit_ctrls());
+	vm_exit_controls_setbit(vmx, VM_EXIT_ACTIVATE_SECONDARY_CONTROLS);
+	secondary_vm_exit_controls_setbit(vmx,
+					  SECONDARY_VM_EXIT_SAVE_IA32_FRED |
+					  SECONDARY_VM_EXIT_LOAD_IA32_FRED);
+}
+
 static void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
+
+	vmx_vcpu_config_fred_after_set_cpuid(vcpu);
 
 	/*
 	 * XSAVES is effectively enabled if and only if XSAVE is also exposed
