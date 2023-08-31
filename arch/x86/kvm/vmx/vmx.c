@@ -2711,10 +2711,27 @@ static int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 		_vmexit_control &= ~x_ctrl;
 	}
 
-	if (_vmexit_control & VM_EXIT_ACTIVATE_SECONDARY_CONTROLS)
+	if (_vmexit_control & VM_EXIT_ACTIVATE_SECONDARY_CONTROLS) {
 		_secondary_vmexit_control =
 			adjust_vmx_controls64(KVM_OPTIONAL_VMX_SECONDARY_VM_EXIT_CONTROLS,
 					      MSR_IA32_VMX_EXIT_CTLS2);
+		if (cpu_feature_enabled(X86_FEATURE_FRED) &&
+		    !(_secondary_vmexit_control & SECONDARY_VM_EXIT_SAVE_IA32_FRED &&
+		      _secondary_vmexit_control & SECONDARY_VM_EXIT_LOAD_IA32_FRED)) {
+			pr_warn_once("FRED enabled but no VMX VM-Exit {SAVE,LOAD}_IA32_FRED controls: %llx\n",
+				     _secondary_vmexit_control);
+			if (error_on_inconsistent_vmcs_config)
+				return -EIO;
+		}
+	}
+
+	if (cpu_feature_enabled(X86_FEATURE_FRED) &&
+	    !(_vmentry_control & VM_ENTRY_LOAD_IA32_FRED)) {
+		pr_warn_once("FRED enabled but no VMX VM-Entry LOAD_IA32_FRED control: %x\n",
+			     _vmentry_control);
+		if (error_on_inconsistent_vmcs_config)
+			return -EIO;
+	}
 
 	rdmsr(MSR_IA32_VMX_BASIC, vmx_msr_low, vmx_msr_high);
 
