@@ -97,3 +97,5 @@ void spdm_session_remove(struct spdm_session *session)
 	mutex_destroy(&session->transfer_lock);
 }
 EXPORT_SYMBOL_GPL(spdm_session_remove);
+
+MODULE_LICENSE("GPL");
