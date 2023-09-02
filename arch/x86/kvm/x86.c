@@ -131,6 +131,9 @@ static int __set_sregs2(struct kvm_vcpu *vcpu, struct kvm_sregs2 *sregs2);
 static void __get_sregs2(struct kvm_vcpu *vcpu, struct kvm_sregs2 *sregs2);
 
 static DEFINE_MUTEX(vendor_module_lock);
+static void kvm_load_guest_fpu(struct kvm_vcpu *vcpu);
+static void kvm_put_guest_fpu(struct kvm_vcpu *vcpu);
+
 struct kvm_x86_ops kvm_x86_ops __read_mostly;
 
 #define KVM_X86_OP(func)					     \
@@ -223,6 +226,9 @@ static struct kvm_user_return_msrs __percpu *user_return_msrs;
 				| XFEATURE_MASK_YMM | XFEATURE_MASK_BNDREGS \
 				| XFEATURE_MASK_BNDCSR | XFEATURE_MASK_AVX512 \
 				| XFEATURE_MASK_PKRU | XFEATURE_MASK_XTILE)
+
+#define KVM_SUPPORTED_XSS	(XFEATURE_MASK_CET_USER | \
+				 XFEATURE_MASK_CET_KERNEL)
 
 u64 __read_mostly host_efer;
 EXPORT_SYMBOL_GPL(host_efer);
@@ -1013,6 +1019,9 @@ int kvm_set_cr0(struct kvm_vcpu *vcpu, unsigned long cr0)
 	    (is_64_bit_mode(vcpu) || kvm_is_cr4_bit_set(vcpu, X86_CR4_PCIDE)))
 		return 1;
 
+	if (!(cr0 & X86_CR0_WP) && kvm_is_cr4_bit_set(vcpu, X86_CR4_CET))
+		return 1;
+
 	static_call(kvm_x86_set_cr0)(vcpu, cr0);
 
 	kvm_post_set_cr0(vcpu, old_cr0, cr0);
@@ -1223,6 +1232,9 @@ int kvm_set_cr4(struct kvm_vcpu *vcpu, unsigned long cr4)
 		if ((kvm_read_cr3(vcpu) & X86_CR3_PCID_MASK) || !is_long_mode(vcpu))
 			return 1;
 	}
+
+	if ((cr4 & X86_CR4_CET) && !kvm_is_cr0_bit_set(vcpu, X86_CR0_WP))
+		return 1;
 
 	static_call(kvm_x86_set_cr4)(vcpu, cr4);
 
@@ -1476,6 +1488,10 @@ static const u32 msrs_to_save_base[] = {
 	MSR_IA32_UMWAIT_CONTROL,
 
 	MSR_IA32_XFD, MSR_IA32_XFD_ERR,
+	MSR_IA32_XSS,
+	MSR_IA32_U_CET, MSR_IA32_S_CET,
+	MSR_IA32_PL0_SSP, MSR_IA32_PL1_SSP, MSR_IA32_PL2_SSP,
+	MSR_IA32_PL3_SSP, MSR_IA32_INT_SSP_TAB, MSR_KVM_GUEST_SSP,
 };
 
 static const u32 msrs_to_save_pmu[] = {
@@ -3644,6 +3660,50 @@ static bool kvm_is_msr_to_save(u32 msr_index)
 	return false;
 }
 
+static inline bool is_shadow_stack_msr(struct kvm_vcpu *vcpu,
+				       struct msr_data *msr)
+{
+	return msr->index == MSR_IA32_PL0_SSP ||
+		msr->index == MSR_IA32_PL1_SSP ||
+		msr->index == MSR_IA32_PL2_SSP ||
+		msr->index == MSR_IA32_PL3_SSP ||
+		msr->index == MSR_IA32_INT_SSP_TAB ||
+		msr->index == MSR_KVM_GUEST_SSP;
+}
+
+static bool kvm_cet_is_msr_accessible(struct kvm_vcpu *vcpu,
+				      struct msr_data *msr)
+{
+	if (is_shadow_stack_msr(vcpu, msr)) {
+		if (!kvm_cpu_cap_has(X86_FEATURE_SHSTK))
+			return false;
+
+		/*
+		 * This MSR is synthesized mainly for userspace access during
+		 * Live Migration, it also can be accessed in SMM mode by VMM.
+		 * Guest is not allowed to access this MSR.
+		 */
+		if (msr->index == MSR_KVM_GUEST_SSP) {
+			if (IS_ENABLED(CONFIG_X86_64) &&
+			    !!(vcpu->arch.hflags & HF_SMM_MASK))
+				return true;
+
+			return msr->host_initiated;
+		}
+
+		return msr->host_initiated ||
+			guest_cpuid_has(vcpu, X86_FEATURE_SHSTK);
+	}
+
+	if (!kvm_cpu_cap_has(X86_FEATURE_SHSTK) &&
+	    !kvm_cpu_cap_has(X86_FEATURE_IBT))
+		return false;
+
+	return msr->host_initiated ||
+		guest_cpuid_has(vcpu, X86_FEATURE_IBT) ||
+		guest_cpuid_has(vcpu, X86_FEATURE_SHSTK);
+}
+
 int kvm_set_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 {
 	u32 msr = msr_info->index;
@@ -3811,10 +3871,12 @@ int kvm_set_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		 * IA32_XSS[bit 8]. Guests have to use RDMSR/WRMSR rather than
 		 * XSAVES/XRSTORS to save/restore PT MSRs.
 		 */
-		if (data & ~kvm_caps.supported_xss)
+		if (data & ~vcpu->arch.guest_supported_xss)
 			return 1;
-		vcpu->arch.ia32_xss = data;
-		kvm_update_cpuid_runtime(vcpu);
+		if (vcpu->arch.ia32_xss != data) {
+			vcpu->arch.ia32_xss = data;
+			kvm_update_cpuid_runtime(vcpu);
+		}
 		break;
 	case MSR_SMI_COUNT:
 		if (!msr_info->host_initiated)
@@ -3996,6 +4058,37 @@ int kvm_set_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		vcpu->arch.guest_fpu.xfd_err = data;
 		break;
 #endif
+#define CET_IBT_MASK_BITS	GENMASK_ULL(63, 2)
+#define CET_SHSTK_MASK_BITS	GENMASK(1, 0)
+	case MSR_IA32_U_CET:
+	case MSR_IA32_S_CET:
+		if (!kvm_cet_is_msr_accessible(vcpu, msr_info))
+			return 1;
+		if ((!guest_can_use(vcpu, X86_FEATURE_SHSTK) &&
+		     (data & CET_SHSTK_MASK_BITS)) ||
+		    (!guest_can_use(vcpu, X86_FEATURE_IBT) &&
+		     (data & CET_IBT_MASK_BITS)))
+			return 1;
+		if (msr == MSR_IA32_U_CET)
+			kvm_set_xsave_msr(msr_info);
+		break;
+	case MSR_KVM_GUEST_SSP:
+	case MSR_IA32_PL0_SSP ... MSR_IA32_INT_SSP_TAB:
+		if (!kvm_cet_is_msr_accessible(vcpu, msr_info))
+			return 1;
+		if (is_noncanonical_address(data, vcpu))
+			return 1;
+		if (!IS_ALIGNED(data, 4))
+			return 1;
+		if (msr == MSR_IA32_PL0_SSP || msr == MSR_IA32_PL1_SSP ||
+		    msr == MSR_IA32_PL2_SSP) {
+			vcpu->arch.cet_s_ssp[msr - MSR_IA32_PL0_SSP] = data;
+			if (!vcpu->arch.cet_sss_active && data)
+				vcpu->arch.cet_sss_active = true;
+		} else if (msr == MSR_IA32_PL3_SSP) {
+			kvm_set_xsave_msr(msr_info);
+		}
+		break;
 	default:
 		if (kvm_pmu_is_valid_msr(vcpu, msr))
 			return kvm_pmu_set_msr(vcpu, msr_info);
@@ -4066,7 +4159,9 @@ static int get_msr_mce(struct kvm_vcpu *vcpu, u32 msr, u64 *pdata, bool host)
 
 int kvm_get_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 {
-	switch (msr_info->index) {
+	u32 msr = msr_info->index;
+
+	switch (msr) {
 	case MSR_IA32_PLATFORM_ID:
 	case MSR_IA32_EBL_CR_POWERON:
 	case MSR_IA32_LASTBRANCHFROMIP:
@@ -4101,7 +4196,7 @@ int kvm_get_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	case MSR_K7_PERFCTR0 ... MSR_K7_PERFCTR3:
 	case MSR_P6_PERFCTR0 ... MSR_P6_PERFCTR1:
 	case MSR_P6_EVNTSEL0 ... MSR_P6_EVNTSEL1:
-		if (kvm_pmu_is_valid_msr(vcpu, msr_info->index))
+		if (kvm_pmu_is_valid_msr(vcpu, msr))
 			return kvm_pmu_get_msr(vcpu, msr_info);
 		msr_info->data = 0;
 		break;
@@ -4152,7 +4247,7 @@ int kvm_get_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	case MSR_MTRRcap:
 	case MTRRphysBase_MSR(0) ... MSR_MTRRfix4K_F8000:
 	case MSR_MTRRdefType:
-		return kvm_mtrr_get_msr(vcpu, msr_info->index, &msr_info->data);
+		return kvm_mtrr_get_msr(vcpu, msr, &msr_info->data);
 	case 0xcd: /* fsb frequency */
 		msr_info->data = 3;
 		break;
@@ -4174,7 +4269,7 @@ int kvm_get_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		msr_info->data = kvm_get_apic_base(vcpu);
 		break;
 	case APIC_BASE_MSR ... APIC_BASE_MSR + 0xff:
-		return kvm_x2apic_msr_read(vcpu, msr_info->index, &msr_info->data);
+		return kvm_x2apic_msr_read(vcpu, msr, &msr_info->data);
 	case MSR_IA32_TSC_DEADLINE:
 		msr_info->data = kvm_get_lapic_tscdeadline_msr(vcpu);
 		break;
@@ -4268,7 +4363,7 @@ int kvm_get_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	case MSR_IA32_MCG_STATUS:
 	case MSR_IA32_MC0_CTL ... MSR_IA32_MCx_CTL(KVM_MAX_MCE_BANKS) - 1:
 	case MSR_IA32_MC0_CTL2 ... MSR_IA32_MCx_CTL2(KVM_MAX_MCE_BANKS) - 1:
-		return get_msr_mce(vcpu, msr_info->index, &msr_info->data,
+		return get_msr_mce(vcpu, msr, &msr_info->data,
 				   msr_info->host_initiated);
 	case MSR_IA32_XSS:
 		if (!msr_info->host_initiated &&
@@ -4299,7 +4394,7 @@ int kvm_get_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	case HV_X64_MSR_TSC_EMULATION_STATUS:
 	case HV_X64_MSR_TSC_INVARIANT_CONTROL:
 		return kvm_hv_get_msr_common(vcpu,
-					     msr_info->index, &msr_info->data,
+					     msr, &msr_info->data,
 					     msr_info->host_initiated);
 	case MSR_IA32_BBL_CR_CTL3:
 		/* This legacy MSR exists but isn't fully documented in current
@@ -4352,8 +4447,22 @@ int kvm_get_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		msr_info->data = vcpu->arch.guest_fpu.xfd_err;
 		break;
 #endif
+	case MSR_IA32_U_CET:
+	case MSR_IA32_S_CET:
+	case MSR_KVM_GUEST_SSP:
+	case MSR_IA32_PL0_SSP ... MSR_IA32_INT_SSP_TAB:
+		if (!kvm_cet_is_msr_accessible(vcpu, msr_info))
+			return 1;
+		if (msr == MSR_IA32_PL0_SSP || msr == MSR_IA32_PL1_SSP ||
+		    msr == MSR_IA32_PL2_SSP) {
+			msr_info->data =
+				vcpu->arch.cet_s_ssp[msr - MSR_IA32_PL0_SSP];
+		} else if (msr == MSR_IA32_U_CET || msr == MSR_IA32_PL3_SSP) {
+			kvm_get_xsave_msr(msr_info);
+		}
+		break;
 	default:
-		if (kvm_pmu_is_valid_msr(vcpu, msr_info->index))
+		if (kvm_pmu_is_valid_msr(vcpu, msr))
 			return kvm_pmu_get_msr(vcpu, msr_info);
 
 		/*
@@ -4361,7 +4470,7 @@ int kvm_get_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		 * to-be-saved, even if an MSR isn't fully supported.
 		 */
 		if (msr_info->host_initiated &&
-		    kvm_is_msr_to_save(msr_info->index)) {
+		    kvm_is_msr_to_save(msr)) {
 			msr_info->data = 0;
 			break;
 		}
@@ -4371,6 +4480,21 @@ int kvm_get_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(kvm_get_msr_common);
+
+static const u32 xstate_msrs[] = {
+	MSR_IA32_U_CET, MSR_IA32_PL3_SSP,
+};
+
+static bool is_xstate_msr(u32 index)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(xstate_msrs); i++) {
+		if (index == xstate_msrs[i])
+			return true;
+	}
+	return false;
+}
 
 /*
  * Read or write a bunch of msrs. All parameters are kernel addresses.
@@ -4382,11 +4506,20 @@ static int __msr_io(struct kvm_vcpu *vcpu, struct kvm_msrs *msrs,
 		    int (*do_msr)(struct kvm_vcpu *vcpu,
 				  unsigned index, u64 *data))
 {
+	bool fpu_loaded = false;
 	int i;
 
-	for (i = 0; i < msrs->nmsrs; ++i)
+	for (i = 0; i < msrs->nmsrs; ++i) {
+		if (vcpu && !fpu_loaded && kvm_caps.supported_xss &&
+		    is_xstate_msr(entries[i].index)) {
+			kvm_load_guest_fpu(vcpu);
+			fpu_loaded = true;
+		}
 		if (do_msr(vcpu, entries[i].index, &entries[i].data))
 			break;
+	}
+	if (fpu_loaded)
+		kvm_put_guest_fpu(vcpu);
 
 	return i;
 }
@@ -7277,6 +7410,17 @@ static void kvm_probe_msr_to_save(u32 msr_index)
 		if (!(kvm_get_arch_capabilities() & ARCH_CAP_TSX_CTRL_MSR))
 			return;
 		break;
+	case MSR_IA32_XSS:
+		if (!kvm_caps.supported_xss)
+			return;
+		break;
+	case MSR_IA32_U_CET:
+	case MSR_IA32_S_CET:
+	case MSR_KVM_GUEST_SSP:
+	case MSR_IA32_PL0_SSP ... MSR_IA32_INT_SSP_TAB:
+		if (!kvm_is_cet_supported())
+			return;
+		break;
 	default:
 		break;
 	}
@@ -9596,8 +9740,11 @@ static int __kvm_x86_vendor_init(struct kvm_x86_init_ops *ops)
 
 	rdmsrl_safe(MSR_EFER, &host_efer);
 
-	if (boot_cpu_has(X86_FEATURE_XSAVES))
+	if (boot_cpu_has(X86_FEATURE_XSAVES)) {
 		rdmsrl(MSR_IA32_XSS, host_xss);
+		kvm_caps.supported_xss = host_xss & KVM_SUPPORTED_XSS;
+		kvm_caps.supported_xss |= XFEATURE_MASK_CET_KERNEL;
+	}
 
 	kvm_init_pmu_capability(ops->pmu_ops);
 
@@ -9606,6 +9753,20 @@ static int __kvm_x86_vendor_init(struct kvm_x86_init_ops *ops)
 		goto out_mmu_exit;
 
 	kvm_ops_update(ops);
+
+	if (!kvm_is_cet_supported()) {
+		kvm_cpu_cap_clear(X86_FEATURE_SHSTK);
+		kvm_cpu_cap_clear(X86_FEATURE_IBT);
+	}
+
+	/*
+	 * If SHSTK and IBT are not available in KVM, clear CET user bit in
+	 * kvm_caps.supported_xss so that kvm_is_cet__supported() returns
+	 * false when called.
+	 */
+	if (!kvm_cpu_cap_has(X86_FEATURE_SHSTK) &&
+	    !kvm_cpu_cap_has(X86_FEATURE_IBT))
+		kvm_caps.supported_xss &= ~CET_XSTATE_MASK;
 
 	for_each_online_cpu(cpu) {
 		smp_call_function_single(cpu, kvm_x86_check_cpu_compat, &r, 1);
@@ -11232,6 +11393,33 @@ static void kvm_put_guest_fpu(struct kvm_vcpu *vcpu)
 	trace_kvm_fpu(0);
 }
 
+static void kvm_save_cet_supervisor_ssp(struct kvm_vcpu *vcpu)
+{
+	preempt_disable();
+	if (unlikely(guest_can_use(vcpu, X86_FEATURE_SHSTK))) {
+		rdmsrl(MSR_IA32_PL0_SSP, vcpu->arch.cet_s_ssp[0]);
+		rdmsrl(MSR_IA32_PL1_SSP, vcpu->arch.cet_s_ssp[1]);
+		rdmsrl(MSR_IA32_PL2_SSP, vcpu->arch.cet_s_ssp[2]);
+		/*
+		 * Omit reset to host PL{1,2}_SSP because Linux will never use
+		 * these MSRs.
+		 */
+		wrmsrl(MSR_IA32_PL0_SSP, 0);
+	}
+	preempt_enable();
+}
+
+static void kvm_reload_cet_supervisor_ssp(struct kvm_vcpu *vcpu)
+{
+	preempt_disable();
+	if (unlikely(guest_can_use(vcpu, X86_FEATURE_SHSTK))) {
+		wrmsrl(MSR_IA32_PL0_SSP, vcpu->arch.cet_s_ssp[0]);
+		wrmsrl(MSR_IA32_PL1_SSP, vcpu->arch.cet_s_ssp[1]);
+		wrmsrl(MSR_IA32_PL2_SSP, vcpu->arch.cet_s_ssp[2]);
+	}
+	preempt_enable();
+}
+
 int kvm_arch_vcpu_ioctl_run(struct kvm_vcpu *vcpu)
 {
 	struct kvm_queued_exception *ex = &vcpu->arch.exception;
@@ -11242,6 +11430,8 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_vcpu *vcpu)
 	kvm_sigset_activate(vcpu);
 	kvm_run->flags = 0;
 	kvm_load_guest_fpu(vcpu);
+	if (vcpu->arch.cet_sss_active)
+		kvm_reload_cet_supervisor_ssp(vcpu);
 
 	kvm_vcpu_srcu_read_lock(vcpu);
 	if (unlikely(vcpu->arch.mp_state == KVM_MP_STATE_UNINITIALIZED)) {
@@ -11330,6 +11520,8 @@ int kvm_arch_vcpu_ioctl_run(struct kvm_vcpu *vcpu)
 	r = vcpu_run(vcpu);
 
 out:
+	if (vcpu->arch.cet_sss_active)
+		kvm_save_cet_supervisor_ssp(vcpu);
 	kvm_put_guest_fpu(vcpu);
 	if (kvm_run->kvm_valid_regs)
 		store_regs(vcpu);
@@ -12247,6 +12439,7 @@ void kvm_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 
 	vcpu->arch.cr3 = 0;
 	kvm_register_mark_dirty(vcpu, VCPU_EXREG_CR3);
+	memset(vcpu->arch.cet_s_ssp, 0, sizeof(vcpu->arch.cet_s_ssp));
 
 	/*
 	 * CR0.CD/NW are set on RESET, preserved on INIT.  Note, some versions
@@ -12433,7 +12626,16 @@ void kvm_arch_sched_in(struct kvm_vcpu *vcpu, int cpu)
 		pmu->need_cleanup = true;
 		kvm_make_request(KVM_REQ_PMU, vcpu);
 	}
+	if (vcpu->arch.cet_sss_active)
+		kvm_reload_cet_supervisor_ssp(vcpu);
+
 	static_call(kvm_x86_sched_in)(vcpu, cpu);
+}
+
+void kvm_arch_sched_out(struct kvm_vcpu *vcpu, int cpu)
+{
+	if (vcpu->arch.cet_sss_active)
+		kvm_save_cet_supervisor_ssp(vcpu);
 }
 
 void kvm_arch_free_vm(struct kvm *kvm)

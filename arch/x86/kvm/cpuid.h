@@ -234,4 +234,14 @@ static __always_inline bool guest_pv_has(struct kvm_vcpu *vcpu,
 	return vcpu->arch.pv_cpuid.features & (1u << kvm_feature);
 }
 
+/*
+ * FIXME: When the "KVM-governed" enabling patchset is merge, rebase this
+ * series on top of that and replace this one with the helper merged.
+ */
+static __always_inline bool guest_can_use(struct kvm_vcpu *vcpu,
+					  unsigned int feature)
+{
+	return kvm_cpu_cap_has(feature) && guest_cpuid_has(vcpu, feature);
+}
+
 #endif

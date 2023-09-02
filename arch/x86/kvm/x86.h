@@ -366,6 +366,16 @@ static inline bool kvm_mpx_supported(void)
 		== (XFEATURE_MASK_BNDREGS | XFEATURE_MASK_BNDCSR);
 }
 
+#define CET_XSTATE_MASK (XFEATURE_MASK_CET_USER | XFEATURE_MASK_CET_KERNEL)
+/*
+ * Shadow Stack and Indirect Branch Tracking feature enabling depends on
+ * whether host side CET user xstate bit is supported or not.
+ */
+static inline bool kvm_is_cet_supported(void)
+{
+	return (kvm_caps.supported_xss & CET_XSTATE_MASK) == CET_XSTATE_MASK;
+}
+
 extern unsigned int min_timer_period_us;
 
 extern bool enable_vmware_backdoor;
@@ -532,6 +542,9 @@ bool kvm_msr_allowed(struct kvm_vcpu *vcpu, u32 index, u32 type);
 		__reserved_bits |= X86_CR4_VMXE;        \
 	if (!__cpu_has(__c, X86_FEATURE_PCID))          \
 		__reserved_bits |= X86_CR4_PCIDE;       \
+	if (!__cpu_has(__c, X86_FEATURE_SHSTK) &&       \
+	    !__cpu_has(__c, X86_FEATURE_IBT))           \
+		__reserved_bits |= X86_CR4_CET;         \
 	__reserved_bits;                                \
 })
 
@@ -558,5 +571,22 @@ int pre_move_enc_context_from(struct kvm *dst_kvm, struct kvm *src_kvm,
 void post_move_enc_context_from(struct kvm *dst_kvm, struct kvm *src_kvm,
 				atomic_t *dst_migration_in_progress,
 				atomic_t *src_migration_in_progress);
+/*
+ * Guest xstate MSRs have been loaded in __msr_io(), disable preemption before
+ * access the MSRs to avoid MSR content corruption.
+ */
+static inline void kvm_get_xsave_msr(struct msr_data *msr_info)
+{
+	kvm_fpu_get();
+	rdmsrl(msr_info->index, msr_info->data);
+	kvm_fpu_put();
+}
+
+static inline void kvm_set_xsave_msr(struct msr_data *msr_info)
+{
+	kvm_fpu_get();
+	wrmsrl(msr_info->index, msr_info->data);
+	kvm_fpu_put();
+}
 
 #endif

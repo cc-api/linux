@@ -309,6 +309,15 @@ void enter_smm(struct kvm_vcpu *vcpu)
 
 	kvm_smm_changed(vcpu, true);
 
+#ifdef CONFIG_X86_64
+	if (guest_can_use(vcpu, X86_FEATURE_SHSTK)) {
+		u64 data;
+
+		if (!kvm_get_msr(vcpu, MSR_KVM_GUEST_SSP, &data))
+			smram.smram64.ssp = data;
+	}
+#endif
+
 	if (kvm_vcpu_write_guest(vcpu, vcpu->arch.smbase + 0xfe00, &smram, sizeof(smram)))
 		goto error;
 
@@ -586,6 +595,14 @@ int emulator_leave_smm(struct x86_emulate_ctxt *ctxt)
 	if ((vcpu->arch.hflags & HF_SMM_INSIDE_NMI_MASK) == 0)
 		static_call(kvm_x86_set_nmi_mask)(vcpu, false);
 
+#ifdef CONFIG_X86_64
+	if (guest_can_use(vcpu, X86_FEATURE_SHSTK)) {
+		u64 data = smram.smram64.ssp;
+
+		if (is_noncanonical_address(data, vcpu) && IS_ALIGNED(data, 4))
+			kvm_set_msr(vcpu, MSR_KVM_GUEST_SSP, data);
+	}
+#endif
 	kvm_smm_changed(vcpu, false);
 
 	/*
