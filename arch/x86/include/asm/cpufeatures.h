@@ -329,6 +329,7 @@
 #define X86_FEATURE_HRESET		(12*32+22) /* Hardware history reset instruction */
 #define X86_FEATURE_AVX_IFMA            (12*32+23) /* "" Support for VPMADD52[H,L]UQ */
 #define X86_FEATURE_LAM			(12*32+26) /* Linear Address Masking */
+#define X86_FEATURE_MSRLIST		(12*32+27) /* RD/WRMSRLIST instruction */
 
 /* AMD-defined CPU features, CPUID level 0x80000008 (EBX), word 13 */
 #define X86_FEATURE_CLZERO		(13*32+ 0) /* CLZERO instruction */
