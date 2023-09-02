@@ -1536,8 +1536,8 @@ static int intel_pinctrl_probe_pwm(struct intel_pinctrl *pctrl,
 	return PTR_ERR_OR_ZERO(pwm);
 }
 
-static int intel_pinctrl_probe(struct platform_device *pdev,
-			       const struct intel_pinctrl_soc_data *soc_data)
+int intel_pinctrl_probe(struct platform_device *pdev,
+			const struct intel_pinctrl_soc_data *soc_data)
 {
 	struct device *dev = &pdev->dev;
 	struct intel_pinctrl *pctrl;
@@ -1655,6 +1655,7 @@ static int intel_pinctrl_probe(struct platform_device *pdev,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(intel_pinctrl_probe);
 
 int intel_pinctrl_probe_by_hid(struct platform_device *pdev)
 {
@@ -1690,6 +1691,14 @@ const struct intel_pinctrl_soc_data *intel_pinctrl_get_soc_data(struct platform_
 	if (table) {
 		struct acpi_device *adev = ACPI_COMPANION(dev);
 		unsigned int i;
+
+		if (!adev->pnp.unique_id) {
+			dev_WARN(&pdev->dev, FW_BUG
+				 "This firmware doesn't support new GPIO controller enumeration\n"
+				 "See HSD 1806454291 for the details\n"
+				 "Firmware has to be updated to make this driver work!\n");
+			return ERR_PTR(-ENODEV);
+		}
 
 		for (i = 0; table[i]; i++) {
 			if (!strcmp(adev->pnp.unique_id, table[i]->uid)) {
