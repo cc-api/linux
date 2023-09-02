@@ -572,6 +572,9 @@ static void get_fixed_ranges(mtrr_type *frs)
 
 	k8_check_syscfg_dram_mod_en();
 
+	if (!mtrr_state.have_fixed)
+		return;
+
 	rdmsr(MSR_MTRRfix64K_00000, p[0], p[1]);
 
 	for (i = 0; i < 2; i++)
@@ -654,7 +657,7 @@ static void __init print_mtrr_state(void)
 	}
 	pr_info("MTRR variable ranges %sabled:\n",
 		mtrr_state.enabled & MTRR_STATE_MTRR_ENABLED ? "en" : "dis");
-	high_width = (boot_cpu_data.x86_phys_bits - (32 - PAGE_SHIFT) + 3) / 4;
+	high_width = ((boot_cpu_data.x86_phys_bits - phys_key_bits) - (32 - PAGE_SHIFT) + 3) / 4;
 
 	for (i = 0; i < num_var_ranges; ++i) {
 		if (mtrr_state.var_ranges[i].mask_lo & MTRR_PHYSMASK_V)
@@ -712,7 +715,14 @@ bool __init get_mtrr_state(void)
 
 	mtrr_state_set = 1;
 
-	return !!(mtrr_state.enabled & MTRR_STATE_MTRR_ENABLED);
+	return !!((mtrr_state.enabled & MTRR_STATE_MTRR_ENABLED) &&
+		  (num_var_ranges ||
+		   /*
+		    * If no variable range MTRR is supported, check if fixed
+		    * range MTRR is enabled or not.
+		    */
+		   (mtrr_state.have_fixed &&
+		    (mtrr_state.enabled & MTRR_STATE_MTRR_FIXED_ENABLED))));
 }
 
 /* Some BIOS's are messed up and don't set all MTRRs the same! */

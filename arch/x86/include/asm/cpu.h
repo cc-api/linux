@@ -48,6 +48,7 @@ extern void handle_bus_lock(struct pt_regs *regs);
 u8 get_this_hybrid_cpu_type(void);
 u8 get_hybrid_cpu_type(int cpu);
 u32 get_hybrid_cpu_params(int cpu);
+extern void tsx_ctrl_clear(void);
 #else
 static inline void __init sld_setup(struct cpuinfo_x86 *c) {}
 static inline bool handle_user_split_lock(struct pt_regs *regs, long error_code)
@@ -76,6 +77,8 @@ static inline u32 get_hybrid_cpu_params(int cpu)
 {
 	return 0;
 }
+static inline void tsx_ctrl_clear(void) { }
+
 #endif
 #ifdef CONFIG_IA32_FEAT_CTL
 void init_ia32_feat_ctl(struct cpuinfo_x86 *c);

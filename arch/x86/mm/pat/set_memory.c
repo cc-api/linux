@@ -1913,6 +1913,7 @@ int __set_memory_prot(unsigned long addr, int numpages, pgprot_t prot)
 					__pgprot(~pgprot_val(prot)), 0, 0,
 					NULL);
 }
+EXPORT_SYMBOL_GPL(__set_memory_prot);
 
 int _set_memory_uc(unsigned long addr, int numpages)
 {
@@ -2041,17 +2042,23 @@ int set_mce_nospec(unsigned long pfn)
 	return rc;
 }
 
-static int set_memory_p(unsigned long *addr, int numpages)
+static int _set_memory_p(unsigned long *addr, int numpages)
 {
 	return change_page_attr_set(addr, numpages, __pgprot(_PAGE_PRESENT), 0);
 }
+
+int set_memory_p(unsigned long addr, int numpages)
+{
+	return change_page_attr_set(&addr, numpages, __pgprot(_PAGE_PRESENT), 0);
+}
+EXPORT_SYMBOL_GPL(set_memory_p);
 
 /* Restore full speculative operation to the pfn. */
 int clear_mce_nospec(unsigned long pfn)
 {
 	unsigned long addr = (unsigned long) pfn_to_kaddr(pfn);
 
-	return set_memory_p(&addr, 1);
+	return _set_memory_p(&addr, 1);
 }
 EXPORT_SYMBOL_GPL(clear_mce_nospec);
 #endif /* CONFIG_X86_64 */
@@ -2096,6 +2103,7 @@ int set_memory_np(unsigned long addr, int numpages)
 {
 	return change_page_attr_clear(&addr, numpages, __pgprot(_PAGE_PRESENT), 0);
 }
+EXPORT_SYMBOL_GPL(set_memory_np);
 
 int set_memory_np_noalias(unsigned long addr, int numpages)
 {
@@ -2350,11 +2358,28 @@ int set_direct_map_invalid_noflush(struct page *page)
 {
 	return __set_pages_np(page, 1);
 }
+EXPORT_SYMBOL_GPL(set_direct_map_invalid_noflush);
 
 int set_direct_map_default_noflush(struct page *page)
 {
 	return __set_pages_p(page, 1);
 }
+EXPORT_SYMBOL_GPL(set_direct_map_default_noflush);
+
+int set_direct_map_split_noflush(struct page *page)
+{
+	/* Hack to forcibly split direct map. */
+	unsigned long tempaddr = (unsigned long) page_address(page);
+	struct cpa_data cpa = { .vaddr = &tempaddr,
+				.pgd = NULL,
+				.numpages = 1,
+				.mask_set = __pgprot(_PAGE_PRESENT | _PAGE_RW),
+				.mask_clr = __pgprot(0),
+				.flags = 0,
+				.force_split = 1};
+	return __change_page_attr_set_clr(&cpa, 0);
+}
+EXPORT_SYMBOL_GPL(set_direct_map_split_noflush);
 
 #ifdef CONFIG_DEBUG_PAGEALLOC
 void __kernel_map_pages(struct page *page, int numpages, int enable)
