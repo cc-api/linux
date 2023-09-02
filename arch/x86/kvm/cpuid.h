@@ -244,4 +244,57 @@ static __always_inline bool guest_can_use(struct kvm_vcpu *vcpu,
 	return kvm_cpu_cap_has(feature) && guest_cpuid_has(vcpu, feature);
 }
 
+enum kvm_governed_features {
+#define KVM_GOVERNED_FEATURE(x) KVM_GOVERNED_##x,
+#include "governed_features.h"
+	KVM_NR_GOVERNED_FEATURES
+};
+
+static __always_inline int kvm_governed_feature_index(unsigned int x86_feature)
+{
+	switch (x86_feature) {
+#define KVM_GOVERNED_FEATURE(x) case x: return KVM_GOVERNED_##x;
+#include "governed_features.h"
+	default:
+		return -1;
+	}
+}
+
+static __always_inline int kvm_is_governed_feature(unsigned int x86_feature)
+{
+	return kvm_governed_feature_index(x86_feature) >= 0;
+}
+
+static __always_inline u32 kvm_governed_feature_bit(unsigned int x86_feature)
+{
+	int index = kvm_governed_feature_index(x86_feature);
+
+	BUILD_BUG_ON(index < 0);
+	return BIT(index);
+}
+
+static __always_inline void kvm_governed_feature_set(struct kvm_vcpu *vcpu,
+						     unsigned int x86_feature)
+{
+	BUILD_BUG_ON(KVM_NR_GOVERNED_FEATURES >
+		     sizeof(vcpu->arch.governed_features.enabled) * BITS_PER_BYTE);
+
+	vcpu->arch.governed_features.enabled |= kvm_governed_feature_bit(x86_feature);
+}
+
+static __always_inline void kvm_governed_feature_check_and_set(struct kvm_vcpu *vcpu,
+							       unsigned int x86_feature)
+{
+	if (guest_cpuid_has(vcpu, x86_feature))
+		kvm_governed_feature_set(vcpu, x86_feature);
+}
+
+static inline bool kvm_vcpu_is_legal_cr3(struct kvm_vcpu *vcpu, unsigned long cr3)
+{
+	if (guest_can_use(vcpu, X86_FEATURE_LAM))
+		cr3 &= ~(X86_CR3_LAM_U48 | X86_CR3_LAM_U57);
+
+	return kvm_vcpu_is_legal_gpa(vcpu, cr3);
+}
+
 #endif
