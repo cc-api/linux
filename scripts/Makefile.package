@@ -1,10 +1,13 @@
-# SPDX-License-Identifier: GPL-2.0-only
 # Makefile for the different targets used to generate full packages of a kernel
 
 include $(srctree)/scripts/Kbuild.include
 include $(srctree)/scripts/Makefile.lib
 
 KERNELPATH := kernel-$(subst -,_,$(KERNELRELEASE))
+KDEB_SOURCENAME ?= linux-intel-next
+KDEB_FLAVOR ?= generic
+KDEB_CHANGELOG_DIST ?= unstable
+export KDEB_SOURCENAME KDEB_FLAVOR KDEB_CHANGELOG_DIST
 # Include only those top-level files that are needed by make, plus the GPL copy
 TAR_CONTENT := Documentation LICENSES arch block certs crypto drivers fs \
                include init io_uring ipc kernel lib mm net rust \
@@ -12,6 +15,7 @@ TAR_CONTENT := Documentation LICENSES arch block certs crypto drivers fs \
                .config Makefile \
                Kbuild Kconfig COPYING $(wildcard localversion*)
 MKSPEC     := $(srctree)/scripts/package/mkspec
+MKSPEC_NEXT     := $(srctree)/scripts/package/mkspec_next
 
 quiet_cmd_src_tar = TAR     $(2).tar.gz
       cmd_src_tar = \
@@ -71,7 +75,7 @@ $(linux-tarballs): .tmp_HEAD FORCE
 PHONY += rpm-pkg
 rpm-pkg: srpm = $(shell rpmspec --srpm --query --queryformat='%{name}-%{VERSION}-%{RELEASE}.src.rpm' kernel.spec)
 rpm-pkg: srcrpm-pkg
-	+rpmbuild $(RPMOPTS) --target $(UTS_MACHINE)-linux -rb $(srpm) \
+	+rpmbuild --nodeps $(RPMOPTS) --target $(UTS_MACHINE)-linux -rb $(srpm) \
 	--define='_smp_mflags %{nil}'
 
 # srcrpm-pkg
@@ -86,68 +90,51 @@ srcrpm-pkg: linux.tar.gz
 # ---------------------------------------------------------------------------
 PHONY += binrpm-pkg
 binrpm-pkg:
-	$(MAKE) -f $(srctree)/Makefile
+	$(MAKE) KBUILD_SRC=
 	$(CONFIG_SHELL) $(MKSPEC) prebuilt > $(objtree)/binkernel.spec
 	+rpmbuild $(RPMOPTS) --define "_builddir $(objtree)" --target \
 		$(UTS_MACHINE)-linux -bb $(objtree)/binkernel.spec
 
-# deb-pkg srcdeb-pkg bindeb-pkg
+# nextrpm-pkg
 # ---------------------------------------------------------------------------
+PHONY += nextrpm-pkg
+nextrpm-pkg:
+	$(MAKE) KBUILD_SRC=
+	$(CONFIG_SHELL) $(MKSPEC_NEXT) prebuilt > $(objtree)/nextkernel.spec
+	+rpmbuild $(RPMOPTS) --define "_builddir $(objtree)" --target \
+		$(UTS_MACHINE) -bb $(objtree)/nextkernel.spec
+# Deb target
+# ---------------------------------------------------------------------------
+quiet_cmd_builddeb = BUILDDEB
+	cmd_builddeb = set -e; \
+	test `id -u` = 0 || \
+	test -n "$(KBUILD_PKG_ROOTCMD)" || { \
+		which fakeroot >/dev/null 2>&1 && \
+		KBUILD_PKG_ROOTCMD="fakeroot -u"; \
+	} || { \
+		echo; \
+		echo "builddeb must be run as root (or using fakeroot)."; \
+		echo "KBUILD_PKG_ROOTCMD is unset and fakeroot not found."; \
+		echo "Try setting KBUILD_PKG_ROOTCMD to a command to acquire"; \
+		echo "root privileges (e.g., 'fakeroot -u' or 'sudo')."; \
+		false; \
+	} && \
+	\
+	$$KBUILD_PKG_ROOTCMD $(CONFIG_SHELL) \
+		$(srctree)/scripts/package/builddeb $@
 
-KDEB_SOURCE_COMPRESS ?= gzip
+PHONY += deb-pkg
+deb-pkg:
+	$(MAKE) clean
+	$(call cmd,src_tar,$(KDEB_SOURCENAME))
+	$(MAKE) KBUILD_SRC=
+	+$(call cmd,builddeb)
 
-supported-deb-source-compress := gzip bzip2 lzma xz
+PHONY += bindeb-pkg
+bindeb-pkg:
+	$(MAKE) KBUILD_SRC=
+	+$(call cmd,builddeb)
 
-PHONY += linux.tar.unsupported-deb-src-compress
-linux.tar.unsupported-deb-src-compress:
-	@echo "error: KDEB_SOURCE_COMPRESS=$(KDEB_SOURCE_COMPRESS) is not supported. The supported values are: $(supported-deb-source-compress)" >&2
-	@false
-
-debian-orig-suffix := \
-    $(strip $(if $(filter $(supported-deb-source-compress), $(KDEB_SOURCE_COMPRESS)), \
-    $(suffix-$(KDEB_SOURCE_COMPRESS)),.unsupported-deb-src-compress))
-
-quiet_cmd_debianize = GEN     $@
-      cmd_debianize = $(srctree)/scripts/package/mkdebian $(mkdebian-opts)
-
-debian: FORCE
-	$(call cmd,debianize)
-
-PHONY += debian-orig
-debian-orig: private source = $(shell dpkg-parsechangelog -S Source)
-debian-orig: private version = $(shell dpkg-parsechangelog -S Version | sed 's/-[^-]*$$//')
-debian-orig: private orig-name = $(source)_$(version).orig.tar$(debian-orig-suffix)
-debian-orig: mkdebian-opts = --need-source
-debian-orig: linux.tar$(debian-orig-suffix) debian
-	$(Q)if [ "$(df  --output=target .. 2>/dev/null)" = "$(df --output=target $< 2>/dev/null)" ]; then \
-		ln -f $< ../$(orig-name); \
-	else \
-		cp $< ../$(orig-name); \
-	fi
-
-KBUILD_PKG_ROOTCMD ?= 'fakeroot -u'
-
-PHONY += deb-pkg srcdeb-pkg bindeb-pkg
-
-deb-pkg:    private build-type := source,binary
-srcdeb-pkg: private build-type := source
-bindeb-pkg: private build-type := binary
-
-deb-pkg srcdeb-pkg: debian-orig
-bindeb-pkg: debian
-deb-pkg srcdeb-pkg bindeb-pkg:
-	+$(strip dpkg-buildpackage \
-	--build=$(build-type) --no-pre-clean --unsigned-changes \
-	$(if $(findstring source, $(build-type)), \
-		--unsigned-source --compression=$(KDEB_SOURCE_COMPRESS)) \
-	$(if $(findstring binary, $(build-type)), \
-		-r$(KBUILD_PKG_ROOTCMD) -a$$(cat debian/arch), \
-		--no-check-builddeps) \
-	$(DPKG_FLAGS))
-
-PHONY += intdeb-pkg
-intdeb-pkg:
-	+$(CONFIG_SHELL) $(srctree)/scripts/package/builddeb
 
 # snap-pkg
 # ---------------------------------------------------------------------------
@@ -242,9 +229,6 @@ help:
 	@echo '  deb-pkg             - Build both source and binary deb kernel packages'
 	@echo '  srcdeb-pkg          - Build only the source kernel deb package'
 	@echo '  bindeb-pkg          - Build only the binary kernel deb package'
-	@echo '  snap-pkg            - Build only the binary kernel snap package'
-	@echo '                        (will connect to external hosts)'
-	@echo '  dir-pkg             - Build the kernel as a plain directory structure'
 	@echo '  tar-pkg             - Build the kernel as an uncompressed tarball'
 	@echo '  targz-pkg           - Build the kernel as a gzip compressed tarball'
 	@echo '  tarbz2-pkg          - Build the kernel as a bzip2 compressed tarball'
