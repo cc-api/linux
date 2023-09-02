@@ -136,6 +136,10 @@
 						 * Processor MMIO stale data
 						 * vulnerabilities.
 						 */
+#define ARCH_CAP_MCU_ENUM		BIT(16)	/*
+						 * Uniform Microcode Update
+						 * Capability Present
+						 */
 #define ARCH_CAP_FB_CLEAR		BIT(17)	/*
 						 * VERW clears CPU fill buffer
 						 * even on MDS_NO CPUs.
@@ -222,6 +226,10 @@
 #define MSR_INTEGRITY_CAPS_ARRAY_BIST          BIT(MSR_INTEGRITY_CAPS_ARRAY_BIST_BIT)
 #define MSR_INTEGRITY_CAPS_PERIODIC_BIST_BIT	4
 #define MSR_INTEGRITY_CAPS_PERIODIC_BIST	BIT(MSR_INTEGRITY_CAPS_PERIODIC_BIST_BIT)
+#define MSR_INTEGRITY_CAPS_SBFT_BIT		8
+#define MSR_INTEGRITY_CAPS_SBFT			BIT(MSR_INTEGRITY_CAPS_SBFT_BIT)
+#define MSR_INTEGRITY_CAPS_SAF_GEN_REV_SHIFT	9
+#define MSR_INTEGRITY_CAPS_SAF_GEN_REV_MASK	(0x3UL << MSR_INTEGRITY_CAPS_SAF_GEN_REV_SHIFT)
 
 #define MSR_LBR_NHM_FROM		0x00000680
 #define MSR_LBR_NHM_TO			0x000006c0

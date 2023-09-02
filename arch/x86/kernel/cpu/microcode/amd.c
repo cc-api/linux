@@ -59,6 +59,9 @@ static u32 ucode_new_rev;
 /* One blob per node. */
 static u8 amd_ucode_patch[MAX_NUMNODES][PATCH_MAX_SIZE];
 
+/* Vendor specific ucode control flags */
+static enum late_load_flags amd_ucode_control;
+
 /*
  * Microcode patch container file is prepended to the initrd in cpio
  * format. See Documentation/arch/x86/microcode.rst
@@ -390,15 +393,21 @@ static void scan_containers(u8 *ucode, size_t size, struct cont_desc *desc)
 	}
 }
 
+static u32 get_current_rev_amd(void)
+{
+	u32 rev, dummy __always_unused;
+
+	rdmsr(MSR_AMD64_PATCH_LEVEL, rev, dummy);
+
+	return rev;
+}
+
 static int __apply_microcode_amd(struct microcode_amd *mc)
 {
-	u32 rev, dummy;
-
 	native_wrmsrl(MSR_AMD64_PATCH_LOADER, (u64)(long)&mc->hdr.data_code);
 
 	/* verify patch application was successful */
-	native_rdmsr(MSR_AMD64_PATCH_LEVEL, rev, dummy);
-	if (rev != mc->hdr.patch_id)
+	if (get_current_rev_amd() != mc->hdr.patch_id)
 		return -1;
 
 	return 0;
@@ -420,7 +429,7 @@ static bool early_apply_microcode(u32 cpuid_1_eax, void *ucode, size_t size, boo
 	struct cont_desc desc = { 0 };
 	u8 (*patch)[PATCH_MAX_SIZE];
 	struct microcode_amd *mc;
-	u32 rev, dummy, *new_rev;
+	u32 rev, *new_rev;
 	bool ret = false;
 
 #ifdef CONFIG_X86_32
@@ -439,7 +448,7 @@ static bool early_apply_microcode(u32 cpuid_1_eax, void *ucode, size_t size, boo
 	if (!mc)
 		return ret;
 
-	native_rdmsr(MSR_AMD64_PATCH_LEVEL, rev, dummy);
+	rev = get_current_rev_amd();
 
 	/*
 	 * Allow application of the same revision to pick up SMT-specific
@@ -522,7 +531,7 @@ void load_ucode_amd_ap(unsigned int cpuid_1_eax)
 {
 	struct microcode_amd *mc;
 	struct cpio_data cp;
-	u32 *new_rev, rev, dummy;
+	u32 *new_rev, rev;
 
 	if (IS_ENABLED(CONFIG_X86_32)) {
 		mc	= (struct microcode_amd *)__pa_nodebug(amd_ucode_patch);
@@ -532,7 +541,7 @@ void load_ucode_amd_ap(unsigned int cpuid_1_eax)
 		new_rev = &ucode_new_rev;
 	}
 
-	native_rdmsr(MSR_AMD64_PATCH_LEVEL, rev, dummy);
+	rev = get_current_rev_amd();
 
 	/*
 	 * Check whether a new patch has been saved already. Also, allow application of
@@ -580,12 +589,12 @@ int __init save_microcode_in_initrd_amd(unsigned int cpuid_1_eax)
 
 void reload_ucode_amd(unsigned int cpu)
 {
-	u32 rev, dummy __always_unused;
+	u32 rev;
 	struct microcode_amd *mc;
 
 	mc = (struct microcode_amd *)amd_ucode_patch[cpu_to_node(cpu)];
 
-	rdmsr(MSR_AMD64_PATCH_LEVEL, rev, dummy);
+	rev = get_current_rev_amd();
 
 	if (rev < mc->hdr.patch_id) {
 		if (!__apply_microcode_amd(mc)) {
@@ -655,6 +664,16 @@ static struct ucode_patch *find_patch(unsigned int cpu)
 	return cache_find_patch(equiv_id);
 }
 
+static void amd_set_control_flags(enum late_load_flags flags)
+{
+	amd_ucode_control |= flags;
+}
+
+static enum late_load_flags amd_get_control_flags(void)
+{
+	return amd_ucode_control;
+}
+
 static int collect_cpu_info_amd(int cpu, struct cpu_signature *csig)
 {
 	struct cpuinfo_x86 *c = &cpu_data(cpu);
@@ -662,6 +681,7 @@ static int collect_cpu_info_amd(int cpu, struct cpu_signature *csig)
 	struct ucode_patch *p;
 
 	csig->sig = cpuid_eax(0x00000001);
+	c->microcode = get_current_rev_amd();
 	csig->rev = c->microcode;
 
 	/*
@@ -677,14 +697,13 @@ static int collect_cpu_info_amd(int cpu, struct cpu_signature *csig)
 	return 0;
 }
 
-static enum ucode_state apply_microcode_amd(int cpu)
+static enum ucode_state apply_microcode_amd(int cpu, enum reload_type type __maybe_unused)
 {
-	struct cpuinfo_x86 *c = &cpu_data(cpu);
 	struct microcode_amd *mc_amd;
 	struct ucode_cpu_info *uci;
 	struct ucode_patch *p;
 	enum ucode_state ret;
-	u32 rev, dummy __always_unused;
+	u32 rev;
 
 	BUG_ON(raw_smp_processor_id() != cpu);
 
@@ -697,7 +716,7 @@ static enum ucode_state apply_microcode_amd(int cpu)
 	mc_amd  = p->data;
 	uci->mc = p->data;
 
-	rdmsr(MSR_AMD64_PATCH_LEVEL, rev, dummy);
+	rev = get_current_rev_amd();
 
 	/* need to apply patch? */
 	if (rev > mc_amd->hdr.patch_id) {
@@ -718,11 +737,6 @@ static enum ucode_state apply_microcode_amd(int cpu)
 
 out:
 	uci->cpu_sig.rev = rev;
-	c->microcode	 = rev;
-
-	/* Update boot_cpu_data's revision too, if we're on the BSP: */
-	if (c->cpu_index == boot_cpu_data.cpu_index)
-		boot_cpu_data.microcode = rev;
 
 	return ret;
 }
@@ -899,7 +913,8 @@ static enum ucode_state load_microcode_amd(u8 family, const u8 *data, size_t siz
  *
  * These might be larger than 2K.
  */
-static enum ucode_state request_microcode_amd(int cpu, struct device *device)
+static enum ucode_state request_microcode_amd(int cpu, struct device *device,
+					      enum reload_type type __maybe_unused)
 {
 	char fw_name[36] = "amd-ucode/microcode_amd.bin";
 	struct cpuinfo_x86 *c = &cpu_data(cpu);
@@ -935,10 +950,12 @@ static void microcode_fini_cpu_amd(int cpu)
 }
 
 static struct microcode_ops microcode_amd_ops = {
+	.get_control_flags                = amd_get_control_flags,
 	.request_microcode_fw             = request_microcode_amd,
 	.collect_cpu_info                 = collect_cpu_info_amd,
 	.apply_microcode                  = apply_microcode_amd,
 	.microcode_fini_cpu               = microcode_fini_cpu_amd,
+	.get_current_rev                  = get_current_rev_amd,
 };
 
 struct microcode_ops * __init init_amd_microcode(void)
@@ -953,7 +970,7 @@ struct microcode_ops * __init init_amd_microcode(void)
 	if (ucode_new_rev)
 		pr_info_once("microcode updated early to new patch_level=0x%08x\n",
 			     ucode_new_rev);
-
+	amd_set_control_flags(LATE_LOAD_BOTH);
 	return &microcode_amd_ops;
 }
 

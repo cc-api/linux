@@ -208,6 +208,65 @@ Basically there is no way to declare a new microcode update suitable
 for late-loading. This is another one of the problems that caused late
 loading to be not enabled by default.
 
+Declaring microcode is safe for late loading
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+CPU vendor can declare that microcode format is now enhanced to understand and
+enforce the minimum required version before late load.
+
+Intel introduced a new field in the external header to declare the base
+minimum revision required before a new microcode is late-loaded.
+
+Intel's enhanced external header::
+
+	struct microcode_header_intel {
+		unsigned int            hdrver;
+		unsigned int            rev;
+		unsigned int            date;
+		unsigned int            sig;
+		unsigned int            cksum;
+		unsigned int            ldrver;
+		unsigned int            pf;
+		unsigned int            datasize;
+		unsigned int            totalsize;
+		unsigned int            metasize;
+		unsigned int            min_req_ver;<----
+		unsigned int            reserved3;
+	};
+
+With the introduction of the new enforcement, Intel's ``microcode_ops``
+explicitly declares support via setting::
+
+	struct microcode_ops {
+		unsigned long control;
+		....
+	};
+
+Vendor specific code will always ensure the following are true before a
+late loading is permitted.
+
+	- min_req_ver is not 0: This implies its legacy header and
+	  late-loading is blocked.
+	- current microcode revision in the CPU is >= the declared
+	  min_req_ver declared in the microcode header.
+
+Overriding Minimum Required Version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With the enforcement in place, it might take some time to fully transition
+to this new methodology.
+
+To help with the transition, there is a new debugfs tweak that user can set
+to bypass this enforcement::
+
+#echo Y > /sys/kernel/debug/microcode/override_minrev
+
+When the debugfs override is set, late-loading a microcode will taint the
+kernel::
+
+    #cat /proc/sys/kernel/tainted
+    4
+
 Builtin microcode
 =================
 
