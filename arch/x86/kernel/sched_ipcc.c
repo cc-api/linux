@@ -19,6 +19,7 @@
 #include <linux/sched.h>
 
 #include <asm/intel-family.h>
+#include <asm/hfi.h>
 #include <asm/topology.h>
 
 #ifdef CONFIG_DEBUG_FS
@@ -43,23 +44,6 @@ static void register_ipcc_history(u8 ipcc)
 #else
 static void register_ipcc_history(u8 ipcc) { }
 #endif
-
-/**
- * struct itd_ipcc - IPC class fields as used by Intel Thread Director
- * @split.class:	The IPC class used for scheduling after filtering
- *			hardware classification.
- * @split.class_tmp:	Classification as read from hardware.
- * @split.counter:	A counter to filter out temporary classifications.
- * @full:		Full IPC class as carried in a task_struct.
- */
-union itd_ipcc {
-	struct {
-		unsigned int	class:9;
-		unsigned int	class_tmp:9;
-		unsigned int	counter:14;
-	} split __packed;
-	unsigned int full;
-};
 
 #define CLASS_DEBOUNCER_SKIPS 4
 #ifdef CONFIG_DEBUG_FS
