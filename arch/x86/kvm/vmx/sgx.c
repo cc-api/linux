@@ -47,6 +47,10 @@ static int sgx_get_encls_gva(struct kvm_vcpu *vcpu, unsigned long offset,
 			((s.base != 0 || s.limit != 0xffffffff) &&
 			(((u64)*gva + size - 1) > s.limit + 1));
 	}
+
+	if (!fault)
+		fault = vmx_is_lass_violation(vcpu, *gva, size, 0);
+
 	if (fault)
 		kvm_inject_gp(vcpu, 0);
 	return fault ? -EINVAL : 0;

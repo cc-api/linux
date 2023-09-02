@@ -7680,6 +7680,9 @@ static void nested_vmx_cr_fixed1_bits_update(struct kvm_vcpu *vcpu)
 	entry = kvm_find_cpuid_entry_index(vcpu, 0x7, 1);
 	cr4_fixed1_update(X86_CR4_LAM_SUP,    eax, feature_bit(LAM));
 
+	entry = kvm_find_cpuid_entry_index(vcpu, 0x7, 1);
+	cr4_fixed1_update(X86_CR4_LASS,       eax, feature_bit(LASS));
+
 #undef cr4_fixed1_update
 }
 
@@ -8281,6 +8284,40 @@ gva_t vmx_get_untagged_addr(struct kvm_vcpu *vcpu, gva_t gva, unsigned int flags
 	return (sign_extend64(gva, lam_bit) & ~BIT_ULL(63)) | (gva & BIT_ULL(63));
 }
 
+bool vmx_is_lass_violation(struct kvm_vcpu *vcpu, unsigned long addr,
+			   unsigned int size, unsigned int flags)
+{
+	const bool is_supervisor_address = !!(addr & BIT_ULL(63));
+	const bool implicit = !!(flags & X86EMUL_F_IMPLICIT);
+	const bool fetch = !!(flags & X86EMUL_F_FETCH);
+	const bool is_wraparound_access = size ? (addr + size - 1) < addr : false;
+
+	if (!kvm_is_cr4_bit_set(vcpu, X86_CR4_LASS) || !is_long_mode(vcpu))
+		return false;
+
+	/*
+	 * INVTLB isn't subject to LASS, e.g. to allow invalidating userspace
+	 * addresses without toggling RFLAGS.AC.  Branch targets aren't subject
+	 * to LASS in order to simplifiy far control transfers (the subsequent
+	 * fetch will enforce LASS as appropriate).
+	 */
+	if (flags & (X86EMUL_F_BRANCH | X86EMUL_F_INVTLB))
+		return false;
+
+	if (!implicit && vmx_get_cpl(vcpu) == 3)
+		return is_supervisor_address;
+
+	/* LASS is enforced for supervisor-mode access iff SMAP is enabled. */
+	if (!fetch && !kvm_is_cr4_bit_set(vcpu, X86_CR4_SMAP))
+		return false;
+
+	/* Like SMAP, RFLAGS.AC disables LASS checks in supervisor mode. */
+	if (!fetch && !implicit && (kvm_get_rflags(vcpu) & X86_EFLAGS_AC))
+		return false;
+
+	return is_wraparound_access ? true : !is_supervisor_address;
+}
+
 struct kvm_x86_ops vt_x86_ops __initdata = {
 	.name = KBUILD_MODNAME,
 
@@ -8440,6 +8477,7 @@ struct kvm_x86_ops vt_x86_ops __initdata = {
 
 	.vm_move_enc_context_from = vt_move_enc_context_from,
 	.get_untagged_addr = vmx_get_untagged_addr,
+	.is_lass_violation = vmx_is_lass_violation,
 };
 
 static unsigned int vmx_handle_intel_pt_intr(void)
