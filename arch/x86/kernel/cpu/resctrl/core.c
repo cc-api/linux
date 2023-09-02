@@ -23,6 +23,7 @@
 
 #include <asm/intel-family.h>
 #include <asm/resctrl.h>
+#include <asm/unaligned.h>
 #include "internal.h"
 
 /* Mutex to protect rdtgroup access. */
@@ -52,6 +53,9 @@ static void
 mba_wrmsr_intel(struct rdt_domain *d, struct msr_param *m,
 		struct rdt_resource *r);
 static void
+cmba_wrmsr_intel(struct rdt_domain *d, struct msr_param *m,
+		 struct rdt_resource *r);
+static void
 cat_wrmsr(struct rdt_domain *d, struct msr_param *m, struct rdt_resource *r);
 static void
 mba_wrmsr_amd(struct rdt_domain *d, struct msr_param *m,
@@ -65,7 +69,7 @@ struct rdt_hw_resource rdt_resources_all[] = {
 		.r_resctrl = {
 			.rid			= RDT_RESOURCE_L3,
 			.name			= "L3",
-			.cache_level		= 3,
+			.scope			= RDT_L3_CACHE,
 			.domains		= domain_init(RDT_RESOURCE_L3),
 			.parse_ctrlval		= parse_cbm,
 			.format_str		= "%d=%0*x",
@@ -79,7 +83,7 @@ struct rdt_hw_resource rdt_resources_all[] = {
 		.r_resctrl = {
 			.rid			= RDT_RESOURCE_L2,
 			.name			= "L2",
-			.cache_level		= 2,
+			.scope			= RDT_L2_CACHE,
 			.domains		= domain_init(RDT_RESOURCE_L2),
 			.parse_ctrlval		= parse_cbm,
 			.format_str		= "%d=%0*x",
@@ -93,7 +97,7 @@ struct rdt_hw_resource rdt_resources_all[] = {
 		.r_resctrl = {
 			.rid			= RDT_RESOURCE_MBA,
 			.name			= "MB",
-			.cache_level		= 3,
+			.scope			= RDT_L3_CACHE,
 			.domains		= domain_init(RDT_RESOURCE_MBA),
 			.parse_ctrlval		= parse_bw,
 			.format_str		= "%d=%*u",
@@ -105,11 +109,23 @@ struct rdt_hw_resource rdt_resources_all[] = {
 		.r_resctrl = {
 			.rid			= RDT_RESOURCE_SMBA,
 			.name			= "SMBA",
-			.cache_level		= 3,
+			.scope			= RDT_L3_CACHE,
 			.domains		= domain_init(RDT_RESOURCE_SMBA),
 			.parse_ctrlval		= parse_bw,
 			.format_str		= "%d=%*u",
 			.fflags			= RFTYPE_RES_MB,
+		},
+	},
+	[RDT_RESOURCE_CMBA] =
+	{
+		.r_resctrl = {
+			.rid			= RDT_RESOURCE_CMBA,
+			.name			= "CMBA",
+			.scope			= RDT_CPU,
+			.domains		= domain_init(RDT_RESOURCE_CMBA),
+			.parse_ctrlval		= parse_bw,
+			.format_str		= "%d=%*u",
+			.fflags			= RFTYPE_RES_MBC,
 		},
 	},
 };
@@ -299,6 +315,21 @@ static void rdt_get_cdp_l2_config(void)
 	rdt_get_cdp_config(RDT_RESOURCE_L2);
 }
 
+static void rdt_get_mba_core_cfg(struct rdt_resource *r)
+{
+	struct rdt_hw_resource *hw_res = resctrl_to_arch_res(r);
+	union cpuid_0x10_5_eax eax;
+	union cpuid_0x10_x_edx edx;
+	u32 ebx, ecx;
+
+	cpuid_count(0x00000010, 5, &eax.full, &ebx, &ecx, &edx.full);
+	hw_res->num_closid = edx.split.cos_max + 1;
+	r->membw.arch_needs_linear = !!(ecx & MBA_IS_LINEAR);
+	r->membw.min_bw = eax.split.max_levels;
+	r->default_ctrl = 0;
+	r->alloc_capable = true;
+}
+
 static void
 mba_wrmsr_amd(struct rdt_domain *d, struct msr_param *m, struct rdt_resource *r)
 {
@@ -335,6 +366,44 @@ mba_wrmsr_intel(struct rdt_domain *d, struct msr_param *m,
 	/*  Write the delay values for mba. */
 	for (i = m->low; i < m->high; i++)
 		wrmsrl(hw_res->msr_base + i, delay_bw_map(hw_dom->ctrl_val[i], r));
+}
+
+#define CMBA_PER_MSR 8
+/*
+ * Multiple CMBA control values are packed into each MSR. E.g. if there
+ * are 12 supported CLOSIDs they map like this:
+ * bits:    63 56   55 48   47 40   39 32   31 24   23 16   15  8   7   0
+ * MSR[0]   clos7 | clos6 | clos5 | clos4 | clos3 | clos2 | clos1 | clos0
+ * MSR[1]    RSVD |  RSVD |  RSVD |  RSVD | closB | closA | clos9 | clos8
+ * Since wrmsrl() always writes all 64-bits on an MSR, code must round
+ * start MSR down and end MSR up and copy the surrounding values from
+ * hw_dom->ctrl_val[], taking care to fill out reserved fields with zeroes
+ * for cases where hw_res->num_closid is not a multiple of CMBA_PER_MSR.
+ */
+static void
+cmba_wrmsr_intel(struct rdt_domain *d, struct msr_param *m,
+		 struct rdt_resource *r)
+{
+	struct rdt_hw_domain *hw_dom = resctrl_to_arch_dom(d);
+	struct rdt_hw_resource *hw_res = resctrl_to_arch_res(r);
+	int msrhigh, msrlow;
+	int i, j, idx;
+
+	msrlow = m->low / CMBA_PER_MSR;
+	msrhigh = round_up(m->high, CMBA_PER_MSR) / CMBA_PER_MSR;
+
+	for (i = msrlow; i < msrhigh; i++) {
+		u8 msrval[CMBA_PER_MSR];
+
+		memset(msrval, 0, sizeof(msrval));
+		for (j = 0; j < CMBA_PER_MSR; j++) {
+			idx = i * CMBA_PER_MSR + j;
+			if (idx >= hw_res->num_closid)
+				break;
+			msrval[j] = hw_dom->ctrl_val[idx];
+		}
+		wrmsrl(hw_res->msr_base + i, get_unaligned_le64(msrval));
+	}
 }
 
 static void
@@ -487,6 +556,19 @@ static int arch_domain_mbm_alloc(u32 num_rmid, struct rdt_hw_domain *hw_dom)
 	return 0;
 }
 
+static int get_rdt_domain(int cpu, struct rdt_resource *r)
+{
+	switch (r->scope) {
+	case RDT_L2_CACHE:
+	case RDT_L3_CACHE:
+		return get_cpu_cacheinfo_id(cpu, r->scope);
+	case RDT_CPU:
+		return cpu;
+	}
+
+	return -1;
+}
+
 /*
  * domain_add_cpu - Add a cpu to a resource's domain list.
  *
@@ -502,15 +584,21 @@ static int arch_domain_mbm_alloc(u32 num_rmid, struct rdt_hw_domain *hw_dom)
  */
 static void domain_add_cpu(int cpu, struct rdt_resource *r)
 {
-	int id = get_cpu_cacheinfo_id(cpu, r->cache_level);
 	struct list_head *add_pos = NULL;
+	int id = get_rdt_domain(cpu, r);
 	struct rdt_hw_domain *hw_dom;
 	struct rdt_domain *d;
 	int err;
 
+	if (id < 0) {
+		pr_warn_once("Resource: %s: couldn't find scope for type %d\n",
+			     r->name, r->scope);
+		return;
+	}
+
 	d = rdt_find_domain(r, id, &add_pos);
 	if (IS_ERR(d)) {
-		pr_warn("Couldn't find cache id for CPU %d\n", cpu);
+		pr_warn("Couldn't find scope for CPU %d\n", cpu);
 		return;
 	}
 
@@ -552,13 +640,13 @@ static void domain_add_cpu(int cpu, struct rdt_resource *r)
 
 static void domain_remove_cpu(int cpu, struct rdt_resource *r)
 {
-	int id = get_cpu_cacheinfo_id(cpu, r->cache_level);
+	int id = get_cpu_cacheinfo_id(cpu, r->scope);
 	struct rdt_hw_domain *hw_dom;
 	struct rdt_domain *d;
 
 	d = rdt_find_domain(r, id, NULL);
 	if (IS_ERR_OR_NULL(d)) {
-		pr_warn("Couldn't find cache id for CPU %d\n", cpu);
+		pr_warn("Couldn't find scope for CPU %d\n", cpu);
 		return;
 	}
 	hw_dom = resctrl_to_arch_dom(d);
@@ -674,6 +762,7 @@ enum {
 	RDT_FLAG_MBA,
 	RDT_FLAG_SMBA,
 	RDT_FLAG_BMEC,
+	RDT_FLAG_CMBA,
 };
 
 #define RDT_OPT(idx, n, f)	\
@@ -699,6 +788,7 @@ static struct rdt_options rdt_options[]  __initdata = {
 	RDT_OPT(RDT_FLAG_MBA,	    "mba",	X86_FEATURE_MBA),
 	RDT_OPT(RDT_FLAG_SMBA,	    "smba",	X86_FEATURE_SMBA),
 	RDT_OPT(RDT_FLAG_BMEC,	    "bmec",	X86_FEATURE_BMEC),
+	RDT_OPT(RDT_FLAG_CMBA,	    "cmba",	X86_FEATURE_CMBA),
 };
 #define NUM_RDT_OPTIONS ARRAY_SIZE(rdt_options)
 
@@ -802,6 +892,11 @@ static __init bool get_rdt_alloc_resources(void)
 			rdt_get_cdp_l2_config();
 		ret = true;
 	}
+	if (rdt_cpu_has(X86_FEATURE_CMBA)) {
+		r = &rdt_resources_all[RDT_RESOURCE_CMBA].r_resctrl;
+		rdt_get_mba_core_cfg(r);
+		ret = true;
+	}
 
 	if (get_mem_config())
 		ret = true;
@@ -878,6 +973,9 @@ static __init void rdt_init_res_defs_intel(void)
 		} else if (r->rid == RDT_RESOURCE_MBA) {
 			hw_res->msr_base = MSR_IA32_MBA_THRTL_BASE;
 			hw_res->msr_update = mba_wrmsr_intel;
+		} else if (r->rid == RDT_RESOURCE_CMBA) {
+			hw_res->msr_base = MSR_IA32_CMBA_THRTL_BASE;
+			hw_res->msr_update = cmba_wrmsr_intel;
 		}
 	}
 }

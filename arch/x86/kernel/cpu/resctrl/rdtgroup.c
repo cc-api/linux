@@ -999,6 +999,26 @@ static int rdt_min_bw_show(struct kernfs_open_file *of,
 	return 0;
 }
 
+static int rdt_max_throttle_show(struct kernfs_open_file *of,
+				 struct seq_file *seq, void *v)
+{
+	struct resctrl_schema *s = of->kn->parent->priv;
+	struct rdt_resource *r = s->res;
+
+	seq_printf(seq, "%u\n", r->membw.min_bw);
+	return 0;
+}
+
+static int rdt_throttle_linear_show(struct kernfs_open_file *of,
+				    struct seq_file *seq, void *v)
+{
+	struct resctrl_schema *s = of->kn->parent->priv;
+	struct rdt_resource *r = s->res;
+
+	seq_printf(seq, "%u\n", r->membw.arch_needs_linear);
+	return 0;
+}
+
 static int rdt_num_rmids_show(struct kernfs_open_file *of,
 			      struct seq_file *seq, void *v)
 {
@@ -1348,7 +1368,7 @@ unsigned int rdtgroup_cbm_to_size(struct rdt_resource *r,
 	num_b = bitmap_weight(&cbm, r->cache.cbm_len);
 	ci = get_cpu_cacheinfo(cpumask_any(&d->cpu_mask));
 	for (i = 0; i < ci->num_leaves; i++) {
-		if (ci->info_list[i].level == r->cache_level) {
+		if (ci->info_list[i].level == r->scope) {
 			size = ci->info_list[i].size / r->cache.cbm_len * num_b;
 			break;
 		}
@@ -1757,6 +1777,20 @@ static struct rftype res_common_files[] = {
 		.kf_ops		= &rdtgroup_kf_single_ops,
 		.seq_show	= rdt_delay_linear_show,
 		.fflags		= RF_CTRL_INFO | RFTYPE_RES_MB,
+	},
+	{
+		.name		= "max_throttle",
+		.mode		= 0444,
+		.kf_ops		= &rdtgroup_kf_single_ops,
+		.seq_show	= rdt_max_throttle_show,
+		.fflags		= RF_CTRL_INFO | RFTYPE_RES_MBC,
+	},
+	{
+		.name		= "throttle_linear",
+		.mode		= 0444,
+		.kf_ops		= &rdtgroup_kf_single_ops,
+		.seq_show	= rdt_throttle_linear_show,
+		.fflags		= RF_CTRL_INFO | RFTYPE_RES_MBC,
 	},
 	/*
 	 * Platform specific which (if any) capabilities are provided by

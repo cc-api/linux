@@ -54,6 +54,14 @@
 /* Max event bits supported */
 #define MAX_EVT_CONFIG_BITS		GENMASK(6, 0)
 
+/* Scope of RDT resources */
+enum rdt_scope {
+	RDT_INVALID_SCOPE,
+	RDT_L2_CACHE = 2,
+	RDT_L3_CACHE = 3,
+	RDT_CPU,
+};
+
 struct rdt_fs_context {
 	struct kernfs_fs_context	kfc;
 	bool				enable_cdpl2;
@@ -251,6 +259,7 @@ struct rdtgroup {
 #define RFTYPE_TOP			BIT(RF_TOPSHIFT)
 #define RFTYPE_RES_CACHE		BIT(8)
 #define RFTYPE_RES_MB			BIT(9)
+#define RFTYPE_RES_MBC			BIT(10)
 #define RF_CTRL_INFO			(RFTYPE_INFO | RFTYPE_CTRL)
 #define RF_MON_INFO			(RFTYPE_INFO | RFTYPE_MON)
 #define RF_TOP_INFO			(RFTYPE_INFO | RFTYPE_TOP)
@@ -435,6 +444,7 @@ enum resctrl_res_level {
 	RDT_RESOURCE_L2,
 	RDT_RESOURCE_MBA,
 	RDT_RESOURCE_SMBA,
+	RDT_RESOURCE_CMBA,
 
 	/* Must be the last */
 	RDT_NUM_RESOURCES,
@@ -488,6 +498,15 @@ union cpuid_0x10_1_eax {
 union cpuid_0x10_3_eax {
 	struct {
 		unsigned int max_delay:12;
+	} split;
+	unsigned int full;
+};
+
+/* CPUID.(EAX=10H, ECX=ResID=5).EAX */
+union cpuid_0x10_5_eax {
+	struct {
+		unsigned int max_levels:8;
+		unsigned int scope:4;
 	} split;
 	unsigned int full;
 };
