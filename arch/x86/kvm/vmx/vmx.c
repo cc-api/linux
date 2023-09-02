@@ -112,6 +112,8 @@ bool __read_mostly enable_ipiv = true;
 module_param(enable_ipiv, bool, 0444);
 
 static u64 __read_mostly host_s_cet;
+bool __read_mostly enable_apic_timer;
+module_param_named(apic_timer, enable_apic_timer, bool, 0444);
 
 /*
  * If nested=1, nested virtualization is supported, i.e., guests may use
@@ -179,6 +181,7 @@ static u32 vmx_possible_passthrough_msrs[MAX_POSSIBLE_PASSTHROUGH_MSRS] = {
 	MSR_KERNEL_GS_BASE,
 	MSR_IA32_XFD,
 	MSR_IA32_XFD_ERR,
+	MSR_IA32_TSC_DEADLINE,
 #endif
 	MSR_IA32_SYSENTER_CS,
 	MSR_IA32_SYSENTER_ESP,
@@ -2704,6 +2707,9 @@ static int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 			adjust_vmx_controls64(KVM_OPTIONAL_VMX_TERTIARY_VM_EXEC_CONTROL,
 					      MSR_IA32_VMX_PROCBASED_CTLS3);
 
+	if (!(_cpu_based_2nd_exec_control & SECONDARY_EXEC_VIRTUAL_INTR_DELIVERY))
+		_cpu_based_3rd_exec_control &= ~TERTIARY_EXEC_GUEST_APIC_TIMER;
+
 	if (adjust_vmx_controls(KVM_REQUIRED_VMX_VM_EXIT_CONTROLS,
 				KVM_OPTIONAL_VMX_VM_EXIT_CONTROLS,
 				MSR_IA32_VMX_EXIT_CTLS,
@@ -4458,6 +4464,9 @@ void vmx_refresh_apicv_exec_ctrl(struct kvm_vcpu *vcpu)
 						 SECONDARY_EXEC_VIRTUAL_INTR_DELIVERY);
 		if (enable_ipiv)
 			tertiary_exec_controls_clearbit(vmx, TERTIARY_EXEC_IPI_VIRT);
+
+		if(enable_apic_timer)
+			tertiary_exec_controls_clearbit(vmx, TERTIARY_EXEC_GUEST_APIC_TIMER);
 	}
 
 	vmx_update_msr_bitmap_x2apic(vcpu);
@@ -4517,6 +4526,11 @@ static u64 vmx_tertiary_exec_control(struct vcpu_vmx *vmx)
 	 */
 	if (!enable_ipiv || !kvm_vcpu_apicv_active(&vmx->vcpu))
 		exec_control &= ~TERTIARY_EXEC_IPI_VIRT;
+
+	/* GUEST_APIC_TIMER is enabled when guest enable lapic timer as tsc
+	 * deadline mode.
+	 */
+	exec_control &= ~TERTIARY_EXEC_GUEST_APIC_TIMER;
 
 	return exec_control;
 }
@@ -4905,6 +4919,7 @@ void vmx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 	vmx->msr_ia32_umwait_control = 0;
 
 	vmx->hv_deadline_tsc = -1;
+	vmx->guest_timer_vector = 0xFF;
 	kvm_set_cr8(vcpu, 0);
 
 	vmx_segment_cache_clear(vmx);
@@ -6350,6 +6365,12 @@ void dump_vmcs(struct kvm_vcpu *vcpu)
 		vmx_dump_msrs("guest autoload", &vmx->msr_autoload.guest);
 	if (vmcs_read32(VM_EXIT_MSR_STORE_COUNT) > 0)
 		vmx_dump_msrs("guest autostore", &vmx->msr_autostore.guest);
+	if (tertiary_exec_control & TERTIARY_EXEC_GUEST_APIC_TIMER) {
+		pr_err("DeadlinePhy = 0x%016llx\n", vmcs_read64(GUEST_DEADLINE_PHY));
+		pr_err("DeadlineVir = 0x%016llx\n", vmcs_read64(GUEST_DEADLINE_VIR));
+		pr_err("GuestApicTimerVector = 0x%04x\n",
+						vmcs_read16(GUEST_APIC_TIMER_VECTOR));
+	}
 
 	if (vmentry_ctl & VM_ENTRY_LOAD_CET_STATE) {
 		pr_err("S_CET = 0x%016lx\n", vmcs_readl(GUEST_S_CET));
@@ -7167,6 +7188,29 @@ static void vmx_update_hv_timer(struct kvm_vcpu *vcpu)
 	}
 }
 
+static void vmx_update_guest_virt_timer(struct kvm_vcpu *vcpu)
+{
+	struct vcpu_vmx *vmx = to_vmx(vcpu);
+
+	if (vmx->guest_timer_vector != 0xFF) {
+		u32 tertiary_exec_control;
+
+		tertiary_exec_control = tertiary_exec_controls_get(vmx);
+		if (vmx->guest_timer_vector != 0) {
+			vmcs_write64(GUEST_DEADLINE_PHY, 0);
+			vmcs_write64(GUEST_DEADLINE_VIR, 0);
+			vmcs_write16(GUEST_APIC_TIMER_VECTOR, vmx->guest_timer_vector);
+			tertiary_exec_control |= TERTIARY_EXEC_GUEST_APIC_TIMER;
+			vmx_set_intercept_for_msr(vcpu, MSR_IA32_TSC_DEADLINE, MSR_TYPE_RW, false);
+		} else {
+			tertiary_exec_control &= ~TERTIARY_EXEC_GUEST_APIC_TIMER;
+			vmx_set_intercept_for_msr(vcpu, MSR_IA32_TSC_DEADLINE, MSR_TYPE_RW, true);
+		}
+		tertiary_exec_controls_set(vmx, tertiary_exec_control);
+		vmx->guest_timer_vector = 0xFF;
+	}
+}
+
 void noinstr vmx_update_host_rsp(struct vcpu_vmx *vmx, unsigned long host_rsp)
 {
 	if (unlikely(host_rsp != vmx->loaded_vmcs->host_state.rsp)) {
@@ -7346,6 +7390,9 @@ fastpath_t vmx_vcpu_run(struct kvm_vcpu *vcpu)
 
 	if (enable_preemption_timer)
 		vmx_update_hv_timer(vcpu);
+
+	if (enable_apic_timer)
+		vmx_update_guest_virt_timer(vcpu);
 
 	kvm_wait_lapic_expire(vcpu);
 
@@ -8111,6 +8158,46 @@ void vmx_cancel_hv_timer(struct kvm_vcpu *vcpu)
 {
 	to_vmx(vcpu)->hv_deadline_tsc = -1;
 }
+
+static int vmx_set_guest_virt_timer(struct kvm_vcpu *vcpu, u16 vector)
+{
+	struct vcpu_vmx *vmx;
+
+	/* This change is only for intel-next compatible with TDX */
+	if(!enable_apic_timer)
+		return -EPERM;
+
+	vmx = to_vmx(vcpu);
+	if (!enable_apic_timer ||
+	    !kvm_vcpu_apicv_active(vcpu) ||
+	    (exec_controls_get(vmx) & CPU_BASED_RDTSC_EXITING))
+		return -EPERM;
+
+	vmx->guest_timer_vector = vector;
+
+	return 0;
+}
+
+static void vmx_cancel_guest_virt_timer(struct kvm_vcpu *vcpu)
+{
+	/* This change is only for intel-next compatible with TDX */
+	if(!enable_apic_timer)
+		return;
+
+	to_vmx(vcpu)->guest_timer_vector = 0;
+}
+
+static u64 vmx_get_guest_tsc_deadline_virt(struct kvm_vcpu *vcpu)
+{
+	/* This change is only for intel-next compatible with TDX */
+	if(!enable_apic_timer)
+		return 0;
+
+	if (!lapic_in_kernel(vcpu))
+		return 0;
+
+	return vmcs_read64(GUEST_DEADLINE_VIR);
+}
 #endif
 
 void vmx_sched_in(struct kvm_vcpu *vcpu, int cpu)
@@ -8451,6 +8538,9 @@ struct kvm_x86_ops vt_x86_ops __initdata = {
 #ifdef CONFIG_X86_64
 	.set_hv_timer = vt_set_hv_timer,
 	.cancel_hv_timer = vt_cancel_hv_timer,
+	.set_guest_virt_timer = vmx_set_guest_virt_timer,
+	.cancel_guest_virt_timer = vmx_cancel_guest_virt_timer,
+	.get_guest_tsc_deadline_virt = vmx_get_guest_tsc_deadline_virt,
 #endif
 
 	.setup_mce = vt_setup_mce,
@@ -8678,6 +8768,9 @@ __init int vmx_hardware_setup(void)
 
 	if (!cpu_has_vmx_preemption_timer())
 		enable_preemption_timer = false;
+
+	if (!cpu_has_vmx_guest_virt_timer())
+		enable_apic_timer = false;
 
 	if (enable_preemption_timer) {
 		u64 use_timer_freq = 5000ULL * 1000 * 1000;
