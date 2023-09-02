@@ -24,11 +24,13 @@
 #include <linux/bits.h>
 #include <linux/io.h>
 #include <linux/module.h>
+#include <linux/pm_runtime.h>
 #include <linux/intel_tpmi.h>
 
 #include "uncore-frequency-common.h"
 
-#define	UNCORE_HEADER_VERSION		1
+#define	UNCORE_MAJOR_VERSION		0
+#define	UNCORE_MINOR_VERSION		1
 #define UNCORE_HEADER_INDEX		0
 #define UNCORE_FABRIC_CLUSTER_OFFSET	8
 
@@ -65,11 +67,24 @@ struct tpmi_uncore_struct {
 	int min_ratio;
 	struct tpmi_uncore_power_domain_info *pd_info;
 	struct tpmi_uncore_cluster_info root_cluster;
+	struct auxiliary_device *auxdev;
+	bool write_blocked;
 };
 
 #define UNCORE_GENMASK_MIN_RATIO	GENMASK_ULL(21, 15)
 #define UNCORE_GENMASK_MAX_RATIO	GENMASK_ULL(14, 8)
 #define UNCORE_GENMASK_CURRENT_RATIO	GENMASK_ULL(6, 0)
+
+static inline int tpmi_start_mmio_rd_wr(struct tpmi_uncore_struct *uncore)
+{
+	return pm_runtime_resume_and_get(&uncore->auxdev->dev);
+}
+
+static inline void tpmi_end_mmio_rd_wr(struct tpmi_uncore_struct *uncore)
+{
+	pm_runtime_mark_last_busy(&uncore->auxdev->dev);
+	pm_runtime_put_autosuspend(&uncore->auxdev->dev);
+}
 
 /* Helper function to read MMIO offset for max/min control frequency */
 static void read_control_freq(struct tpmi_uncore_cluster_info *cluster_info,
@@ -89,11 +104,17 @@ static int uncore_read_control_freq(struct uncore_data *data, unsigned int *min,
 				    unsigned int *max)
 {
 	struct tpmi_uncore_cluster_info *cluster_info;
+	struct tpmi_uncore_struct *uncore_root;
+	int ret;
 
 	cluster_info = container_of(data, struct tpmi_uncore_cluster_info, uncore_data);
+	uncore_root = cluster_info->uncore_root;
+
+	ret = tpmi_start_mmio_rd_wr(uncore_root);
+	if (ret)
+		return ret;
 
 	if (cluster_info->root_domain) {
-		struct tpmi_uncore_struct *uncore_root = cluster_info->uncore_root;
 		int i, _min = 0, _max = 0;
 
 		*min = UNCORE_MAX_RATIO * UNCORE_FREQ_KHZ_MULTIPLIER;
@@ -115,10 +136,13 @@ static int uncore_read_control_freq(struct uncore_data *data, unsigned int *min,
 					*max = _max;
 			}
 		}
+		tpmi_end_mmio_rd_wr(uncore_root);
 		return 0;
 	}
 
 	read_control_freq(cluster_info, min, max);
+
+	tpmi_end_mmio_rd_wr(uncore_root);
 
 	return 0;
 }
@@ -148,6 +172,7 @@ static int uncore_write_control_freq(struct uncore_data *data, unsigned int inpu
 {
 	struct tpmi_uncore_cluster_info *cluster_info;
 	struct tpmi_uncore_struct *uncore_root;
+	int ret;
 
 	input /= UNCORE_FREQ_KHZ_MULTIPLIER;
 	if (!input || input > UNCORE_MAX_RATIO)
@@ -156,9 +181,15 @@ static int uncore_write_control_freq(struct uncore_data *data, unsigned int inpu
 	cluster_info = container_of(data, struct tpmi_uncore_cluster_info, uncore_data);
 	uncore_root = cluster_info->uncore_root;
 
+	if (uncore_root->write_blocked)
+		return -EPERM;
+
+	ret = tpmi_start_mmio_rd_wr(uncore_root);
+	if (ret)
+		return ret;
+
 	/* Update each cluster in a package */
 	if (cluster_info->root_domain) {
-		struct tpmi_uncore_struct *uncore_root = cluster_info->uncore_root;
 		int i;
 
 		for (i = 0; i < uncore_root->power_domain_count; ++i) {
@@ -174,32 +205,50 @@ static int uncore_write_control_freq(struct uncore_data *data, unsigned int inpu
 		else
 			uncore_root->min_ratio = input;
 
-		return 0;
+		ret = 0;
+		goto end_write;
 	}
 
-	if (min_max && uncore_root->max_ratio && uncore_root->max_ratio < input)
-		return -EINVAL;
+	if (min_max && uncore_root->max_ratio && uncore_root->max_ratio < input) {
+		ret = -EINVAL;
+		goto end_write;
+	}
 
-	if (!min_max && uncore_root->min_ratio && uncore_root->min_ratio > input)
-		return -EINVAL;
+	if (!min_max && uncore_root->min_ratio && uncore_root->min_ratio > input) {
+		ret = -EINVAL;
+		goto end_write;
+	}
 
 	write_control_freq(cluster_info, input, min_max);
 
-	return 0;
+end_write:
+	tpmi_end_mmio_rd_wr(uncore_root);
+
+	return ret;
 }
 
 /* Callback for sysfs read for the current uncore frequency. Called under mutex locks */
 static int uncore_read_freq(struct uncore_data *data, unsigned int *freq)
 {
 	struct tpmi_uncore_cluster_info *cluster_info;
+	struct tpmi_uncore_struct *uncore_root;
 	u64 status;
+	int ret;
 
 	cluster_info = container_of(data, struct tpmi_uncore_cluster_info, uncore_data);
 	if (cluster_info->root_domain)
 		return -ENODATA;
 
+	uncore_root = cluster_info->uncore_root;
+
+	ret = tpmi_start_mmio_rd_wr(uncore_root);
+	if (ret)
+		return ret;
+
 	status = readq((u8 __iomem *)cluster_info->cluster_base + UNCORE_STATUS_INDEX);
 	*freq = FIELD_GET(UNCORE_GENMASK_CURRENT_RATIO, status) * UNCORE_FREQ_KHZ_MULTIPLIER;
+
+	tpmi_end_mmio_rd_wr(uncore_root);
 
 	return 0;
 }
@@ -226,16 +275,27 @@ static void remove_cluster_entries(struct tpmi_uncore_struct *tpmi_uncore)
 }
 
 #define UNCORE_VERSION_MASK			GENMASK_ULL(7, 0)
+#define UNCORE_AUTO_SUSPEND_DELAY_MS		2000
 #define UNCORE_LOCAL_FABRIC_CLUSTER_ID_MASK	GENMASK_ULL(15, 8)
 #define UNCORE_CLUSTER_OFF_MASK			GENMASK_ULL(7, 0)
 #define UNCORE_MAX_CLUSTER_PER_DOMAIN		8
 
 static int uncore_probe(struct auxiliary_device *auxdev, const struct auxiliary_device_id *id)
 {
+	int read_blocked = 0, write_blocked = 0;
 	struct intel_tpmi_plat_info *plat_info;
 	struct tpmi_uncore_struct *tpmi_uncore;
 	int ret, i, pkg = 0;
 	int num_resources;
+
+        ret = tpmi_get_feature_status(auxdev, TPMI_ID_UNCORE, &read_blocked, &write_blocked);
+        if (ret)
+                dev_info(&auxdev->dev, "Can't read feature status: ignoring read/write blocked status\n");
+
+        if (read_blocked) {
+                dev_info(&auxdev->dev, "Firmware has blocked reads, exiting\n");
+                return -ENODEV;
+        }
 
 	/* Get number of power domains, which is equal to number of resources */
 	num_resources = tpmi_get_resource_count(auxdev);
@@ -265,6 +325,7 @@ static int uncore_probe(struct auxiliary_device *auxdev, const struct auxiliary_
 	}
 
 	tpmi_uncore->power_domain_count = num_resources;
+	tpmi_uncore->write_blocked = write_blocked;
 
 	/* Get the package ID from the TPMI core */
 	plat_info = tpmi_get_platform_data(auxdev);
@@ -272,6 +333,21 @@ static int uncore_probe(struct auxiliary_device *auxdev, const struct auxiliary_
 		pkg = plat_info->package_id;
 	else
 		dev_info(&auxdev->dev, "Platform information is NULL\n");
+
+	/* Will require for read/write MMIO for Runtime PM wake */
+	tpmi_uncore->auxdev = auxdev;
+	tpmi_uncore->root_cluster.uncore_root = tpmi_uncore;
+
+	/*
+	 * Activate Runtime PM as some callbacks from calls to
+	 * uncore_freq_add_entry() will result in calling some
+	 * functions which are runtime PM managed
+	 */
+	pm_runtime_set_active(&auxdev->dev);
+	pm_runtime_set_autosuspend_delay(&auxdev->dev, UNCORE_AUTO_SUSPEND_DELAY_MS);
+	pm_runtime_use_autosuspend(&auxdev->dev);
+	pm_runtime_enable(&auxdev->dev);
+	pm_runtime_mark_last_busy(&auxdev->dev);
 
 	for (i = 0; i < num_resources; ++i) {
 		struct tpmi_uncore_power_domain_info *pd_info;
@@ -302,11 +378,19 @@ static int uncore_probe(struct auxiliary_device *auxdev, const struct auxiliary_
 		/* Check for version and skip this resource if there is mismatch */
 		header = readq(pd_info->uncore_base);
 		pd_info->ufs_header_ver = header & UNCORE_VERSION_MASK;
-		if (pd_info->ufs_header_ver != UNCORE_HEADER_VERSION) {
-			dev_info(&auxdev->dev, "Uncore: Unsupported version:%d\n",
-				pd_info->ufs_header_ver);
+
+		if (pd_info->ufs_header_ver == TPMI_VERSION_INVALID)
+			continue;
+
+		if (TPMI_MAJOR_VERSION(pd_info->ufs_header_ver) != UNCORE_MAJOR_VERSION) {
+			dev_info(&auxdev->dev, "Uncore: Unsupported major version:%lx\n",
+				 TPMI_MAJOR_VERSION(pd_info->ufs_header_ver));
 			continue;
 		}
+
+		if (TPMI_MINOR_VERSION(pd_info->ufs_header_ver) != UNCORE_MINOR_VERSION)
+			dev_info(&auxdev->dev, "Uncore: Ignore: Unsupported minor version:%lx\n",
+				 TPMI_MINOR_VERSION(pd_info->ufs_header_ver));
 
 		/* Get Cluster ID Mask */
 		cluster_mask = FIELD_GET(UNCORE_LOCAL_FABRIC_CLUSTER_ID_MASK, header);
@@ -365,7 +449,6 @@ static int uncore_probe(struct auxiliary_device *auxdev, const struct auxiliary_
 	auxiliary_set_drvdata(auxdev, tpmi_uncore);
 
 	tpmi_uncore->root_cluster.root_domain = true;
-	tpmi_uncore->root_cluster.uncore_root = tpmi_uncore;
 
 	tpmi_uncore->root_cluster.uncore_data.package_id = pkg;
 	tpmi_uncore->root_cluster.uncore_data.domain_id = UNCORE_DOMAIN_ID_INVALID;
@@ -379,6 +462,7 @@ remove_clusters:
 	remove_cluster_entries(tpmi_uncore);
 err_rem_common:
 	uncore_freq_common_exit();
+	pm_runtime_disable(&auxdev->dev);
 
 	return ret;
 }
@@ -391,6 +475,7 @@ static void uncore_remove(struct auxiliary_device *auxdev)
 	remove_cluster_entries(tpmi_uncore);
 
 	uncore_freq_common_exit();
+	pm_runtime_disable(&auxdev->dev);
 }
 
 static const struct auxiliary_device_id intel_uncore_id_table[] = {
