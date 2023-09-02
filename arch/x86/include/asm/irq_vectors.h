@@ -109,6 +109,10 @@
 #endif
 
 #define LOCAL_TIMER_VECTOR		0xeb
+/* Vector for User interrupt notifications */
+#define UINTR_NOTIFICATION_VECTOR       0xea
+#define UINTR_KERNEL_VECTOR		0xe9
+
 
 #define NR_VECTORS			 256
 

@@ -314,6 +314,8 @@
 #define X86_FEATURE_SRSO_ALIAS		(11*32+25) /* "" AMD BTB untrain RETs through aliasing */
 #define X86_FEATURE_IBPB_ON_VMEXIT	(11*32+26) /* "" Issue an IBPB only on VMEXIT */
 #define X86_FEATURE_CMBA		(11*32+27) /* "" Core Memory Bandwidth Allocation */
+/* To avoid merge conflicts, leave space for upcoming SRSO bits */
+#define X86_FEATURE_UTIMER		(11*32+28) /* User Timer support */
 
 /* Intel-defined CPU features, CPUID level 0x00000007:1 (EAX), word 12 */
 #define X86_FEATURE_SHA512		(12*32+ 0) /* "" SHA512 instructions */
@@ -420,6 +422,7 @@
 #define X86_FEATURE_AVX512_4VNNIW	(18*32+ 2) /* AVX-512 Neural Network Instructions */
 #define X86_FEATURE_AVX512_4FMAPS	(18*32+ 3) /* AVX-512 Multiply Accumulation Single precision */
 #define X86_FEATURE_FSRM		(18*32+ 4) /* Fast Short Rep Mov */
+#define X86_FEATURE_UINTR		(18*32+ 5) /* User Interrupts support */
 #define X86_FEATURE_AVX512_4VNNIB	(18*32+ 6) /* AVX-512 Vector Neural Network Instructions Byte version */
 #define X86_FEATURE_AVX512_BITALG2	(18*32+ 7) /* AVX-512 Bit Algebra 2 */
 #define X86_FEATURE_AVX512_VP2INTERSECT (18*32+ 8) /* AVX-512 Intersect for D/Q */
