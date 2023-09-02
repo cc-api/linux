@@ -4,10 +4,71 @@
 
 #ifdef CONFIG_INTEL_TDX_HOST
 
+#include <asm/tdx.h>
+
 #include "posted_intr.h"
 #include "pmu_intel.h"
 #include "tdx_ops.h"
 
+struct tdx_binding_slot_migtd {
+	/* Is migration source VM */
+	uint8_t	 is_src;
+	/* vsock port for MigTD to connect to host */
+	uint32_t vsock_port;
+};
+
+enum tdx_binding_slot_state {
+	/* Slot is available for a new user */
+	TDX_BINDING_SLOT_STATE_INIT = 0,
+	/* Slot is used, and servtd is pre-bound */
+	TDX_BINDING_SLOT_STATE_PREBOUND = 1,
+	/* Slot is used, and a servtd instance is bound */
+	TDX_BINDING_SLOT_STATE_BOUND = 2,
+	/* Slot is used, and holds all the info. Ready for pre-migration */
+	TDX_BINDING_SLOT_STATE_PREMIG_WAIT = 3,
+	/* Slot is used, and the pre-migration setup is in progress */
+	TDX_BINDING_SLOT_STATE_PREMIG_PROGRESS = 4,
+	/* Slot is used, and the pre-migration setup is done */
+	TDX_BINDING_SLOT_STATE_PREMIG_DONE = 5,
+
+	TDX_BINDING_SLOT_STATE_UNKNOWN
+};
+
+struct tdx_binding_slot {
+	enum tdx_binding_slot_state state;
+	/* Identify the user TD and the binding slot */
+	uint64_t handle;
+	/* UUID of the user TD */
+	uint8_t  uuid[32];
+	/* Idx to servtd's usertd_binding_slots array */
+	uint16_t req_id;
+	/* The servtd that the slot is bound to */
+	struct kvm_tdx *servtd_tdx;
+	/*
+	 * Data specific to MigTD.
+	 * Futher type specific data can be added with union.
+	 */
+	struct tdx_binding_slot_migtd migtd_data;
+};
+
+struct tdx_iommu {
+	u64 iommu_id;
+
+	unsigned long wait_desc_pa;
+	raw_spinlock_t  invq_lock;
+
+	struct kref ref;
+	struct list_head node;
+};
+
+struct kvm_tdx_iommu {
+	struct tdx_iommu *tiommu;
+	struct kref ref;
+
+	struct list_head node;
+};
+
+#define SERVTD_SLOTS_MAX 32
 struct kvm_tdx {
 	struct kvm kvm;
 
@@ -22,14 +83,10 @@ struct kvm_tdx {
 	/*
 	 * Used on each TD-exit, see tdx_user_return_update_cache().
 	 * TSX_CTRL value on TD exit
-	 * If TDX module supports TSX (post 1.0.3.3)
-	 * - true if guest TSX enabled
-	 * - false if guest TSX disabled
-	 *
-	 * If TDX module doesn't support TSX (pre 1.0.3.3)
-	 * - set 0
+	 * - set 0     if guest TSX enabled
+	 * - preserved if guest TSX disabled
 	 */
-	bool tsx_ctrl_reset;
+	bool tsx_supported;
 
 	hpa_t source_pa;
 
@@ -55,6 +112,46 @@ struct kvm_tdx {
 #endif
 
 	atomic_t migration_in_progress;
+	/*
+	 * Pointer to an array of tdx binding slots. Each servtd type has one
+	 * binding slot in the array, and the slot is indexed using the servtd
+	 * type. Each binding slot corresponds to an entry in the binding table
+	 * held by TDCS (see TDX module v1.5 Base Architecture Spec).
+	 */
+	struct tdx_binding_slot binding_slots[KVM_TDX_SERVTD_TYPE_MAX];
+
+	/*
+	 * Used when being a servtd. A servtd can be bound to multiple user
+	 * TDs. Each entry in the array is a pointer to the user TD's binding
+	 * slot.
+	 */
+	struct tdx_binding_slot *usertd_binding_slots[SERVTD_SLOTS_MAX];
+
+	/*
+	 * The lock is on the servtd side, so when a user TD needs to lock,
+	 * it should lock the one from the service TD that it has bound to,
+	 * e.g. tdx_binding_slot->servtd_tdx->binding_slot_lock.
+	 *
+	 * The lock is used for two synchronization puporses:
+	 * #1 insertion and removal of a binding slot to the
+	 *    usertd_binding_slots array by different user TDs;
+	 * #2 read and write to the fields of a binding slot.
+	 *
+	 * In theory, #1 and #2 are two independent synchronization usages
+	 * and can use two separate locks. But those operations are neither
+	 * frequent nor in performance critical path, so simply use one lock
+	 * for the two purposes.
+	 */
+	spinlock_t binding_slot_lock;
+
+	u64 eptp_controls;
+
+	/* mutex for tdi bind */
+	struct mutex ttdi_mutex;
+	struct list_head ktiommu_list;
+	struct list_head ttdi_list;
+
+	u64 mmio_offset;
 };
 
 union tdx_exit_reason {
@@ -343,11 +440,74 @@ static __always_inline u64 td_tdcs_exec_read64(struct kvm_tdx *kvm_tdx, u32 fiel
 	return out.r8;
 }
 
-static __always_inline int pg_level_to_tdx_sept_level(enum pg_level level)
+static __always_inline u64 td_tdr_tdxio_read64(struct kvm_tdx *kvm_tdx, u32 field)
 {
-	WARN_ON_ONCE(level == PG_LEVEL_NONE);
-	return level - 1;
+	struct tdx_module_output out;
+	u64 err;
+
+	err = tdh_mng_rd(kvm_tdx->tdr_pa, TDR_TDXIO(field), &out);
+	if (unlikely(err)) {
+		pr_err("TDH_MNG_RD[TDXIO.0x%x] failed: 0x%llx\n", field, err);
+		return 0;
+	}
+	return out.r8;
 }
+
+/*
+ * 7.2.2.2.5 Device Interface ID
+ * 7.2.2.2.1 Device Interface Type
+ */
+struct tdx_devif_id {
+	union {
+		u64 raw;
+		struct {
+			u16 iommu_id;
+			u8  stream_id;
+			u8  type;
+#define TDX_DEVIF_TYPE_PFVF	0
+			u32 func_id;
+		};
+	};
+};
+
+/*
+ * 8.4.7 TDH.DEVIF.REQUEST
+ */
+struct tdx_payload_parm {
+	union {
+		u64 raw;
+		struct {
+			u64 size:12;
+			u64 pa:51;
+			u64 td_flag:1;
+		} req;
+		struct {
+			u64 rsvd:12;
+			u64 pa:51;
+			u64 td_flag:1;
+		} rsp;
+	};
+};
+
+struct tdx_tdi {
+	struct tdx_devif_id id;
+	unsigned long devifcs_pa;
+	unsigned long td_buff_pa;
+	unsigned long vmm_buff_pa;
+
+	u16 rid;
+
+	unsigned long dmar_pages_va;
+
+	struct list_head mmiomt;
+	struct list_head mmio;
+
+	struct kvm_tdx *kvm_tdx;
+	struct tdx_iommu *tiommu;
+	struct pci_tdi *tdi;
+
+	struct list_head node;
+};
 
 #else
 struct kvm_tdx {

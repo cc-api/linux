@@ -47,6 +47,7 @@ u32 tdx_global_keyid __ro_after_init;
 EXPORT_SYMBOL_GPL(tdx_global_keyid);
 static u32 tdx_guest_keyid_start __ro_after_init;
 static u32 tdx_nr_guest_keyids __ro_after_init;
+static u64 tdx_features0;
 
 static bool tdx_global_initialized;
 static DEFINE_RAW_SPINLOCK(tdx_global_init_lock);
@@ -158,7 +159,7 @@ static int __always_unused seamcall(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
 	 * Mimic rdrand_long() retry behavior.
 	 */
 	do {
-		sret = __seamcall(fn, rcx, rdx, r8, r9, out);
+		sret = __seamcall(fn, rcx, rdx, r8, r9, 0, 0, 0, 0, 0, 0, out);
 	} while (sret == TDX_RND_NO_ENTROPY && --retry);
 
 	put_cpu();
@@ -333,6 +334,13 @@ static int __tdx_get_sysinfo(struct tdsysinfo_struct *sysinfo,
 		sysinfo->attributes,	sysinfo->vendor_id,
 		sysinfo->major_version, sysinfo->minor_version,
 		sysinfo->build_date,	sysinfo->build_num);
+
+	ret = seamcall(TDH_SYS_RD, 0, TDX_MD_FEATURES0, 0, 0, NULL, &out);
+	if (!ret)
+		tdx_features0 = out.r8;
+	else
+		tdx_features0 = 0;
+	pr_info("TDX module: features0: %llx\n", tdx_features0);
 
 	/* R9 contains the actual entries written to the CMR array. */
 	print_cmrs(cmr_array, out.r9);
@@ -1518,7 +1526,7 @@ bool tdx_is_private_mem(unsigned long phys)
 
 	/* Get page type from the TDX module */
 	sret = __seamcall(TDH_PHYMEM_PAGE_RDMD, phys & PAGE_MASK,
-			0, 0, 0, &out);
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, &out);
 	/*
 	 * Handle the case that CPU isn't in VMX operation.
 	 *
@@ -1943,3 +1951,216 @@ static int tdx_sysfs_init(void)
 	return ret;
 }
 #endif
+
+/* These derive from arch/x86/kvm/vmx/tdx.c */
+#include <asm/vmx.h>
+static void vmx_tdx_on(void *_vmx_tdx)
+{
+	struct vmx_tdx_enabled *vmx_tdx = _vmx_tdx;
+	int r;
+
+	r = cpu_vmxop_get();
+	if (!r) {
+		cpumask_set_cpu(smp_processor_id(), vmx_tdx->vmx_enabled);
+		r = tdx_cpu_enable();
+	}
+	if (r)
+		atomic_set(&vmx_tdx->err, r);
+}
+
+static void vmx_off(void *_vmx_enabled)
+{
+	cpumask_var_t *vmx_enabled = (cpumask_var_t *)_vmx_enabled;
+
+	if (cpumask_test_cpu(smp_processor_id(), *vmx_enabled))
+		cpu_vmxop_put();
+}
+
+int vmxon_all(struct vmx_tdx_enabled *vmx_tdx)
+{
+	int r = 0;
+
+	atomic_set(&vmx_tdx->err, 0);
+
+	if (!zalloc_cpumask_var(&vmx_tdx->vmx_enabled, GFP_KERNEL))
+		return -ENOMEM;
+
+	/* tdx_enable() in tdx_module_setup() requires cpus lock. */
+	cpus_read_lock();
+	/*
+	 * REVERTME: The current TDX module requires TDH_SYS_LP_INIT for all
+	 * LPs to initialize.  It requires all present LPs to be online.
+	 * Once the TDX module is updated to allow offline LPs, remove this
+	 * warning.
+	 */
+	if (!cpumask_equal(cpu_online_mask, cpu_present_mask))
+		pr_warn("The old TDX module requires all present CPUs to be online to initialize.\n");
+	on_each_cpu(vmx_tdx_on, vmx_tdx, true);	/* TDX requires vmxon. */
+	r = atomic_read(&vmx_tdx->err);
+	if (r) {
+		on_each_cpu(vmx_off, &vmx_tdx->vmx_enabled, true);
+		cpus_read_unlock();
+		free_cpumask_var(vmx_tdx->vmx_enabled);
+		return -EIO;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(vmxon_all);
+
+void vmxoff_all(struct vmx_tdx_enabled *vmx_tdx)
+{
+	on_each_cpu(vmx_off, &vmx_tdx->vmx_enabled, true);
+	cpus_read_unlock();
+	free_cpumask_var(vmx_tdx->vmx_enabled);
+}
+EXPORT_SYMBOL_GPL(vmxoff_all);
+
+/* tdxio early init */
+static bool tdxio;
+
+static int __init tdxio_setup(char *s)
+{
+	if (s)
+		return -EINVAL;
+
+	pr_info("TDX-IO allowed\n");
+	tdxio = true;
+	return 0;
+}
+early_param("tdxio", tdxio_setup);
+
+/*
+ * Do tdx init early only for tdxio case, otherwise skip early initialization
+ * work. e.g. leave kvm-intel to init tdx during loading.
+ */
+int tdx_init_early(void)
+{
+	struct vmx_tdx_enabled vmx_tdx;
+	int ret;
+
+	if (!tdxio)
+		return 0;
+
+	ret = vmxon_all(&vmx_tdx);
+	if (ret)
+		return ret;
+
+	ret = tdx_enable();
+	vmxoff_all(&vmx_tdx);
+	return ret;
+}
+arch_initcall(tdx_init_early);
+
+bool tdx_io_support(void)
+{
+	return !!(tdx_features0 & TDX_FEATURES0_IO);
+}
+EXPORT_SYMBOL_GPL(tdx_io_support);
+
+bool tdx_io_enabled(void)
+{
+       if (!tdx_io_support())
+               return false;
+
+       return tdxio;
+}
+EXPORT_SYMBOL_GPL(tdx_io_enabled);
+
+#include <asm/kvm_host.h>
+void tdx_clear_page(unsigned long page_pa, int size)
+{
+	const void *zero_page = (const void *) __va(page_to_phys(ZERO_PAGE(0)));
+	void *page = __va(page_pa);
+	unsigned long i;
+
+	WARN_ON_ONCE(size % PAGE_SIZE);
+	/*
+	 * When re-assign one page from old keyid to a new keyid, MOVDIR64B is
+	 * required to clear/write the page with new keyid to prevent integrity
+	 * error when read on the page with new keyid.
+	 *
+	 * clflush doesn't flush cache with HKID set.  The cache line could be
+	 * poisoned (even without MKTME-i), clear the poison bit.
+	 */
+	for (i = 0; i < size; i += 64)
+		movdir64b(page + i, zero_page);
+	/*
+	 * MOVDIR64B store uses WC buffer.  Prevent following memory reads
+	 * from seeing potentially poisoned cache.
+	 */
+	__mb();
+}
+EXPORT_SYMBOL_GPL(tdx_clear_page);
+
+static inline void tdx_set_page_present_level(hpa_t addr, enum pg_level pg_level)
+{
+	int i;
+
+	if (!IS_ENABLED(CONFIG_INTEL_TDX_HOST_DEBUG_MEMORY_CORRUPT))
+		return;
+
+	for (i = 0; i < KVM_PAGES_PER_HPAGE(pg_level); i++)
+		set_direct_map_default_noflush(pfn_to_page((addr >> PAGE_SHIFT) + i));
+}
+
+int tdx_reclaim_page(unsigned long pa, enum pg_level level,
+			    bool do_wb, u16 hkid)
+{
+	struct tdx_module_output out;
+	u64 err;
+
+	err = tdh_phymem_page_reclaim(pa, &out);
+	if (WARN_ON_ONCE(err)) {
+		pr_err("%s:%d:%s pa 0x%lx level %d hkid 0x%x do_wb %d\n",
+		       __FILE__, __LINE__, __func__,
+		       pa, level, hkid, do_wb);
+		return -EIO;
+	}
+	/* out.r8 == tdx sept page level */
+	WARN_ON_ONCE(out.r8 != pg_level_to_tdx_sept_level(level));
+
+	if (do_wb && level == PG_LEVEL_4K) {
+		/*
+		 * Only TDR page gets into this path.  No contention is expected
+		 * because of the last page of TD.
+		 */
+		err = tdh_phymem_page_wbinvd(set_hkid_to_hpa(pa, hkid));
+		if (WARN_ON_ONCE(err)) {
+			pr_err("%s:%d:%s pa 0x%lx level %d hkid 0x%x do_wb %d err 0x%llx\n",
+			       __FILE__, __LINE__, __func__,
+			       pa, level, hkid, do_wb, err);
+			return -EIO;
+		}
+	}
+
+	tdx_set_page_present_level(pa, level);
+	tdx_clear_page(pa, KVM_HPAGE_SIZE(level));
+	return 0;
+}
+EXPORT_SYMBOL_GPL(tdx_reclaim_page);
+
+void tdx_reclaim_td_page(unsigned long td_page_pa)
+{
+	WARN_ON_ONCE(!td_page_pa);
+
+	/*
+	 * TDCX are being reclaimed.  TDX module maps TDCX with HKID
+	 * assigned to the TD.  Here the cache associated to the TD
+	 * was already flushed by TDH.PHYMEM.CACHE.WB before here, So
+	 * cache doesn't need to be flushed again.
+	 */
+	if (tdx_reclaim_page(td_page_pa, PG_LEVEL_4K, false, 0))
+		/*
+		 * Leak the page on failure:
+		 * tdx_reclaim_page() returns an error if and only if there's an
+		 * unexpected, fatal error, e.g. a SEAMCALL with bad params,
+		 * incorrect concurrency in KVM, a TDX Module bug, etc.
+		 * Retrying at a later point is highly unlikely to be
+		 * successful.
+		 * No log here as tdx_reclaim_page() already did.
+		 */
+		return;
+	free_page((unsigned long)__va(td_page_pa));
+}
+EXPORT_SYMBOL_GPL(tdx_reclaim_td_page);

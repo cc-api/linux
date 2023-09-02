@@ -1599,15 +1599,16 @@ static int check_memory_region_flags(struct kvm *kvm,
 				     const struct kvm_userspace_memory_region2 *mem)
 {
 	u32 valid_flags = 0;
+	u32 private_mask = KVM_MEM_PRIVATE | KVM_MEM_NONUPM_SAFE;
 
 	if (kvm_arch_dirty_log_supported(kvm))
 		valid_flags |= KVM_MEM_LOG_DIRTY_PAGES;
 
 	if (kvm_arch_has_private_mem(kvm))
-		valid_flags |= KVM_MEM_PRIVATE;
+		valid_flags |= private_mask;
 
 	/* Dirty logging private memory is not currently supported. */
-	if (mem->flags & KVM_MEM_PRIVATE)
+	if (mem->flags & private_mask)
 		valid_flags &= ~KVM_MEM_LOG_DIRTY_PAGES;
 
 #ifdef __KVM_HAVE_READONLY_MEM
@@ -1615,7 +1616,8 @@ static int check_memory_region_flags(struct kvm *kvm,
 		valid_flags |= KVM_MEM_READONLY;
 #endif
 
-	if (mem->flags & ~valid_flags)
+	/* KVM_MEM_PRIVATE and KVM_MEM_NONUPM_SAFE are mutually exclusive. */
+	if (mem->flags & ~valid_flags || (mem->flags & private_mask) == private_mask)
 		return -EINVAL;
 
 	return 0;
@@ -6314,6 +6316,28 @@ struct kvm_vcpu * __percpu *kvm_get_running_vcpus(void)
 {
         return &kvm_running_vcpu;
 }
+
+/*
+ * kvm_get_target_kvm - get the target kvm from vm_list using pid
+ *
+ * Returns: the target kvm struct on success, NULL if not found.
+ */
+struct kvm *kvm_get_target_kvm(pid_t pid)
+{
+	struct kvm *kvm, *target_kvm = NULL;
+
+	mutex_lock(&kvm_lock);
+	list_for_each_entry(kvm, &vm_list, vm_list) {
+		if (kvm->userspace_pid == pid) {
+			target_kvm = kvm;
+			break;
+		}
+	}
+	mutex_unlock(&kvm_lock);
+
+	return target_kvm;
+}
+EXPORT_SYMBOL_GPL(kvm_get_target_kvm);
 
 #ifdef CONFIG_GUEST_PERF_EVENTS
 static unsigned int kvm_guest_state(void)

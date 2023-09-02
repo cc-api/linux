@@ -605,7 +605,12 @@ struct kvm_memory_slot {
 
 static inline bool kvm_slot_can_be_private(const struct kvm_memory_slot *slot)
 {
-	return slot && (slot->flags & KVM_MEM_PRIVATE);
+	return slot && (slot->flags & (KVM_MEM_PRIVATE | KVM_MEM_NONUPM_SAFE));
+}
+
+static inline bool kvm_slot_is_nonupm_safe(const struct kvm_memory_slot *slot)
+{
+	return slot && (slot->flags & KVM_MEM_NONUPM_SAFE);
 }
 
 static inline bool kvm_slot_dirty_track_enabled(const struct kvm_memory_slot *slot)
@@ -2248,6 +2253,8 @@ static inline bool kvm_is_visible_memslot(struct kvm_memory_slot *memslot)
 struct kvm_vcpu *kvm_get_running_vcpu(void);
 struct kvm_vcpu * __percpu *kvm_get_running_vcpus(void);
 
+struct kvm *kvm_get_target_kvm(pid_t pid);
+
 #ifdef CONFIG_HAVE_KVM_IRQ_BYPASS
 bool kvm_arch_has_irq_bypass(void);
 int kvm_arch_irq_bypass_add_producer(struct irq_bypass_consumer *,
@@ -2382,5 +2389,8 @@ static inline int kvm_gmem_get_pfn(struct kvm *kvm,
 
 static inline void kvm_arch_gmem_invalidate(struct kvm *kvm, kvm_pfn_t start, kvm_pfn_t end) { }
 #endif /* CONFIG_KVM_PRIVATE_MEM */
+
+int kvm_bind_tdi(struct kvm *kvm, struct pci_tdi *tdi);
+void kvm_unbind_tdi(struct kvm *kvm, struct pci_tdi *tdi);
 
 #endif

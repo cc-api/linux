@@ -1507,7 +1507,8 @@ static bool __kvm_mmu_zap_private_spte(struct kvm *kvm, u64 *sptep)
 	sp = sptep_to_sp(sptep);
 	gfn = kvm_mmu_page_get_gfn(sp, sptep - sp->spt);
 
-	static_call(kvm_x86_zap_private_spte)(kvm, gfn, sp->role.level);
+	if (static_call(kvm_x86_zap_private_spte)(kvm, gfn, sp->role.level))
+		return false;
 
 	return true;
 }
@@ -2683,7 +2684,7 @@ static void __link_shadow_page(struct kvm *kvm,
 	if (is_shadow_present_pte(*sptep))
 		drop_large_spte(kvm, sptep, flush);
 
-	spte = make_nonleaf_spte(sp->spt, sp_ad_disabled(sp));
+	spte = make_nonleaf_spte(sp->spt, sp_ad_disabled(sp), sp_mmu_present_mask(sp));
 
 	mmu_spte_set(sptep, spte);
 
@@ -3879,6 +3880,7 @@ static int fast_page_fault(struct kvm_vcpu *vcpu, struct kvm_page_fault *fault)
 		 */
 		if (is_access_allowed(fault, spte)) {
 			ret = RET_PF_SPURIOUS;
+			fault->pfn = spte_to_pfn(spte);
 			break;
 		}
 
@@ -3934,6 +3936,7 @@ static int fast_page_fault(struct kvm_vcpu *vcpu, struct kvm_page_fault *fault)
 		 */
 		if (fast_pf_fix_direct_spte(vcpu, fault, sptep, spte, new_spte)) {
 			ret = RET_PF_FIXED;
+			fault->pfn = spte_to_pfn(spte);
 			break;
 		}
 
@@ -4981,7 +4984,7 @@ static int direct_page_fault(struct kvm_vcpu *vcpu, struct kvm_page_fault *fault
 	    (kvm_mem_is_private(vcpu->kvm, fault->gfn) != fault->is_private))
 		return kvm_do_memory_fault_exit(vcpu, fault);
 
-	if (fault->slot && fault->is_private) {
+	if (fault->slot && fault->is_private && !kvm_is_mmio_pfn(fault->pfn)) {
 		int i;
 
 		for (i = 0; i < KVM_PAGES_PER_HPAGE(fault->max_level); i++)
@@ -5866,6 +5869,7 @@ kvm_calc_tdp_mmu_root_page_role(struct kvm_vcpu *vcpu,
 	role.level = kvm_mmu_get_tdp_level(vcpu);
 	role.direct = true;
 	role.has_4_byte_gpte = false;
+	role.is_io_compat = true;
 
 	return role;
 }

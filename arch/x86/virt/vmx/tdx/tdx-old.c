@@ -144,17 +144,6 @@ static bool __init is_seamrr_enabled(void)
 	return true;
 }
 
-struct vmcs_hdr {
-	u32 revision_id:31;
-	u32 shadow_vmcs:1;
-};
-
-struct vmcs {
-	struct vmcs_hdr hdr;
-	u32 abort;
-	char data[];
-};
-
 static u32 seam_vmxon_version_id __initdata;
 static DEFINE_PER_CPU(struct vmcs *, seam_vmxon_region);
 
@@ -245,31 +234,6 @@ static int __init seam_alloc_init_vmcs_tmp_set(void)
 err:
 	seam_free_vmcs_tmp_set();
 	return -ENOMEM;
-}
-
-/*
- * cpu_vmxon() - Enable VMX on the current CPU
- *
- * Set CR4.VMXE and enable VMX
- */
-static inline int cpu_vmxon(u64 vmxon_pointer)
-{
-	u64 msr;
-
-	cr4_set_bits(X86_CR4_VMXE);
-
-	asm_volatile_goto("1: vmxon %[vmxon_pointer]\n\t"
-			_ASM_EXTABLE(1b, %l[fault])
-			: : [vmxon_pointer] "m"(vmxon_pointer)
-			: : fault);
-	return 0;
-
-fault:
-	WARN_ONCE(1, "VMXON faulted, MSR_IA32_FEAT_CTL (0x3a) = 0x%llx\n",
-		rdmsrl_safe(MSR_IA32_FEAT_CTL, &msr) ? 0xdeadbeef : msr);
-	cr4_clear_bits(X86_CR4_VMXE);
-
-	return -EFAULT;
 }
 
 static void __init seam_vmxon(void *data)
@@ -501,7 +465,7 @@ static int seamcall(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
 {
 	u64 sret;
 
-	sret = __seamcall(fn, rcx, rdx, r8, r9, out);
+	sret = __seamcall(fn, rcx, rdx, r8, r9, 0, 0, 0, 0, 0, 0, out);
 
 	/* Save SEAMCALL return code if the caller wants it */
 	if (seamcall_ret)

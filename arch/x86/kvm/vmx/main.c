@@ -124,8 +124,10 @@ int vt_vm_init(struct kvm *kvm)
 
 void vt_flush_shadow_all_private(struct kvm *kvm)
 {
-	if (is_td(kvm))
+	if (is_td(kvm)) {
+		tdx_unbind_tdi_all(kvm);
 		tdx_mmu_release_hkid(kvm);
+	}
 }
 
 void vt_vm_destroy(struct kvm *kvm)
@@ -1040,6 +1042,40 @@ int vt_move_enc_context_from(struct kvm *kvm, unsigned int source_fd)
 
 	return tdx_vm_move_enc_context_from(kvm, source_fd);
 }
+
+/* tdx connect stuff */
+int vt_bind_tdi(struct kvm *kvm, struct pci_tdi *tdi)
+{
+	if (!is_td(kvm))
+		return -ENOTTY;
+
+	return tdx_bind_tdi(kvm, tdi);
+}
+
+int vt_unbind_tdi(struct kvm *kvm, struct pci_tdi *tdi)
+{
+	if (!is_td(kvm))
+		return -ENOTTY;
+
+	return tdx_unbind_tdi(kvm, tdi);
+}
+
+int vt_tdi_get_info(struct kvm *kvm, struct kvm_tdi_info *info)
+{
+	if (!is_td(kvm))
+		return -ENOTTY;
+
+	return tdx_tdi_get_info(kvm, info);
+}
+
+int vt_tdi_user_request(struct kvm *kvm, struct kvm_tdi_user_request *req)
+{
+	if (!is_td(kvm))
+		return -ENOTTY;
+
+	return tdx_tdi_user_request(kvm, req);
+}
+/* tdx connect stuff end */
 
 struct kvm_x86_init_ops vt_init_ops __initdata = {
 	.hardware_setup = vt_hardware_setup,

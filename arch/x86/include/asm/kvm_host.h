@@ -26,6 +26,7 @@
 #include <linux/irqbypass.h>
 #include <linux/hyperv.h>
 #include <linux/kfifo.h>
+#include <linux/pci.h>
 
 #include <asm/apic.h>
 #include <asm/pvclock-abi.h>
@@ -349,11 +350,12 @@ union kvm_mmu_page_role {
 		unsigned ad_disabled:1;
 		unsigned guest_mode:1;
 		unsigned passthrough:1;
+		unsigned is_io_compat:1;
 #ifdef CONFIG_KVM_MMU_PRIVATE
 		unsigned is_private:1;
-		unsigned :4;
+		unsigned:3;
 #else
-		unsigned :5;
+		unsigned:4;
 #endif
 
 		/*
@@ -1064,6 +1066,9 @@ struct kvm_vcpu_arch {
 #if IS_ENABLED(CONFIG_HYPERV)
 	hpa_t hv_root_tdp;
 #endif
+
+	/* TDX VP VMCALL post handling after userspace work completion*/
+	int (*complete_tdx_vp_vmcall)(struct kvm_vcpu *vcpu);
 };
 
 struct kvm_lpage_info {
@@ -1768,7 +1773,8 @@ struct kvm_x86_ops {
 	 */
 	int (*drop_private_spte)(struct kvm *kvm, gfn_t gfn, enum pg_level level,
 				 kvm_pfn_t pfn);
-
+	void (*link_shared_spte)(struct kvm *kvm, gfn_t gfn, int level,
+				 u64 spte);
 	bool (*has_wbinvd_exit)(void);
 
 	u64 (*get_l2_tsc_offset)(struct kvm_vcpu *vcpu);
@@ -1865,6 +1871,11 @@ struct kvm_x86_ops {
 	gva_t (*get_untagged_addr)(struct kvm_vcpu *vcpu, gva_t gva, unsigned int flags);
 	bool (*is_lass_violation)(struct kvm_vcpu *vcpu, unsigned long addr,
 				  unsigned int size, unsigned int flags);
+
+	int (*bind_tdi)(struct kvm *kvm, struct pci_tdi *tdev);
+	int (*unbind_tdi)(struct kvm *kvm, struct pci_tdi *tdev);
+	int (*tdi_get_info)(struct kvm *kvm, struct kvm_tdi_info *info);
+	int (*tdi_user_request)(struct kvm *kvm, struct kvm_tdi_user_request *req);
 };
 
 struct kvm_x86_nested_ops {

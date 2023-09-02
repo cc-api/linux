@@ -18,6 +18,12 @@
 #define TDX_ACCEPT_PAGE			6
 #define TDX_WR				8
 #define TDX_VERIFYREPORT		22
+#define TDX_DEVIF_VALIDATE		66
+#define TDX_DEVIF_READ			67
+#define TDX_DEVIF_REQUEST		68
+#define TDX_DEVIF_RESPONSE		69
+#define TDX_DMAR_ACCEPT			70
+#define TDX_MMIO_ACCEPT			71
 
 /* TDCS fields. To be used by TDG.VM.WR and TDG.VM.RD module calls */
 #define TDCS_NOTIFY_ENABLES		0x9100000000000010
@@ -27,6 +33,13 @@
 #define TDVMCALL_GET_QUOTE		0x10002
 #define TDVMCALL_REPORT_FATAL_ERROR	0x10003
 #define TDVMCALL_SETUP_NOTIFY_INTR	0x10004
+#define TDVMCALL_SERVICE		0x10005
+
+#define TDX_MODULECALL_RETRY_MAX	10000
+#define TDX_MODULECALL_STATUS_MASK	0xFFFFFFFF00000000ULL
+
+#define TDX_OPERAND_BUSY		0x8000020000000000ULL
+#define TDX_OPERAND_BUSY_HOST_PRIORITY	0x8000020400000000ULL
 
 #ifndef __ASSEMBLY__
 
@@ -89,11 +102,16 @@ struct tdx_module_output {
 	u64 r9;
 	u64 r10;
 	u64 r11;
+	u64 r12;
+	u64 r13;
+	u64 r14;
+	u64 r15;
 };
 
 /* Used to communicate with the TDX module */
-u64 __tdx_module_call(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
-		      struct tdx_module_output *out);
+u64 __tdx_module_call_asm(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9, u64 r10,
+			  u64 r11, u64 r12, u64 r13, u64 r14, u64 r15,
+			  struct tdx_module_output *out);
 
 bool tdx_accept_memory(phys_addr_t start, phys_addr_t end);
 

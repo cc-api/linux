@@ -383,6 +383,11 @@ static inline int domain_type_is_si(struct dmar_domain *domain)
 	return domain->domain.type == IOMMU_DOMAIN_IDENTITY;
 }
 
+static inline bool domain_is_trusted(struct dmar_domain *domain)
+{
+	return domain->flags & DOMAIN_FLAG_TRUSTED;
+}
+
 static inline int domain_pfn_supported(struct dmar_domain *domain,
 				       unsigned long pfn)
 {
@@ -1584,6 +1589,110 @@ static void iommu_disable_protect_mem_regions(struct intel_iommu *iommu)
 	raw_spin_unlock_irqrestore(&iommu->register_lock, flags);
 }
 
+/* allocates 16 pages, but only use 12 */
+#define TDX_IO_BUFF_ORDER	4
+#define TDX_IO_BUFF_PG_NUM	12
+
+static void iommu_tdxio_reclaim_pages(unsigned long pages_pa)
+{
+	int i;
+
+	/* Don't reclaim unused pages */
+	for (i = 0; i < TDX_IO_BUFF_PG_NUM; i++)
+		WARN_ON(tdx_reclaim_page(pages_pa + (i * PAGE_SIZE),
+					 PG_LEVEL_4K, false, 0));
+}
+
+static int iommu_tdxio_enable(struct intel_iommu *iommu)
+{
+	unsigned long va;
+	u64 id, ret, v;
+	int retval = -EFAULT;
+
+	if (iommu->tdxio_enabled)
+		return 0;
+
+	/*
+	 * TDX-IO mode initialization requires 12 free pages, some should be
+	 * contiguous. e.g. 4 contiguous pages for IQ, 4 for IQCTX. For
+	 * simplicity, alloc 16 contiguous pages and leave last 4 unused.
+	 */
+	va = __get_free_pages(GFP_KERNEL_ACCOUNT | __GFP_ZERO, TDX_IO_BUFF_ORDER);
+	if (!va)
+		return -ENOMEM;
+
+	iommu->tdxio_pages_pa = __pa(va);
+
+	cpu_vmxop_get();
+
+	ret = tdh_iommu_getreg(iommu->reg_phys, DMAR_IOMMU_ID_REG, &id);
+	if (ret)
+		goto error_vmxop_put;
+
+	tdh_iommu_setreg(id, DMAR_RTPAGE_REG,    __pa(va));
+	tdh_iommu_setreg(id, DMAR_STINFOPA0_REG, __pa(va) + (1 * PAGE_SIZE));
+	tdh_iommu_setreg(id, DMAR_STINFOPA1_REG, __pa(va) + (2 * PAGE_SIZE));
+	tdh_iommu_setreg(id, DMAR_IQPAGE_REG,    __pa(va) + (3 * PAGE_SIZE));
+	tdh_iommu_setreg(id, DMAR_IQPAGE_REG,    __pa(va) + (4 * PAGE_SIZE));
+	tdh_iommu_setreg(id, DMAR_IQPAGE_REG,    __pa(va) + (5 * PAGE_SIZE));
+	tdh_iommu_setreg(id, DMAR_IQPAGE_REG,    __pa(va) + (6 * PAGE_SIZE));
+	tdh_iommu_setreg(id, DMAR_IQCTXPAGE_REG, __pa(va) + (7 * PAGE_SIZE));
+	tdh_iommu_setreg(id, DMAR_IQCTXPAGE_REG, __pa(va) + (8 * PAGE_SIZE));
+	tdh_iommu_setreg(id, DMAR_IQCTXPAGE_REG, __pa(va) + (9 * PAGE_SIZE));
+	tdh_iommu_setreg(id, DMAR_IQCTXPAGE_REG, __pa(va) + (10 * PAGE_SIZE));
+	tdh_iommu_setreg(id, DMAR_SPDMDIRPA_REG, __pa(va) + (11 * PAGE_SIZE));
+
+	/*
+	 * set CONFIG_IOMMU to start ECMD to set TDX mode.
+	 * poll ERESP and ESTS to confirm result.
+	 */
+	tdh_iommu_setreg(id, DMAR_CONFIG_IOMMU_REG, 0);
+	cpu_vmxop_put();
+
+	IOMMU_WAIT_OP(iommu, DMAR_ECRSP_REG, readq, !ecrsp_ip(v), v);
+
+	if (ecrsp_sc(v))
+		goto error_clear_iommu_reg;
+
+	v = readq(iommu->reg + DMAR_ECSTS_REG);
+	if (!ecsts_tdx_mode(v))
+		goto error_clear_iommu_reg;
+
+	iommu->id = id;
+	iommu->tdxio_enabled = true;
+
+	pr_info("%s: TDX mode initialized\n", iommu->name);
+	return 0;
+
+error_clear_iommu_reg:
+	cpu_vmxop_get();
+	tdh_iommu_setreg(id, DMAR_CLEAR_IOMMU_REG, 0);
+	iommu_tdxio_reclaim_pages(iommu->tdxio_pages_pa);
+error_vmxop_put:
+	cpu_vmxop_put();
+
+	free_pages(va, TDX_IO_BUFF_ORDER);
+	return retval;
+}
+
+static int iommu_tdxio_disable(struct intel_iommu *iommu)
+{
+	if (iommu->tdxio_enabled) {
+		iommu->tdxio_enabled = 0;
+
+		cpu_vmxop_get();
+		tdh_iommu_setreg(iommu->id, DMAR_CLEAR_IOMMU_REG, 0);
+		iommu_tdxio_reclaim_pages(iommu->tdxio_pages_pa);
+		cpu_vmxop_put();
+
+		free_pages((unsigned long)__va(iommu->tdxio_pages_pa), TDX_IO_BUFF_ORDER);
+
+		pr_info("%s: TDX mode de-initialized\n", iommu->name);
+	}
+
+	return 0;
+}
+
 static void iommu_enable_translation(struct intel_iommu *iommu)
 {
 	u32 sts;
@@ -1596,6 +1705,9 @@ static void iommu_enable_translation(struct intel_iommu *iommu)
 	/* Make sure hardware complete it */
 	IOMMU_WAIT_OP(iommu, DMAR_GSTS_REG,
 		      readl, (sts & DMA_GSTS_TES), sts);
+
+	if (tdxio_supported(iommu))
+		iommu_tdxio_enable(iommu);
 
 	raw_spin_unlock_irqrestore(&iommu->register_lock, flags);
 }
@@ -1610,6 +1722,10 @@ static void iommu_disable_translation(struct intel_iommu *iommu)
 		return;
 
 	raw_spin_lock_irqsave(&iommu->register_lock, flag);
+
+	if (tdxio_supported(iommu))
+		iommu_tdxio_disable(iommu);
+
 	iommu->gcmd &= ~DMA_GCMD_TE;
 	writel(iommu->gcmd, iommu->reg + DMAR_GCMD_REG);
 
@@ -1789,7 +1905,7 @@ static void domain_detach_iommu(struct dmar_domain *domain,
 
 	spin_lock(&iommu->lock);
 	info = xa_load(&domain->iommu_array, iommu->seq_id);
-	if (--info->refcnt == 0) {
+	if (info && --info->refcnt == 0) {
 		clear_bit(info->did, iommu->domain_ids);
 		xa_erase(&domain->iommu_array, iommu->seq_id);
 		domain->nid = NUMA_NO_NODE;
@@ -2412,7 +2528,8 @@ static int dmar_domain_attach_device(struct dmar_domain *domain,
 		return ret;
 	info->domain = domain;
 	spin_lock_irqsave(&domain->lock, flags);
-	list_add(&info->link, &domain->devices);
+	if (++info->users == 1)
+		list_add(&info->link, &domain->devices);
 	spin_unlock_irqrestore(&domain->lock, flags);
 
 	/* PASID table is mandatory for a PCI device in scalable mode. */
@@ -3975,7 +4092,8 @@ static void dmar_remove_one_dev_info(struct device *dev)
 	}
 
 	spin_lock_irqsave(&domain->lock, flags);
-	list_del(&info->link);
+	if (--info->users == 0)
+		list_del(&info->link);
 	spin_unlock_irqrestore(&domain->lock, flags);
 
 	domain_detach_iommu(domain, iommu);
@@ -4006,7 +4124,8 @@ static void device_block_translation(struct device *dev)
 		return;
 
 	spin_lock_irqsave(&info->domain->lock, flags);
-	list_del(&info->link);
+	if (--info->users == 0)
+		list_del(&info->link);
 	spin_unlock_irqrestore(&info->domain->lock, flags);
 
 	domain_detach_iommu(info->domain, iommu);
@@ -4093,6 +4212,12 @@ static void intel_iommu_domain_free(struct iommu_domain *domain)
 		domain_exit(to_dmar_domain(domain));
 }
 
+static int intel_iommu_domain_set_trusted(struct iommu_domain *domain)
+{
+	to_dmar_domain(domain)->flags |= DOMAIN_FLAG_TRUSTED;
+	return 0;
+}
+
 static int prepare_domain_attach_device(struct iommu_domain *domain,
 					struct device *dev)
 {
@@ -4101,7 +4226,7 @@ static int prepare_domain_attach_device(struct iommu_domain *domain,
 	int addr_width;
 
 	iommu = device_to_iommu(dev, NULL, NULL);
-	if (!iommu)
+	if (!iommu || IS_ERR(iommu))
 		return -ENODEV;
 
 	if (dmar_domain->force_snooping && !ecap_sc_support(iommu->ecap))
@@ -4145,8 +4270,38 @@ static int intel_iommu_attach_device(struct iommu_domain *domain,
 		return -EPERM;
 	}
 
-	if (info->domain)
-		device_block_translation(dev);
+	if (info->domain) {
+		if (domain_is_trusted(info->domain)) {
+			/*
+			 * FIXME: currently leave tdx code cleanup trusted IO page
+			 * tables directly, to be moved to iommu driver.
+			 */
+			info->domain = NULL;
+			dev_dbg(dev, "trusted domain cleared\n");
+		} else {
+			device_block_translation(dev);
+		}
+	}
+
+	if (domain_is_trusted(to_dmar_domain(domain))) {
+		struct intel_iommu *iommu = device_to_iommu(dev, NULL, NULL);
+
+		if (tdxio_supported(iommu)) {
+			struct device_domain_info *info = dev_iommu_priv_get(dev);
+
+			/*
+			 * FIXME: currently leave tdx code setup trusted IO
+			 * page tables directly, to be moved to iommu driver.
+			 */
+			info->domain = to_dmar_domain(domain);
+			dev_dbg(dev, "trusted domain attach\n");
+			return 0;
+		}
+
+		return -ENOTTY;
+	}
+
+	dev_dbg(dev, "normal domain attach\n");
 
 	ret = prepare_domain_attach_device(domain, dev);
 	if (ret)
@@ -4523,6 +4678,11 @@ static void intel_iommu_get_resv_regions(struct device *device,
 	list_add_tail(&reg->list, head);
 }
 
+/*
+ *  A TDX connect fix for intel_iommu_enable_pasid is needed but it is not
+ *  added now
+ */
+
 static struct iommu_group *intel_iommu_device_group(struct device *dev)
 {
 	if (dev_is_pci(dev))
@@ -4732,8 +4892,31 @@ static void intel_iommu_remove_dev_pasid(struct device *dev, ioasid_t pasid)
 	intel_pasid_tear_down_entry(iommu, dev, pasid, false);
 }
 
+static int intel_iommu_hw_info(struct device *dev, void *data, size_t length)
+{
+	struct device_domain_info *info = dev_iommu_priv_get(dev);
+	struct iommu_device_info_vtd *vtd = data;
+	struct intel_iommu *iommu = device_to_iommu(dev, NULL, NULL);
+
+	if (!info)
+		return -ENODEV;
+
+	if (!intel_iommu_user_data_valid(data, length, sizeof(*vtd)))
+		return -EINVAL;
+
+	vtd->flags = 0;
+	vtd->__reserved = 0;
+	vtd->cap_reg = iommu->cap;
+	vtd->ecap_reg = iommu->ecap;
+
+	vtd->id = iommu->id;
+
+	return 0;
+}
+
 const struct iommu_ops intel_iommu_ops = {
 	.capable		= intel_iommu_capable,
+	.hw_info		= intel_iommu_hw_info,
 	.domain_alloc		= intel_iommu_domain_alloc,
 	.probe_device		= intel_iommu_probe_device,
 	.probe_finalize		= intel_iommu_probe_finalize,
@@ -4746,6 +4929,7 @@ const struct iommu_ops intel_iommu_ops = {
 	.def_domain_type	= device_def_domain_type,
 	.remove_dev_pasid	= intel_iommu_remove_dev_pasid,
 	.pgsize_bitmap		= SZ_4K,
+	.driver_type		= IOMMU_DEVICE_DATA_INTEL_VTD,
 #ifdef CONFIG_INTEL_IOMMU_SVM
 	.page_response		= intel_svm_page_response,
 #endif
@@ -4759,6 +4943,7 @@ const struct iommu_ops intel_iommu_ops = {
 		.iova_to_phys		= intel_iommu_iova_to_phys,
 		.free			= intel_iommu_domain_free,
 		.enforce_cache_coherency = intel_iommu_enforce_cache_coherency,
+		.set_trusted		= intel_iommu_domain_set_trusted,
 	}
 };
 

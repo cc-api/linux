@@ -116,6 +116,7 @@ struct kvm_userspace_memory_region2 {
 #define KVM_MEM_LOG_DIRTY_PAGES	(1UL << 0)
 #define KVM_MEM_READONLY	(1UL << 1)
 #define KVM_MEM_PRIVATE		(1UL << 2)
+#define KVM_MEM_NONUPM_SAFE	(1UL << 3)
 
 /* for KVM_IRQ_LINE */
 struct kvm_irq_level {
@@ -2395,4 +2396,20 @@ struct kvm_create_guest_memfd {
 	__u64 reserved[6];
 };
 
+#define KVM_TDI_GET_INFO	_IOWR(KVMIO,   0xc5, struct kvm_tdi_info)
+#define KVM_TDI_USER_REQUEST	_IOWR(KVMIO,   0xc6, struct kvm_tdi_user_request)
+
+struct kvm_tdi_info {
+	__u32 func_id;
+	__u64 rsvd;
+	__u64 nonce0;
+	__u64 nonce1;
+	__u64 nonce2;
+	__u64 nonce3;
+};
+
+struct kvm_tdi_user_request {
+	__u32 func_id;
+	__u64 rsvd;
+};
 #endif /* __LINUX_KVM_H */

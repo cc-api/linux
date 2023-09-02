@@ -574,6 +574,10 @@ enum kvm_tdx_cmd_id {
 	KVM_TDX_INIT_VCPU,
 	KVM_TDX_INIT_MEM_REGION,
 	KVM_TDX_FINALIZE_VM,
+	KVM_TDX_SERVTD_PREBIND,
+	KVM_TDX_SERVTD_BIND,
+	KVM_TDX_SET_MIGRATION_INFO,
+	KVM_TDX_GET_MIGRATION_INFO,
 
 	KVM_TDX_CMD_NR_MAX,
 };
@@ -665,4 +669,43 @@ struct kvm_rw_memory {
 	__u64 len;
 	__u64 ubuf;
 };
+
+enum kvm_tdx_servtd_type {
+	KVM_TDX_SERVTD_TYPE_MIGTD = 0,
+
+	KVM_TDX_SERVTD_TYPE_MAX,
+};
+
+/* A SHA384 hash takes up 48 bytes */
+#define KVM_TDX_SERVTD_HASH_SIZE 48
+
+struct kvm_tdx_servtd {
+#define KVM_TDX_SERVTD_VERSION	0
+	__u8  version;
+	__u8  pad[5];
+	__u16 type;
+	__u64 attr;
+	union {
+		/* KVM_TDX_SERVTD_PREBIND */
+		__u8  hash[KVM_TDX_SERVTD_HASH_SIZE];
+		/* KVM_TDX_SERVTD_BIND */
+		__u32 pid;
+	};
+};
+
+struct kvm_tdx_set_migration_info {
+#define KVM_TDX_SET_MIGRATION_INFO_VERSION	0
+	__u8  version;
+	__u8  is_src;
+	__u8  pad[2];
+	__u32 vsock_port;
+};
+
+struct kvm_tdx_get_migration_info {
+#define KVM_TDX_GET_MIGRATION_INFO_VERSION	0
+	__u8  version;
+	__u8  premig_done;
+	__u8  pad[6];
+};
+
 #endif /* _ASM_X86_KVM_H */

@@ -35,21 +35,25 @@
 #define TDH_MEM_SEPT_RD			25
 #define TDH_VP_RD			26
 #define TDH_MNG_KEY_RECLAIMID		27
-#define TDH_PHYMEM_PAGE_RECLAIM		28
+/* #define TDH_PHYMEM_PAGE_RECLAIM		28 */
 #define TDH_MEM_PAGE_REMOVE		29
 #define TDH_MEM_SEPT_REMOVE		30
+#define TDH_SYS_RD			34
 #define TDH_MEM_TRACK			38
 #define TDH_MEM_RANGE_UNBLOCK		39
 #define TDH_PHYMEM_CACHE_WB		40
-#define TDH_PHYMEM_PAGE_WBINVD		41
+/* #define TDH_PHYMEM_PAGE_WBINVD		41 */
 #define TDH_VP_WR			43
 #define TDH_SYS_LP_SHUTDOWN		44
+#define TDH_SERVTD_BIND			48
+#define TDH_SERVTD_PREBIND		49
 
 #define TDG_VP_VMCALL_GET_TD_VM_CALL_INFO		0x10000
 #define TDG_VP_VMCALL_MAP_GPA				0x10001
 #define TDG_VP_VMCALL_GET_QUOTE				0x10002
 #define TDG_VP_VMCALL_REPORT_FATAL_ERROR		0x10003
 #define TDG_VP_VMCALL_SETUP_EVENT_NOTIFY_INTERRUPT	0x10004
+#define TDG_VP_VMCALL_SERVICE				0x10005
 
 #define TD_EXIT_OTHER_SMI_IS_MSMI	BIT(1)
 
@@ -122,6 +126,13 @@ enum tdx_vcpu_guest_management {
 
 /* @field is any of enum tdx_vcpu_guest_management */
 #define TDVPS_MANAGEMENT(field)		BUILD_TDX_FIELD(TDVPS_CLASS_MANAGEMENT, (field))
+
+enum tdx_tdxio_parameter {
+	TD_TDR_TDXIO_RND_HPA_OFFSET = 0,
+};
+
+/* @field is any of enum tdx_tdxio_parm */
+#define TDR_TDXIO(field)		BUILD_TDX_FIELD_NON_ARCH(3, (field))
 
 #define TDX_EXTENDMR_CHUNKSIZE		256
 
@@ -249,5 +260,8 @@ union tdx_sept_level_state {
 	};
 	u64 raw;
 };
+
+/* The field id used to access the metadata (defined in the TDX ABI spec) */
+#define TDX_MD_FID_SERVTD_MAX_SERVTDS		0xA100000100000000
 
 #endif /* __KVM_X86_TDX_ARCH_H */

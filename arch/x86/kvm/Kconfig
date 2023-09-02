@@ -23,6 +23,7 @@ config KVM
 	depends on HAVE_KVM
 	depends on HIGH_RES_TIMERS
 	depends on X86_LOCAL_APIC
+	select HAVE_VMX_GENERIC
 	select PREEMPT_NOTIFIERS
 	select KVM_GENERIC_MMU_NOTIFIER
 	select HAVE_KVM_IRQCHIP
@@ -158,11 +159,6 @@ config KVM_EXTERNAL_WRITE_TRACKING
 
 config KVM_MMU_PRIVATE
 	def_bool y
-	depends on INTEL_TDX_HOST && KVM_INTEL
-
-config KVM_TDX_OPERAND_BUSY_INJECTION
-	def_bool n
-	bool "TDX operand busy injection"
 	depends on INTEL_TDX_HOST && KVM_INTEL
 
 config KVM_TDX_ACCOUNT_PRIVATE_PAGES

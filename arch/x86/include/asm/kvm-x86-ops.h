@@ -113,6 +113,7 @@ KVM_X86_OP_OPTIONAL(remove_private_spte)
 KVM_X86_OP_OPTIONAL(zap_private_spte)
 KVM_X86_OP_OPTIONAL(unzap_private_spte)
 KVM_X86_OP_OPTIONAL(drop_private_spte)
+KVM_X86_OP_OPTIONAL(link_shared_spte)
 KVM_X86_OP(has_wbinvd_exit)
 KVM_X86_OP(get_l2_tsc_offset)
 KVM_X86_OP(get_l2_tsc_multiplier)
@@ -166,6 +167,10 @@ KVM_X86_OP_OPTIONAL_RET0(is_lass_violation)
 KVM_X86_OP_OPTIONAL_RET0(gmem_prepare)
 KVM_X86_OP_OPTIONAL(gmem_invalidate)
 KVM_X86_OP(get_untagged_addr)
+KVM_X86_OP_OPTIONAL(bind_tdi)
+KVM_X86_OP_OPTIONAL(unbind_tdi)
+KVM_X86_OP_OPTIONAL(tdi_get_info)
+KVM_X86_OP_OPTIONAL(tdi_user_request)
 
 #undef KVM_X86_OP
 #undef KVM_X86_OP_OPTIONAL

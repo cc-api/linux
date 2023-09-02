@@ -40,7 +40,7 @@
 .section .noinstr.text, "ax"
 
 /*
- * __tdx_module_call()  - Used by TDX guests to request services from
+ * __tdx_module_call_asm()  - Used by TDX guests to request services from
  * the TDX module (does not include VMM services) using TDCALL instruction.
  *
  * Transforms function call register arguments into the TDCALL register ABI.
@@ -62,27 +62,33 @@
  *
  *-------------------------------------------------------------------------
  *
- * __tdx_module_call() function ABI:
+ * __tdx_module_call_asm() function ABI:
  *
  * @fn  (RDI)          - TDCALL Leaf ID,    moved to RAX
  * @rcx (RSI)          - Input parameter 1, moved to RCX
  * @rdx (RDX)          - Input parameter 2, moved to RDX
  * @r8  (RCX)          - Input parameter 3, moved to R8
  * @r9  (R8)           - Input parameter 4, moved to R9
+ * @r10 (R9)           - Input parameter 5, moved to R10
+ * @r11 (stack param 1)- Input parameter 6, moved to R11
+ * @r12 (stack param 2)- Input parameter 7, moved to R12
+ * @r13 (stack param 3)- Input parameter 8, moved to R13
+ * @r14 (stack param 4)- Input parameter 9, moved to R14
+ * @r15 (stack param 5)- Input parameter 10, moved to R15
  *
- * @out (R9)           - struct tdx_module_output pointer
- *                       stored temporarily in R12 (not
+ * @out (stack param 6)- struct tdx_module_output pointer
+ *                       stored temporarily in RBX (not
  *                       shared with the TDX module). It
  *                       can be NULL.
  *
  * Return status of TDCALL via RAX.
  */
-SYM_FUNC_START(__tdx_module_call)
+SYM_FUNC_START(__tdx_module_call_asm)
 	FRAME_BEGIN
 	TDX_MODULE_CALL host=0
 	FRAME_END
 	RET
-SYM_FUNC_END(__tdx_module_call)
+SYM_FUNC_END(__tdx_module_call_asm)
 
 /*
  * TDX_HYPERCALL - Make hypercalls to a TDX VMM using TDVMCALL leaf of TDCALL

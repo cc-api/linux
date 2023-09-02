@@ -3168,6 +3168,8 @@ config INTEL_TDX_COMPLIANCE
     default m
     help
       This option enables support for the Intel TDX Compliance module.
+config HAVE_VMX_GENERIC
+	bool
 
 source "arch/x86/kvm/Kconfig"
 

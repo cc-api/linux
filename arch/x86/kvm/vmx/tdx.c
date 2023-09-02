@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0
 #include <linux/cpu.h>
+#include <linux/iommu.h>
 #include <linux/mmu_context.h>
 #include <linux/misc_cgroup.h>
 
 #include <asm/fpu/xcr.h>
 #include <asm/virtext.h>
-#include <asm/cpu.h>
 #include <asm/tdx.h>
 
 #include "capabilities.h"
@@ -63,7 +63,8 @@ int tdx_vm_enable_cap(struct kvm *kvm, struct kvm_enable_cap *cap)
 struct tdx_info {
 	u8 nr_tdcs_pages;
 	u8 nr_tdvpx_pages;
-	bool tsx_supported;
+	u8 sys_rd;
+	u32 max_servtds;
 };
 
 /* Info about the TDX module. */
@@ -89,6 +90,12 @@ static atomic_t nr_configured_hkid;
  */
 static DEFINE_PER_CPU(struct list_head, associated_tdvcpus);
 
+/* TDX connect declarations */
+static int tdx_tdi_iq_inv_iotlb(struct kvm_tdx *kvm_tdx);
+static int tdx_tdi_mmio_map(struct kvm_tdx *kvm_tdx, gfn_t gfn,
+			    enum pg_level level, kvm_pfn_t pfn);
+/* TDX connect declarations end */
+
 static int tdx_emulate_inject_bp_end(struct kvm_vcpu *vcpu, unsigned long dr6);
 
 static enum {
@@ -96,6 +103,146 @@ static enum {
 	TD_PROFILE_ENABLE,
 	TD_PROFILE_DISABLE,
 } td_profile_state;
+
+/* GHCI spec */
+struct tdvmcall_service {
+	guid_t   guid;
+	/* Length of the hdr and payload */
+	uint32_t length;
+	uint32_t status;
+	uint8_t  data[0];
+};
+
+enum tdvmcall_service_id {
+	TDVMCALL_SERVICE_ID_QUERY = 0,
+	TDVMCALL_SERVICE_ID_MIGTD = 1,
+	TDVMCALL_SERVICE_ID_VTPM,
+	TDVMCALL_SERVICE_ID_VTPMTD,
+	TDVMCALL_SERVICE_ID_TDCM,
+	TDVMCALL_SERVICE_ID_SPDM,
+	TDVMCALL_SERVICE_ID_TPA,
+
+	TDVMCALL_SERVICE_ID_MAX,
+};
+
+static guid_t tdvmcall_service_ids[TDVMCALL_SERVICE_ID_MAX] __read_mostly = {
+	[TDVMCALL_SERVICE_ID_QUERY]	= GUID_INIT(0xfb6fc5e1, 0x3378, 0x4acb,
+						    0x89, 0x64, 0xfa, 0x5e,
+						    0xe4, 0x3b, 0x9c, 0x8a),
+	[TDVMCALL_SERVICE_ID_MIGTD]	= GUID_INIT(0xe60e6330, 0x1e09, 0x4387,
+						    0xa4, 0x44, 0x8f, 0x32,
+						    0xb8, 0xd6, 0x11, 0xe5),
+	[TDVMCALL_SERVICE_ID_VTPM]	= GUID_INIT(0x64590793, 0x7852, 0x4e52,
+						    0xbe, 0x45, 0xcd, 0xbb,
+						    0x11, 0x6f, 0x20, 0xf3),
+	[TDVMCALL_SERVICE_ID_VTPMTD]	= GUID_INIT(0xc3c87a08, 0x3b4a, 0x41ad,
+						    0xa5, 0x2d, 0x96, 0xf1,
+						    0x3c, 0xf8, 0x9a, 0x66),
+	[TDVMCALL_SERVICE_ID_TDCM]	= GUID_INIT(0x6270da51, 0x9a23, 0x4b6b,
+						    0x81, 0xce, 0xdd, 0xd8,
+						    0x69, 0x70, 0xf2, 0x96),
+	[TDVMCALL_SERVICE_ID_SPDM]	= GUID_INIT(0xa148b5dd, 0x50c, 0x4be4,
+						    0xa6, 0x30, 0xe5, 0xe5,
+						    0x30, 0x1f, 0x2a, 0x9b),
+	[TDVMCALL_SERVICE_ID_TPA]	= GUID_INIT(0x0320dae8, 0x75b6, 0x4ac8,
+						    0xa9, 0xda, 0x2d, 0xe6,
+						    0x9d, 0x18, 0x59, 0xda),
+};
+
+enum tdvmcall_service_status {
+	TDVMCALL_SERVICE_S_RETURNED = 0x0,
+	TDVMCALL_SERVICE_S_INVAL = 0x7,
+
+	TDVMCALL_SERVICE_S_UNSUPP = 0xFFFFFFFE,
+};
+
+struct tdvmcall_service_query {
+#define TDVMCALL_SERVICE_QUERY_VERSION	0
+	uint8_t version;
+#define TDVMCALL_SERVICE_CMD_QUERY	0
+	uint8_t cmd;
+#define TDVMCALL_SERVICE_QUERY_S_SUPPORTED	0
+#define TDVMCALL_SERVICE_QUERY_S_UNSUPPORTED	1
+	uint8_t status;
+	uint8_t rsvd;
+	guid_t  guid;
+};
+
+/* GUID extension HOB defined in the PI spec */
+struct hob_generic_hdr {
+#define HOB_TYPE_GUID_EXTENSION	0x0004
+	uint16_t type;
+	/* Length of the payload */
+	uint16_t length;
+	uint32_t rsvd;
+};
+
+struct hob_guid_type_hdr {
+	struct hob_generic_hdr		generic_hdr;
+	guid_t				guid;
+};
+
+struct migtd_basic_info {
+	struct hob_guid_type_hdr	hob_hdr;
+	uint64_t			req_id;
+	bool				src;
+	uint32_t			cpu_version;
+	uint8_t				usertd_uuid[32];
+	uint64_t			binding_handle;
+	uint64_t			policy_id;
+	uint64_t			comm_id;
+};
+
+struct migtd_socket_info {
+	struct hob_guid_type_hdr	hob_hdr;
+	uint64_t			comm_id;
+	uint64_t			migtd_cid;
+	uint32_t			channel_port;
+	uint32_t			quote_service_port;
+};
+
+struct migtd_policy_info {
+	struct hob_guid_type_hdr	hob_hdr;
+	uint64_t			policy_id;
+	uint32_t			policy_size;
+	uint8_t				pad[4];
+	uint8_t				policy_data[0];
+};
+
+struct migtd_all_info {
+	struct migtd_basic_info		basic;
+	struct migtd_socket_info	socket;
+	struct migtd_policy_info	policy;
+};
+
+struct tdvmcall_service_migtd {
+#define TDVMCALL_SERVICE_MIGTD_WAIT_VERSION	0
+#define TDVMCALL_SERVICE_MIGTD_REPORT_VERSION	0
+	uint8_t version;
+#define TDVMCALL_SERVICE_MIGTD_CMD_SHUTDOWN	0
+#define TDVMCALL_SERVICE_MIGTD_CMD_WAIT		1
+#define TDVMCALL_SERVICE_MIGTD_CMD_REPORT	2
+	uint8_t cmd;
+#define TDVMCALL_SERVICE_MIGTD_OP_NOOP		0
+#define TDVMCALL_SERVICE_MIGTD_OP_START_MIG	1
+	uint8_t operation;
+#define TDVMCALL_SERVICE_MIGTD_STATUS_SUCC	0
+	uint8_t status;
+	uint8_t data[0];
+};
+
+static inline void
+tdx_binding_slot_set_state(struct tdx_binding_slot *slot,
+			   enum tdx_binding_slot_state state)
+{
+	slot->state = state;
+}
+
+static inline enum tdx_binding_slot_state
+tdx_binding_slot_get_state(struct tdx_binding_slot *slot)
+{
+	return slot->state;
+}
 
 /*
  * Currently, host is allowed to get TD's profile only if this TD is debuggable
@@ -111,11 +258,6 @@ static inline bool td_profile_allowed(struct kvm_tdx *kvm_tdx)
 		return true;
 
 	return false;
-}
-
-static __always_inline hpa_t set_hkid_to_hpa(hpa_t pa, u16 hkid)
-{
-	return pa | ((hpa_t)hkid << boot_cpu_data.x86_phys_bits);
 }
 
 static __always_inline unsigned long tdexit_exit_qual(struct kvm_vcpu *vcpu)
@@ -229,96 +371,6 @@ static void tdx_disassociate_vp_on_cpu(struct kvm_vcpu *vcpu)
 		return;
 
 	smp_call_function_single(cpu, tdx_disassociate_vp_arg, vcpu, 1);
-}
-
-static void tdx_clear_page(unsigned long page_pa, int size)
-{
-	const void *zero_page = (const void *) __va(page_to_phys(ZERO_PAGE(0)));
-	void *page = __va(page_pa);
-	unsigned long i;
-
-	WARN_ON_ONCE(size % PAGE_SIZE);
-	/*
-	 * When re-assign one page from old keyid to a new keyid, MOVDIR64B is
-	 * required to clear/write the page with new keyid to prevent integrity
-	 * error when read on the page with new keyid.
-	 *
-	 * clflush doesn't flush cache with HKID set.  The cache line could be
-	 * poisoned (even without MKTME-i), clear the poison bit.
-	 */
-	for (i = 0; i < size; i += 64)
-		movdir64b(page + i, zero_page);
-	/*
-	 * MOVDIR64B store uses WC buffer.  Prevent following memory reads
-	 * from seeing potentially poisoned cache.
-	 */
-	__mb();
-}
-
-static int tdx_reclaim_page(hpa_t pa, enum pg_level level,
-			    bool do_wb, u16 hkid)
-{
-	struct tdx_module_output out;
-	u64 err;
-
-	do {
-		err = tdh_phymem_page_reclaim(pa, &out);
-		/*
-		 * TDH.PHYMEM.PAGE.RECLAIM is allowed only when TD is shutdown.
-		 * state.  i.e. destructing TD.
-		 * TDH.PHYMEM.PAGE.RECLAIM requires TDR and target page.
-		 * Because we're destructing TD, it's rare to contend with TDR.
-		 */
-	} while (unlikely(err == (TDX_OPERAND_BUSY | TDX_OPERAND_ID_RCX)));
-	if (WARN_ON_ONCE(err)) {
-		pr_err("%s:%d:%s pa 0x%llx level %d hkid 0x%x do_wb %d\n",
-		       __FILE__, __LINE__, __func__,
-		       pa, level, hkid, do_wb);
-		pr_tdx_error(TDH_PHYMEM_PAGE_RECLAIM, err, &out);
-		return -EIO;
-	}
-	/* out.r8 == tdx sept page level */
-	WARN_ON_ONCE(out.r8 != pg_level_to_tdx_sept_level(level));
-
-	if (do_wb && level == PG_LEVEL_4K) {
-		/*
-		 * Only TDR page gets into this path.  No contention is expected
-		 * because of the last page of TD.
-		 */
-		err = tdh_phymem_page_wbinvd(set_hkid_to_hpa(pa, hkid));
-		if (WARN_ON_ONCE(err)) {
-			pr_tdx_error(TDH_PHYMEM_PAGE_WBINVD, err, NULL);
-			return -EIO;
-		}
-	}
-
-	tdx_set_page_present_level(pa, level);
-	tdx_clear_page(pa, KVM_HPAGE_SIZE(level));
-	return 0;
-}
-
-static void tdx_reclaim_td_page(unsigned long td_page_pa)
-{
-	WARN_ON_ONCE(!td_page_pa);
-
-	/*
-	 * TDCX are being reclaimed.  TDX module maps TDCX with HKID
-	 * assigned to the TD.  Here the cache associated to the TD
-	 * was already flushed by TDH.PHYMEM.CACHE.WB before here, So
-	 * cache doesn't need to be flushed again.
-	 */
-	if (tdx_reclaim_page(td_page_pa, PG_LEVEL_4K, false, 0))
-		/*
-		 * Leak the page on failure:
-		 * tdx_reclaim_page() returns an error if and only if there's an
-		 * unexpected, fatal error, e.g. a SEAMCALL with bad params,
-		 * incorrect concurrency in KVM, a TDX Module bug, etc.
-		 * Retrying at a later point is highly unlikely to be
-		 * successful.
-		 * No log here as tdx_reclaim_page() already did.
-		 */
-		return;
-	free_page((unsigned long)__va(td_page_pa));
 }
 
 struct tdx_flush_vp_arg {
@@ -486,32 +538,82 @@ free_hkid:
 	tdx_hkid_free(kvm_tdx);
 }
 
-static void __tdx_vm_free(struct kvm *kvm)
+static void tdx_binding_slots_cleanup(struct kvm_tdx *kvm_tdx)
 {
-	struct kvm_tdx *kvm_tdx = to_kvm_tdx(kvm);
+	struct tdx_binding_slot *slot;
+	struct kvm_tdx *servtd_tdx;
+	uint16_t req_id;
 	int i;
 
-	/*
-	 * tdx_mmu_release_hkid() failed to reclaim HKID.  Something went wrong
-	 * heavily with TDX module.  Give up freeing TD pages.  As the function
-	 * already warned, don't warn it again.
-	 */
-	if (is_hkid_assigned(kvm_tdx))
-		return;
-
-	if (kvm_tdx->tdcs_pa) {
-		for (i = 0; i < tdx_info.nr_tdcs_pages; i++) {
-			if (!kvm_tdx->tdcs_pa[i])
+	/* Being a user TD, disconnect from the related servtds */
+	for (i = 0; i < KVM_TDX_SERVTD_TYPE_MAX; i++) {
+		slot = &kvm_tdx->binding_slots[i];
+		servtd_tdx = slot->servtd_tdx;
+		if (!servtd_tdx)
+			continue;
+		spin_lock(&servtd_tdx->binding_slot_lock);
+		req_id = slot->req_id;
+		/*
+		 * Sanity check: servtd should have the slot pointer
+		 * to this slot.
+		 */
+		if (servtd_tdx->usertd_binding_slots[req_id] != slot) {
+			pr_err("%s: unexpected slot %d pointer\n",
+				__func__, i);
 				continue;
-			tdx_reclaim_td_page(kvm_tdx->tdcs_pa[i]);
-			tdx_unaccount_ctl_page(kvm);
 		}
-		kfree(kvm_tdx->tdcs_pa);
-		kvm_tdx->tdcs_pa = NULL;
+		servtd_tdx->usertd_binding_slots[req_id] = NULL;
+		spin_unlock(&servtd_tdx->binding_slot_lock);
 	}
 
+	/* Being a service TD, disconnect from the related user TDs */
+	spin_lock(&kvm_tdx->binding_slot_lock);
+	for (i = 0; i < SERVTD_SLOTS_MAX; i++) {
+		slot = kvm_tdx->usertd_binding_slots[i];
+		if (!slot)
+			continue;
+
+		/*
+		 * Only need to NULL the servtd_tdx field. Other fileds are
+		 * still valid for later migration process to reference, e.g.
+		 * migtd_data.is_src to indicate if this is a source TD. This
+		 * allows the user TD to be migrated to the destination after
+		 * the MigTD is destroyed.
+		 *
+		 * The live migration could be initiated much later after
+		 * pre-migration is done, there is no need to keep MigTD
+		 * running. The slot's state will be reset to INIT when a new
+		 * MigTD is bound, e.g. in order to change the migration
+		 * destination.
+		 */
+		slot->servtd_tdx = NULL;
+	}
+	spin_unlock(&kvm_tdx->binding_slot_lock);
+}
+
+static void tdx_vm_free_tdcs(struct kvm_tdx *kvm_tdx)
+{
+	int i;
+
+	if (!kvm_tdx->tdcs_pa)
+		return;
+
+	for (i = 0; i < tdx_info.nr_tdcs_pages; i++) {
+		if (!kvm_tdx->tdcs_pa[i])
+			continue;
+		tdx_reclaim_td_page(kvm_tdx->tdcs_pa[i]);
+		tdx_unaccount_ctl_page(&kvm_tdx->kvm);
+	}
+
+	kfree(kvm_tdx->tdcs_pa);
+	kvm_tdx->tdcs_pa = NULL;
+}
+
+static void tdx_vm_free_tdr(struct kvm_tdx *kvm_tdx)
+{
 	if (!kvm_tdx->tdr_pa)
 		return;
+
 	/*
 	 * TDX module maps TDR with TDX global HKID.  TDX module may access TDR
 	 * while operating on TD (Especially reclaiming TDCS).  Cache flush with
@@ -520,12 +622,30 @@ static void __tdx_vm_free(struct kvm *kvm)
 	if (tdx_reclaim_page(kvm_tdx->tdr_pa, PG_LEVEL_4K, true, tdx_global_keyid))
 		return;
 
-	tdx_unaccount_ctl_page(kvm);
+	tdx_unaccount_ctl_page(&kvm_tdx->kvm);
 	free_page((unsigned long)__va(kvm_tdx->tdr_pa));
 	kvm_tdx->tdr_pa = 0;
+}
 
+static void tdx_vm_free_cpuid(struct kvm_tdx *kvm_tdx)
+{
 	kfree(kvm_tdx->cpuid);
 	kvm_tdx->cpuid = NULL;
+}
+
+void __tdx_vm_free(struct kvm *kvm)
+{
+	struct kvm_tdx *kvm_tdx = to_kvm_tdx(kvm);
+
+	/* Can't reclaim or free TD pages if teardown failed. */
+	if (is_hkid_assigned(kvm_tdx))
+		return;
+
+	tdx_binding_slots_cleanup(kvm_tdx);
+
+	tdx_vm_free_tdcs(kvm_tdx);
+	tdx_vm_free_tdr(kvm_tdx);
+	tdx_vm_free_cpuid(kvm_tdx);
 }
 
 void tdx_vm_free(struct kvm *kvm)
@@ -593,9 +713,14 @@ int tdx_vm_init(struct kvm *kvm)
 	kvm->arch.tdp_max_page_level = PG_LEVEL_2M;
 
 	kvm_tdx->has_range_blocked = false;
+	spin_lock_init(&kvm_tdx->binding_slot_lock);
 
 	/* apicv */
 	kvm->arch.required_apicv_inhibits = BIT(APICV_INHIBIT_REASON_ABSENT);
+
+	mutex_init(&kvm_tdx->ttdi_mutex);
+	INIT_LIST_HEAD_RCU(&kvm_tdx->ktiommu_list);
+	INIT_LIST_HEAD_RCU(&kvm_tdx->ttdi_list);
 
 	/*
 	 * This function initializes only KVM software construct.  It doesn't
@@ -805,10 +930,36 @@ void tdx_vcpu_put(struct kvm_vcpu *vcpu)
 	tdx_prepare_switch_to_host(vcpu);
 }
 
+static void tdx_vcpu_free_tdvpx(struct vcpu_tdx *tdx)
+{
+	int i;
+
+	if (!tdx->tdvpx_pa)
+		return;
+
+	for (i = 0; i < tdx_info.nr_tdvpx_pages; i++) {
+		if (!tdx->tdvpx_pa[i])
+			continue;
+		tdx_reclaim_td_page(tdx->tdvpx_pa[i]);
+		tdx_unaccount_ctl_page(tdx->vcpu.kvm);
+	}
+	kfree(tdx->tdvpx_pa);
+	tdx->tdvpx_pa = NULL;
+}
+
+static void tdx_vcpu_free_tdvpr(struct vcpu_tdx *tdx)
+{
+	if (!tdx->tdvpr_pa)
+		return;
+
+	tdx_reclaim_td_page(tdx->tdvpr_pa);
+	tdx->tdvpr_pa = 0;
+	tdx_unaccount_ctl_page(tdx->vcpu.kvm);
+}
+
 void tdx_vcpu_free(struct kvm_vcpu *vcpu)
 {
 	struct vcpu_tdx *tdx = to_tdx(vcpu);
-	int i;
 
 	/*
 	 * This methods can be called when vcpu allocation/initialization
@@ -831,21 +982,8 @@ void tdx_vcpu_free(struct kvm_vcpu *vcpu)
 	tdx_disassociate_vp_on_cpu(vcpu);
 	WARN_ON_ONCE(vcpu->cpu != -1);
 
-	if (tdx->tdvpx_pa) {
-		for (i = 0; i < tdx_info.nr_tdvpx_pages; i++) {
-			if (!tdx->tdvpx_pa[i])
-				continue;
-			tdx_reclaim_td_page(tdx->tdvpx_pa[i]);
-			tdx_unaccount_ctl_page(vcpu->kvm);
-		}
-		kfree(tdx->tdvpx_pa);
-		tdx->tdvpx_pa = NULL;
-	}
-	if (tdx->tdvpr_pa) {
-		tdx_reclaim_td_page(tdx->tdvpr_pa);
-		tdx->tdvpr_pa = 0;
-		tdx_unaccount_ctl_page(vcpu->kvm);
-	}
+	tdx_vcpu_free_tdvpx(tdx);
+	tdx_vcpu_free_tdvpr(tdx);
 }
 
 void tdx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
@@ -912,7 +1050,7 @@ static void tdx_user_return_update_cache(struct kvm_vcpu *vcpu)
 	 * TSX_CTRL is reset to 0 if guest TSX is supported. Otherwise
 	 * preserved.
 	 */
-	if (to_kvm_tdx(vcpu->kvm)->tsx_ctrl_reset)
+	if (to_kvm_tdx(vcpu->kvm)->tsx_supported && tdx_uret_tsx_ctrl_slot != -1)
 		kvm_user_return_update_cache(tdx_uret_tsx_ctrl_slot, 0);
 }
 
@@ -998,6 +1136,8 @@ u64 __tdx_vcpu_run(hpa_t tdvpr, void *regs, u32 regs_mask);
 
 static noinstr void tdx_vcpu_enter_exit(struct vcpu_tdx *tdx)
 {
+	u64 err, retries = 0;
+
 	/*
 	 * Avoid section mismatch with to_tdx() with KVM_VM_BUG().  The caller
 	 * should call to_tdx().
@@ -1005,8 +1145,19 @@ static noinstr void tdx_vcpu_enter_exit(struct vcpu_tdx *tdx)
 	struct kvm_vcpu *vcpu = &tdx->vcpu;
 
 	guest_state_enter_irqoff();
-	tdx->exit_reason.full = __tdx_vcpu_run(tdx->tdvpr_pa, vcpu->arch.regs,
-					tdx->tdvmcall.regs_mask);
+	do {
+		tdx->exit_reason.full = __tdx_vcpu_run(tdx->tdvpr_pa,
+											   vcpu->arch.regs,
+											   tdx->tdvmcall.regs_mask);
+		err = seamcall_masked_status(tdx->exit_reason.full);
+		if (retries++ > TDX_SEAMCALL_RETRY_MAX) {
+			KVM_BUG_ON(err, vcpu->kvm);
+			pr_tdx_error(TDH_VP_ENTER, err, NULL);
+			break;
+		}
+	} while (err == TDX_OPERAND_BUSY ||
+		 err == TDX_OPERAND_BUSY_HOST_PRIORITY);
+
 	if ((u16)tdx->exit_reason.basic == EXIT_REASON_EXCEPTION_NMI &&
 	    is_nmi(tdexit_intr_info(vcpu))) {
 		kvm_before_interrupt(vcpu, KVM_HANDLING_NMI);
@@ -1066,16 +1217,6 @@ fastpath_t tdx_vcpu_run(struct kvm_vcpu *vcpu)
 	 */
 	if (kvm_tdx->attributes & TDX_TD_ATTRIBUTE_PERFMON)
 		apic_write(APIC_LVTPC, TDX_GUEST_PMI_VECTOR);
-
-	/*
-	 * Before 1.0.3.3, TDH.VP.ENTER has special environment requirements
-	 * that RTM_DISABLE(bit 0) and TSX_CPUID_CLEAR(bit 1) of IA32_TSX_CTRL
-	 * must be 0 if it's supported.  MSR_IA32_TSX_CTRL is restored by user
-	 * return msrs callback which is enabled by
-	 * tdx_user_return_update_cache().
-	 */
-	if (unlikely(!tdx_info.tsx_supported))
-		tsx_ctrl_clear();
 
 	tdx_vcpu_enter_exit(tdx);
 
@@ -1331,6 +1472,16 @@ static int tdx_complete_vp_vmcall(struct kvm_vcpu *vcpu)
 {
 	struct kvm_tdx_vmcall *tdx_vmcall = &vcpu->run->tdx.u.vmcall;
 	__u64 reg_mask = kvm_rcx_read(vcpu);
+	int r;
+
+	if (unlikely(vcpu->arch.complete_tdx_vp_vmcall)) {
+		int (*ctvv)(struct kvm_vcpu *) = vcpu->arch.complete_tdx_vp_vmcall;
+
+		vcpu->arch.complete_tdx_vp_vmcall = NULL;
+		r = ctvv(vcpu);
+		if (r <= 0)
+			return r;
+	}
 
 #define COPY_REG(MASK, REG)							\
 	do {									\
@@ -1646,6 +1797,532 @@ static int tdx_get_td_vm_call_info(struct kvm_vcpu *vcpu)
 	return 1;
 }
 
+/* used for both shared EPT and security EPT */
+#define TDX_EPT_PFERR (PFERR_WRITE_MASK | PFERR_USER_MASK)
+
+static int tdx_complete_map_gpa(struct kvm_vcpu *vcpu)
+{
+	struct kvm_tdx_vmcall *tdx_vmcall = &vcpu->run->tdx.u.vmcall;
+	gpa_t gpa = tdx_vmcall->in_r12;
+	gpa_t size = tdx_vmcall->in_r13;
+	bool prefault = tdx_io_enabled();
+	u64 error_code = TDX_EPT_PFERR;
+
+	WARN_ON(!prefault);
+
+	if (tdx_vmcall->status_code != TDG_VP_VMCALL_SUCCESS) {
+		if (tdx_vmcall->status_code == TDG_VP_VMCALL_RETRY)
+			size = (gpa_t)tdx_vmcall->out_r11 - gpa;
+		else
+			return 1;
+	}
+
+	if (kvm_is_private_gpa(vcpu->kvm, gpa))
+		error_code |= PFERR_GUEST_ENC_MASK;
+
+	while (size) {
+		int ret;
+
+		ret = kvm_mmu_map_tdp_page(vcpu, gpa, error_code,
+					   PG_LEVEL_4K);
+		if (ret)
+			pr_err("failed to pin shared pages %llx, ret=%d\n", gpa, ret);
+
+		size -= PAGE_SIZE;
+		gpa += PAGE_SIZE;
+	}
+
+	return 1;
+}
+
+static int tdx_map_gpa(struct kvm_vcpu *vcpu)
+{
+	struct kvm *kvm = vcpu->kvm;
+	gpa_t gpa = tdvmcall_a0_read(vcpu);
+	gpa_t size = tdvmcall_a1_read(vcpu);
+	bool prefault = tdx_io_enabled();
+	gpa_t end = gpa + size;
+	gfn_t s = gpa_to_gfn(gpa) & ~kvm_gfn_shared_mask(kvm);
+	gfn_t e = gpa_to_gfn(end) & ~kvm_gfn_shared_mask(kvm);
+	int i;
+
+	if (!IS_ALIGNED(gpa, 4096) || !IS_ALIGNED(size, 4096) ||
+	    end < gpa ||
+	    end > kvm_gfn_shared_mask(kvm) << (PAGE_SHIFT + 1) ||
+	    kvm_is_private_gpa(kvm, gpa) != kvm_is_private_gpa(kvm, end)) {
+		tdvmcall_set_return_code(vcpu, TDG_VP_VMCALL_INVALID_OPERAND);
+		return 1;
+	}
+
+	/*
+	 * Check how the requested region overlaps with the KVM memory slots.
+	 * For simplicity, prefault require that it must be contained within
+	 * a memslot or it must not overlap with any memslots (MMIO). Prefault
+	 * an emulated MMIO region makes no sense.
+	 */
+	for (i = 0; i < kvm_arch_nr_memslot_as_ids(kvm); i++) {
+		struct kvm_memslots *slots = __kvm_memslots(kvm, i);
+		struct kvm_memslot_iter iter;
+
+		kvm_for_each_memslot_in_gfn_range(&iter, slots, s, e) {
+			struct kvm_memory_slot *slot = iter.slot;
+			gfn_t slot_s = slot->base_gfn;
+			gfn_t slot_e = slot->base_gfn + slot->npages;
+
+			/* contained in slot */
+			if (slot_s <= s && e <= slot_e) {
+				if (prefault)
+					vcpu->arch.complete_tdx_vp_vmcall = tdx_complete_map_gpa;
+
+				break;
+			}
+		}
+	}
+
+	return tdx_vp_vmcall_to_user(vcpu);
+}
+
+static struct tdvmcall_service *tdvmcall_servbuf_alloc(struct kvm_vcpu *vcpu,
+						       gpa_t gpa)
+{
+	uint32_t length;
+	gfn_t gfn = gpa_to_gfn(gpa);
+	struct tdvmcall_service __user *g_buf, *h_buf;
+
+	if (!PAGE_ALIGNED(gpa)) {
+		pr_err("%s: gpa=%llx not page aligned\n", __func__, gpa);
+		return NULL;
+	}
+
+	g_buf = (struct tdvmcall_service *)kvm_vcpu_gfn_to_hva(vcpu, gfn);
+	if (kvm_is_error_hva((unsigned long)g_buf)) {
+		pr_err("%s: Not a valid buf\n", __func__);
+		return NULL;
+	}
+	if (g_buf && get_user(length, &g_buf->length)) {
+		pr_err("%s: failed to get length\n", __func__);
+		return NULL;
+	}
+
+	if (!length) {
+		pr_err("%s: length being 0 isn't valid\n", __func__);
+		return NULL;
+	}
+
+	/* The status field by default is TDX_VMCALL_SERVICE_S_RETURNED */
+	h_buf = kzalloc(max_t(size_t, length, PAGE_SIZE), GFP_KERNEL_ACCOUNT);
+	if (!h_buf)
+		return NULL;
+
+	if (copy_from_user(h_buf, g_buf, length)) {
+		pr_err("%s: failed to copy\n", __func__);
+		kfree(h_buf);
+		return NULL;
+	}
+
+	return h_buf;
+}
+
+static void tdvmcall_status_copy_and_free(struct tdvmcall_service *h_buf,
+					  struct kvm_vcpu *vcpu, gpa_t gpa)
+{
+	gfn_t gfn;
+	struct tdvmcall_service __user *g_buf;
+
+	gfn = gpa_to_gfn(gpa);
+	g_buf = (struct tdvmcall_service *)kvm_vcpu_gfn_to_hva(vcpu, gfn);
+	if (copy_to_user(g_buf, h_buf, h_buf->length)) {
+		/* Guest sees TDVMCALL_SERVICE_S_RSVD in status */
+		pr_err("%s: failed to update the guest buffer\n", __func__);
+	}
+	kfree(h_buf);
+}
+
+static enum tdvmcall_service_id tdvmcall_get_service_id(guid_t guid)
+{
+	enum tdvmcall_service_id id;
+
+	for (id = 0; id < TDVMCALL_SERVICE_ID_MAX; id++) {
+		if (guid_equal(&guid, &tdvmcall_service_ids[id]))
+			break;
+	}
+
+	return id;
+}
+
+static void tdx_handle_service_query(struct tdvmcall_service *cmd_hdr,
+				     struct tdvmcall_service *resp_hdr)
+{
+	struct tdvmcall_service_query *cmd_query =
+			(struct tdvmcall_service_query *)cmd_hdr->data;
+	struct tdvmcall_service_query *resp_query =
+			(struct tdvmcall_service_query *)resp_hdr->data;
+	enum tdvmcall_service_id service_id;
+
+	resp_query->version = TDVMCALL_SERVICE_QUERY_VERSION;
+	if (cmd_query->version != resp_query->version ||
+	    cmd_query->cmd != TDVMCALL_SERVICE_CMD_QUERY) {
+		pr_warn("%s: queried cmd not supported\n", __func__);
+		resp_hdr->status = TDVMCALL_SERVICE_S_UNSUPP;
+	}
+
+	service_id = tdvmcall_get_service_id(cmd_query->guid);
+	if (service_id == TDVMCALL_SERVICE_ID_MAX)
+		resp_query->status = TDVMCALL_SERVICE_QUERY_S_UNSUPPORTED;
+	else
+		resp_query->status = TDVMCALL_SERVICE_QUERY_S_SUPPORTED;
+
+	resp_query->cmd = cmd_query->cmd;
+	import_guid(&resp_query->guid, cmd_query->guid.b);
+
+	resp_hdr->length += sizeof(struct tdvmcall_service_query);
+	resp_hdr->status = TDVMCALL_SERVICE_S_RETURNED;
+}
+
+static int migtd_basic_info_setup(struct migtd_basic_info *basic,
+				  struct tdx_binding_slot *slot,
+				  uint64_t req_id)
+{
+	struct hob_guid_type_hdr *hdr = &basic->hob_hdr;
+
+	hdr->generic_hdr.type = HOB_TYPE_GUID_EXTENSION;
+	hdr->generic_hdr.length = sizeof(struct migtd_basic_info);
+	hdr->guid = GUID_INIT(0x42b5e398, 0xa199, 0x4d30, 0xbe, 0xfc, 0xc7,
+			      0x5a, 0xc3, 0xda, 0x5d, 0x7c);
+	basic->req_id = req_id;
+	basic->src = slot->migtd_data.is_src;
+	basic->binding_handle = slot->handle;
+	basic->policy_id = 0; // unused by MigTD currently
+	basic->comm_id = 0;
+	basic->cpu_version = cpuid_eax(0x1);
+	memcpy(basic->usertd_uuid, (uint8_t *)slot->uuid, 32);
+
+	return hdr->generic_hdr.length;
+}
+
+static int migtd_socket_info_setup(struct migtd_socket_info *socket,
+				   struct tdx_binding_slot *slot)
+{
+	struct hob_guid_type_hdr *hdr = &socket->hob_hdr;
+
+	hdr->generic_hdr.type = HOB_TYPE_GUID_EXTENSION;
+	hdr->generic_hdr.length = sizeof(struct migtd_socket_info);
+	hdr->guid = GUID_INIT(0x7a103b9d, 0x552b, 0x485f, 0xbb, 0x4c, 0x2f,
+			      0x3d, 0x2e, 0x8b, 0x1e, 0xe);
+	socket->comm_id = 0;
+	socket->quote_service_port = 0; // unused by MigTD currently
+	socket->migtd_cid = 2; // i.e. VMADDR_CID_HOST
+	socket->channel_port = slot->migtd_data.vsock_port;
+
+	return hdr->generic_hdr.length;
+}
+
+static int migtd_policy_info_setup(struct migtd_policy_info *policy,
+				   struct tdx_binding_slot *slot)
+{
+	struct hob_guid_type_hdr *hdr = &policy->hob_hdr;
+
+	hdr->generic_hdr.type = HOB_TYPE_GUID_EXTENSION;
+	hdr->generic_hdr.length = sizeof(struct migtd_policy_info);
+	hdr->guid = GUID_INIT(0xd64f771a, 0xf0c9, 0x4d33, 0x99, 0x8b, 0xe,
+			      0x3d, 0x8b, 0x94, 0xa, 0x61);
+	policy->policy_id = slot->migtd_data.vsock_port; // unused, testing purpose
+	policy->policy_size = 0;
+
+	return hdr->generic_hdr.length;
+}
+
+static int migtd_start_migration(struct tdvmcall_service_migtd *resp_migtd,
+				 struct tdx_binding_slot *slot,
+				 uint64_t req_id)
+{
+	struct migtd_all_info *info =
+		(struct migtd_all_info *)resp_migtd->data;
+	int len = 0;
+
+	/* Ask MigTD to start migration setup */
+	len += migtd_basic_info_setup(&info->basic, slot, req_id);
+	len += migtd_socket_info_setup(&info->socket, slot);
+	len += migtd_policy_info_setup(&info->policy, slot);
+
+	resp_migtd->operation = TDVMCALL_SERVICE_MIGTD_OP_START_MIG;
+
+	return len;
+}
+
+static bool tdx_binding_slot_premig_wait(struct tdx_binding_slot *slot)
+{
+	if (slot->state == TDX_BINDING_SLOT_STATE_PREMIG_WAIT) {
+		slot->state = TDX_BINDING_SLOT_STATE_PREMIG_PROGRESS;
+		return true;
+	}
+
+	return false;
+}
+
+static int migtd_wait_for_request(struct kvm_tdx *tdx,
+				  struct tdvmcall_service_migtd *resp_migtd)
+{
+	struct tdx_binding_slot *slot;
+	int i, len = sizeof(struct tdvmcall_service_migtd);
+
+	spin_lock(&tdx->binding_slot_lock);
+	for (i = 0; i < SERVTD_SLOTS_MAX; i++) {
+		slot = tdx->usertd_binding_slots[i];
+		if (slot && tdx_binding_slot_premig_wait(slot))
+			break;
+	}
+	spin_unlock(&tdx->binding_slot_lock);
+
+	/* No one requested to start migration */
+	if (i == SERVTD_SLOTS_MAX) {
+		resp_migtd->operation = TDVMCALL_SERVICE_MIGTD_OP_NOOP;
+		return len;
+	}
+
+	len += migtd_start_migration(resp_migtd, slot, i);
+
+	return len;
+}
+
+static void migtd_report_status_for_start_mig(struct kvm_tdx *tdx,
+				struct tdvmcall_service_migtd *cmd_migtd)
+{
+	uint64_t req_id = *(uint64_t *)cmd_migtd->data;
+	struct tdx_binding_slot *slot;
+	enum tdx_binding_slot_state state;
+
+	spin_lock(&tdx->binding_slot_lock);
+	slot = tdx->usertd_binding_slots[req_id];
+	/* Not bounded any more, e.g. the user TD is destroyed */
+	if (!slot)
+		goto out_unlock;
+
+	state = tdx_binding_slot_get_state(slot);
+	/* Sanity check if the state is unexpected */
+	if (state != TDX_BINDING_SLOT_STATE_PREMIG_PROGRESS)
+		goto out_unlock;
+
+	if (cmd_migtd->status != TDVMCALL_SERVICE_MIGTD_STATUS_SUCC) {
+		pr_err("%s: pre-migration failed, state=%x\n",
+			__func__, cmd_migtd->status);
+		state = TDX_BINDING_SLOT_STATE_BOUND;
+	} else {
+		state = TDX_BINDING_SLOT_STATE_PREMIG_DONE;
+		pr_info("Pre-migration is done, userspace pid=%d\n",
+			tdx->kvm.userspace_pid);
+	}
+
+	tdx_binding_slot_set_state(slot, state);
+
+out_unlock:
+	spin_unlock(&tdx->binding_slot_lock);
+}
+
+/*
+ * Return length of filled bytes. 0 bytes means that the operation isn't
+ * supported.
+ */
+static int migtd_report_status(struct kvm_tdx *tdx,
+			       struct tdvmcall_service_migtd *cmd_migtd)
+{
+	int len = sizeof(struct tdvmcall_service_migtd);
+
+	switch (cmd_migtd->operation) {
+	case TDVMCALL_SERVICE_MIGTD_OP_NOOP:
+		break;
+	case TDVMCALL_SERVICE_MIGTD_OP_START_MIG:
+		migtd_report_status_for_start_mig(tdx, cmd_migtd);
+		break;
+	default:
+		len = 0;
+		pr_err("%s: operation not supported\n", __func__);
+	}
+
+	return len;
+}
+
+/* Return true if the response isn't ready and need to block the vcpu */
+static bool tdx_handle_service_migtd(struct kvm_tdx *tdx,
+				     struct tdvmcall_service *cmd_hdr,
+				     struct tdvmcall_service *resp_hdr)
+{
+	struct tdvmcall_service_migtd *cmd_migtd =
+		(struct tdvmcall_service_migtd *)cmd_hdr->data;
+	struct tdvmcall_service_migtd *resp_migtd =
+		(struct tdvmcall_service_migtd *)resp_hdr->data;
+	uint32_t status, len = 0;
+
+	resp_migtd->cmd = cmd_migtd->cmd;
+
+	switch (cmd_migtd->cmd) {
+	case TDVMCALL_SERVICE_MIGTD_CMD_SHUTDOWN:
+		/*TODO: end migtd */
+		pr_err("%s: end migtd, not supported\n", __func__);
+		status = TDVMCALL_SERVICE_S_UNSUPP;
+		break;
+	case TDVMCALL_SERVICE_MIGTD_CMD_WAIT:
+		resp_migtd->version = TDVMCALL_SERVICE_MIGTD_WAIT_VERSION;
+		if (cmd_migtd->version != resp_migtd->version) {
+			pr_warn("%s: version err\n", __func__);
+			status = TDVMCALL_SERVICE_S_INVAL;
+			break;
+		}
+		len = migtd_wait_for_request(tdx, resp_migtd);
+		status = TDVMCALL_SERVICE_S_RETURNED;
+		break;
+	case TDVMCALL_SERVICE_MIGTD_CMD_REPORT:
+		resp_migtd->version = TDVMCALL_SERVICE_MIGTD_REPORT_VERSION;
+		if (cmd_migtd->version != resp_migtd->version) {
+			pr_warn("%s: version err\n", __func__);
+			status = TDVMCALL_SERVICE_S_UNSUPP;
+			break;
+		}
+		len = migtd_report_status(tdx, cmd_migtd);
+		if (len)
+			status = TDVMCALL_SERVICE_S_RETURNED;
+		else
+			status = TDVMCALL_SERVICE_S_UNSUPP;
+		break;
+	default:
+		pr_warn("%s: cmd %d not supported\n",
+			 __func__, cmd_migtd->cmd);
+		status = TDVMCALL_SERVICE_S_UNSUPP;
+	}
+
+	resp_hdr->length += len;
+	resp_hdr->status = status;
+
+	if (resp_migtd->operation == TDVMCALL_SERVICE_MIGTD_OP_NOOP)
+		return true;
+
+	return false;
+}
+
+static void tdx_inject_notification(struct kvm_vcpu *vcpu, uint8_t vector)
+{
+	struct kvm_kernel_irq_routing_entry route;
+	struct kvm *kvm = vcpu->kvm;
+	struct msi_msg x86_msi = {
+		.arch_addr_lo  = {
+			.reserved_0 = 0,
+			.dest_mode_logical = 0,
+			.redirect_hint = 0,
+			.reserved_1 = 0,
+			.virt_destid_8_14 = 0,
+			.destid_0_7 = kvm_xapic_id(vcpu->arch.apic) & 0xff,
+		},
+		.arch_addr_hi = {
+			.reserved = 0,
+			.destid_8_31 = 0,
+		},
+		.arch_data = {
+			.vector = vector,
+			.delivery_mode = 0,
+			.dest_mode_logical = 0,
+			.reserved = 0,
+			.active_low = 0,
+			.is_level = 0,
+		},
+	};
+
+	route.msi.address_lo = x86_msi.address_lo;
+	route.msi.address_hi = x86_msi.address_hi;
+	route.msi.data = x86_msi.data;
+	route.msi.flags = 0;
+	route.msi.devid = 0;
+
+	kvm_set_msi(&route, kvm, KVM_USERSPACE_IRQ_SOURCE_ID, 1, false);
+}
+
+static int tdx_handle_service(struct kvm_vcpu *vcpu)
+{
+	struct kvm *kvm = vcpu->kvm;
+	struct kvm_tdx *tdx = to_kvm_tdx(kvm);
+	gpa_t cmd_gpa = tdvmcall_a0_read(vcpu) &
+			~gfn_to_gpa(kvm_gfn_shared_mask(kvm));
+	gpa_t resp_gpa = tdvmcall_a1_read(vcpu) &
+			~gfn_to_gpa(kvm_gfn_shared_mask(kvm));
+	uint64_t nvector = tdvmcall_a2_read(vcpu);
+	struct tdvmcall_service *cmd_buf, *resp_buf;
+	enum tdvmcall_service_id service_id;
+	bool need_block = false;
+	int ret = 1;
+	unsigned long tdvmcall_ret = TDG_VP_VMCALL_INVALID_OPERAND;
+
+	if ((nvector > 0 && nvector < 32) || nvector > 255)  {
+		pr_warn("%s: interrupt not supported, nvector %lld\n",
+			__func__, nvector);
+		nvector = 0;
+		goto err_cmd;
+	}
+
+	if (kvm_mem_is_private(kvm, gpa_to_gfn(cmd_gpa)) ||
+	    kvm_mem_is_private(kvm, gpa_to_gfn(resp_gpa))) {
+		pr_warn("%s: cmd or resp buffer is private\n", __func__);
+		tdvmcall_set_return_code(vcpu, TDG_VP_VMCALL_INVALID_OPERAND);
+		goto err_cmd;
+	}
+
+	cmd_buf = tdvmcall_servbuf_alloc(vcpu, cmd_gpa);
+	if (!cmd_buf)
+		goto err_cmd;
+	resp_buf = tdvmcall_servbuf_alloc(vcpu, resp_gpa);
+	if (!resp_buf)
+		goto err_status;
+	resp_buf->length = sizeof(struct tdvmcall_service);
+
+	service_id = tdvmcall_get_service_id(cmd_buf->guid);
+	switch (service_id) {
+	case TDVMCALL_SERVICE_ID_QUERY:
+		tdx_handle_service_query(cmd_buf, resp_buf);
+		break;
+	case TDVMCALL_SERVICE_ID_MIGTD:
+		if (nvector) {
+			pr_warn("%s: interrupt not supported, nvector %lld\n",
+				__func__, nvector);
+			nvector = 0;
+			break;
+		}
+		need_block = tdx_handle_service_migtd(tdx, cmd_buf, resp_buf);
+		break;
+	case TDVMCALL_SERVICE_ID_VTPM:
+	case TDVMCALL_SERVICE_ID_VTPMTD:
+	case TDVMCALL_SERVICE_ID_TDCM:
+	case TDVMCALL_SERVICE_ID_TPA:
+	case TDVMCALL_SERVICE_ID_SPDM:
+		ret = 0;
+		break;
+	default:
+		resp_buf->status = TDVMCALL_SERVICE_S_UNSUPP;
+		pr_warn("%s: unsupported service type\n", __func__);
+	}
+
+	if (ret == 0) {
+		/* user handles the service and update the guest status buf */
+		ret = tdx_vp_vmcall_to_user(vcpu);
+		kfree(resp_buf);
+	} else {
+		/* Update the guest status buf and free the host buf */
+		tdvmcall_status_copy_and_free(resp_buf, vcpu, resp_gpa);
+		tdvmcall_ret = TDG_VP_VMCALL_SUCCESS;
+	}
+
+err_status:
+	kfree(cmd_buf);
+	if (need_block && !nvector)
+		return kvm_emulate_halt_noskip(vcpu);
+err_cmd:
+	if (ret) {
+		tdvmcall_set_return_code(vcpu, tdvmcall_ret);
+
+		if (nvector)
+			tdx_inject_notification(vcpu, nvector);
+	}
+
+	return ret;
+}
+
 static int handle_tdvmcall(struct kvm_vcpu *vcpu)
 {
 	int r;
@@ -1679,6 +2356,12 @@ static int handle_tdvmcall(struct kvm_vcpu *vcpu)
 		break;
 	case TDG_VP_VMCALL_GET_TD_VM_CALL_INFO:
 		r = tdx_get_td_vm_call_info(vcpu);
+		break;
+	case TDG_VP_VMCALL_SERVICE:
+		r = tdx_handle_service(vcpu);
+		break;
+	case TDG_VP_VMCALL_MAP_GPA:
+		r = tdx_map_gpa(vcpu);
 		break;
 	default:
 		/*
@@ -1745,8 +2428,15 @@ static int tdx_sept_set_private_spte(struct kvm *kvm, gfn_t gfn,
 	u64 err;
 	int i;
 
-	if (WARN_ON_ONCE(is_error_noslot_pfn(pfn) ||
-			 !kvm_pfn_to_refcounted_page(pfn)))
+	if (WARN_ON_ONCE(is_error_noslot_pfn(pfn)))
+		return 0;
+
+	if (kvm_is_mmio_pfn(pfn)) {
+		tdx_tdi_mmio_map(kvm_tdx, gfn, level, pfn);
+		return 0;
+	}
+
+	if (!kvm_pfn_to_refcounted_page(pfn))
 		return 0;
 
 	/*
@@ -1763,10 +2453,6 @@ static int tdx_sept_set_private_spte(struct kvm *kvm, gfn_t gfn,
 	/* Build-time faults are induced and handled via TDH_MEM_PAGE_ADD. */
 	if (likely(is_td_finalized(kvm_tdx))) {
 		err = tdh_mem_page_aug(kvm_tdx->tdr_pa, gpa, tdx_level, hpa, &out);
-		if (unlikely(err == TDX_ERROR_SEPT_BUSY)) {
-			tdx_unpin(kvm, gfn, pfn, level);
-			return -EAGAIN;
-		}
 		if (unlikely(err == (TDX_EPT_ENTRY_NOT_FREE | TDX_OPERAND_ID_RCX))) {
 			/*
 			 * TDX 1.0 may return TDX_EPT_ENTRY_NOT_FREE without
@@ -1849,14 +2535,8 @@ static int tdx_sept_set_private_spte(struct kvm *kvm, gfn_t gfn,
 	measure = kvm_tdx->source_pa & KVM_TDX_MEASURE_MEMORY_REGION;
 	kvm_tdx->source_pa = INVALID_PAGE;
 
-	do {
-		err = tdh_mem_page_add(kvm_tdx->tdr_pa, gpa, tdx_level, hpa,
-				       source_pa, &out);
-		/*
-		 * This path is executed during populating initial guest memory
-		 * image. i.e. before running any vcpu.  Race is rare.
-		 */
-	} while (unlikely(err == TDX_ERROR_SEPT_BUSY));
+	err = tdh_mem_page_add(kvm_tdx->tdr_pa, gpa, tdx_level, hpa,
+			       source_pa, &out);
 	if (KVM_BUG_ON(err, kvm)) {
 		pr_tdx_error(TDH_MEM_PAGE_ADD, err, &out);
 		tdx_unpin(kvm, gfn, pfn, level);
@@ -1882,6 +2562,13 @@ static int tdx_sept_drop_private_spte(struct kvm *kvm, gfn_t gfn,
 	u64 err;
 	int i;
 
+	/*
+	 * we couldn't block and unmap private mmio here, cause devif should
+	 * be unlocked first
+	 */
+	if (kvm_is_mmio_pfn(pfn))
+		return 0;
+
 	if (unlikely(!is_hkid_assigned(kvm_tdx))) {
 		/*
 		 * The HKID assigned to this TD was already freed and cache
@@ -1899,14 +2586,12 @@ static int tdx_sept_drop_private_spte(struct kvm *kvm, gfn_t gfn,
 		return 0;
 	}
 
-	do {
-		/*
-		 * When zapping private page, write lock is held. So no race
-		 * condition with other vcpu sept operation.  Race only with
-		 * TDH.VP.ENTER.
-		 */
-		err = tdh_mem_page_remove(kvm_tdx->tdr_pa, gpa, tdx_level, &out);
-	} while (unlikely(err == TDX_ERROR_SEPT_BUSY));
+	/*
+	 * When zapping private page, write lock is held. So no race
+	 * condition with other vcpu sept operation.  Race only with
+	 * TDH.VP.ENTER.
+	 */
+	err = tdh_mem_page_remove(kvm_tdx->tdr_pa, gpa, tdx_level, &out);
 	if (KVM_BUG_ON(err, kvm)) {
 		pr_tdx_error(TDH_MEM_PAGE_REMOVE, err, &out);
 		return -EIO;
@@ -1914,15 +2599,7 @@ static int tdx_sept_drop_private_spte(struct kvm *kvm, gfn_t gfn,
 
 	for (i = 0; i < KVM_PAGES_PER_HPAGE(level); i++) {
 		hpa_with_hkid = set_hkid_to_hpa(hpa, (u16)kvm_tdx->hkid);
-		do {
-			/*
-			 * TDX_OPERAND_BUSY can happen on locking PAMT entry.
-			 * Because this page was removed above, other thread
-			 * shouldn't be repeatedly operating on this page.
-			 * Simple retry should work.
-			 */
-			err = tdh_phymem_page_wbinvd(hpa_with_hkid);
-		} while (unlikely(err == (TDX_OPERAND_BUSY | TDX_OPERAND_ID_RCX)));
+		err = tdh_phymem_page_wbinvd(hpa_with_hkid);
 		if (KVM_BUG_ON(err, kvm)) {
 			pr_tdx_error(TDH_PHYMEM_PAGE_WBINVD, err, NULL);
 			r = -EIO;
@@ -1949,8 +2626,6 @@ static int tdx_sept_link_private_spt(struct kvm *kvm, gfn_t gfn,
 	u64 err;
 
 	err = tdh_mem_sept_add(kvm_tdx->tdr_pa, gpa, tdx_level, hpa, &out);
-	if (unlikely(err == TDX_ERROR_SEPT_BUSY))
-		return -EAGAIN;
 	if (unlikely(err == (TDX_EPT_ENTRY_NOT_FREE | TDX_OPERAND_ID_RCX))) {
 		err = tdh_mem_sept_rd(kvm_tdx->tdr_pa, gpa, tdx_level, &out);
 		if (KVM_BUG_ON(err, kvm)) {
@@ -1995,14 +2670,7 @@ static int tdx_sept_split_private_spt(struct kvm *kvm, gfn_t gfn,
 	u64 err;
 
 	/* See comment in tdx_sept_set_private_spte() */
-	do {
-		err = tdh_mem_page_demote(kvm_tdx->tdr_pa, gpa, tdx_level, hpa, &out);
-	} while (err == TDX_INTERRUPTED_RESTARTABLE);
-	if (unlikely(err == TDX_ERROR_SEPT_BUSY)) {
-		trace_kvm_tdx_page_demote(kvm_tdx->tdr_pa, gfn, hpa >> PAGE_SHIFT,
-					  level, -EAGAIN);
-		return -EAGAIN;
-	}
+	err = tdh_mem_page_demote(kvm_tdx->tdr_pa, gpa, tdx_level, hpa, &out);
 	if (KVM_BUG_ON(err, kvm)) {
 		pr_tdx_error(TDH_MEM_PAGE_DEMOTE, err, &out);
 		trace_kvm_tdx_page_demote(kvm_tdx->tdr_pa, gfn, hpa >> PAGE_SHIFT, level, -EIO);
@@ -2024,14 +2692,7 @@ static int tdx_sept_merge_private_spt(struct kvm *kvm, gfn_t gfn,
 	u64 err;
 
 	/* See comment in tdx_sept_set_private_spte() */
-	do {
-		err = tdh_mem_page_promote(kvm_tdx->tdr_pa, gpa, tdx_level, &out);
-	} while (err == TDX_INTERRUPTED_RESTARTABLE);
-	if (unlikely(err == TDX_ERROR_SEPT_BUSY)) {
-		trace_kvm_tdx_page_promote(kvm_tdx->tdr_pa, gfn,
-					   __pa(private_spt) >> PAGE_SHIFT, level, -EAGAIN);
-		return -EAGAIN;
-	}
+	err = tdh_mem_page_promote(kvm_tdx->tdr_pa, gpa, tdx_level, &out);
 	if (unlikely(err == (TDX_EPT_INVALID_PROMOTE_CONDITIONS |
 			     TDX_OPERAND_ID_RCX))) {
 		/*
@@ -2054,10 +2715,8 @@ static int tdx_sept_merge_private_spt(struct kvm *kvm, gfn_t gfn,
 	 * TDH.MEM.PAGE.PROMOTE frees the Secure-EPT page for the lower level.
 	 * Flush cache for reuse.
 	 */
-	do {
-		err = tdh_phymem_page_wbinvd(set_hkid_to_hpa(__pa(private_spt),
-							     to_kvm_tdx(kvm)->hkid));
-	} while (unlikely(err == (TDX_OPERAND_BUSY | TDX_OPERAND_ID_RCX)));
+	err = tdh_phymem_page_wbinvd(set_hkid_to_hpa(__pa(private_spt),
+                                 to_kvm_tdx(kvm)->hkid));
 	if (WARN_ON_ONCE(err)) {
 		pr_tdx_error(TDH_PHYMEM_PAGE_WBINVD, err, NULL);
 		trace_kvm_tdx_page_promote(kvm_tdx->tdr_pa, gfn,
@@ -2087,8 +2746,6 @@ static int tdx_sept_zap_private_spte(struct kvm *kvm, gfn_t gfn,
 		return 0;
 
 	err = tdh_mem_range_block(kvm_tdx->tdr_pa, gpa, tdx_level, &out);
-	if (unlikely(err == TDX_ERROR_SEPT_BUSY))
-		return -EAGAIN;
 	if (unlikely(err == (TDX_GPA_RANGE_ALREADY_BLOCKED | TDX_OPERAND_ID_RCX)))
 		return -EAGAIN;
 
@@ -2128,25 +2785,29 @@ static void tdx_track(struct kvm_tdx *kvm_tdx)
 	 * TDH_MEM_TRACK() can be issued concurrently by multiple vcpus.
 	 */
 	atomic_inc(&kvm_tdx->tdh_mem_track);
+
+	while (atomic_read(&kvm_tdx->tdh_mem_track) > 1)
+		cpu_relax();
+
 	/*
 	 * KVM_REQ_TLB_FLUSH waits for the empty IPI handler, ack_flush(), with
 	 * KVM_REQUEST_WAIT.
 	 */
 	kvm_make_all_cpus_request(&kvm_tdx->kvm, KVM_REQ_TLB_FLUSH);
 
-	do {
-		/*
-		 * kvm_flush_remote_tlbs() doesn't allow to return error and
-		 * retry.
-		 */
-		err = tdh_mem_track(kvm_tdx->tdr_pa);
-	} while (unlikely((err & TDX_SEAMCALL_STATUS_MASK) == TDX_OPERAND_BUSY));
-
-	/* Release remote vcpu waiting for TDH.MEM.TRACK in tdx_flush_tlb(). */
-	atomic_dec(&kvm_tdx->tdh_mem_track);
+	/*
+	 * kvm_flush_remote_tlbs() doesn't allow to return error and
+	 * retry.
+	 */
+	err = tdh_mem_track(kvm_tdx->tdr_pa);
 
 	if (KVM_BUG_ON(err, &kvm_tdx->kvm))
 		pr_tdx_error(TDH_MEM_TRACK, err, NULL);
+	else
+		tdx_tdi_iq_inv_iotlb(kvm_tdx);
+
+	/* Release remote vcpu waiting for TDH.MEM.TRACK in tdx_flush_tlb(). */
+	atomic_dec(&kvm_tdx->tdh_mem_track);
 
 }
 
@@ -2168,8 +2829,6 @@ static int tdx_sept_unzap_private_spte(struct kvm *kvm, gfn_t gfn,
 		 * tdh_mem_range_block() to complete TDX track.
 		 */
 	} while (err == (TDX_TLB_TRACKING_NOT_DONE | TDX_OPERAND_ID_SEPT));
-	if (unlikely(err == TDX_ERROR_SEPT_BUSY))
-		return -EAGAIN;
 	if (unlikely(err == (TDX_GPA_RANGE_NOT_BLOCKED | TDX_OPERAND_ID_RCX)))
 		return -EAGAIN;
 	if (unlikely(err == (TDX_EPT_ENTRY_STATE_INCORRECT | TDX_OPERAND_ID_RCX))) {
@@ -2226,10 +2885,8 @@ static int tdx_sept_free_private_spt(struct kvm *kvm, gfn_t gfn,
 	 * guest page.   private guest page can be zapped during TD is active.
 	 * shared <-> private conversion and slot move/deletion.
 	 */
-	do {
-		err = tdh_mem_range_block(kvm_tdx->tdr_pa, parent_gpa,
-					  parent_tdx_level, &out);
-	} while (unlikely(err == TDX_ERROR_SEPT_BUSY));
+	err = tdh_mem_range_block(kvm_tdx->tdr_pa, parent_gpa,
+				  parent_tdx_level, &out);
 	if (KVM_BUG_ON(err, kvm)) {
 		pr_tdx_error(TDH_MEM_RANGE_BLOCK, err, &out);
 		return -EIO;
@@ -2295,6 +2952,27 @@ static int tdx_sept_remove_private_spte(struct kvm *kvm, gfn_t gfn,
 		kvm_flush_remote_tlbs(kvm);
 
 	return tdx_sept_drop_private_spte(kvm, gfn, level, pfn);
+}
+
+static void tdx_link_shared_spte(struct kvm *kvm, gfn_t gfn, int level,
+				 u64 spte)
+{
+	struct kvm_tdx *kvm_tdx = to_kvm_tdx(kvm);
+	struct tdx_module_output out;
+	gpa_t gpa = gfn_to_gpa(gfn);
+	u64 gpa_info;
+	u64 err;
+
+	if (!is_td(kvm) || !tdx_io_support())
+		return;
+
+	gpa_info = (u64)gpa | (level - 1);
+
+	err = tdh_mem_shared_sept_wr(gpa_info, kvm_tdx->tdr_pa, spte, &out);
+	pr_debug("%s gpa_info=0x%llx, spte=0x%llx, err=0x%llx, out_rcx=0x%llx, out_rdx=0x%llx\n",
+		 __func__, gpa_info, spte, err, out.rcx, out.rdx);
+	if (WARN_ON_ONCE(err))
+		pr_tdx_error(TDH_MEM_SHARED_SEPT_WR, err, &out);
 }
 
 void tdx_deliver_interrupt(struct kvm_lapic *apic, int delivery_mode,
@@ -3257,7 +3935,7 @@ static int setup_tdparams_eptp_controls(struct kvm_cpuid2 *cpuid,
 	return 0;
 }
 
-static void setup_tdparams_cpuids(struct kvm *kvm,
+static int setup_tdparams_cpuids(struct kvm *kvm,
 				  const struct tdsysinfo_struct *tdsysinfo,
 				  struct kvm_cpuid2 *cpuid,
 				  struct td_params *td_params)
@@ -3294,10 +3972,19 @@ static void setup_tdparams_cpuids(struct kvm *kvm,
 		value->ecx = entry->ecx & config->ecx;
 		value->edx = entry->edx & config->edx;
 
+		if (config->leaf == 0x1 &&
+			(value->ecx & __feature_bit(X86_FEATURE_MWAIT)) &&
+			!kvm_mwait_in_guest(kvm)) {
+			pr_info_ratelimited("Invalid mwait configuration!\n");
+			return -EINVAL;
+		}
+
 		/* Remember the setting to check for KVM_SET_CPUID2. */
 		kvm_tdx->cpuid[kvm_tdx->cpuid_nent] = *entry;
 		kvm_tdx->cpuid_nent++;
 	}
+
+	return 0;
 }
 
 static int setup_tdparams_xfam(struct kvm_cpuid2 *cpuid, struct td_params *td_params)
@@ -3341,30 +4028,11 @@ static int setup_tdparams_xfam(struct kvm_cpuid2 *cpuid, struct td_params *td_pa
 	return 0;
 }
 
-/*
- * Determine TSX_CTRL value on tdexit
- *
- * tsx for guest:	TSX CTRL value on tdexit
- *
- * Pre 1.0.3.3 (tsx for guest isn't supported):
- * must be disabled	0 (the value must be 0 on tdentry)
- *
- * Post 1.0.3.3 (tsx for geust is supported):
- * disabled		preserved
- * enabled		0
- */
-static bool tdparams_tsx_ctrl_reset(struct kvm_cpuid2 *cpuid)
+static bool tdparams_tsx_supported(struct kvm_cpuid2 *cpuid)
 {
 	const struct kvm_cpuid_entry2 *entry;
 	u64 mask;
 	u32 ebx;
-
-	/* As TSX_CTRL isn't supported, No need restore TSX_CTRL. */
-	if (!boot_cpu_has(X86_FEATURE_MSR_TSX_CTRL))
-		return false;
-	/* Pre 1.0.3.3 (tsx for guest isn't supported): */
-	if (!tdx_info.tsx_supported)
-		return true;
 
 	entry = kvm_find_cpuid_entry2(cpuid->entries, cpuid->nent, 0x7, 0);
 	if (entry)
@@ -3396,7 +4064,9 @@ static int setup_tdparams(struct kvm *kvm, struct td_params *td_params,
 	ret = setup_tdparams_eptp_controls(cpuid, td_params);
 	if (ret)
 		return ret;
-	setup_tdparams_cpuids(kvm, tdsysinfo, cpuid, td_params);
+	ret = setup_tdparams_cpuids(kvm, tdsysinfo, cpuid, td_params);
+	if (ret)
+		return ret;
 	ret = setup_tdparams_xfam(cpuid, td_params);
 	if (ret)
 		return ret;
@@ -3411,7 +4081,7 @@ static int setup_tdparams(struct kvm *kvm, struct td_params *td_params,
 	MEMCPY_SAME_SIZE(td_params->mrowner, init_vm->mrowner);
 	MEMCPY_SAME_SIZE(td_params->mrownerconfig, init_vm->mrownerconfig);
 
-	to_kvm_tdx(kvm)->tsx_ctrl_reset = tdparams_tsx_ctrl_reset(cpuid);
+	to_kvm_tdx(kvm)->tsx_supported = tdparams_tsx_supported(cpuid);
 	return 0;
 }
 
@@ -3551,7 +4221,7 @@ static int __tdx_td_init(struct kvm *kvm, struct td_params *td_params,
 	}
 
 	err = tdh_mng_init(kvm_tdx->tdr_pa, __pa(td_params), &out);
-	if ((err & TDX_SEAMCALL_STATUS_MASK) == TDX_OPERAND_INVALID) {
+	if (seamcall_masked_status(err) == TDX_OPERAND_INVALID) {
 		/*
 		 * Because a user gives operands, don't warn.
 		 * Return a hint to the user because it's sometimes hard for the
@@ -3677,8 +4347,11 @@ static int tdx_td_init(struct kvm *kvm, struct kvm_tdx_cmd *cmd)
 		goto out;
 
 	kvm_tdx->tsc_offset = td_tdcs_exec_read64(kvm_tdx, TD_TDCS_EXEC_TSC_OFFSET);
+	kvm_tdx->mmio_offset = tdx_io_enabled() ?
+		td_tdr_tdxio_read64(kvm_tdx, TD_TDR_TDXIO_RND_HPA_OFFSET) : 0;
 	kvm_tdx->attributes = td_params->attributes;
 	kvm_tdx->xfam = td_params->xfam;
+	kvm_tdx->eptp_controls = td_params->eptp_controls;
 
 	if (td_params->exec_controls & TDX_EXEC_CONTROL_MAX_GPAW)
 		kvm->arch.gfn_shared_mask = gpa_to_gfn(BIT_ULL(51));
@@ -3844,6 +4517,243 @@ static int tdx_td_finalizemr(struct kvm *kvm)
 	return 0;
 }
 
+static int tdx_servtd_prebind(struct kvm *usertd_kvm, struct kvm_tdx_cmd *cmd)
+{
+	struct kvm_tdx *usertd_tdx = to_kvm_tdx(usertd_kvm);
+	struct kvm_tdx_servtd servtd;
+	struct tdx_binding_slot *slot;
+	struct page *hash_page;
+	uint16_t slot_id;
+	uint64_t err;
+
+	if (copy_from_user(&servtd, (void __user *)cmd->data,
+			   sizeof(struct kvm_tdx_servtd)))
+		return -EFAULT;
+
+	if (cmd->flags ||
+	    servtd.version != KVM_TDX_SERVTD_VERSION ||
+	    servtd.type >= KVM_TDX_SERVTD_TYPE_MAX)
+		return -EINVAL;
+
+	slot_id = servtd.type;
+	slot = &usertd_tdx->binding_slots[slot_id];
+	if (tdx_binding_slot_get_state(slot) != TDX_BINDING_SLOT_STATE_INIT)
+		return -EPERM;
+
+	hash_page = alloc_page(GFP_KERNEL_ACCOUNT | __GFP_ZERO);
+	if (!hash_page)
+		return -ENOMEM;
+
+	memcpy(page_to_virt(hash_page),
+	       servtd.hash, KVM_TDX_SERVTD_HASH_SIZE);
+
+	err = tdh_servtd_prebind(usertd_tdx->tdr_pa,
+				 page_to_phys(hash_page),
+				 slot_id,
+				 servtd.attr,
+				 servtd.type);
+	__free_page(hash_page);
+	if (err) {
+		pr_warn("failed to prebind servtd, err=%llx\n", err);
+		return -EIO;
+	}
+	tdx_binding_slot_set_state(slot, TDX_BINDING_SLOT_STATE_PREBOUND);
+
+	return 0;
+}
+
+static void tdx_binding_slot_bound_set_info(struct tdx_binding_slot *slot,
+					    uint64_t handle,
+					    uint64_t uuid0,
+					    uint64_t uuid1,
+					    uint64_t uuid2,
+					    uint64_t uuid3)
+{
+	slot->handle = handle;
+	memcpy(&slot->uuid[0], &uuid0, sizeof(uint64_t));
+	memcpy(&slot->uuid[8], &uuid1, sizeof(uint64_t));
+	memcpy(&slot->uuid[16], &uuid2, sizeof(uint64_t));
+	memcpy(&slot->uuid[24], &uuid3, sizeof(uint64_t));
+}
+
+static int tdx_servtd_do_bind(struct kvm_tdx *usertd_tdx,
+			      struct kvm_tdx *servtd_tdx,
+			      struct kvm_tdx_servtd *servtd,
+			      struct tdx_binding_slot *slot)
+{
+	struct tdx_module_output out;
+	uint16_t slot_id = servtd->type;
+	u64 err;
+
+	/*TODO: check max binding_slots_id from rdall */
+	err = tdh_servtd_bind(servtd_tdx->tdr_pa,
+			      usertd_tdx->tdr_pa,
+			      slot_id,
+			      servtd->attr,
+			      servtd->type,
+			      &out);
+	if (KVM_BUG_ON(err, &usertd_tdx->kvm)) {
+		pr_tdx_error(TDH_SERVTD_BIND, err, &out);
+		return -EIO;
+	}
+
+	tdx_binding_slot_bound_set_info(slot, out.rcx, out.r10,
+					out.r11, out.r12, out.r13);
+	tdx_binding_slot_set_state(slot, TDX_BINDING_SLOT_STATE_BOUND);
+
+	return 0;
+}
+
+static int tdx_servtd_add_binding_slot(struct kvm_tdx *servtd_tdx,
+				       struct tdx_binding_slot *slot)
+{
+	int i, ret = 0;
+
+	spin_lock(&servtd_tdx->binding_slot_lock);
+	for (i = 0; i < SERVTD_SLOTS_MAX; i++) {
+		if (slot == servtd_tdx->usertd_binding_slots[i])
+			goto out_unlock;
+
+		if (!servtd_tdx->usertd_binding_slots[i])
+			break;
+	}
+
+	/*
+	 * Unlikely. The arrary should be big enough to have an
+	 * entry for each TD on the same host to add its binding
+	 * slot.
+	 */
+	if (i == SERVTD_SLOTS_MAX) {
+		ret = -EBUSY;
+		goto out_unlock;
+	}
+
+	servtd_tdx->usertd_binding_slots[i] = slot;
+	slot->servtd_tdx = servtd_tdx;
+	slot->req_id = i;
+out_unlock:
+	spin_unlock(&servtd_tdx->binding_slot_lock);
+	return ret;
+}
+
+static int tdx_servtd_bind(struct kvm *usertd_kvm, struct kvm_tdx_cmd *cmd)
+{
+	struct kvm *servtd_kvm;
+	struct kvm_tdx *servtd_tdx;
+	struct kvm_tdx *usertd_tdx = to_kvm_tdx(usertd_kvm);
+	struct kvm_tdx_servtd servtd;
+	struct tdx_binding_slot *slot;
+	uint16_t slot_id;
+	int ret;
+
+	if (copy_from_user(&servtd, (void __user *)cmd->data,
+			   sizeof(struct kvm_tdx_servtd)))
+		return -EFAULT;
+
+	if (cmd->flags ||
+	    servtd.version != KVM_TDX_SERVTD_VERSION ||
+	    servtd.type >= KVM_TDX_SERVTD_TYPE_MAX) {
+		return -EINVAL;
+	}
+
+	servtd_kvm = kvm_get_target_kvm(servtd.pid);
+	if (!servtd_kvm || !is_td(servtd_kvm)) {
+		pr_err("%s: servtd not found, pid=%d\n", __func__, servtd.pid);
+		return -ENOENT;
+	}
+	servtd_tdx = to_kvm_tdx(servtd_kvm);
+
+	/* Each type of servtd has one slot, so reuse the type number as id */
+	slot_id = servtd.type;
+	slot = &usertd_tdx->binding_slots[slot_id];
+
+	ret = tdx_servtd_do_bind(usertd_tdx, servtd_tdx, &servtd, slot);
+	if (ret)
+		return ret;
+
+	return tdx_servtd_add_binding_slot(servtd_tdx, slot);
+
+}
+
+static void tdx_notify_servtd(struct kvm_tdx *tdx)
+{
+	struct kvm *kvm;
+	struct kvm_vcpu *vcpu;
+	unsigned long i;
+
+	kvm = &tdx->kvm;
+	kvm_for_each_vcpu(i, vcpu, kvm) {
+		if (vcpu->arch.mp_state == KVM_MP_STATE_HALTED) {
+			vcpu->arch.mp_state = KVM_MP_STATE_RUNNABLE;
+			kvm_vcpu_kick(vcpu);
+		}
+	}
+}
+
+static int tdx_set_migration_info(struct kvm *kvm,
+				  struct kvm_tdx_cmd *cmd)
+{
+	struct kvm_tdx *servtd_tdx;
+	struct kvm_tdx *usertd_tdx = to_kvm_tdx(kvm);
+	struct kvm_tdx_set_migration_info info;
+	struct tdx_binding_slot *slot;
+	struct tdx_binding_slot_migtd *migtd_data;
+
+	if (copy_from_user(&info, (void __user *)cmd->data,
+			   sizeof(struct kvm_tdx_set_migration_info)))
+		return -EFAULT;
+
+	if (cmd->flags ||
+	    info.version != KVM_TDX_SET_MIGRATION_INFO_VERSION)
+		return -EINVAL;
+
+	slot = &usertd_tdx->binding_slots[KVM_TDX_SERVTD_TYPE_MIGTD];
+	servtd_tdx = slot->servtd_tdx;
+	if (!servtd_tdx)
+		return -ENOENT;
+
+	migtd_data = &slot->migtd_data;
+	spin_lock(&servtd_tdx->binding_slot_lock);
+
+	migtd_data->vsock_port = info.vsock_port;
+	migtd_data->is_src = info.is_src;
+	tdx_binding_slot_set_state(slot, TDX_BINDING_SLOT_STATE_PREMIG_WAIT);
+
+	spin_unlock(&servtd_tdx->binding_slot_lock);
+
+	tdx_notify_servtd(servtd_tdx);
+	return 0;
+}
+
+static int tdx_get_migration_info(struct kvm *kvm,
+				  struct kvm_tdx_cmd *cmd)
+{
+	struct kvm_tdx *usertd_tdx = to_kvm_tdx(kvm);
+	struct kvm_tdx_get_migration_info info;
+	struct tdx_binding_slot *slot;
+
+	if (copy_from_user(&info, (void __user *)cmd->data,
+			   sizeof(struct kvm_tdx_get_migration_info)))
+		return -EFAULT;
+
+	if (cmd->flags ||
+	    info.version != KVM_TDX_GET_MIGRATION_INFO_VERSION)
+		return -EINVAL;
+
+	slot = &usertd_tdx->binding_slots[KVM_TDX_SERVTD_TYPE_MIGTD];
+	if (tdx_binding_slot_get_state(slot) ==
+			TDX_BINDING_SLOT_STATE_PREMIG_DONE)
+		info.premig_done = 1;
+	else
+		info.premig_done = 0;
+
+	if (copy_to_user((void __user *)cmd->data, &info,
+			 sizeof(struct kvm_tdx_get_migration_info)))
+		return -EFAULT;
+
+	return 0;
+}
+
 int tdx_vm_ioctl(struct kvm *kvm, void __user *argp)
 {
 	struct kvm_tdx_cmd tdx_cmd;
@@ -3868,6 +4778,18 @@ int tdx_vm_ioctl(struct kvm *kvm, void __user *argp)
 		break;
 	case KVM_TDX_FINALIZE_VM:
 		r = tdx_td_finalizemr(kvm);
+		break;
+	case KVM_TDX_SERVTD_PREBIND:
+		r = tdx_servtd_prebind(kvm, &tdx_cmd);
+		break;
+	case KVM_TDX_SERVTD_BIND:
+		r = tdx_servtd_bind(kvm, &tdx_cmd);
+		break;
+	case KVM_TDX_SET_MIGRATION_INFO:
+		r = tdx_set_migration_info(kvm, &tdx_cmd);
+		break;
+	case KVM_TDX_GET_MIGRATION_INFO:
+		r = tdx_get_migration_info(kvm, &tdx_cmd);
 		break;
 	default:
 		r = -EINVAL;
@@ -4166,12 +5088,17 @@ static struct notifier_block tdx_mce_nb = {
 	.priority = MCE_PRIO_CEC,
 };
 
+bool is_sys_rd_supported(void)
+{
+	return !!tdx_info.sys_rd;
+}
+
 static int __init tdx_module_setup(void)
 {
 	const struct tdsysinfo_struct *tdsysinfo;
-	bool tsx_supported = false;
+	struct tdx_module_output out;
 	int ret = 0;
-	int i;
+	u64 err;
 
 	BUILD_BUG_ON(sizeof(*tdsysinfo) > TDSYSINFO_STRUCT_SIZE);
 	BUILD_BUG_ON(TDX_MAX_NR_CPUID_CONFIGS != 37);
@@ -4184,19 +5111,6 @@ static int __init tdx_module_setup(void)
 
 	tdsysinfo = tdx_get_sysinfo();
 	WARN_ON(tdsysinfo->num_cpuid_config > TDX_MAX_NR_CPUID_CONFIGS);
-
-	/* Check if guest TSX is supported or not. */
-	for (i = 0; i < tdsysinfo->num_cpuid_config; i++) {
-		const struct tdx_cpuid_config *c = &tdsysinfo->cpuid_configs[i];
-
-		if (c->leaf == 7 && c->sub_leaf == 0) {
-#define CPUID_07_EBX_TSX_MASK  (BIT(4) | BIT(11))
-			if ((c->ebx & CPUID_07_EBX_TSX_MASK) == CPUID_07_EBX_TSX_MASK)
-				tsx_supported = true;
-			break;
-		}
-	}
-
 	tdx_info = (struct tdx_info) {
 		.nr_tdcs_pages = tdsysinfo->tdcs_base_size / PAGE_SIZE,
 		/*
@@ -4204,11 +5118,23 @@ static int __init tdx_module_setup(void)
 		 * -1 for TDVPR.
 		 */
 		.nr_tdvpx_pages = tdsysinfo->tdvps_base_size / PAGE_SIZE - 1,
-		.tsx_supported = tsx_supported,
+		.sys_rd = tdsysinfo->sys_rd,
 	};
 
 	pr_info("nr_tdcs %d nr_tdvpx %d\n",
 		tdx_info.nr_tdcs_pages, tdx_info.nr_tdvpx_pages);
+
+	err = tdh_sys_rd(TDX_MD_FID_SERVTD_MAX_SERVTDS, &out);
+	/*
+	 * If error happens, it isn't critical and no need to fail the entire
+	 * tdx setup. Only servtd binding (which is optional) won't be allowed
+	 * later, as we keep max_servtds being 0.
+	 */
+	if (err == TDX_SUCCESS)
+		tdx_info.max_servtds = out.r8;
+	pr_info("tdx: max servtds supported per user TD is %d\n",
+		tdx_info.max_servtds);
+
 	return 0;
 }
 
@@ -4563,11 +5489,6 @@ static int tdx_write_guest_memory(struct kvm *kvm, struct kvm_rw_memory *rw_memo
 	return ret;
 }
 
-struct vmx_tdx_enabled {
-	cpumask_var_t vmx_enabled;
-	atomic_t err;
-};
-
 static void __init vmx_tdx_on(void *_vmx_tdx)
 {
 	struct vmx_tdx_enabled *vmx_tdx = _vmx_tdx;
@@ -4694,7 +5615,7 @@ int __init tdx_hardware_setup(struct kvm_x86_ops *x86_ops)
 	x86_ops->drop_private_spte = tdx_sept_drop_private_spte;
 	x86_ops->mem_enc_read_memory = tdx_read_guest_memory;
 	x86_ops->mem_enc_write_memory = tdx_write_guest_memory;
-
+	x86_ops->link_shared_spte = tdx_link_shared_spte;
 	kvm_set_tdx_guest_pmi_handler(tdx_guest_pmi_handler);
 	mce_register_decode_chain(&tdx_mce_nb);
 	intel_reserve_lbr_buffers();
@@ -5004,3 +5925,1834 @@ out_fput:
 		fput(src_kvm_file);
 	return ret;
 }
+
+/* TDX connect stuff */
+static inline struct device *tdx_tdi_to_dev(struct tdx_tdi *ttdi)
+{
+	return &ttdi->tdi->pdev->dev;
+}
+
+static void tdx_tdi_devif_remove(struct tdx_tdi *ttdi)
+{
+	struct device *dev = tdx_tdi_to_dev(ttdi);
+	struct tdx_module_output out = { 0 };
+	u64 retval;
+
+	dev_info(dev, "%s: remove tdisp devif\n", __func__);
+
+	retval = tdh_devif_remove(ttdi->id.func_id, &out);
+
+	dev_info(dev, "%s ret %llx func_id %x td_buf %llx vmm_buf %llx\n",
+		 __func__, retval, ttdi->id.func_id, out.rcx, out.rdx);
+
+	if (retval) {
+		dev_err(dev, "failed to remove DEVIF %llx\n", retval);
+		return;
+	}
+
+	if ((u64)ttdi->td_buff_pa != out.rcx) {
+		dev_err(dev, "td buffer address doesn't match\n");
+		return;
+	}
+
+	if ((u64)ttdi->vmm_buff_pa != out.rdx) {
+		dev_err(dev, "vmm buffer address doesn't match\n");
+		return;
+	}
+
+	free_page((unsigned long)__va(ttdi->vmm_buff_pa));
+	free_page((unsigned long)__va(ttdi->td_buff_pa));
+	free_page((unsigned long)__va(ttdi->devifcs_pa));
+}
+
+static int tdx_tdi_devif_create(struct tdx_tdi *ttdi)
+{
+	struct device *dev = tdx_tdi_to_dev(ttdi);
+	struct kvm_tdx *kvm_tdx = ttdi->kvm_tdx;
+	struct pci_tdi *tdi = ttdi->tdi;
+	struct iommu_device_info_vtd info;
+	unsigned long va;
+	u64 retval;
+	int ret;
+
+	dev_info(dev, "%s: create tdisp devif\n", __func__);
+
+	/* Per-condition, IOMMU for target device must support TDX-IO */
+	ret = iommu_get_hw_info(dev, IOMMU_DEVICE_DATA_INTEL_VTD,
+				(void *)&info, sizeof(struct iommu_device_info_vtd));
+	if (ret) {
+		dev_err(dev, "%s: Failed to get IOMMU ID\n", __func__);
+		return ret;
+	}
+
+	/*
+	 * PT_DEVIFCS_R(devifcs)/NR(td_buff/vm_buff) doesn't need
+	 * tdh_phymem_page_reclaim()
+	 */
+	va = __get_free_page(GFP_KERNEL_ACCOUNT);
+	if (!va)
+		return -ENOMEM;
+	ttdi->devifcs_pa = __pa(va);
+
+	va = __get_free_page(GFP_KERNEL_ACCOUNT);
+	if (!va) {
+		ret = -ENOMEM;
+		goto free_devifcs;
+	}
+	ttdi->td_buff_pa = __pa(va);
+
+	va = __get_free_page(GFP_KERNEL_ACCOUNT);
+	if (!va) {
+		ret = -ENOMEM;
+		goto free_td_buff;
+	}
+	ttdi->vmm_buff_pa = __pa(va);
+
+	ttdi->id.func_id = tdi->intf_id.func_id;
+	ttdi->id.stream_id = tdi->stream_id;
+	ttdi->id.iommu_id = (u16)info.id;
+	ttdi->id.type = TDX_DEVIF_TYPE_PFVF;
+
+	retval = tdh_devif_create(ttdi->id.raw, kvm_tdx->tdr_pa,
+				  ttdi->devifcs_pa, ttdi->td_buff_pa,
+				  ttdi->vmm_buff_pa);
+
+	dev_info(dev, "%s ret %llx id %llx func_id %x tdr %lx devifcs %lx td buf %lx vmm buf %lx\n",
+		 __func__, retval, ttdi->id.raw, ttdi->id.func_id,
+		 kvm_tdx->tdr_pa, ttdi->devifcs_pa, ttdi->td_buff_pa,
+		 ttdi->vmm_buff_pa);
+
+	if (retval) {
+		ret = -EFAULT;
+		goto free_vmm_buff;
+	}
+
+	return 0;
+
+free_vmm_buff:
+	free_page((unsigned long)__va(ttdi->vmm_buff_pa));
+free_td_buff:
+	free_page((unsigned long)__va(ttdi->td_buff_pa));
+free_devifcs:
+	free_page((unsigned long)__va(ttdi->devifcs_pa));
+	return ret;
+}
+
+union mt_node_key {
+	struct {
+		u64 base_id:60;
+		u64 level:4;
+	};
+	u64 key;
+};
+
+struct mt_node {
+	struct hlist_node hnode;
+	union mt_node_key key;
+	unsigned long va;
+	u64 pa;
+	atomic64_t cnt;
+};
+
+#define MT_HTABLE_ORDER	8
+struct mt_table {
+	DECLARE_HASHTABLE(table, MT_HTABLE_ORDER);
+	unsigned int nr_levels;
+	u8 *level_shift;
+	int (*add_node)(struct mt_node *node);
+	int (*remove_node)(struct mt_node *node);
+	int (*set_entry)(struct mt_node *node, u64 entry_id, void *data, bool set);
+};
+
+static struct mt_node *mt_node_find(struct mt_table *mt_tbl, u64 key)
+{
+	struct mt_node *n;
+
+	hash_for_each_possible(mt_tbl->table, n, hnode, key) {
+		if (n->key.key == key)
+			return n;
+	}
+
+	return NULL;
+}
+
+static int mt_entry_populate(struct mt_table *mt_tbl,
+			     u64 entry_id, unsigned int entry_lvl, void *data)
+{
+	union mt_node_key key;
+	struct mt_node *node;
+	unsigned int plvl;
+	int ret;
+
+	if (entry_lvl >= mt_tbl->nr_levels) {
+		pr_err("%s invalid level %d, table levels %d\n",
+		       __func__, entry_lvl, mt_tbl->nr_levels);
+		return -EINVAL;
+	}
+
+	for (plvl = mt_tbl->nr_levels; plvl > entry_lvl; plvl--) {
+		key.level = plvl - 1;
+		key.base_id = entry_id & ~((1ULL << mt_tbl->level_shift[key.level]) - 1);
+
+		node = mt_node_find(mt_tbl, key.key);
+		if (node) {
+			atomic64_inc(&node->cnt);
+			continue;
+		}
+
+		node = kzalloc(sizeof(*node), GFP_ATOMIC);
+		if (WARN(!node, "%s: key 0x%llx\n", __func__, key.key))
+			return -ENOMEM;
+
+		node->va = __get_free_page(GFP_KERNEL_ACCOUNT);
+		if (!node->va) {
+			kfree(node);
+			return -ENOMEM;
+		}
+		node->pa = __pa(node->va);
+		node->key.key = key.key;
+		atomic64_set(&node->cnt, 1);
+
+		ret = mt_tbl->add_node(node);
+		if (ret) {
+			free_page(node->va);
+			kfree(node);
+			return ret;
+		}
+
+		hash_add(mt_tbl->table, &node->hnode, node->key.key);
+	}
+
+	if (mt_tbl->set_entry)
+		mt_tbl->set_entry(node, entry_id, data, true);
+
+	return 0;
+}
+
+static void mt_entry_depopulate(struct mt_table *mt_tbl,
+				u64 entry_id, unsigned int entry_lvl)
+{
+	union mt_node_key key;
+	struct mt_node *node;
+	unsigned int lvl;
+	int ret;
+
+	pr_debug("%s: entry_id=%llx, entry_lvl=%d\n", __func__, entry_id, entry_lvl);
+
+	for (lvl = entry_lvl; lvl < mt_tbl->nr_levels; lvl++) {
+		key.level = lvl;
+		key.base_id = entry_id & ~((1ULL << mt_tbl->level_shift[key.level]) - 1);
+
+		node = mt_node_find(mt_tbl, key.key);
+		if (!node) {
+			pr_err("mmiomt remove non-existent entry key %llx\n", key.key);
+			return;
+		}
+
+		if (mt_tbl->set_entry && lvl == entry_lvl)
+			mt_tbl->set_entry(node, entry_id, NULL, false);
+
+		if (!atomic64_dec_return(&node->cnt)) {
+			ret = mt_tbl->remove_node(node);
+			if (ret) {
+				/* the node is still in use by tdx module */
+				atomic64_inc(&node->cnt);
+			} else {
+				hash_del(&node->hnode);
+				free_page(node->va);
+				kfree(node);
+			}
+		}
+	}
+}
+
+union devifmt_idx {
+	struct {
+		u64 level:3;
+		u64 rsvd:29;
+		u64 func_id:32;
+	};
+	u64 raw;
+};
+
+union devifmt_entry {
+	struct {
+		u64 p:1;
+		u64 lock:1;
+		u64 rsvd1:10;
+		u64 pfn:40;
+		u64 rsvd2:12;
+	};
+	u64 raw;
+};
+
+static int tdx_devifmt_read(u64 func_id, int entry_level, union devifmt_entry *entry)
+{
+	union devifmt_idx devifmt_idx = { 0 };
+	struct tdx_module_output out;
+	u64 ret;
+
+	devifmt_idx.func_id = func_id;
+	devifmt_idx.level = entry_level;
+
+	ret = tdh_devifmt_read(devifmt_idx.raw, &out);
+	if (ret) {
+		pr_err("%s: ret %llx devifmt_idx %llx", __func__, ret, devifmt_idx.raw);
+		return -EFAULT;
+	}
+
+	entry->raw = out.rcx;
+
+	pr_debug("%s func_id=0x%llx, entry_level=%d, entry 0x%llx\n",
+		 __func__, func_id, entry_level, entry->raw);
+
+	return 0;
+}
+
+static int devif_mt_add_node(struct mt_node *node)
+{
+	int parent_entry_level = node->key.level + 1;
+	u64 base_func_id = node->key.base_id;
+	union devifmt_idx devifmt_idx = { 0 };
+	union devifmt_entry entry;
+	u64 ret;
+
+	tdx_devifmt_read(base_func_id, parent_entry_level, &entry);
+	if (entry.p) {
+		pr_err("%s parent entry is linked, but not by OS\n", __func__);
+		return -EFAULT;
+	}
+
+	devifmt_idx.func_id = base_func_id;
+	devifmt_idx.level = parent_entry_level;
+
+	ret = tdh_devifmt_add(devifmt_idx.raw, node->pa);
+	if (ret) {
+		pr_err("%s: ret %llx devifmt_idx %llx base_func_id %llx parent_entry_level %x devifmt_pa %llx\n",
+		       __func__, ret, devifmt_idx.raw, base_func_id, parent_entry_level,
+		       node->pa);
+		return -EFAULT;
+	}
+
+	tdx_devifmt_read(base_func_id, parent_entry_level, &entry);
+
+	return 0;
+}
+
+static int devif_mt_remove_node(struct mt_node *node)
+{
+	union devifmt_idx devifmt_idx = { 0 };
+	int parent_entry_level = node->key.level + 1;
+	u64 base_func_id = node->key.base_id;
+	u64 ret;
+
+	devifmt_idx.func_id = base_func_id;
+	devifmt_idx.level = parent_entry_level;
+
+	ret = tdh_devifmt_remove(devifmt_idx.raw);
+	if (ret)
+		pr_err("%s: devifmt_idx =%llx, ret=%llx\n", __func__, devifmt_idx.raw, ret);
+
+	return ret ? -EFAULT : 0;
+}
+
+static u8 devif_mt_level_shift[] = { 9, 18, 27, 32 };
+
+static struct mt_table devif_mt_table = {
+	.table = { [0 ... ((1 << (MT_HTABLE_ORDER)) - 1)] = HLIST_HEAD_INIT },
+	.nr_levels = ARRAY_SIZE(devif_mt_level_shift),
+	.level_shift = devif_mt_level_shift,
+	.add_node = devif_mt_add_node,
+	.remove_node = devif_mt_remove_node,
+};
+
+static void tdx_tdi_devifmt_uinit(struct tdx_tdi *ttdi)
+{
+	mt_entry_depopulate(&devif_mt_table, ttdi->tdi->intf_id.func_id, 0);
+}
+
+static int tdx_tdi_devifmt_init(struct tdx_tdi *ttdi)
+{
+	return mt_entry_populate(&devif_mt_table, ttdi->tdi->intf_id.func_id, 0, NULL);
+}
+
+union mmiomt_idx {
+	struct {
+		u64 level:3;
+		u64 reserved_0:9;
+		u64 pfn:40;
+		u64 reserved_1:12;
+	};
+	u64 raw;
+};
+
+union mmiomt_info {
+	struct {
+		u64 type:2;
+		u64 reserved_0:10;
+		u64 func_id:32;
+		u64 reserved_1:20;
+	};
+	u64 raw;
+};
+
+union mmiomt_entry {
+	struct {
+		u64 xlock:1;
+		u64 type:2;
+	};
+	struct qnode {
+		struct qnode_pa {
+			u64 rsvd1:11;
+			u64 p:1;
+			u64 pfn:40;
+			u64 rsvd2:12;
+		} pa[4];
+	} qnode;
+	u64 value[4];
+};
+
+static u8 mmio_mt_level_shift[] = { 19, 28, 37, 46, 52 };
+#define MMIOMT_LEVEL_SHIFT(x) (mmio_mt_level_shift[(x)])
+#define MMIOMT_PA_TO_IDX(_pa, _l) (((_pa) >> MMIOMT_LEVEL_SHIFT(_l)) & 0x3)
+
+#define MMIOMT_TYPE_QNODE	0
+#define MMIOMT_TYPE_DATA	1
+
+static int tdx_mmiomt_read(u64 mmio_pa, int entry_level, union mmiomt_entry *entry)
+{
+	union mmiomt_idx mmiomt_idx = { 0 };
+	struct tdx_module_output out;
+	u64 ret;
+
+	mmiomt_idx.pfn = mmio_pa >> PAGE_SHIFT;
+	mmiomt_idx.level = entry_level;
+
+	ret = tdh_mmiomt_read(mmiomt_idx.raw, &out);
+	if (ret) {
+		pr_err("%s: ret %llx mmiomt_idx %llx", __func__, ret, mmiomt_idx.raw);
+		return -EFAULT;
+	}
+
+	entry->value[0] = out.rcx;
+	entry->value[1] = out.rdx;
+	entry->value[2] = out.r8;
+	entry->value[3] = out.r9;
+
+	pr_debug("%s mmio_pa=0x%llx, entry_level=%d, entry 0x%llx 0x%llx 0x%llx 0x%llx\n",
+		 __func__, mmio_pa, entry_level, entry->value[0],
+		 entry->value[1], entry->value[2], entry->value[3]);
+
+	return 0;
+}
+
+static int mmio_mt_add_node(struct mt_node *node)
+{
+	int parent_entry_level = node->key.level + 1;
+	u64 base_mmio_pa = node->key.base_id;
+	union mmiomt_idx mmiomt_idx = { 0 };
+	union mmiomt_entry entry;
+	u8 pa_idx = MMIOMT_PA_TO_IDX(base_mmio_pa, node->key.level);
+	u64 ret;
+
+	tdx_mmiomt_read(base_mmio_pa, parent_entry_level, &entry);
+	if (entry.type != MMIOMT_TYPE_QNODE) {
+		pr_err("%s parent entry is not qnode\n", __func__);
+		return -EFAULT;
+	}
+
+	if (entry.qnode.pa[pa_idx].p) {
+		pr_err("%s parent entry is linked, but not by OS\n", __func__);
+		return -EFAULT;
+	}
+
+	mmiomt_idx.pfn = base_mmio_pa >> PAGE_SHIFT;
+	mmiomt_idx.level = parent_entry_level;
+
+	ret = tdh_mmiomt_add(mmiomt_idx.raw, node->pa);
+	if (ret) {
+		pr_err("%s: ret %llx mmiomt_idx %llx base_mmio_pa %llx parent_entry_level %x mmiomt_pa %llx\n",
+		       __func__, ret, mmiomt_idx.raw, base_mmio_pa, parent_entry_level,
+		       node->pa);
+		return -EFAULT;
+	}
+
+	tdx_mmiomt_read(base_mmio_pa, parent_entry_level, &entry);
+
+	return 0;
+}
+
+static int mmio_mt_remove_node(struct mt_node *node)
+{
+	union mmiomt_idx mmiomt_idx = { 0 };
+	int parent_entry_level = node->key.level + 1;
+	u64 base_mmio_pa = node->key.base_id;
+	u64 ret;
+
+	mmiomt_idx.pfn = base_mmio_pa >> PAGE_SHIFT;
+	mmiomt_idx.level = parent_entry_level;
+	ret = tdh_mmiomt_remove(mmiomt_idx.raw);
+	if (ret)
+		pr_err("%s: mmiomt_idx =%llx, ret=%llx\n", __func__, mmiomt_idx.raw, ret);
+
+	return ret ? -EFAULT : 0;
+}
+
+static int mmio_mt_set_entry(struct mt_node *node, u64 entry_id, void *data, bool set)
+{
+	union mmiomt_info mmiomt_info = { 0 };
+	union mmiomt_idx mmiomt_idx = { 0 };
+	int entry_level = node->key.level;
+	u64 mmio_pa = entry_id;
+	u64 ret;
+
+	mmiomt_idx.pfn = mmio_pa >> PAGE_SHIFT;
+	mmiomt_idx.level = entry_level;
+
+	if (set) {
+		u32 func_id = *(u32 *)data;
+
+		mmiomt_info.func_id = func_id; //set : func_id; unset: 0
+		mmiomt_info.type = 1; // set: data; unset: qnode
+	}
+
+	ret = tdh_mmiomt_set(mmiomt_idx.raw, mmiomt_info.raw);
+	if (ret) {
+		pr_err("%s: ret %llx mmio_idx %llx, mmiomt_info %llx\n",
+		       __func__, ret, mmiomt_idx.raw, mmiomt_info.raw);
+		return -EFAULT;
+	}
+
+	return 0;
+}
+
+static struct mt_table mmio_mt_table = {
+	.table = { [0 ... ((1 << (MT_HTABLE_ORDER)) - 1)] = HLIST_HEAD_INIT },
+	.nr_levels = ARRAY_SIZE(mmio_mt_level_shift),
+	.level_shift = mmio_mt_level_shift,
+	.add_node = mmio_mt_add_node,
+	.remove_node = mmio_mt_remove_node,
+	.set_entry = mmio_mt_set_entry,
+};
+
+static void tdx_tdi_mmiomt_remove(struct tdx_tdi *ttdi, u64 mmio_pa, int level)
+{
+	pr_debug("%s: mmio_pa=%llx, level=%d\n", __func__, mmio_pa, level);
+
+	mt_entry_depopulate(&mmio_mt_table, mmio_pa, level);
+}
+
+struct devif_mmiomt {
+	hpa_t mmio_hpa;
+	int level;
+	unsigned long devifcs_pa;
+	struct list_head list;
+};
+
+static int tdx_tdi_mmiomt_add(struct tdx_tdi *ttdi, u64 mmio_pa, int level)
+{
+	struct devif_mmiomt *devmmio;
+
+	devmmio = kzalloc(sizeof(*devmmio), GFP_ATOMIC);
+	if (!devmmio)
+		return -ENOMEM;
+
+	devmmio->mmio_hpa = mmio_pa;
+	devmmio->level = level;
+	devmmio->devifcs_pa = ttdi->devifcs_pa;
+	list_add(&devmmio->list, &ttdi->mmiomt);
+
+	pr_debug("%s, mmio_pa=%llx, level=%d\n", __func__, mmio_pa, level);
+
+	return mt_entry_populate(&mmio_mt_table, mmio_pa, level, &ttdi->tdi->intf_id.func_id);
+}
+
+static void tdx_tdi_mmiomt_uinit(struct tdx_tdi *ttdi)
+{
+	struct list_head *mmiomt_list = &ttdi->mmiomt;
+	struct pci_dev *pdev = ttdi->tdi->pdev;
+	struct devif_mmiomt *mmiomt, *tmp;
+
+	dev_info(&pdev->dev, "%s: mmiomt uinit\n", __func__);
+
+	list_for_each_entry_safe(mmiomt, tmp, mmiomt_list, list) {
+		if (mmiomt->devifcs_pa != ttdi->devifcs_pa)
+			continue;
+
+		tdx_tdi_mmiomt_remove(ttdi, mmiomt->mmio_hpa, mmiomt->level);
+		list_del(&mmiomt->list);
+		kfree(mmiomt);
+	}
+}
+
+static int tdx_tdi_mmiomt_init(struct tdx_tdi *ttdi)
+{
+	struct pci_dev *pdev = ttdi->tdi->pdev;
+	struct resource *res;
+	int i;
+
+	dev_info(&pdev->dev, "%s: mmiomt init\n", __func__);
+
+	for (i = 0; i < PCI_STD_NUM_BARS; i++) {
+		int bar = i + PCI_STD_RESOURCES;
+		unsigned long mmio_len, offset;
+
+		res = &pdev->resource[bar];
+		mmio_len = resource_size(res);
+
+		/*
+		 * mmio for tdxio device must be 64k aligned in DIMP spec.
+		 * keep it to 4K for now
+		 */
+		if ((res->start & ~PAGE_MASK) || !mmio_len || !(res->flags & IORESOURCE_MEM))
+			continue;
+
+		/* level 0 means page of size 4K */
+		for (offset = 0; offset < mmio_len; offset += PAGE_SIZE)
+			tdx_tdi_mmiomt_add(ttdi, res->start + offset, 0);
+	}
+
+	return 0;
+}
+
+/* level 0 corresponds to PG_LEVEL_4K */
+#define to_gpa_info_level(x)   ((x) - 1)
+
+union mmio_map_page_info {
+	struct {
+		u64 level:3;		/* Level */
+		u64 reserved_0:9;	/* Must be 0 */
+		u64 gpa:40;		/* GPA of the page */
+		u64 reserved_1:12;	/* Must be 0 */
+	};
+	u64 raw;
+};
+
+static u64 tdx_mmio_map(hpa_t tdr, gpa_t gpa, hpa_t mmio_pa, int level)
+{
+	union mmio_map_page_info gpa_page_info = { 0 };
+	u64 ret;
+
+	if (level < PG_LEVEL_4K) {
+		pr_err("%s wrong level %d\n", __func__, level);
+		return -EINVAL;
+	}
+
+	gpa_page_info.level = to_gpa_info_level(level);
+	gpa_page_info.gpa = (gpa & GENMASK(51, 12)) >> 12;
+
+	ret = tdh_mmio_map(gpa_page_info.raw, tdr, mmio_pa);
+	pr_debug("%s: ret=%llx tdr %llx mmio_pa %llx gpa info %llx\n",
+		 __func__, ret, tdr, mmio_pa, gpa);
+
+	return ret;
+}
+
+static void tdx_mmio_block(hpa_t tdr, gpa_t gpa, int level)
+{
+	union mmio_map_page_info gpa_page_info = { 0 };
+	u64 ret;
+
+	gpa_page_info.level = to_gpa_info_level(level);
+	gpa_page_info.gpa = (gpa & GENMASK(51, 12)) >> 12;
+
+	ret = tdh_mmio_block(gpa_page_info.raw, tdr);
+	pr_debug("%s: ret=%llx tdr %llx gpa info=%llx\n", __func__,
+		 ret, tdr, gpa_page_info.raw);
+}
+
+static void tdx_mmio_unmap(hpa_t tdr, gpa_t gpa, int level)
+{
+	union mmio_map_page_info gpa_page_info = { 0 };
+	u64 ret;
+
+	gpa_page_info.level = to_gpa_info_level(level);
+	gpa_page_info.gpa = (gpa & GENMASK(51, 12)) >> 12;
+
+	ret = tdh_mmio_unmap(gpa_page_info.raw, tdr);
+	pr_debug("%s: ret=%llx tdr %llx gpa info=%llx\n",
+		 __func__, ret, tdr, gpa_page_info.raw);
+}
+
+static struct tdx_tdi *tdx_mmio_pfn_to_tdi(struct kvm_tdx *kvm_tdx,
+					   enum pg_level level, kvm_pfn_t pfn);
+
+struct devif_mmio {
+	gfn_t mmio_gfn;
+	int level;
+	struct list_head list;
+};
+
+static int tdx_tdi_mmio_map(struct kvm_tdx *kvm_tdx, gfn_t gfn,
+			    enum pg_level level, kvm_pfn_t pfn)
+{
+	struct devif_mmio *mmio;
+	struct tdx_tdi *ttdi;
+	u64 ret;
+
+	ttdi = tdx_mmio_pfn_to_tdi(kvm_tdx, level, pfn);
+	if (!ttdi)
+		return -ENODEV;
+
+	ret = tdx_mmio_map(kvm_tdx->tdr_pa, gfn << PAGE_SHIFT, pfn << PAGE_SHIFT, level);
+	if (ret)
+		return -EFAULT;
+
+	mmio = kzalloc(sizeof(*mmio), GFP_ATOMIC);
+	if (!mmio)
+		return -ENOMEM;
+
+	mmio->mmio_gfn = gfn;
+	mmio->level = level;
+	list_add(&mmio->list, &ttdi->mmio);
+
+	return 0;
+}
+
+static void tdx_tdi_mmio_unmap_all(struct tdx_tdi *ttdi)
+{
+	struct kvm_tdx *kvm_tdx = ttdi->kvm_tdx;
+	struct list_head *mmio_list = &ttdi->mmio;
+	struct pci_dev *pdev = ttdi->tdi->pdev;
+	struct devif_mmio *mmio, *tmp;
+
+	dev_info(&pdev->dev, "%s: mmio unmap\n", __func__);
+
+	list_for_each_entry_safe(mmio, tmp, mmio_list, list) {
+		/* TODO: handle large pages. */
+		if (KVM_BUG_ON(mmio->level != PG_LEVEL_4K, &kvm_tdx->kvm))
+			continue;
+
+		tdx_mmio_block(kvm_tdx->tdr_pa, mmio->mmio_gfn << PAGE_SHIFT, mmio->level);
+		tdx_sept_flush_remote_tlbs(&kvm_tdx->kvm);
+		tdx_mmio_unmap(kvm_tdx->tdr_pa, mmio->mmio_gfn << PAGE_SHIFT, mmio->level);
+
+		list_del(&mmio->list);
+		kfree(mmio);
+	}
+}
+
+enum tdxio_inv_type {
+	INVAL_IOTLB,
+	INVAL_RTE,
+	INVAL_CTE,
+	INVAL_PDE,
+	INVAL_PTE,
+};
+
+union tdxio_inv_target {
+	struct {
+		u64 rid	: 16; /* set to 0 for INVAL_IOTLB */
+		u64 reserved1 : 16; /* must be 0 */
+		u64 pasid : 20; /* set to 0 for INVAL_RTE & INVAL_CTE */
+		u64 reserved2 : 12; /* must be 0 */
+	};
+	u64 tdr_pa;
+	u64 raw;
+};
+
+static int tdx_iq_inv(struct tdx_iommu *tiommu, enum tdxio_inv_type inv_type,
+		      u64 inv_target_raw)
+{
+	u64 iommu_id = tiommu->iommu_id;
+	unsigned long flags;
+	u64 wait_desc[2];
+	u64 *status_addr;
+	u64 tdx_ret = 0;
+
+	raw_spin_lock_irqsave(&tiommu->invq_lock, flags);
+
+	wait_desc[0] = (((u64)2) << 32) | (((u64)1) << 6 | (((u64)1) << 5) | 0x5);
+	wait_desc[1] = tiommu->wait_desc_pa;
+
+	status_addr = (u64 *)(__va(tiommu->wait_desc_pa));
+	*status_addr = 1;
+
+	tdx_ret = tdh_iqinv_req(iommu_id, inv_type, inv_target_raw, wait_desc[0], wait_desc[1]);
+	if (tdx_ret) {
+		pr_err("%s inv req ret=%llx, iommu_id=%llx, inv_type=%x, inv_target=%llx, wait_desc= %llx %llx\n",
+		       __func__, tdx_ret, iommu_id, inv_type, inv_target_raw,
+		       wait_desc[0], wait_desc[1]);
+		goto out;
+	} else if (inv_type != INVAL_IOTLB) {
+		pr_debug("%s inv req ret=%llx, iommu_id=%llx, inv_type=%x, inv_target=%llx, wait_desc= %llx %llx\n",
+		       __func__, tdx_ret, iommu_id, inv_type, inv_target_raw,
+		       wait_desc[0], wait_desc[1]);
+	}
+
+	while (*status_addr != 2)
+		cpu_relax();
+
+	do {
+		tdx_ret = tdh_iqinv_process(iommu_id);
+		cpu_relax();
+	} while (tdx_ret == TDX_INTERRUPTED_RESUMABLE);
+
+	if (tdx_ret) {
+		pr_err("%s inv process ret=%llx, inv_type=%d iommu_id=%llx, descriptor status=%lld\n",
+		       __func__, tdx_ret, inv_type, iommu_id, *status_addr);
+	} else if (inv_type != INVAL_IOTLB) {
+		pr_debug("%s inv process ret=%llx, inv_type=%d iommu_id=%llx, descriptor status=%lld\n",
+		       __func__, tdx_ret, inv_type, iommu_id, *status_addr);
+	}
+
+out:
+	raw_spin_unlock_irqrestore(&tiommu->invq_lock, flags);
+
+	if (tdx_ret)
+		return -EFAULT;
+
+	return 0;
+}
+
+static int tdx_tdi_iq_inv_rte(struct tdx_tdi *ttdi)
+{
+	union tdxio_inv_target inv_target = { 0 };
+
+	inv_target.rid = ttdi->rid;
+
+	return tdx_iq_inv(ttdi->tiommu, INVAL_RTE, inv_target.raw);
+}
+
+static int tdx_tdi_iq_inv_cte(struct tdx_tdi *ttdi)
+{
+	union tdxio_inv_target inv_target = { 0 };
+
+	inv_target.rid = ttdi->rid;
+
+	return tdx_iq_inv(ttdi->tiommu, INVAL_CTE, inv_target.raw);
+}
+
+static int tdx_tdi_iq_inv_pde(struct tdx_tdi *ttdi)
+{
+	union tdxio_inv_target inv_target = { 0 };
+
+	inv_target.rid = ttdi->rid;
+	inv_target.pasid = 0;//TODO:  CONFIRM the value
+
+	return tdx_iq_inv(ttdi->tiommu, INVAL_PDE, inv_target.raw);
+}
+
+static int tdx_tdi_iq_inv_pte(struct tdx_tdi *ttdi)
+{
+	union tdxio_inv_target inv_target = { 0 };
+
+	inv_target.rid = ttdi->rid;
+	inv_target.pasid = 0;//TODO:  CONFIRM the value
+
+	return tdx_iq_inv(ttdi->tiommu, INVAL_PTE, inv_target.raw);
+}
+
+static int tdx_tdi_iq_inv_iotlb(struct kvm_tdx *kvm_tdx)
+{
+	union tdxio_inv_target inv_target = { 0 };
+	struct kvm_tdx_iommu *ktiommu;
+
+	inv_target.tdr_pa = kvm_tdx->tdr_pa;
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(ktiommu, &kvm_tdx->ktiommu_list, node)
+		tdx_iq_inv(ktiommu->tiommu, INVAL_IOTLB, inv_target.raw);
+
+	rcu_read_unlock();
+
+	return 0;
+}
+
+#define TD_DMAR_LEVEL_PASID_TBL		0x0
+#define TD_DMAR_LEVEL_PASID_DIR		0x1
+#define TD_DMAR_LEVEL_CTX_TBL		0x2
+#define TD_DMAR_LEVEL_ROOT_TBL		0x3
+#define TD_DMAR_LEVEL_INV		0x4
+
+union dmar_index {
+	struct {
+		u64 level:3;
+		u64 reserved:9;
+		u64 pasid:20;
+		u64 rid:16;
+		u64 iommu_id:16;
+	};
+	u64 raw;
+};
+
+union dmar_param {
+	struct {
+		u64 present:1;
+		u64 rsvd:11;
+		u64 ctp:52;
+	} rte;
+	struct {
+		u64 present:1; /* must be 1 */
+		u64 fpd:1;
+		u64 dte:1; /* must be 0 */
+		u64 paside:1;
+		u64 pre:1; /* must be 0 */
+		u64 rsvd1:4;
+		u64 pdts:3;
+		u64 pasiddirptr:52;
+
+		u64 rid_pasid:20;
+		u64 rid_priv:1;
+		u64 rsvd2:43;
+		u64 rsvd3;
+		u64 rsvd4;
+	} cte;
+	struct {
+		u64 present:1; /* must be 1 */
+		u64 fpd:1;
+		u64 rsvd:10;
+		u64 smptblptr:52;
+	} pasidde;
+	struct {
+		u64 present:1;
+		u64 fpd:1;
+		u64 aw:3;
+		u64 slee:1;
+		u64 pgtt:3;
+		u64 slade:1;
+		u64 rsvd1:2;
+		u64 slptptr:52;
+
+		u64 did:16;
+		u64 rsvd2:7;
+		u64 pwsnp:1;
+		u64 pgsnp:1;
+		u64 cd:1;
+		u64 emte:1;
+		u64 emt:3;
+		u64 pwt:1;
+		u64 pcd:1;
+		u64 pat:32;
+
+		u64 sre:1;
+		u64 ere:1;
+		u64 flpm:2;
+		u64 wpe:1;
+		u64 nxe:1;
+		u64 smep:1;
+		u64 eafe:1;
+		u64 rsvd3:4;
+		u64 flptptr:52;
+
+		u64 rsvd4;
+		u64 rsvd5;
+		u64 rsvd6;
+		u64 rsvd7;
+		u64 rsvd8;
+	} pasidte;
+	u64 raw[8];
+};
+
+static inline const char *dmaradd_level_to_string(u8 level)
+{
+	switch (level) {
+	case TD_DMAR_LEVEL_ROOT_TBL:
+		return "RTE";
+	case TD_DMAR_LEVEL_PASID_DIR:
+		return "PASIDDE";
+	case TD_DMAR_LEVEL_CTX_TBL:
+		return "CTE";
+	case TD_DMAR_LEVEL_PASID_TBL:
+		return "PASIDTE";
+	}
+
+	return "Unknown";
+}
+
+static inline void dmar_param_dump(u8 level, union dmar_param *p)
+{
+	switch (level) {
+	case TD_DMAR_LEVEL_ROOT_TBL:
+		pr_info("%s: %016llx", __func__, p->raw[0]);
+		break;
+	case TD_DMAR_LEVEL_PASID_DIR:
+		pr_info("%s: %016llx", __func__, p->raw[0]);
+		break;
+	case TD_DMAR_LEVEL_CTX_TBL:
+		pr_info("%s: %016llx %016llx %016llx %016llx\n",
+			__func__, p->raw[0], p->raw[1], p->raw[2], p->raw[3]);
+		break;
+	case TD_DMAR_LEVEL_PASID_TBL:
+		pr_info("%s: %016llx %016llx %016llx %016llx %016llx %016llx %016llx %016llx\n",
+			__func__, p->raw[0], p->raw[1], p->raw[2], p->raw[3],
+				  p->raw[4], p->raw[5], p->raw[6], p->raw[7]);
+		break;
+	}
+}
+
+static int tdx_iommu_dmar_add(union dmar_index index, hpa_t tdr,
+			      union dmar_param *p)
+{
+	u64 ret;
+
+	do {
+		ret = tdh_dmar_add(index.raw, tdr, p->raw[0], p->raw[1], p->raw[2],
+				   p->raw[3], p->raw[4], p->raw[5], p->raw[6],
+				   p->raw[7]);
+	} while (ret == TDX_INTERRUPTED_RESUMABLE);
+
+	pr_info("%s: %s: ret %llx\n",
+		__func__, dmaradd_level_to_string(index.level), ret);
+
+	dmar_param_dump(index.level, p);
+
+	if (ret)
+		return -EFAULT;
+
+	return 0;
+}
+
+static int tdx_iommu_dmar_read(union dmar_index index,
+			       union dmar_param *p)
+{
+	struct tdx_module_output out;
+	u64 ret;
+
+	ret = tdh_dmar_read(index.raw, &out);
+
+	pr_info("%s: %s: ret %llx, RDX %llx\n",
+		__func__, dmaradd_level_to_string(index.level), ret, out.rdx);
+
+	if (ret)
+		return -EFAULT;
+
+	switch (index.level) {
+	case TD_DMAR_LEVEL_ROOT_TBL:
+	case TD_DMAR_LEVEL_PASID_DIR:
+		p->raw[0] = out.r8;
+		break;
+	case TD_DMAR_LEVEL_PASID_TBL:
+		p->raw[4] = out.r12;
+		p->raw[5] = out.r13;
+		p->raw[6] = out.r14;
+		p->raw[7] = out.r15;
+		fallthrough;
+	case TD_DMAR_LEVEL_CTX_TBL:
+		p->raw[0] = out.r8;
+		p->raw[1] = out.r9;
+		p->raw[2] = out.r10;
+		p->raw[3] = out.r11;
+		break;
+	default:
+		break;
+	}
+
+	dmar_param_dump(index.level, p);
+
+	return 0;
+}
+
+static void tdx_iommu_dmar_block(union dmar_index index)
+{
+	u64 ret = tdh_dmar_block(index.raw);
+
+	pr_info("%s ret %llx index %llx\n", __func__, ret, index.raw);
+
+	if (ret) {
+		union dmar_param p = { 0 };
+
+		tdx_iommu_dmar_read(index, &p);
+	}
+}
+
+static u64 tdx_iommu_dmar_remove(union dmar_index index)
+{
+	u64 ret;
+
+	do {
+		ret = tdh_dmar_remove(index.raw);
+	} while (ret == TDX_INTERRUPTED_RESUMABLE);
+
+	pr_info("%s ret %llx index %llx\n", __func__, ret, index.raw);
+
+	if (ret) {
+		union dmar_param p = { 0 };
+
+		tdx_iommu_dmar_read(index, &p);
+	}
+
+	return ret;
+}
+
+static DEFINE_MUTEX(global_tiommu_lock);
+static LIST_HEAD(global_tiommu_list);
+
+static struct tdx_iommu *tdx_iommu_get(u64 iommu_id)
+{
+	struct tdx_iommu *tiommu;
+	unsigned long va;
+	int ret;
+
+	mutex_lock(&global_tiommu_lock);
+
+	list_for_each_entry(tiommu, &global_tiommu_list, node) {
+		if (tiommu->iommu_id == iommu_id) {
+			kref_get(&tiommu->ref);
+			mutex_unlock(&global_tiommu_lock);
+			return tiommu;
+		}
+	}
+
+	tiommu = kzalloc(sizeof(*tiommu), GFP_KERNEL);
+	if (!tiommu) {
+		ret = -ENOMEM;
+		goto unlock;
+	}
+
+	tiommu->iommu_id = iommu_id;
+	raw_spin_lock_init(&tiommu->invq_lock);
+	va = __get_free_page(GFP_KERNEL_ACCOUNT);
+	if (!va) {
+		ret = -ENOMEM;
+		goto free_tiommu;
+	}
+	tiommu->wait_desc_pa = __pa(va);
+
+	kref_init(&tiommu->ref);
+
+	list_add(&tiommu->node, &global_tiommu_list);
+	mutex_unlock(&global_tiommu_lock);
+
+	return tiommu;
+
+free_tiommu:
+	kfree(tiommu);
+unlock:
+	mutex_unlock(&global_tiommu_lock);
+	return ERR_PTR(ret);
+}
+
+static void tdx_iommu_release(struct kref *kref)
+{
+	struct tdx_iommu *tiommu = container_of(kref, struct tdx_iommu, ref);
+
+	mutex_lock(&global_tiommu_lock);
+	list_del(&tiommu->node);
+	mutex_unlock(&global_tiommu_lock);
+
+	free_page((unsigned long)__va(tiommu->wait_desc_pa));
+	kfree(tiommu);
+}
+
+static void tdx_iommu_put(struct tdx_iommu *tiommu)
+{
+	kref_put(&tiommu->ref, tdx_iommu_release);
+}
+
+static int tdx_iommu_add(struct kvm_tdx *kvm_tdx, struct tdx_iommu *tiommu)
+{
+	struct kvm_tdx_iommu *ktiommu;
+
+	list_for_each_entry(ktiommu, &kvm_tdx->ktiommu_list, node) {
+		if (ktiommu->tiommu == tiommu) {
+			kref_get(&ktiommu->ref);
+			return 0;
+		}
+	}
+
+	ktiommu = kzalloc(sizeof(*ktiommu), GFP_KERNEL);
+	if (!ktiommu)
+		return -ENOMEM;
+
+	ktiommu->tiommu = tiommu;
+	kref_init(&ktiommu->ref);
+	list_add_rcu(&ktiommu->node, &kvm_tdx->ktiommu_list);
+
+	return 0;
+}
+
+static void kvm_tdx_iommu_release(struct kref *kref)
+{
+	struct kvm_tdx_iommu *ktiommu = container_of(kref, struct kvm_tdx_iommu, ref);
+
+	list_del_rcu(&ktiommu->node);
+	synchronize_rcu();
+
+	kfree(ktiommu);
+}
+
+static void tdx_iommu_del(struct kvm_tdx *kvm_tdx, struct tdx_iommu *tiommu)
+{
+	struct kvm_tdx_iommu *ktiommu;
+
+	list_for_each_entry(ktiommu, &kvm_tdx->ktiommu_list, node) {
+		if (ktiommu->tiommu == tiommu) {
+			kref_put(&ktiommu->ref, kvm_tdx_iommu_release);
+			return;
+		}
+	}
+}
+
+static void tdx_tdi_dmar_uinit(struct tdx_tdi *ttdi)
+{
+	struct pci_dev *pdev = ttdi->tdi->pdev;
+	struct kvm_tdx *kvm_tdx = ttdi->kvm_tdx;
+	union dmar_index index;
+	bool skip_page_reclaim;
+	u64 ret;
+
+	dev_info(&pdev->dev, "%s: dmar uinit\n", __func__);
+
+	tdx_iommu_del(kvm_tdx, ttdi->tiommu);
+
+	index.raw = 0;
+	index.rid = ttdi->rid;
+	index.iommu_id = ttdi->id.iommu_id;
+	index.pasid = 0;
+
+	index.level = TD_DMAR_LEVEL_PASID_TBL;
+	tdx_iommu_dmar_block(index);
+	tdx_tdi_iq_inv_pte(ttdi);
+	ret = tdx_iommu_dmar_remove(index);
+	if (ret)
+		skip_page_reclaim = true;
+
+	index.level = TD_DMAR_LEVEL_PASID_DIR;
+	tdx_iommu_dmar_block(index);
+	tdx_tdi_iq_inv_pde(ttdi);
+	ret = tdx_iommu_dmar_remove(index);
+	if (ret)
+		skip_page_reclaim = true;
+
+	index.level = TD_DMAR_LEVEL_CTX_TBL;
+	tdx_iommu_dmar_block(index);
+	tdx_tdi_iq_inv_cte(ttdi);
+	ret = tdx_iommu_dmar_remove(index);
+	if (ret)
+		skip_page_reclaim = true;
+
+	index.level = TD_DMAR_LEVEL_ROOT_TBL;
+	tdx_iommu_dmar_block(index);
+	tdx_tdi_iq_inv_rte(ttdi);
+	ret = tdx_iommu_dmar_remove(index);
+	if (ret)
+		skip_page_reclaim = true;
+
+	if (!skip_page_reclaim)
+		free_pages(ttdi->dmar_pages_va, 5);
+
+	tdx_iommu_put(ttdi->tiommu);
+}
+
+static int tdx_tdi_dmar_init(struct tdx_tdi *ttdi)
+{
+	struct pci_dev *pdev = ttdi->tdi->pdev;
+	struct kvm_tdx *kvm_tdx = ttdi->kvm_tdx;
+	union dmar_index index = { 0 };
+	union dmar_param p = { 0 };
+
+	unsigned long va, offset;
+	hpa_t pa;
+
+	dev_info(&pdev->dev, "%s: dmar init\n", __func__);
+
+	ttdi->tiommu = tdx_iommu_get(ttdi->id.iommu_id);
+	if (IS_ERR(ttdi->tiommu))
+		return PTR_ERR(ttdi->tiommu);
+
+	va = __get_free_pages(GFP_KERNEL_ACCOUNT, 5);
+	pa = __pa(va);
+	offset = 0;
+
+	index.rid = ttdi->rid;
+	index.iommu_id = ttdi->id.iommu_id;
+	index.pasid = 0;
+
+	/* Setup Root Table Entry 1 page */
+	index.level = TD_DMAR_LEVEL_ROOT_TBL;
+	tdx_iommu_dmar_read(index, &p);
+	if (p.raw[0])
+		dev_warn(&pdev->dev, "%s: rte exists!\n", __func__);
+	memset(&p, 0, sizeof(p));
+	p.raw[0] = pa + offset;
+	/* Present must be 1 */
+	p.rte.present = 1;
+	tdx_iommu_dmar_add(index, 0, &p);
+	tdx_iommu_dmar_read(index, &p);
+	offset += PAGE_SIZE;
+
+	/* Setup Context Table Entry 16 pages */
+	index.level = TD_DMAR_LEVEL_CTX_TBL;
+	memset(&p, 0, sizeof(p));
+	tdx_iommu_dmar_read(index, &p);
+	if (p.raw[0])
+		dev_warn(&pdev->dev, "%s: cte exists!\n", __func__);
+	memset(&p, 0, sizeof(p));
+	/*
+	 * only allow FPD DTE PASIDE PRE PDTS RID_PASID RID_PRIV
+	 * PASIDPTR to be configured.
+	 */
+	p.raw[0] = pa + offset;
+	/* 16 pages */
+	p.cte.pdts = 0x6;
+	/*
+	 * Present must be 1.
+	 * DTE must be 0.
+	 * PRE must be 0.
+	 */
+	p.cte.present = 1;
+	p.cte.dte = 0;
+	p.cte.pre = 0;
+	tdx_iommu_dmar_add(index, 0, &p);
+	tdx_iommu_dmar_read(index, &p);
+	offset += 16 * PAGE_SIZE;
+
+	/* Setup PASID Directory Entry 1 page */
+	index.level = TD_DMAR_LEVEL_PASID_DIR;
+	memset(&p, 0, sizeof(p));
+	tdx_iommu_dmar_read(index, &p);
+	if (p.raw[0])
+		dev_warn(&pdev->dev, "%s: pasidde exists!\n", __func__);
+	memset(&p, 0, sizeof(p));
+	/* only allow FPD SLPTPTR */
+	p.raw[0] = pa + offset;
+	/* Present must be 1. */
+	p.pasidde.present = 1;
+	tdx_iommu_dmar_add(index, 0, &p);
+	tdx_iommu_dmar_read(index, &p);
+
+	/* Setup PASID Table Entry */
+	index.level = TD_DMAR_LEVEL_PASID_TBL;
+	memset(&p, 0, sizeof(p));
+	/* TODO, set it according to current page table level */
+	p.pasidte.pgtt = 0x2;
+	if ((kvm_tdx->eptp_controls & VMX_EPTP_PWL_MASK) == VMX_EPTP_PWL_5)
+		p.pasidte.aw = 0x3;
+	else
+		p.pasidte.aw = 0x2;
+	if ((kvm_tdx->eptp_controls & VMX_EPTP_AD_ENABLE_BIT))
+		p.pasidte.slade = 0x1;
+	else
+		p.pasidte.slade = 0x0;
+	/*
+	 * Present must be 0.
+	 * PWT PCD PAT CD must be 0.
+	 * SLPTR must be 0.
+	 * DID must be 0.
+	 * EMT must be 6.
+	 * EMT PGSNP PWSNP must be 1.
+	 */
+	p.pasidte.present = 0;
+	p.pasidte.did = 0; /* will be ignored by seam module */
+	p.pasidte.pwsnp = 1;
+	p.pasidte.pgsnp = 1;
+	p.pasidte.emte = 1;
+	p.pasidte.slee = 1;
+	p.pasidte.emt = 6;
+	p.pasidte.cd = 0;
+	p.pasidte.pwt = 0;
+	p.pasidte.pcd = 0;
+	p.pasidte.pat = 0;
+	tdx_iommu_dmar_add(index, kvm_tdx->tdr_pa, &p);
+	tdx_iommu_dmar_read(index, &p);
+
+	ttdi->dmar_pages_va = va;
+
+	tdx_iommu_add(kvm_tdx, ttdi->tiommu);
+
+	return 0;
+}
+
+static struct tdx_tdi *tdx_tdi_find_by_func_id(struct kvm_tdx *kvm_tdx,
+					       u32 func_id)
+{
+	struct tdx_tdi *ttdi;
+
+	mutex_lock(&kvm_tdx->ttdi_mutex);
+	list_for_each_entry(ttdi, &kvm_tdx->ttdi_list, node) {
+		if (ttdi->tdi->intf_id.func_id == func_id) {
+			mutex_unlock(&kvm_tdx->ttdi_mutex);
+			return ttdi;
+		}
+	}
+	mutex_unlock(&kvm_tdx->ttdi_mutex);
+
+	return NULL;
+}
+
+static struct tdx_tdi *tdx_mmio_pfn_to_tdi(struct kvm_tdx *kvm_tdx,
+					   enum pg_level level, kvm_pfn_t pfn)
+{
+	struct tdx_tdi *ttdi;
+	struct pci_dev *pdev;
+	u64 size = page_level_size(level);
+	u64 start = pfn << PAGE_SHIFT;
+	u64 end = start + size - 1;
+	struct resource *res;
+	int bar, i;
+
+	rcu_read_lock();
+	list_for_each_entry_rcu(ttdi, &kvm_tdx->ttdi_list, node) {
+		pdev = ttdi->tdi->pdev;
+		for (i = 0; i < PCI_STD_NUM_BARS; i++) {
+			bar = i + PCI_STD_RESOURCES;
+			res = &pdev->resource[bar];
+
+			if (!(res->flags & IORESOURCE_MEM))
+				continue;
+
+			if (res->start <= start && res->end >= end) {
+				rcu_read_unlock();
+				return ttdi;
+			}
+		}
+	}
+	rcu_read_unlock();
+
+	pr_err("%s fail! pfn 0x%llx, level %d\n", __func__, pfn, level);
+
+	return NULL;
+}
+
+static void tdx_tdi_free(struct tdx_tdi *ttdi)
+{
+	kfree(ttdi);
+}
+
+static struct tdx_tdi *tdx_tdi_alloc(struct kvm_tdx *kvm_tdx,
+				     struct pci_tdi *tdi)
+{
+	struct pci_dev *pdev = tdi->pdev;
+	struct tdx_tdi *ttdi;
+
+	ttdi = kzalloc(sizeof(*ttdi), GFP_KERNEL);
+	if (!ttdi)
+		return NULL;
+
+	INIT_LIST_HEAD(&ttdi->mmiomt);
+	INIT_LIST_HEAD(&ttdi->mmio);
+	ttdi->tdi = tdi;
+	ttdi->kvm_tdx = kvm_tdx;
+	ttdi->rid = PCI_DEVID(pdev->bus->number, pdev->devfn);
+	tdi->mmio_offset = kvm_tdx->mmio_offset;
+	pr_info("%s: tdi mmio_offset = %llx\n", __func__, tdi->mmio_offset);
+	return ttdi;
+}
+
+static bool __is_tdx_tdi_added(struct kvm_tdx *kvm_tdx, struct tdx_tdi *ttdi)
+{
+	struct tdx_tdi *tmp;
+
+	list_for_each_entry(tmp, &kvm_tdx->ttdi_list, node) {
+		if (tmp == ttdi)
+			return true;
+	}
+
+	return false;
+}
+
+static void tdx_tdi_add(struct tdx_tdi *ttdi)
+{
+	struct kvm_tdx *kvm_tdx = ttdi->kvm_tdx;
+
+	list_add_rcu(&ttdi->node, &kvm_tdx->ttdi_list);
+}
+
+static void tdx_tdi_del(struct tdx_tdi *ttdi)
+{
+	list_del_rcu(&ttdi->node);
+	synchronize_rcu();
+}
+
+#define TDI_BUFF_SIZE		PAGE_SIZE
+/*
+ * TDI_BUFF_SIZE - 8 (DOE header) - 8 (SPDM Secured Msg.header) -
+ * 11 (PCISIG vendor header) - 16 (SPDM Secured Msg.MAC) - 3 (max DW padding)
+ * - 1 (application id byte)
+ * = PAGE_SIZE - 47 = 4049
+ */
+#define TDI_MAX_PAYLOAD_SIZE	(TDI_BUFF_SIZE - 46)
+#define TDI_MIN_PAYLOAD_SIZE	16
+
+struct tdx_tdi_request {
+	unsigned long flags;
+#define TDI_REQUEST_FLAGS_TD	0x1
+
+	unsigned long req_in_va;	/* TDISP request payload */
+	unsigned long req_out_va;	/* Full encrypted request */
+        unsigned long rsp_in_va;	/* Full encrypted response */
+	unsigned long rsp_out_va;	/* TDISP response payload */
+	size_t        req_in_sz;
+	size_t        req_out_sz;
+	size_t        rsp_in_sz;
+	size_t        rsp_out_sz;
+};
+
+void tdx_tdi_request_free(struct tdx_tdi_request *req)
+{
+	free_pages(req->req_in_va,  get_order(req->req_in_sz));
+	free_pages(req->req_out_va, get_order(req->req_out_sz));
+	free_pages(req->rsp_in_va,  get_order(req->rsp_in_sz));
+	free_pages(req->rsp_out_va, get_order(req->rsp_out_sz));
+	kfree(req);
+}
+
+struct tdx_tdi_request *tdx_tdi_request_alloc(unsigned long flags)
+{
+	unsigned int order = get_order(TDI_BUFF_SIZE);
+	struct tdx_tdi_request *req;
+
+	req = kzalloc(sizeof(*req), GFP_KERNEL);
+	if (!req)
+		return NULL;
+
+	/*
+	 * TDX module only supports MAX message size to 4K including
+	 * DOE and SPDM header, per current version of TDX module it
+	 * only supports SPDM 1.2 and DOE 1.0. The headers are 46
+	 * byte, so MAX_TDX_SPDM_PAYLOAD_SIZE is PAGE_SIZE - 46, same
+	 * for TDISP requests and response, PAGE_SIZE buffer is enough
+	 */
+	if (!(flags & TDI_REQUEST_FLAGS_TD)) {
+		req->req_in_sz  = TDI_BUFF_SIZE;
+		req->rsp_out_sz = TDI_BUFF_SIZE;
+		req->req_in_va  = __get_free_pages(GFP_KERNEL, order);
+		req->rsp_out_va = __get_free_pages(GFP_KERNEL, order);
+	}
+
+	req->req_out_sz = TDI_BUFF_SIZE;
+	req->rsp_in_sz  = TDI_BUFF_SIZE;
+	req->req_out_va = __get_free_pages(GFP_KERNEL, order);
+	req->rsp_in_va  = __get_free_pages(GFP_KERNEL, order);
+
+	if (!req->rsp_in_va || !req->req_out_va) {
+		tdx_tdi_request_free(req);
+		return NULL;
+	}
+
+	if (!(flags & TDI_REQUEST_FLAGS_TD) &&
+	    (!req->rsp_out_va || !req->req_in_va)) {
+		tdx_tdi_request_free(req);
+		return NULL;
+	}
+
+	req->flags = flags;
+	return req;
+}
+
+static inline u8 req_to_rsp_message(u8 message)
+{
+	return message & 0x7f;
+}
+
+static bool is_tdx_tdisp_req_parm_valid(struct tdisp_request_parm *parm)
+{
+	/*
+	 * Requires check TSM/TDX Module capabilities to support these
+	 * parameters, as platform may not have full support of TDISP
+	 * spec.
+	 */
+
+	switch (parm->message) {
+	case TDISP_LOCK_INTF_REQ:
+		/* Only allow NO_FW_UPDATE other bits must be 0 */
+		if (parm->lock_intf.lock_flags & 0xfffe)
+			return false;
+	}
+
+	return true;
+}
+
+static int tdx_tdi_req(struct tdx_tdi *ttdi, unsigned long flags,
+		       struct tdisp_request_parm *parm)
+{
+	struct device *dev = &ttdi->tdi->pdev->dev;
+	struct tdisp_response_parm rsp_parm;
+	u64 retval, req_out_pa, rsp_out_pa;
+	struct tdx_payload_parm payload;
+	struct tdx_tdi_request *request;
+	struct spdm_message msg = { 0 };
+	struct tdx_module_output out;
+	unsigned int actual_sz;
+	int ret;
+
+	if (parm && !is_tdx_tdisp_req_parm_valid(parm)) {
+		dev_err(dev, "invalid request parameters\n");
+		return -EOPNOTSUPP;
+	}
+
+	request = tdx_tdi_request_alloc(flags);
+	if (!request) {
+		dev_err(dev, "fail to alloc tdi request\n");
+		return -ENOMEM;
+	}
+
+	ret = pci_tdi_msg_exchange_prepare(ttdi->tdi);
+	if (ret) {
+		dev_err(dev, "fail to prepare tdi msg exchange %d\n", ret);
+		goto exit_req_free;
+	}
+
+	/*
+	 * TDH.DEVIF.REQUEST
+	 *
+	 * td_flag = 1
+	 *    no need to generate request payload (payload.req_in_pa == NULL)
+	 * td_flag = 0
+	 *    generated request payload (valid payload.req_in_pa)
+	 *
+	 * need encrypted request message from TDX module (req_out_pa)
+	 */
+	if (request->flags & TDI_REQUEST_FLAGS_TD) {
+		payload.raw = 0;
+		payload.req.td_flag = 1;
+	} else {
+		ret = pci_tdi_gen_req(ttdi->tdi, request->req_in_va,
+				      request->req_in_sz, parm, &actual_sz);
+		if (ret) {
+			dev_err(dev, "fail to gen req %d\n", ret);
+			goto exit_msg_complete;
+		}
+
+		payload.raw = __pa(request->req_in_va);
+		payload.req.td_flag = 0;
+		payload.req.size = actual_sz;
+	}
+	req_out_pa = __pa(request->req_out_va);
+
+	retval = tdh_devif_request(ttdi->id.func_id, payload.raw,
+				   req_out_pa, &out);
+	if (retval) {
+		dev_err(dev, "fail to devif request\n");
+		ret = -EFAULT;
+		goto exit_msg_complete;
+	}
+
+	/*
+	 * Message exchange
+	 *
+	 * req_size could be larger than actual message length.
+	 * resp_size is provided as max response buffer.
+	 */
+	msg.flags = SPDM_MSG_FLAGS_DOE | SPDM_MSG_FLAGS_SECURE;
+	msg.req_addr = request->req_out_va;
+	msg.req_size = request->req_out_sz;
+	msg.resp_addr = request->rsp_in_va;
+	msg.resp_size = request->rsp_in_sz;
+
+	ret = pci_tdi_msg_exchange(ttdi->tdi, &msg);
+	if (ret) {
+		dev_err(dev, "fail to exchange tdi msg %d\n", ret);
+		goto exit_msg_complete;
+	}
+
+	/*
+	 * TDH.DEVIF.RESPONSE
+	 *
+	 * provide encrypted response message to TDX module (payload.rsp_in_pa)
+	 *
+	 * td_flag = 1
+	 *   no need to process response payload (rsp_out_pa == NULL)
+	 * td_flag = 0
+	 *   process response payload (valid rsp_out_pa)
+	 *
+	 */
+	payload.raw = __pa(request->rsp_in_va);
+
+	if (request->flags & TDI_REQUEST_FLAGS_TD) {
+		payload.rsp.td_flag = 1;
+		rsp_out_pa = 0;
+	} else {
+		payload.rsp.td_flag = 0;
+		rsp_out_pa = __pa(request->rsp_out_va);
+	}
+
+	retval = tdh_devif_response(ttdi->id.func_id, payload.raw,
+				    rsp_out_pa, &out);
+	if (retval) {
+		ret = -EFAULT;
+		goto exit_msg_complete;
+	}
+
+	if (!(request->flags & TDI_REQUEST_FLAGS_TD)) {
+		rsp_parm.message = tdisp_req_to_rsp_message(parm->message);
+
+		ret = pci_tdi_process_rsp(ttdi->tdi, request->rsp_out_va,
+					  out.rdx, &rsp_parm);
+		if (ret)
+			dev_err(dev, "fail to process tdi rsp %d\n", ret);
+	}
+
+exit_msg_complete:
+	pci_tdi_msg_exchange_complete(ttdi->tdi);
+exit_req_free:
+	tdx_tdi_request_free(request);
+	return ret;
+}
+
+int tdx_bind_tdi(struct kvm *kvm, struct pci_tdi *tdi)
+{
+	struct kvm_tdx *kvm_tdx = to_kvm_tdx(kvm);
+	struct tdisp_request_parm parm = { 0 };
+	struct device *dev = &tdi->pdev->dev;
+	struct tdx_tdi *ttdi;
+	int ret;
+
+	mutex_lock(&kvm_tdx->ttdi_mutex);
+
+	ttdi = tdx_tdi_alloc(kvm_tdx, tdi);
+	if (!ttdi) {
+		ret = -ENOMEM;
+		goto unlock;
+	}
+	tdi->priv = ttdi;
+
+	/*
+	 * Steps to bind the TDISP device
+	 *
+	 * 1. Create DEVIF
+	 * 2. Create MMIOMT
+	 * 3. Create DMAR tables
+	 */
+
+	ret = tdx_tdi_devifmt_init(ttdi);
+	if (ret) {
+		dev_err(dev, "fail to init devifmt\n");
+		goto devif_free;
+	}
+
+	ret = tdx_tdi_devif_create(ttdi);
+	if (ret) {
+		dev_err(dev, "fail to init devif\n");
+		goto devifmt_uinit;
+	}
+
+	ret = tdx_tdi_mmiomt_init(ttdi);
+	if (ret) {
+		dev_err(dev, "fail to init mmiomt\n");
+		goto devif_remove;
+	}
+
+	ret = tdx_tdi_dmar_init(ttdi);
+	if (ret) {
+		dev_err(dev, "fail to init dmar\n");
+		goto mmiomt_uinit;
+	}
+
+	/* Move TDISP Device Interface state from UNLOCKED to LOCKED */
+	parm.message = TDISP_LOCK_INTF_REQ;
+	parm.lock_intf.lock_flags = TDI_LOCK_FLAGS_NO_FW_UPDATE;
+	ret = tdx_tdi_req(ttdi, 0, &parm);
+	if (ret)
+		goto dmar_uinit;
+
+	parm.message = TDISP_GET_DEVIF_STATE;
+	ret = tdx_tdi_req(ttdi, 0, &parm);
+	if (ret)
+		goto dmar_uinit;
+
+	dev_dbg(dev, "%s: current TDI state is %u\n", __func__, tdi->state);
+
+	tdx_tdi_add(ttdi);
+	mutex_unlock(&kvm_tdx->ttdi_mutex);
+	return 0;
+
+dmar_uinit:
+	tdx_tdi_dmar_uinit(ttdi);
+mmiomt_uinit:
+	tdx_tdi_mmiomt_uinit(ttdi);
+devif_remove:
+	tdx_tdi_devif_remove(ttdi);
+devifmt_uinit:
+	tdx_tdi_devifmt_uinit(ttdi);
+devif_free:
+	tdi->priv = NULL;
+	tdx_tdi_free(ttdi);
+unlock:
+	mutex_unlock(&kvm_tdx->ttdi_mutex);
+	return ret;
+}
+
+int __tdx_unbind_tdi(struct kvm_tdx *kvm_tdx, struct tdx_tdi *ttdi)
+{
+	struct tdisp_request_parm parm = { 0 };
+	struct pci_tdi *tdi = ttdi->tdi;
+	struct device *dev = &tdi->pdev->dev;
+
+	if (!ttdi || !__is_tdx_tdi_added(kvm_tdx, ttdi)) {
+		dev_err(dev, "%s: target device is not bound\n", __func__);
+		return -ENODEV;
+	}
+
+	tdx_tdi_del(ttdi);
+
+	/* Move TDISP Device Interface state from LOCKED to UNLOCKED */
+	parm.message = TDISP_STOP_INTF_REQ;
+	tdx_tdi_req(ttdi, 0, &parm);
+
+	parm.message = TDISP_GET_DEVIF_STATE;
+	tdx_tdi_req(ttdi, 0, &parm);
+
+	dev_dbg(dev, "%s: current TDI state is %u\n", __func__, tdi->state);
+
+	/*
+	 * Steps to unbind the TDISP device
+	 *
+	 * 1. Unmap MMIO
+	 * 2. Remove DMAR tables
+	 * 3. Remove DEVIF
+	 * 4. Remove MMIOMT
+	 */
+
+	tdx_tdi_mmio_unmap_all(ttdi);
+	tdx_tdi_dmar_uinit(ttdi);
+	tdx_tdi_devif_remove(ttdi);
+	tdx_tdi_devifmt_uinit(ttdi);
+	tdx_tdi_mmiomt_uinit(ttdi);
+	tdi->priv = NULL;
+	tdx_tdi_free(ttdi);
+
+	return 0;
+}
+
+int tdx_unbind_tdi(struct kvm *kvm, struct pci_tdi *tdi)
+{
+	struct kvm_tdx *kvm_tdx = to_kvm_tdx(kvm);
+	struct tdx_tdi *ttdi = tdi->priv;
+
+	mutex_lock(&kvm_tdx->ttdi_mutex);
+	__tdx_unbind_tdi(kvm_tdx, ttdi);
+	mutex_unlock(&kvm_tdx->ttdi_mutex);
+	return 0;
+}
+
+void tdx_unbind_tdi_all(struct kvm *kvm)
+{
+	struct kvm_tdx *kvm_tdx = to_kvm_tdx(kvm);
+	struct tdx_tdi *ttdi;
+
+	mutex_lock(&kvm_tdx->ttdi_mutex);
+	list_for_each_entry(ttdi, &kvm_tdx->ttdi_list, node)
+		__tdx_unbind_tdi(kvm_tdx, ttdi);
+	mutex_unlock(&kvm_tdx->ttdi_mutex);
+}
+
+int tdx_tdi_get_info(struct kvm *kvm, struct kvm_tdi_info *info)
+{
+	struct kvm_tdx *kvm_tdx = to_kvm_tdx(kvm);
+	struct tdx_tdi *ttdi;
+
+	ttdi = tdx_tdi_find_by_func_id(kvm_tdx, info->func_id);
+	if (!ttdi)
+		return -EINVAL;
+
+	info->nonce0 = ttdi->tdi->nonce[0];
+	info->nonce1 = ttdi->tdi->nonce[1];
+	info->nonce2 = ttdi->tdi->nonce[2];
+	info->nonce3 = ttdi->tdi->nonce[3];
+	return 0;
+}
+
+int tdx_tdi_user_request(struct kvm *kvm, struct kvm_tdi_user_request *req)
+{
+	struct kvm_tdx *kvm_tdx = to_kvm_tdx(kvm);
+	struct tdx_tdi *ttdi;
+
+	ttdi = tdx_tdi_find_by_func_id(kvm_tdx, req->func_id);
+	if (!ttdi)
+		return -EINVAL;
+
+	return tdx_tdi_req(ttdi, TDI_REQUEST_FLAGS_TD, 0);
+}
+/* TDX connect stuff end */
