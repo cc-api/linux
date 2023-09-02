@@ -7,6 +7,7 @@
  *  May be freely distributed as part of Linux.
  */
 
+#include <linux/eywa.h>
 #include <generated/compile.h>
 #include <linux/build-salt.h>
 #include <linux/elfnote-lto.h>
