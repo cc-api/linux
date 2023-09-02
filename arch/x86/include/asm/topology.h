@@ -235,4 +235,22 @@ void init_freq_invariance_cppc(void);
 #define arch_init_invariance_cppc init_freq_invariance_cppc
 #endif
 
+#ifdef CONFIG_INTEL_HFI_THERMAL
+int intel_hfi_read_classid(u8 *classid);
+long intel_hfi_get_ipcc_score(unsigned int ipcc, int cpu);
+#else
+static inline int intel_hfi_read_classid(u8 *classid) { return -ENODEV; }
+static inline long
+intel_hfi_get_ipcc_score(unsigned int ipcc, int cpu) { return -ENODEV; }
+#endif
+
+#ifdef CONFIG_IPC_CLASSES
+void intel_update_ipcc(struct task_struct *curr);
+#define arch_update_ipcc intel_update_ipcc
+long intel_get_ipcc_score(unsigned int ipcc, int cpu);
+#define arch_get_ipcc_score intel_get_ipcc_score
+#endif
+
+#define CPUTYPES_MAX_NR 2
+
 #endif /* _ASM_X86_TOPOLOGY_H */

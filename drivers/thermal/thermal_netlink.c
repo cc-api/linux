@@ -263,6 +263,7 @@ static cb_t event_cb[] = {
 	[THERMAL_GENL_EVENT_CDEV_STATE_UPDATE]	= thermal_genl_event_cdev_state_update,
 	[THERMAL_GENL_EVENT_TZ_GOV_CHANGE]	= thermal_genl_event_gov_change,
 	[THERMAL_GENL_EVENT_CPU_CAPABILITY_CHANGE] = thermal_genl_event_cpu_capability_change,
+	[THERMAL_GENL_EVENT_CPU_FORCED_IDLE]	= thermal_genl_event_cpu_capability_change,
 };
 
 /*
@@ -408,6 +409,15 @@ int thermal_genl_cpu_capability_event(int count,
 	return thermal_genl_send_event(THERMAL_GENL_EVENT_CPU_CAPABILITY_CHANGE, &p);
 }
 EXPORT_SYMBOL_GPL(thermal_genl_cpu_capability_event);
+
+int thermal_genl_cpu_forced_idle_event(int count,
+					   struct thermal_genl_cpu_caps *caps)
+{
+	struct param p = { .cpu_capabilities_count = count, .cpu_capabilities = caps };
+
+	return thermal_genl_send_event(THERMAL_GENL_EVENT_CPU_FORCED_IDLE, &p);
+}
+EXPORT_SYMBOL_GPL(thermal_genl_cpu_forced_idle_event);
 
 /*************************** Command encoding ********************************/
 
