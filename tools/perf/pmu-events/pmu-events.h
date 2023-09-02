@@ -48,6 +48,10 @@ struct pmu_event {
 	const char *unit;
 	bool perpkg;
 	bool deprecated;
+	const char *offset;
+	const char *guid;
+	const char *lsb;
+	const char *msb;
 };
 
 struct pmu_metric {

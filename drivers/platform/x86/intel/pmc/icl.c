@@ -52,8 +52,15 @@ const struct pmc_reg_map icl_reg_map = {
 
 int icl_core_init(struct pmc_dev *pmcdev)
 {
+	int ret;
 	struct pmc *pmc = pmcdev->pmcs[PMC_IDX_MAIN];
 
 	pmc->map = &icl_reg_map;
-	return get_primary_reg_base(pmc);
+	ret = get_primary_reg_base(pmc);
+	if (ret)
+		return ret;
+
+	pmc_core_get_low_power_modes(pmcdev, PMC_IDX_MAIN);
+
+	return ret;
 }
