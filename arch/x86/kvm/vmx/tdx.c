@@ -5313,6 +5313,25 @@ int __init tdx_hardware_setup(struct kvm_x86_ops *x86_ops)
 	return tdx_module_update_init();
 }
 
+int tdx_sync_pir_to_irr(struct kvm_vcpu *vcpu)
+{
+	struct vcpu_tdx *tdx = to_tdx(vcpu);
+	int posted_intr;
+	bool got_posted_intr;
+
+	if (pi_test_on(&tdx->pi_desc)) {
+		pi_clear_on(&tdx->pi_desc);
+		smp_mb__after_atomic();
+		got_posted_intr = kvm_apic_update_irr(vcpu, tdx->pi_desc.pir, &posted_intr);
+		if (got_posted_intr)
+			pr_info("YY %s: got posted intr:%d\n", __func__, posted_intr);
+		else
+			pr_info("YY %s: got max irr:%d\n", __func__, posted_intr);
+	}
+
+	return 0;
+}
+
 void tdx_hardware_unsetup(void)
 {
 	if (!enable_ept || !enable_tdx)

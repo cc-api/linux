@@ -307,6 +307,26 @@ static void vt_apicv_post_state_restore(struct kvm_vcpu *vcpu)
 
 	pi_clear_on(pi);
 	memset(pi->pir, 0, sizeof(pi->pir));
+
+	if (is_td_vcpu(vcpu)) {
+		struct kvm_lapic *lapic = vcpu->arch.apic;
+		u32 *irr;
+		u32 *pir;
+		int i;
+		bool on = false;
+
+		pir = pi->pir;
+		for (i = 0; i < 8; ++i,++pir) {
+			irr = (u32*)(lapic->regs + 0x200 + i * 0x10);
+			*pir = *irr;
+			if (*pir)
+				on = true;
+		}
+
+		if (on)
+			pi_set_on(pi);
+		pr_info("YY %s: has pending PIR:%d\n", __func__, (int)on);
+	}
 }
 
 static void vt_hwapic_irr_update(struct kvm_vcpu *vcpu, int max_irr)
@@ -334,10 +354,14 @@ static bool vt_guest_apic_has_interrupt(struct kvm_vcpu *vcpu)
 	return vmx_guest_apic_has_interrupt(vcpu);
 }
 
-static int vt_sync_pir_to_irr(struct kvm_vcpu *vcpu)
+static int vt_sync_pir_to_irr(struct kvm_vcpu *vcpu, bool tdx_migration)
 {
-	if (is_td_vcpu(vcpu))
-		return -1;
+	if (is_td_vcpu(vcpu)) {
+		if (tdx_migration)
+			return tdx_sync_pir_to_irr(vcpu);
+		else
+			return -1;
+	}
 
 	return vmx_sync_pir_to_irr(vcpu);
 }

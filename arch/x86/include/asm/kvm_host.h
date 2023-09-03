@@ -1692,7 +1692,7 @@ struct kvm_x86_ops {
 	void (*set_apic_access_page_addr)(struct kvm_vcpu *vcpu);
 	void (*deliver_interrupt)(struct kvm_lapic *apic, int delivery_mode,
 				  int trig_mode, int vector);
-	int (*sync_pir_to_irr)(struct kvm_vcpu *vcpu);
+	int (*sync_pir_to_irr)(struct kvm_vcpu *vcpu, bool tdx_migration);
 	int (*set_tss_addr)(struct kvm *kvm, unsigned int addr);
 	int (*set_identity_map_addr)(struct kvm *kvm, u64 ident_addr);
 	u8 (*get_mt_mask)(struct kvm_vcpu *vcpu, gfn_t gfn, bool is_mmio);
