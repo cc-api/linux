@@ -9,6 +9,7 @@
  * Copyright (C) 2022 Intel Corporation. All rights reserved.
  */
 
+#include <linux/types.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
