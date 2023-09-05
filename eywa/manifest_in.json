@@ -6258,7 +6258,7 @@
                 }
             ],
             "description": "Enable User Timer support",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3486",
             "name": "utimer_next",
@@ -6295,7 +6295,7 @@
                 }
             ],
             "description": "Adds the KVM support for tdxio",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Caspi Dror",
