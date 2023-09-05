@@ -174,17 +174,18 @@ void xe_ccs_migrate_kunit(struct kunit *test)
 }
 EXPORT_SYMBOL_IF_KUNIT(xe_ccs_migrate_kunit);
 
-static int evict_test_run_gt(struct xe_device *xe, struct xe_gt *gt, struct kunit *test)
+static int evict_test_run_tile(struct xe_device *xe, struct xe_tile *tile, struct kunit *test)
 {
 	struct xe_bo *bo, *external;
 	unsigned int bo_flags = XE_BO_CREATE_USER_BIT |
-		XE_BO_CREATE_VRAM_IF_DGFX(gt_to_tile(gt));
+		XE_BO_CREATE_VRAM_IF_DGFX(tile);
 	struct xe_vm *vm = xe_migrate_get_vm(xe_device_get_root_tile(xe)->migrate);
 	struct ww_acquire_ctx ww;
-	int err, i;
+	struct xe_gt *__gt;
+	int err, i, id;
 
-	kunit_info(test, "Testing device %s gt id %u vram id %u\n",
-		   dev_name(xe->drm.dev), gt->info.id, gt_to_tile(gt)->id);
+	kunit_info(test, "Testing device %s vram id %u\n",
+		   dev_name(xe->drm.dev), tile->id);
 
 	for (i = 0; i < 2; ++i) {
 		xe_vm_lock(vm, &ww, 0, false);
@@ -218,7 +219,8 @@ static int evict_test_run_gt(struct xe_device *xe, struct xe_gt *gt, struct kuni
 			goto cleanup_all;
 		}
 
-		xe_gt_sanitize(gt);
+		for_each_gt(__gt, xe, id)
+			xe_gt_sanitize(__gt);
 		err = xe_bo_restore_kernel(xe);
 		/*
 		 * Snapshotting the CTB and copying back a potentially old
@@ -231,8 +233,10 @@ static int evict_test_run_gt(struct xe_device *xe, struct xe_gt *gt, struct kuni
 		 * however seems quite fragile not to also restart the GT. Try
 		 * to do that here by triggering a GT reset.
 		 */
-		xe_gt_reset_async(gt);
-		flush_work(&gt->reset.worker);
+		for_each_gt(__gt, xe, id) {
+			xe_gt_reset_async(__gt);
+			flush_work(&__gt->reset.worker);
+		}
 		if (err) {
 			KUNIT_FAIL(test, "restore kernel err=%pe\n",
 				   ERR_PTR(err));
@@ -312,7 +316,7 @@ cleanup_bo:
 static int evict_test_run_device(struct xe_device *xe)
 {
 	struct kunit *test = xe_cur_kunit();
-	struct xe_gt *gt;
+	struct xe_tile *tile;
 	int id;
 
 	if (!IS_DGFX(xe)) {
@@ -323,8 +327,8 @@ static int evict_test_run_device(struct xe_device *xe)
 
 	xe_device_mem_access_get(xe);
 
-	for_each_gt(gt, xe, id)
-		evict_test_run_gt(xe, gt, test);
+	for_each_tile(tile, xe, id)
+		evict_test_run_tile(xe, tile, test);
 
 	xe_device_mem_access_put(xe);
 
