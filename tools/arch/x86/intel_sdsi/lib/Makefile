@@ -25,13 +25,16 @@ $(SDSI_GENL_HDR) : FORCE
 	ln -sf $(srctree)/$@ .
 	make libsdsi_spdm.so
 
-libsdsi_spdm.so : sdsi_spdm_nl.o sdsi_spdm.o
+libsdsi_spdm.so : sdsi_spdm_nl.o sdsi_spdm.o spdm.o
 	$(CC) $(CFLAGS) -shared -o $@ $^ -L/lib/x86_64-linux-gnu -lnl-3 -lnl-genl-3
 
 sdsi_spdm.o : sdsi_spdm.c
 	$(CC) $(CFLAGS) -c -fPIC $(INCL_PATH) -o $@ $< -L/lib/x86_64-linux-gnu -lnl-3 -lnl-genl-3
 
 sdsi_spdm_nl.o : sdsi_spdm_nl.c
+	$(CC) $(CFLAGS) -c -fPIC $(INCL_PATH) -o $@ $< -L/lib/x86_64-linux-gnu -lnl-3 -lnl-genl-3
+
+spdm.o : spdm.c
 	$(CC) $(CFLAGS) -c -fPIC $(INCL_PATH) -o $@ $< -L/lib/x86_64-linux-gnu -lnl-3 -lnl-genl-3
 
 clean:

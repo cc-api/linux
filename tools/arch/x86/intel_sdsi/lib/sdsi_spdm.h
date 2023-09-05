@@ -52,6 +52,10 @@ struct sdsi_spdm_device {
 	size_t	meas_sig_size;
 	uint8_t	*meas_ts;
 	size_t	meas_ts_size;
+	void	*spdm_request;
+	size_t	spdm_request_size;
+	void	*spdm_response;
+	size_t	spdm_response_size;
 };
 
 typedef enum {
@@ -118,6 +122,9 @@ sdsi_spdm_authorize(struct sdsi_spdm_handle *hndl, struct sdsi_spdm_device *s);
  */
 LIBSDSI_API sdsi_error_t
 sdsi_spdm_get_measurement(struct sdsi_spdm_handle *hndl, struct sdsi_spdm_device *s);
+
+LIBSDSI_API sdsi_error_t
+sdsi_spdm(struct sdsi_spdm_handle *hndl, struct sdsi_spdm_device *s);
 
 /**
  * sdsi_spdm_exit - Close a netlink connection to the sdsi kernel driver

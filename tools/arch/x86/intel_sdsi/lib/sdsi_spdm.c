@@ -1,8 +1,8 @@
-#include <errno.h>
 #include <linux/kernel.h>
 #include <netlink/genl/genl.h>	// nla_policy
 #include <netlink/genl/mngt.h>	// ops_resolve
 #include <netlink/genl/ctrl.h>  // genl_ctrl_resolve
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -137,6 +137,33 @@ static int parse_measurements(struct genl_info *info, struct sdsi_spdm_device *s
 	return SDSI_SUCCESS;
 }
 
+static int parse_spdm(struct genl_info *info, struct sdsi_spdm_device *s)
+{
+	int ret;
+
+	ret = __parse_id(info, s);
+	if (ret)
+		return ret;
+
+	if (!info->attrs[SDSI_GENL_ATTR_SPDM])
+		return SDSI_ERROR;
+
+	s->spdm_response_size = nla_len(info->attrs[SDSI_GENL_ATTR_SPDM]);
+	/* FIXME: Check size */
+	s->spdm_response = malloc(s->spdm_response_size);
+	if (!s->spdm_response) {
+		fprintf(stderr, "%s: Could not allocate memory for measurement:\n%s\n",
+			__func__, strerror(errno));
+		return SDSI_ERROR;
+	}
+
+	memcpy(s->spdm_response,
+	       nla_data(info->attrs[SDSI_GENL_ATTR_SPDM]),
+	       s->spdm_response_size);
+
+	return SDSI_SUCCESS;
+}
+
 static int handle_spdm(struct nl_cache_ops *unused, struct genl_cmd *cmd,
 		       struct genl_info *info, void *arg)
 {
@@ -156,6 +183,10 @@ static int handle_spdm(struct nl_cache_ops *unused, struct genl_cmd *cmd,
 
 	case SDSI_GENL_CMD_GET_MEASUREMENTS:
 		ret = parse_measurements(info, arg);
+		break;
+
+	case SDSI_GENL_CMD_SPDM:
+		ret = parse_spdm(info, arg);
 		break;
 
 	default:
@@ -222,6 +253,13 @@ static struct genl_cmd sdsi_cmds[] = {
 		.c_maxattr	= SDSI_GENL_ATTR_MAX,
 		.c_attr_policy	= sdsi_genl_policy,
 	},
+	{
+		.c_id		= SDSI_GENL_CMD_SPDM,
+		.c_name		= (char *)"SPDM transport",
+		.c_msg_parser	= handle_spdm,
+		.c_maxattr	= SDSI_GENL_ATTR_MAX,
+		.c_attr_policy	= sdsi_genl_policy,
+	},
 };
 
 static struct genl_ops sdsi_cmd_ops = {
@@ -249,7 +287,10 @@ static int sdsi_genl_simple(struct sdsi_spdm_handle *hndl, int id, int cmd,
 	if (id >= 0 && nla_put_u32(msg, SDSI_GENL_ATTR_DEV_ID, id))
 		return SDSI_ERROR;
 
-	if (cmd == SDSI_GENL_CMD_AUTHORIZE) {
+	if (cmd == SDSI_GENL_CMD_SPDM) {
+		if (nla_put(msg, SDSI_GENL_ATTR_SPDM, dev->spdm_request_size, dev->spdm_request))
+			return SDSI_ERROR;
+	} else if (cmd == SDSI_GENL_CMD_AUTHORIZE) {
 		if (nla_put_u8(msg, SDSI_GENL_ATTR_CERT_SLOT_NO, dev->cert_slot_no))
 			return SDSI_ERROR;
 	} else if (cmd == SDSI_GENL_CMD_GET_MEASUREMENTS) {
@@ -275,6 +316,11 @@ int sdsi_spdm_get_measurement(struct sdsi_spdm_handle *hndl, struct sdsi_spdm_de
 int sdsi_spdm_authorize(struct sdsi_spdm_handle *hndl, struct sdsi_spdm_device *dev)
 {
 	return sdsi_genl_simple(hndl, dev->id, SDSI_GENL_CMD_AUTHORIZE, 0, dev);
+}
+
+int sdsi_spdm(struct sdsi_spdm_handle *hndl, struct sdsi_spdm_device *dev)
+{
+	return sdsi_genl_simple(hndl, dev->id, SDSI_GENL_CMD_SPDM, 0, dev);
 }
 
 int sdsi_spdm_get_devices(struct sdsi_spdm_handle *hndl, struct sdsi_spdm_device **dev)
