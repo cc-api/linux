@@ -2747,6 +2747,8 @@ static int kvm_apic_state_fixup(struct kvm_vcpu *vcpu,
 
 int kvm_apic_get_state(struct kvm_vcpu *vcpu, struct kvm_lapic_state *s)
 {
+	int r;
+
 	memcpy(s->regs, vcpu->arch.apic->regs, sizeof(*s));
 
 	/*
@@ -2756,13 +2758,18 @@ int kvm_apic_get_state(struct kvm_vcpu *vcpu, struct kvm_lapic_state *s)
 	__kvm_lapic_set_reg(s->regs, APIC_TMCCT,
 			    __apic_read(vcpu->arch.apic, APIC_TMCCT));
 
-	return kvm_apic_state_fixup(vcpu, s, false);
+	r = kvm_apic_state_fixup(vcpu, s, false);
+	static_call(kvm_x86_get_lapic)(vcpu, s);
+
+	return r;
 }
 
 int kvm_apic_set_state(struct kvm_vcpu *vcpu, struct kvm_lapic_state *s)
 {
 	struct kvm_lapic *apic = vcpu->arch.apic;
 	int r;
+
+	static_call(kvm_x86_set_lapic)(vcpu, s);
 
 	kvm_lapic_set_base(vcpu, vcpu->arch.apic_base);
 	/* set SPIV separately to get count of SW disabled APICs right */

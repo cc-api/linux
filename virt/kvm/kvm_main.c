@@ -3840,6 +3840,7 @@ static int kvm_vcpu_check_block(struct kvm_vcpu *vcpu)
 	ret = 0;
 out:
 	srcu_read_unlock(&vcpu->kvm->srcu, idx);
+
 	return ret;
 }
 

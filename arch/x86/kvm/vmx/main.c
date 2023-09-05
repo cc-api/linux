@@ -973,6 +973,35 @@ static bool vt_match_fw(struct kvm *kvm, struct kvm_firmware *fw)
 	return false;
 }
 
+void vt_set_lapic(struct kvm_vcpu *vcpu, struct kvm_lapic_state *s)
+{
+	struct vcpu_tdx *vcpu_tdx;
+
+	if (!is_td_vcpu(vcpu))
+		return;
+
+	vcpu_tdx = to_tdx(vcpu);
+	if (!vcpu_tdx->buggy_hlt_workaround)
+		vcpu_tdx->buggy_hlt_workaround = *((unsigned int*)(s->regs + 0x380));
+	*((unsigned int*)(s->regs + 0x380)) = 0;
+
+	pr_info("%s: YY set buggy_hlt_workaround = %d\n",
+		__func__, vcpu_tdx->buggy_hlt_workaround);
+}
+
+void vt_get_lapic(struct kvm_vcpu *vcpu, struct kvm_lapic_state *s)
+{
+	struct vcpu_tdx *vcpu_tdx;
+
+	if(!is_td_vcpu(vcpu))
+		return;
+
+	vcpu_tdx = to_tdx(vcpu);
+	*((unsigned int*)(s->regs + 0x380)) = vcpu_tdx->buggy_hlt_workaround;
+	pr_info("%s: YY get buggy_hlt_workaround = %d\n",
+		__func__, vcpu_tdx->buggy_hlt_workaround);
+}
+
 struct kvm_x86_ops vt_x86_ops __initdata = {
 	.name = KBUILD_MODNAME,
 
@@ -1130,6 +1159,9 @@ struct kvm_x86_ops vt_x86_ops __initdata = {
 
 	.update_fw = vt_update_fw,
 	.match_fw = vt_match_fw,
+
+	.get_lapic = vt_get_lapic,
+	.set_lapic = vt_set_lapic,
 };
 
 struct kvm_x86_init_ops vt_init_ops __initdata = {

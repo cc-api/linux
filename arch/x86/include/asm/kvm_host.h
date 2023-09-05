@@ -1818,6 +1818,9 @@ struct kvm_x86_ops {
 
 	int (*update_fw)(struct kvm_firmware *fw, bool live_update);
 	bool (*match_fw)(struct kvm *kvm, struct kvm_firmware *fw);
+
+	void (*get_lapic)(struct kvm_vcpu *vcpu, struct kvm_lapic_state *s);
+	void (*set_lapic)(struct kvm_vcpu *vcpu, struct kvm_lapic_state *s);
 };
 
 struct kvm_x86_nested_ops {
