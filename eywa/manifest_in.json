@@ -1439,7 +1439,7 @@
                 }
             ],
             "description": "Enable Intel Thread Director (ITD) as well as code to discover and enumerate the topology of hybrid CPUs.",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Eliezer Weissman",
