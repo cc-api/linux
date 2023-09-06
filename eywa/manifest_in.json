@@ -943,7 +943,7 @@
                 }
             ],
             "description": "EDAC for SPR and IEH for TGL",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Ahmad, Annie",
@@ -1203,7 +1203,7 @@
                 }
             ],
             "description": "intel_rapl/intel_idle/thermal/turbostat support",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Evelyn Fields",
@@ -1439,7 +1439,7 @@
                 }
             ],
             "description": "Enable Intel Thread Director (ITD) as well as code to discover and enumerate the topology of hybrid CPUs.",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Eliezer Weissman",
@@ -2028,7 +2028,7 @@
                 }
             ],
             "description": "Intel TPMI MFD driver",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Chen, Stanley",
@@ -3160,7 +3160,7 @@
                 }
             ],
             "description": "Shadow stack feature",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3472",
             "name": "shadow_stacks",
@@ -4228,7 +4228,7 @@
                 }
             ],
             "description": "TDX Guest support ",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Prajwal Karur Mohan",
@@ -4424,7 +4424,7 @@
                 }
             ],
             "description": "Ashok Raj's microcode patches",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Ashok Raj",
@@ -6342,7 +6342,7 @@
                 }
             ],
             "description": "Enable Intel Thread Director (ITD) in virtualization scenario",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Eliezer Weissmann",
