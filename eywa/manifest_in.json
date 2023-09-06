@@ -6250,7 +6250,12 @@
         {
             "branch": "utimer-next",
             "branch_type": "expiring",
-            "config_options": [],
+            "config_options": [
+                {
+                    "name": "CONFIG_X86_USER_INTERRUPTS",
+                    "value": "y"
+                }
+            ],
             "contributor": [
                 {
                     "name": "Sohil Mehta",
@@ -6258,7 +6263,7 @@
                 }
             ],
             "description": "Enable User Timer support",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3486",
             "name": "utimer_next",
