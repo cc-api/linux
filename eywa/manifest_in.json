@@ -1002,7 +1002,7 @@
                 }
             ],
             "description": "PMC core driver",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Mark Charney",
