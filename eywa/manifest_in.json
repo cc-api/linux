@@ -288,7 +288,7 @@
                 }
             ],
             "description": "Linux Next TPM public next tree",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3446",
             "name": "tpm",
