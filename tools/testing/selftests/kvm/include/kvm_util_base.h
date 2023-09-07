@@ -703,7 +703,7 @@ static inline struct kvm_vm *vm_create_barebones(void)
 /* TDX VMs are always created with no memory and memory is added later */
 static inline struct kvm_vm *vm_create_tdx(void)
 {
-	return ____vm_create(VM_MODE_DEFAULT, 0, KVM_X86_TDX_VM);
+	return ____vm_create(VM_MODE_DEFAULT, KVM_X86_TDX_VM);
 }
 
 static inline struct kvm_vm *vm_create(uint32_t nr_runnable_vcpus)
