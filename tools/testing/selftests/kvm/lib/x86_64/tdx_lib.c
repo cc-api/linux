@@ -168,7 +168,7 @@ void initialize_td_with_attributes(struct kvm_vm *vm, uint64_t attributes)
 
 	cpuid_data = get_tdx_cpuid_data(vm);
 
-	init_vm.max_vcpus = TDX_GUEST_MAX_NUM_VCPUS;
+	//init_vm.max_vcpus = TDX_GUEST_MAX_NUM_VCPUS;
 	init_vm.attributes = attributes;
 	memcpy(&init_vm.cpuid, &cpuid_data, sizeof(cpuid_data));
 	tdx_ioctl(vm->fd, KVM_TDX_INIT_VM, 0, &init_vm);
