@@ -6443,7 +6443,7 @@
                 }
             ],
             "description": "Disable CET before shutdown",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "NEXT-3490",
             "name": "disable_cet",
