@@ -6431,6 +6431,30 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.5"
+        },
+        {
+            "branch": "master",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Mateusz Mowka",
+                    "email": "mateusz.mowka@intel.com"
+                }
+            ],
+            "description": "Disable CET before shutdown",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3490",
+            "name": "disable_cet",
+            "repourl": "https://github.com/mateusz-mowka/mmowka.tboot.cet_disable.git",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-09/msg00012.html",
+            "platforms": "",
+            "feature_jiras": "",
+            "last_enabled": "v6.5"
         }
     ]
 }
