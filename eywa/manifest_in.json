@@ -1460,7 +1460,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "",
+            "stuck_at_ref": "9a3fccb70b188fcb4c54fcd505c0d6ee2b91b1de",
             "last_enabled": "v6.5",
             "maillist": "https://eclists.intel.com/sympa/arc/intel-next/2023-07/msg00041.html",
             "platforms": "ADL,ARL,LKF,LNL,MTL,RPL",
