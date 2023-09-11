@@ -40,6 +40,8 @@ struct seq_file;
 extern void proc_sched_show_task(struct task_struct *p,
 				 struct pid_namespace *ns, struct seq_file *m);
 extern void proc_sched_set_task(struct task_struct *p);
+
+extern unsigned int arch_ipcc_of(struct task_struct *p);
 #endif
 
 /* Attach to any functions which should be ignored in wchan output. */

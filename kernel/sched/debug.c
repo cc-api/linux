@@ -571,6 +571,11 @@ static void task_group_path(struct task_group *tg, char *path, int plen)
 }
 #endif
 
+unsigned int __weak arch_ipcc_of(struct task_struct *p)
+{
+	return IPC_CLASS_UNCLASSIFIED;
+}
+
 static void
 print_task(struct seq_file *m, struct rq *rq, struct task_struct *p)
 {
