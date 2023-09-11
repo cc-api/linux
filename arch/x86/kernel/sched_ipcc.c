@@ -17,6 +17,9 @@
  */
 
 #include <linux/sched.h>
+#ifdef CONFIG_SCHED_DEBUG
+#include <linux/sched/debug.h>
+#endif
 
 #include <asm/intel-family.h>
 #include <asm/topology.h>
@@ -120,3 +123,14 @@ long intel_get_ipcc_score(unsigned int ipcc, int cpu)
 
 	return intel_hfi_get_ipcc_score(itd_ipcc.split.class, cpu);
 }
+
+#ifdef CONFIG_SCHED_DEBUG
+unsigned int arch_ipcc_of(struct task_struct *p)
+{
+	union itd_ipcc itd_ipcc;
+
+	itd_ipcc.full = p->ipcc;
+
+	return itd_ipcc.split.class;
+}
+#endif
