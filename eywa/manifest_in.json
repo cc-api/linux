@@ -6057,14 +6057,14 @@
                 }
             ],
             "description": "Guest apic virt timer patches for CWF",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Gil Neiger",
                     "email": "gil.neiger@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3504",
             "name": "guest_apic_virt",
             "repourl": "https://github.com/intel-sandbox/yangzhon-linux.git",
             "sdl_contact": [
@@ -6078,7 +6078,7 @@
             "maillist": "",
             "platforms": "CWF",
             "feature_jiras": "LFE-7429",
-            "last_enabled": "v6.5"
+            "last_enabled": "v6.6"
         },
         {
             "branch": "guest_apic_virt_fixup",
