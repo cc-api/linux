@@ -5883,7 +5883,7 @@
             "config_options": [],
             "contributor": [
                 {
-                    "name": "Tao su",
+                    "name": "Tao Su",
                     "email": "tao1.su@intel.com"
                 }
             ],
@@ -6196,23 +6196,19 @@
             "last_enabled": "v6.5"
         },
         {
-            "branch": "cwf-dmr-nis",
+            "branch": "cwf-dmr-nis-6.6",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
                 {
-                    "name": "S",
-                    "email": "S"
-                },
-                {
-                    "name": " Tao",
+                    "name": "Tao Su",
                     "email": "tao1.su@intel.com"
                 }
             ],
             "description": "Advertise CPUID of CWF/DMR instructions to userspace",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3505",
             "name": "cpuid_cwf_dmr_nis",
             "repourl": "https://github.com/intel-sandbox/taosu.linux.git    ",
             "sdl_contact": [],
@@ -6221,7 +6217,7 @@
             "maillist": "",
             "platforms": "CWF,DMR",
             "feature_jiras": "",
-            "last_enabled": "v6.5"
+            "last_enabled": "v6.6"
         },
         {
             "branch": "as/LKPMEM-129-inext",
