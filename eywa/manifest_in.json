@@ -1160,14 +1160,14 @@
                 }
             ],
             "description": "USB Type-C/DWC3 for MTL-S",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Abdul Rahman Ismail",
                     "email": "abdul.r.ismail@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3513",
             "name": "usb-typec",
             "repourl": "https://github.com/intel-sandbox/hkrogeru-linux.git",
             "sdl_contact": [
@@ -1178,7 +1178,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.3",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "MTL-S",
             "feature_jiras": ""
