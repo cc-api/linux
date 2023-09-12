@@ -120,6 +120,7 @@
 #define MEI_DEV_ID_PTL_P      0xE470  /* Panther Lake P */
 
 #define MEI_DEV_ID_NVL_S      0x6E68  /* Nova Lake Point S */
+#define MEI_DEV_ID_NVL_P      0xD270  /* Nova Lake Point P */
 
 /*
  * MEI HW Section
