@@ -5839,7 +5839,7 @@
             "last_enabled": "v6.6"
         },
         {
-            "branch": "tdx-compliance-for-inext-v6.5",
+            "branch": "tdx-compliance-for-inext-v6.6",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -5854,14 +5854,14 @@
                 }
             ],
             "description": "TDX compliance is designed to verify TDX environment.",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Yi Sun",
                     "email": "yi.sun@linux.intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3508",
             "name": "tdx_compliance",
             "repourl": "https://github.com/intel-sandbox/linux-sy.git",
             "sdl_contact": [
@@ -5875,7 +5875,7 @@
             "maillist": "",
             "platforms": "EMR,GNR,SPR",
             "feature_jiras": "",
-            "last_enabled": "v6.5"
+            "last_enabled": "v6.6"
         },
         {
             "branch": "cwf-ni",
