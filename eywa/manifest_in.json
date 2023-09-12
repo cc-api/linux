@@ -4228,14 +4228,14 @@
                 }
             ],
             "description": "TDX Guest support ",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Prajwal Karur Mohan",
                     "email": "prajwal.karur.mohan@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3517",
             "name": "tdx_guest",
             "repourl": "https://github.com/intel/tdx.git",
             "sdl_contact": [
@@ -4246,7 +4246,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "EMR,GNR,SPR,SRF",
             "feature_jiras": ""
