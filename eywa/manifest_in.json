@@ -6443,7 +6443,7 @@
             "ip_owner": [],
             "jira": "NEXT-3510",
             "name": "disable_cet_before_shutdown",
-            "repourl": "https://github.com/mateusz-mowka/mmowka.tboot.cet_disable.git",
+            "repourl": "https://github.com/mateusz-mowka/tboot_linux.git",
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
