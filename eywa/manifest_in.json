@@ -1396,14 +1396,14 @@
                 }
             ],
             "description": "Updates to perf tools for Intel PT",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Jeyasingh Stalinselvaraj",
                     "email": "stalinselvaraj.jeyasingh@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3514",
             "name": "perf-tools",
             "repourl": "https://github.com/intel-sandbox/ahunter6.next.git",
             "sdl_contact": [
@@ -1414,7 +1414,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
@@ -4907,7 +4907,7 @@
                 }
             ],
             "description": "This pull request introduces the Linux perf PMU support for PMU core and uncore support. It also has fixes for the SPR uncore support, IOMMU PerfMon and MSRL.",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Beeman Strong",
@@ -4922,7 +4922,7 @@
                     "email": "jeremiah.d.williamson@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3515",
             "name": "perf",
             "repourl": "https://github.com/intel-innersource/os.linux.perf.intel-next.git",
             "sdl_contact": [
@@ -4933,7 +4933,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "ARL,EMR,GNR,GRR,LNL,MTL,SPR,SRF",
             "feature_jiras": ""
