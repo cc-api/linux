@@ -5798,7 +5798,7 @@
             "last_enabled": "v6.3"
         },
         {
-            "branch": "tracepoint-xsave-for-inext-v6.5",
+            "branch": "tracepoint-xsave-for-inext-v6.6",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -5825,9 +5825,9 @@
                 }
             ],
             "description": "Measure the latency of XSAVE and XRSTOR",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3507",
             "name": "tracepoint_xsave",
             "repourl": "https://github.com/intel-sandbox/linux-sy.git",
             "sdl_contact": [],
@@ -5836,7 +5836,7 @@
             "maillist": "",
             "platforms": "EMR,GNR,SPR",
             "feature_jiras": "",
-            "last_enabled": "v6.5"
+            "last_enabled": "v6.6"
         },
         {
             "branch": "tdx-compliance-for-inext-v6.5",
