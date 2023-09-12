@@ -6429,7 +6429,7 @@
             "last_enabled": "v6.5"
         },
         {
-            "branch": "master",
+            "branch": "tboot_disable_cet_before_shutdown",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
@@ -6439,10 +6439,10 @@
                 }
             ],
             "description": "Disable CET before shutdown",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
-            "name": "disable_cet",
+            "jira": "NEXT-3510",
+            "name": "disable_cet_before_shutdown",
             "repourl": "https://github.com/mateusz-mowka/mmowka.tboot.cet_disable.git",
             "sdl_contact": [],
             "status": "public",
@@ -6450,7 +6450,7 @@
             "maillist": "",
             "platforms": "",
             "feature_jiras": "",
-            "last_enabled": "v6.5"
+            "last_enabled": "v6.6"
         }
     ]
 }
