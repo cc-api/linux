@@ -1123,7 +1123,7 @@ static int guc_exec_queue_init(struct xe_exec_queue *q)
 	long timeout;
 	int err;
 
-	XE_WARN_ON(!xe_device_guc_submission_enabled(guc_to_xe(guc)));
+	XE_WARN_ON(!xe_device_uc_enabled(guc_to_xe(guc)));
 
 	ge = kzalloc(sizeof(*ge), GFP_KERNEL);
 	if (!ge)
@@ -1887,7 +1887,7 @@ void xe_guc_submit_print(struct xe_guc *guc, struct drm_printer *p)
 	struct xe_exec_queue *q;
 	unsigned long index;
 
-	if (!xe_device_guc_submission_enabled(guc_to_xe(guc)))
+	if (!xe_device_uc_enabled(guc_to_xe(guc)))
 		return;
 
 	mutex_lock(&guc->submission_state.lock);
