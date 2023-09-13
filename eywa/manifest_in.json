@@ -6343,7 +6343,7 @@
                 }
             ],
             "description": "Enable Intel Thread Director (ITD) in virtualization scenario",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Eliezer Weissmann",
@@ -6354,7 +6354,7 @@
                     "email": "muhammad.abozaed@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3519",
             "name": "thread_director_virt",
             "repourl": "https://github.com/intel-sandbox/zhaoliu.linux.git",
             "sdl_contact": [
@@ -6365,7 +6365,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "ADL,LNL,MTL,RPL",
             "feature_jiras": "CROSVT-1327"
