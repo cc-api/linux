@@ -6451,6 +6451,30 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.6"
+        },
+        {
+            "branch": "6.6-rc1_siov",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Yi Sun",
+                    "email": "yi.y.sun@linux.intel.com"
+                }
+            ],
+            "description": "Internal SIOV kernel development tree ",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3524",
+            "name": "siov",
+            "repourl": "https://github.com/intel-sandbox/yisun1-siov.git",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": "",
+            "last_enabled": "v6.6"
         }
     ]
 }
