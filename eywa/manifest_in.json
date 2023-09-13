@@ -345,7 +345,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "scs-v6.4",
+            "branch": "scs-v6.6",
             "branch_type": "expiring",
             "config_options": [
                 {
