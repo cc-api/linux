@@ -420,7 +420,7 @@
                 }
             ],
             "description": "MMC Subsystem and SCS (eMMC/ SD card / SDIO / UFS) driver enabling",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Rajesh Bhaskar",
@@ -435,7 +435,7 @@
                     "email": "arijit.chattopadhyay@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3518",
             "name": "mmc",
             "repourl": "https://github.com/intel-sandbox/ahunter6.next.git",
             "sdl_contact": [
@@ -446,7 +446,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "LNL",
             "feature_jiras": ""
