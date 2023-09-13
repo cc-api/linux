@@ -102,12 +102,31 @@ CONFIG_BPF=y
 CONFIG_HAVE_EBPF_JIT=y
 CONFIG_ARCH_WANT_DEFAULT_BPF_JIT=y
 
-#
-# BPF subsystem
-#
-# CONFIG_BPF_SYSCALL is not set
-# CONFIG_BPF_JIT is not set
-# end of BPF subsystem
+# BEGIN SVOS Next eBPF SETTINGS
+# Required for Compile Once, Run Everywhere. Regular targets might not need it
+# but the build machine would. Creates /sys/kernel/btf/vmlinux, which we need to
+# build and run eBPF programs with libbpf (particularly to make vmlinux.h with
+# bpftool). We might be able to disable BTF for production kernels, but I
+# believe BTF data is used to adjust the compiled code to run on other kernels
+# as part of that compile once, run everywhere feature.
+# These are the only ones that seem necessary to ultimately enable eBPF, but they
+# do turn on other settings.
+CONFIG_BPF_SYSCALL=y
+CONFIG_NET_ACT_BPF=m
+CONFIG_BPF_JIT=y
+CONFIG_BPF_EVENTS=y
+CONFIG_DEBUG_INFO_NONE=n
+CONFIG_DEBUG_INFO_DWARF4=y
+CONFIG_DEBUG_INFO_BTF=y
+
+# IKHEADERS would be used for eBPF programs supported by bcc, which is a Python-based
+# solution. We chose to use libbpf instead for native C/C++ support as well as its
+# compile-once, run-everywhere support (so the program doe not need to be rebuilt each time.
+# We are leaving the settings here:
+# Might become a module. Need this for bcc for eBPF unless you have svos-next and intel-next headers installed together
+# CONFIG_IKHEADERS=y
+# END eBPF SETTINGS
+
 
 CONFIG_PREEMPT_NONE=y
 # CONFIG_PREEMPT_VOLUNTARY is not set
@@ -408,7 +427,7 @@ CONFIG_X86_INTEL_TSX_MODE_OFF=y
 # CONFIG_X86_INTEL_TSX_MODE_AUTO is not set
 CONFIG_X86_SGX=y
 CONFIG_ARCH_HAS_SHADOW_STACK=y
-# CONFIG_X86_SHADOW_STACK is not set
+CONFIG_X86_SHADOW_STACK=y
 CONFIG_EFI=y
 CONFIG_EFI_STUB=y
 CONFIG_EFI_MIXED=y
@@ -1289,11 +1308,11 @@ CONFIG_SCSI_MPT2SAS_MAX_SGE=128
 CONFIG_SCSI_MPT3SAS_MAX_SGE=128
 # CONFIG_SCSI_MPT2SAS is not set
 # CONFIG_SCSI_SMARTPQI is not set
-CONFIG_SCSI_UFSHCD=m
-CONFIG_SCSI_UFSHCD_PCI=m
+CONFIG_SCSI_UFSHCD=y
+CONFIG_SCSI_UFSHCD_PCI=y
 # CONFIG_SCSI_UFS_DWC_TC_PCI is not set
 # CONFIG_SCSI_UFSHCD_PLATFORM is not set
-# CONFIG_SCSI_UFS_BSG is not set
+CONFIG_SCSI_UFS_BSG=y
 # CONFIG_SCSI_HPTIOP is not set
 # CONFIG_SCSI_BUSLOGIC is not set
 # CONFIG_SCSI_MYRB is not set
@@ -3565,9 +3584,14 @@ CONFIG_INTEL_PMT_WATCHER=m
 # CONFIG_INTEL_SCU_PCI is not set
 # CONFIG_INTEL_SCU_PLATFORM is not set
 CONFIG_PMC_ATOM=y
-# CONFIG_INTEL_SOCPERF is not set
+CONFIG_INTEL_SOCPERF=m
 CONFIG_INTEL_SOCWATCH=m
-# CONFIG_INTEL_SEP is not set
+CONFIG_INTEL_SEP=y
+CONFIG_SEP=m
+CONFIG_SEP_SOCPERF=m
+CONFIG_SEP_PAX=m
+CONFIG_SEP_STANDARD_MODE=y
+CONFIG_SEP_PRIVATE_BUILD=y
 # CONFIG_CHROME_PLATFORMS is not set
 # CONFIG_MELLANOX_PLATFORM is not set
 CONFIG_SURFACE_PLATFORMS=y
@@ -4839,3 +4863,9 @@ CONFIG_MD_FAULTY=m
 CONFIG_DM_MULTIPATH_QL=m
 CONFIG_DM_MULTIPATH_ST=m
 CONFIG_CRYPTO_ESSIV=m
+
+# Suppressing Indirect Branch Tracking (IBT). We believe it is
+# interfering with our legacy module declaration in svfs, triggering
+# a fault with them until we update them to the newer module
+# declaration style.
+CONFIG_X86_KERNEL_IBT=n
