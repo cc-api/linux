@@ -452,7 +452,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "cse-6.5",
+            "branch": "cse-6.6",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -531,14 +531,14 @@
                 }
             ],
             "description": "CSE/CSME MEI driver and MEI client drivers",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "William A. Stevens",
                     "email": "William.a.stevens@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3523",
             "name": "mei",
             "repourl": "https://github.com/intel-innersource/drivers.security.cse.drivers.linux-mei-pk.git",
             "sdl_contact": [
@@ -561,7 +561,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "LNL,MTL,PNL",
             "feature_jiras": ""
