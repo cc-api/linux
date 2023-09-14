@@ -117,6 +117,14 @@
                 {
                     "name": "CONFIG_VFIO_CONTAINER",
                     "value": "n"
+                },
+                {
+                    "name": "CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE",
+                    "value": "n"
                 }
             ],
             "contributor": [
