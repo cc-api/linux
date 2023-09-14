@@ -6379,7 +6379,7 @@
             "feature_jiras": "CROSVT-1327"
         },
         {
-            "branch": "intel-next-tdx-fred",
+            "branch": "intel-nest-fred-v6.6-rc1",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -6394,7 +6394,7 @@
                 }
             ],
             "description": "Intel FRED support",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "",
             "name": "fred_support",
@@ -6410,7 +6410,7 @@
             "maillist": "",
             "platforms": "",
             "feature_jiras": "",
-            "last_enabled": "v6.5"
+            "last_enabled": "v6.6"
         },
         {
             "branch": "fred_fixup",
