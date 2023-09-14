@@ -5496,14 +5496,14 @@
                 }
             ],
             "description": "Add  support to turbostat",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Charles Prestopine",
                     "email": "charles.d.prestopine@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3526",
             "name": "turbolnl",
             "repourl": "https://github.com/intel-sandbox/xi_linux",
             "sdl_contact": [
@@ -5514,7 +5514,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "LNL",
             "feature_jiras": "LFE-3896,LFE-3909"
@@ -6036,14 +6036,14 @@
                 }
             ],
             "description": "LNL-M telemetry and watcher support",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Rajvi Jingar",
                     "email": "rajvi.jingar@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3527",
             "name": "lnlm_telemetry",
             "repourl": "https://github.com/intel-sandbox/linux-kernel-rjingar.git",
             "sdl_contact": [],
@@ -6052,7 +6052,7 @@
             "maillist": "",
             "platforms": "LNL",
             "feature_jiras": "",
-            "last_enabled": "v6.5"
+            "last_enabled": "v6.6"
         },
         {
             "branch": "for-intel-next",
