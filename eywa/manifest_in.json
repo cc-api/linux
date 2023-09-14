@@ -172,7 +172,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "svos-next-pull-6.5",
+            "branch": "svos-next-pull-6.6",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -195,14 +195,14 @@
                 }
             ],
             "description": "SVOS Kernel/Driver Changes ",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Adam Preble",
                     "email": "adam.c.preble@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3525",
             "name": "SVOS Kernel",
             "repourl": "https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next",
             "sdl_contact": [
@@ -213,7 +213,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
