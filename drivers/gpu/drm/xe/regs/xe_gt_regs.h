@@ -88,6 +88,14 @@
 #define VE1_AUX_INV				XE_REG(0x42b8)
 #define   AUX_INV				REG_BIT(0)
 
+#define _PAT_PTA                                0x4820
+#define XE2_NO_PROMOTE                          REG_BIT(10)
+#define XE2_COMP_EN                             REG_BIT(9)
+#define XE2_L3_CLOS                             REG_GENMASK(7, 6)
+#define XE2_L3_POLICY                           REG_GENMASK(5, 4)
+#define XE2_L4_POLICY                           REG_GENMASK(3, 2)
+#define XE2_COH_MODE                            REG_GENMASK(1, 0)
+
 #define XEHP_TILE_ADDR_RANGE(_idx)		XE_REG_MCR(0x4900 + (_idx) * 4)
 #define XEHP_FLAT_CCS_BASE_ADDR			XE_REG_MCR(0x4910)
 
