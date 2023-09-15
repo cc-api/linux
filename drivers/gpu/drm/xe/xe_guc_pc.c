@@ -823,7 +823,7 @@ int xe_guc_pc_start(struct xe_guc_pc *pc)
 	    GRAPHICS_VERx100(xe) >= 2000)
 		return 0;
 
-	XE_WARN_ON(!xe_device_guc_submission_enabled(xe));
+	XE_WARN_ON(!xe_device_uc_enabled(xe));
 
 	xe_device_mem_access_get(pc_to_xe(pc));
 

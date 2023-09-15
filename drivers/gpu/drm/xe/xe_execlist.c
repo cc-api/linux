@@ -321,7 +321,7 @@ static int execlist_exec_queue_init(struct xe_exec_queue *q)
 	struct xe_device *xe = gt_to_xe(q->gt);
 	int err;
 
-	XE_WARN_ON(xe_device_guc_submission_enabled(xe));
+	XE_WARN_ON(xe_device_uc_enabled(xe));
 
 	drm_info(&xe->drm, "Enabling execlist submission (GuC submission disabled)\n");
 
@@ -371,7 +371,7 @@ static void execlist_exec_queue_fini_async(struct work_struct *w)
 	struct xe_execlist_exec_queue *exl = q->execlist;
 	unsigned long flags;
 
-	XE_WARN_ON(xe_device_guc_submission_enabled(gt_to_xe(q->gt)));
+	XE_WARN_ON(xe_device_uc_enabled(gt_to_xe(q->gt)));
 
 	spin_lock_irqsave(&exl->port->lock, flags);
 	if (WARN_ON(exl->active_priority != DRM_SCHED_PRIORITY_UNSET))
@@ -458,7 +458,7 @@ static const struct xe_exec_queue_ops execlist_exec_queue_ops = {
 int xe_execlist_init(struct xe_gt *gt)
 {
 	/* GuC submission enabled, nothing to do */
-	if (xe_device_guc_submission_enabled(gt_to_xe(gt)))
+	if (xe_device_uc_enabled(gt_to_xe(gt)))
 		return 0;
 
 	gt->exec_queue_ops = &execlist_exec_queue_ops;
