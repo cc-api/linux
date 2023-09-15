@@ -180,6 +180,15 @@ struct xe_reg_sr;
 	{ .match_type = XE_RTP_MATCH_DISCRETE }
 
 /**
+ * XE_RTP_RULE_PRESILICON - Create a rule matching presilicon modes
+ *
+ * Refer to XE_RTP_RULES() for expected usage.
+ */
+#define XE_RTP_RULE_PRESILICON(mode__)                                         \
+	{ .match_type = XE_RTP_MATCH_PRESILICON,                                \
+	  .presi_mode = mode__, }
+
+/**
  * XE_RTP_ACTION_WR - Helper to write a value to the register, overriding all
  *                    the bits
  * @reg_: Register
