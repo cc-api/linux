@@ -19,6 +19,7 @@
 #include "xe_hw_engine_types.h"
 #include "xe_mmio.h"
 #include "xe_platform_types.h"
+#include "presi/xe_presi.h"
 #include "xe_rtp.h"
 #include "xe_step.h"
 
@@ -261,6 +262,14 @@ static const struct xe_rtp_entry_sr gt_was[] = {
 	  XE_RTP_ACTIONS(FIELD_SET(IOSF_CFG,
 				   MAX_READ_REQUEST_SIZE,
 				   MAX_READ_REQUEST_128B))
+	},
+
+	/* FSG */
+	{ XE_RTP_NAME("16018196332"),
+	  XE_RTP_RULES(GRAPHICS_VERSION(3500), PRESILICON(XE_PRESI_MODE_EMULATOR_PIPEGT)),
+	  XE_RTP_ACTIONS(FIELD_SET(XE_REG(_PAT_PTA), XE2_L3_POLICY | XE2_L4_POLICY,
+				   REG_FIELD_PREP(XE2_L3_POLICY, 3) |
+				   REG_FIELD_PREP(XE2_L4_POLICY, 3)))
 	},
 
 	{}
