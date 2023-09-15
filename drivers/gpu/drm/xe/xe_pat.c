@@ -89,37 +89,40 @@ static const u32 mtl_pat_table[] = {
 	REG_FIELD_PREP(XE2_COH_MODE, coh_mode)
 
 static const u32 xe2_pat_table[] = {
-	[ 0] = XE2_PAT( 0, 0, 0, 0, 0, 0 ),
-	[ 1] = XE2_PAT( 0, 0, 0, 0, 0, 2 ),
-	[ 2] = XE2_PAT( 0, 0, 0, 0, 0, 3 ),
+	[ 0] = XE2_PAT( 0, 0, 0, 0, 3, 0 ),
+	[ 1] = XE2_PAT( 0, 0, 0, 0, 3, 2 ),
+	[ 2] = XE2_PAT( 0, 0, 0, 0, 3, 3 ),
 	[ 3] = XE2_PAT( 0, 0, 0, 3, 3, 0 ),
 	[ 4] = XE2_PAT( 0, 0, 0, 3, 0, 2 ),
 	[ 5] = XE2_PAT( 0, 0, 0, 3, 3, 2 ),
-	[ 6] = XE2_PAT( 1, 0, 0, 1, 1, 0 ),
+	[ 6] = XE2_PAT( 1, 0, 0, 1, 3, 0 ),
 	[ 7] = XE2_PAT( 0, 0, 0, 3, 0, 3 ),
 	[ 8] = XE2_PAT( 0, 0, 0, 3, 0, 0 ),
-	[ 9] = XE2_PAT( 0, 1, 0, 0, 0, 0 ),
+	[ 9] = XE2_PAT( 0, 1, 0, 0, 3, 0 ),
 	[10] = XE2_PAT( 0, 1, 0, 3, 0, 0 ),
-	[11] = XE2_PAT( 1, 1, 0, 1, 1, 0 ),
+	[11] = XE2_PAT( 1, 1, 0, 1, 3, 0 ),
 	[12] = XE2_PAT( 0, 1, 0, 3, 3, 0 ),
-	/* 13..19 are reserved; leave set to all 0's */
-	[20] = XE2_PAT( 0, 0, 1, 0, 0, 0 ),
-	[21] = XE2_PAT( 0, 1, 1, 0, 0, 0 ),
-	[22] = XE2_PAT( 0, 0, 1, 0, 0, 2 ),
-	[23] = XE2_PAT( 0, 0, 1, 0, 0, 3 ),
-	[24] = XE2_PAT( 0, 0, 2, 0, 0, 0 ),
-	[25] = XE2_PAT( 0, 1, 2, 0, 0, 0 ),
-	[26] = XE2_PAT( 0, 0, 2, 0, 0, 2 ),
-	[27] = XE2_PAT( 0, 0, 2, 0, 0, 3 ),
-	[28] = XE2_PAT( 0, 0, 3, 0, 0, 0 ),
-	[29] = XE2_PAT( 0, 1, 3, 0, 0, 0 ),
-	[30] = XE2_PAT( 0, 0, 3, 0, 0, 2 ),
-	[31] = XE2_PAT( 0, 0, 3, 0, 0, 3 ),
+	[13] = XE2_PAT( 0, 0, 0, 0, 0, 0 ),
+	[14] = XE2_PAT( 0, 1, 0, 0, 0, 0 ),
+	[15] = XE2_PAT( 1, 1, 0, 1, 1, 0 ),
+	/* 16..19 are reserved; leave set to all 0's */
+	[20] = XE2_PAT( 0, 0, 1, 0, 3, 0 ),
+	[21] = XE2_PAT( 0, 1, 1, 0, 3, 0 ),
+	[22] = XE2_PAT( 0, 0, 1, 0, 3, 2 ),
+	[23] = XE2_PAT( 0, 0, 1, 0, 3, 3 ),
+	[24] = XE2_PAT( 0, 0, 2, 0, 3, 0 ),
+	[25] = XE2_PAT( 0, 1, 2, 0, 3, 0 ),
+	[26] = XE2_PAT( 0, 0, 2, 0, 3, 2 ),
+	[27] = XE2_PAT( 0, 0, 2, 0, 3, 3 ),
+	[28] = XE2_PAT( 0, 0, 3, 0, 3, 0 ),
+	[29] = XE2_PAT( 0, 1, 3, 0, 3, 0 ),
+	[30] = XE2_PAT( 0, 0, 3, 0, 3, 2 ),
+	[31] = XE2_PAT( 0, 0, 3, 0, 3, 3 ),
 };
 
 /* Special PAT values programmed outside the main table */
-#define XE2_PAT_ATS	XE2_PAT ( 0, 0, 0, 0, 0, 3 )
-#define XE2_PAT_PTA	XE2_PAT ( 0, 0, 0, 0, 0, 0 )
+#define XE2_PAT_ATS	XE2_PAT ( 0, 0, 0, 0, 3, 3 )
+#define XE2_PAT_PTA	XE2_PAT ( 0, 0, 0, 0, 3, 0 )
 
 static void program_pat(struct xe_gt *gt, const u32 table[], int n_entries)
 {
