@@ -6379,7 +6379,7 @@
             "feature_jiras": "CROSVT-1327"
         },
         {
-            "branch": "intel-nest-fred-v6.6-rc1",
+            "branch": "intel-next-fred-v6.6-rc1",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -6396,7 +6396,7 @@
             "description": "Intel FRED support",
             "enabled": true,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3529",
             "name": "fred_support",
             "repourl": "https://github.com/intel-sandbox/linux-fred.git",
             "sdl_contact": [
@@ -6409,7 +6409,7 @@
             "stuck_at_ref": "",
             "maillist": "",
             "platforms": "",
-            "feature_jiras": "",
+            "feature_jiras": "LFE-7271,LFE-7272",
             "last_enabled": "v6.6"
         },
         {
