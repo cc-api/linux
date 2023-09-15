@@ -5,6 +5,7 @@
 
 #include "xe_pat.h"
 
+#include "regs/xe_gt_regs.h"
 #include "regs/xe_reg_defs.h"
 #include "xe_device.h"
 #include "xe_gt.h"
@@ -15,14 +16,6 @@
 #define _PAT_INDEX(index)			_PICK_EVEN_2RANGES(index, 8, \
 								   0x4800, 0x4804, \
 								   0x4848, 0x484c)
-#define _PAT_PTA				0x4820
-
-#define XE2_NO_PROMOTE                          REG_BIT(10)
-#define XE2_COMP_EN                             REG_BIT(9)
-#define XE2_L3_CLOS                             REG_GENMASK(7, 6)
-#define XE2_L3_POLICY                           REG_GENMASK(5, 4)
-#define XE2_L4_POLICY                           REG_GENMASK(3, 2)
-#define XE2_COH_MODE                            REG_GENMASK(1, 0)
 
 #define MTL_L4_POLICY_MASK			REG_GENMASK(3, 2)
 #define MTL_PAT_3_UC				REG_FIELD_PREP(MTL_L4_POLICY_MASK, 3)

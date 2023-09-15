@@ -51,6 +51,7 @@ enum {
 	XE_RTP_MATCH_ENGINE_CLASS,
 	XE_RTP_MATCH_NOT_ENGINE_CLASS,
 	XE_RTP_MATCH_FUNC,
+	XE_RTP_MATCH_PRESILICON,
 };
 
 /** struct xe_rtp_rule - match rule for processing entry */
@@ -81,6 +82,10 @@ struct xe_rtp_rule {
 		/* MATCH_ENGINE_CLASS / MATCH_NOT_ENGINE_CLASS */
 		struct {
 			u8 engine_class;
+		};
+		/* MATCH_PRESILICON */
+		struct {
+			u8 presi_mode;
 		};
 		/* MATCH_FUNC */
 		bool (*match_func)(const struct xe_gt *gt,
