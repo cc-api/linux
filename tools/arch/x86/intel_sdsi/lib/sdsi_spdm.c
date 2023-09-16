@@ -23,6 +23,7 @@ static struct nla_policy sdsi_genl_policy[SDSI_GENL_ATTR_MAX + 1] = {
 	[SDSI_GENL_ATTR_MEASUREMENT]		= { .type = NLA_BINARY },
 	[SDSI_GENL_ATTR_MEAS_TRANSCRIPT]	= { .type = NLA_BINARY },
 	[SDSI_GENL_ATTR_MEAS_SIG]		= { .type = NLA_BINARY },
+	[SDSI_GENL_ATTR_SPDM]			= { .type = NLA_BINARY },
 };
 
 static int __parse_id(struct genl_info *info, struct sdsi_spdm_device *s)
