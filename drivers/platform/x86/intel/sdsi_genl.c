@@ -37,6 +37,23 @@ struct param {
 
 typedef int (*cb_t)(struct param *);
 
+static void print_transcript(struct device *dev, const char *s, u8 *p, int l)
+{
+	dev_dbg(dev, "%s: %d\n", s, l);
+	while (l >= 4) {
+		dev_dbg(dev, "\t0x%08x\n", *(u32 *)p);
+		p += 4;
+		l -= 4;
+	}
+
+	if (l == 3)
+		dev_dbg(dev, "\t0x%06x\n", *(u32 *)p);
+	else if (l == 2)
+		dev_dbg(dev, "\t0x%04x\n", *(u16 *)p);
+	else if (l == 1)
+		dev_dbg(dev, "\t0x%02x\n", *(u8 *)p);
+}
+
 static int sdsi_genl_cmd_spdm(struct param *p)
 {
 	struct sk_buff *msg = p->msg;
@@ -59,11 +76,13 @@ static int sdsi_genl_cmd_spdm(struct param *p)
 	if (!response)
 		return -ENOMEM;
 
+	print_transcript(priv->dev, "REQUESTING", request, req_size);
 	rsp_size = sdsi_spdm_exchange(priv, request, req_size, response,
 				      SDSI_SIZE_READ_MSG);
 	if (rsp_size < 0)
 		return rsp_size;
 
+	print_transcript(priv->dev, "RESPONSE", response, rsp_size);
 	ret = nla_put_u32(msg, SDSI_GENL_ATTR_DEV_ID, priv->id);
 	if (ret)
 		return ret;
