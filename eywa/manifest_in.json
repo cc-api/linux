@@ -6304,7 +6304,7 @@
                 }
             ],
             "description": "Adds the KVM support for tdxio",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Caspi Dror",
@@ -6322,7 +6322,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
