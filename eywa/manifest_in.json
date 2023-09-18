@@ -5714,7 +5714,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "lam_v10_3",
+            "branch": "lam_lass_combined",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
@@ -5724,15 +5724,15 @@
                 }
             ],
             "description": "Linear Address Masking KVM Enabling",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
-            "name": "lam_kvm",
+            "jira": "NEXT-3530",
+            "name": "lam_lass_kvm",
             "repourl": "https://github.com/binbinwu1/linux",
             "sdl_contact": [],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "GRR,LNL,SRF",
             "feature_jiras": "LFE-28,LFE-843"
