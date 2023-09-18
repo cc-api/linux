@@ -11,6 +11,7 @@
 #include <linux/fs.h>
 #include <linux/poll.h>
 #include <linux/iommu.h>
+#include <linux/mm_types.h>
 #include <linux/anon_inodes.h>
 #include <linux/mmu_notifier.h>
 #include <linux/highmem.h>
@@ -570,6 +571,16 @@ err_bitmap_alloc:
 #endif
 }
 
+
+static inline void iommu_flush_iotlb_all_dev_pasid(struct device *dev, u32 pasid)
+{
+	struct iommu_domain *domain;
+
+	domain = iommu_get_domain_for_dev(dev);
+	iommu_flush_iotlb_all(domain);
+}
+
+
 static void idxd_idpte_free_bitmap(struct idxd_idpt_entry_data *idpte_data)
 {
 	struct idxd_device *idxd = idpte_data->idxd;
@@ -698,7 +709,7 @@ static int idxd_idpte_release(struct inode *i, struct file *filp)
 {
 	struct idxd_idpt_entry_data *idpte_data = filp->private_data;
 
-	ioasid_put(NULL, idpte_data->access_pasid);
+//	ioasid_put(NULL, idpte_data->access_pasid);
 	kfree(idpte_data);
 	return 0;
 }
@@ -917,9 +928,9 @@ static long idxd_idpt_win_create(struct file *filp, struct idxd_win_param *win_p
 	/* non priviledged access */
 	idpte.access_priv = 0;
 
-	rc = ioasid_get(NULL, ctx->pasid);
-	if (rc)
-		goto ioasid_get_fail;
+//	rc = ioasid_get(NULL, ctx->pasid);
+//	if (rc)
+//		goto ioasid_get_fail;
 
 	idpte_data->access_pasid = idpte.access_pasid = ctx->pasid;
 	idpte.submit_pasid = 0;
@@ -958,7 +969,7 @@ static long idxd_idpt_win_create(struct file *filp, struct idxd_win_param *win_p
 
 cp_user_fail:
 getfd_fail:
-ioasid_get_fail:
+//ioasid_get_fail:
 	idxd->idpte_data[index] = NULL;
 bitmap_fail:
 	iommu_sva_unbind_device(idpte_data->owner_sva);

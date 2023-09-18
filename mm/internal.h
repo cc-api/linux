@@ -954,8 +954,6 @@ enum {
 	FOLL_TOUCH = 1 << 16,
 	/* a retry, previous pass started an IO */
 	FOLL_TRIED = 1 << 17,
-	/* we are working on non-current tsk/mm */
-	FOLL_REMOTE = 1 << 18,
 	/* pages must be released via unpin_user_page */
 	FOLL_PIN = 1 << 19,
 	/* gup_fast: prevent fall-back to slow gup */
