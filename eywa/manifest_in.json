@@ -5496,7 +5496,7 @@
                 }
             ],
             "description": "Add  support to turbostat",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Charles Prestopine",
