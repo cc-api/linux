@@ -6281,53 +6281,6 @@
             "last_enabled": "v6.5"
         },
         {
-            "branch": "for-intel-next",
-            "branch_type": "expiring",
-            "config_options": [
-                {
-                    "name": "CONFIG_INTEL_TDX_MODULE_UPDATE",
-                    "value": "y"
-                }
-            ],
-            "contributor": [
-                {
-                    "name": "Chenyi Qiang",
-                    "email": "chenyi.qiang@intel.com"
-                },
-                {
-                    "name": "Wei Wang",
-                    "email": "wei.w.wang@intel.com"
-                },
-                {
-                    "name": "Gao Chao",
-                    "email": "chao.gao@intel.com"
-                }
-            ],
-            "description": "Adds the KVM support for tdxio",
-            "enabled": false,
-            "ip_owner": [
-                {
-                    "name": "Caspi Dror",
-                    "email": "dror.caspi@intel.com"
-                }
-            ],
-            "jira": "",
-            "name": "kvm_tdxio",
-            "repourl": "https://github.com/intel-sandbox/cqiang-tdx-kvm.git",
-            "sdl_contact": [
-                {
-                    "name": "Chenyi Qiang",
-                    "email": "chenyi.qiang@intel.com"
-                }
-            ],
-            "status": "intel confidential",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.6",
-            "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
-        },
-        {
             "branch": "hybrid-virtual-for-intel-next",
             "branch_type": "expiring",
             "config_options": [
@@ -6483,6 +6436,53 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.6"
+        },
+        {
+            "branch": "for-intel-next",
+            "branch_type": "expiring",
+            "config_options": [
+                {
+                    "name": "CONFIG_INTEL_TDX_MODULE_UPDATE",
+                    "value": "y"
+                }
+            ],
+            "contributor": [
+                {
+                    "name": "Chenyi Qiang",
+                    "email": "chenyi.qiang@intel.com"
+                },
+                {
+                    "name": "Wei Wang",
+                    "email": "wei.w.wang@intel.com"
+                },
+                {
+                    "name": "Gao Chao",
+                    "email": "chao.gao@intel.com"
+                }
+            ],
+            "description": "Adds the KVM support for tdxio",
+            "enabled": false,
+            "ip_owner": [
+                {
+                    "name": "Caspi Dror",
+                    "email": "dror.caspi@intel.com"
+                }
+            ],
+            "jira": "",
+            "name": "kvm_tdxio",
+            "repourl": "https://github.com/intel-sandbox/cqiang-tdx-kvm.git",
+            "sdl_contact": [
+                {
+                    "name": "Chenyi Qiang",
+                    "email": "chenyi.qiang@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.6",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         }
     ]
 }
