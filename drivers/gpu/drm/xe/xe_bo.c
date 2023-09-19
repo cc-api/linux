@@ -1079,13 +1079,11 @@ static void xe_gem_object_close(struct drm_gem_object *obj,
 	struct xe_bo *bo = gem_to_xe_bo(obj);
 
 	if (bo->vm && !xe_vm_in_fault_mode(bo->vm)) {
-		struct ww_acquire_ctx ww;
-
 		XE_WARN_ON(!xe_bo_is_user(bo));
 
-		xe_bo_lock(bo, &ww, 0, false);
+		xe_bo_lock(bo, false);
 		ttm_bo_set_bulk_move(&bo->ttm, NULL);
-		xe_bo_unlock(bo, &ww);
+		xe_bo_unlock(bo);
 	}
 }
 
@@ -1751,7 +1749,6 @@ int xe_gem_create_ioctl(struct drm_device *dev, void *data,
 	struct xe_device *xe = to_xe_device(dev);
 	struct xe_file *xef = to_xe_file(file);
 	struct drm_xe_gem_create *args = data;
-	struct ww_acquire_ctx ww;
 	struct xe_vm *vm = NULL;
 	struct xe_bo *bo;
 	unsigned int bo_flags = XE_BO_CREATE_USER_BIT;
@@ -1785,17 +1782,6 @@ int xe_gem_create_ioctl(struct drm_device *dev, void *data,
 	if (XE_IOCTL_DBG(xe, args->size & ~PAGE_MASK))
 		return -EINVAL;
 
-	if (args->vm_id) {
-		vm = xe_vm_lookup(xef, args->vm_id);
-		if (XE_IOCTL_DBG(xe, !vm))
-			return -ENOENT;
-		err = xe_vm_lock(vm, &ww, 0, true);
-		if (err) {
-			xe_vm_put(vm);
-			return err;
-		}
-	}
-
 	if (args->flags & XE_GEM_CREATE_FLAG_DEFER_BACKING)
 		bo_flags |= XE_BO_DEFER_BACKING;
 
@@ -1809,6 +1795,17 @@ int xe_gem_create_ioctl(struct drm_device *dev, void *data,
 			return -EINVAL;
 
 		bo_flags |= XE_BO_NEEDS_CPU_ACCESS;
+	}
+
+	if (args->vm_id) {
+		vm = xe_vm_lookup(xef, args->vm_id);
+		if (XE_IOCTL_DBG(xe, !vm))
+			return -ENOENT;
+		err = xe_vm_lock(vm, true);
+		if (err) {
+			xe_vm_put(vm);
+			return err;
+		}
 	}
 
 	bo = xe_bo_create(xe, NULL, vm, args->size, ttm_bo_type_device,
@@ -1832,7 +1829,7 @@ out_put:
 	xe_bo_put(bo);
 out_vm:
 	if (vm) {
-		xe_vm_unlock(vm, &ww);
+		xe_vm_unlock(vm);
 		xe_vm_put(vm);
 	}
 	return err;
@@ -1863,26 +1860,37 @@ int xe_gem_mmap_offset_ioctl(struct drm_device *dev, void *data,
 	return 0;
 }
 
-int xe_bo_lock(struct xe_bo *bo, struct ww_acquire_ctx *ww,
-	       int num_resv, bool intr)
+/**
+ * xe_bo_lock() - Lock the buffer object's dma_resv object
+ * @bo: The struct xe_bo whose lock is to be taken
+ * @intr: Whether to perform any wait interruptible
+ *
+ * Locks the buffer object's dma_resv object. If the buffer object is
+ * pointing to a shared dma_resv object, that shared lock is locked.
+ *
+ * Return: 0 on success, -EINTR if @intr is true and the wait for a
+ * contended lock was interrupted. If @intr is set to false, the
+ * function always returns 0.
+ */
+int xe_bo_lock(struct xe_bo *bo, bool intr)
 {
-	struct ttm_validate_buffer tv_bo;
-	LIST_HEAD(objs);
-	LIST_HEAD(dups);
+	if (intr)
+		return dma_resv_lock_interruptible(bo->ttm.base.resv, NULL);
 
-	XE_WARN_ON(!ww);
+	dma_resv_lock(bo->ttm.base.resv, NULL);
 
-	tv_bo.num_shared = num_resv;
-	tv_bo.bo = &bo->ttm;
-	list_add_tail(&tv_bo.head, &objs);
-
-	return ttm_eu_reserve_buffers(ww, &objs, intr, &dups);
+	return 0;
 }
 
-void xe_bo_unlock(struct xe_bo *bo, struct ww_acquire_ctx *ww)
+/**
+ * xe_bo_unlock() - Unlock the buffer object's dma_resv object
+ * @bo: The struct xe_bo whose lock is to be released.
+ *
+ * Unlock a buffer object lock that was locked by xe_bo_lock().
+ */
+void xe_bo_unlock(struct xe_bo *bo)
 {
 	dma_resv_unlock(bo->ttm.base.resv);
-	ww_acquire_fini(ww);
 }
 
 /**

@@ -172,7 +172,7 @@ static bool preempt_fences_waiting(struct xe_vm *vm)
 	lockdep_assert_held(&vm->lock);
 	xe_vm_assert_held(vm);
 
-	list_for_each_entry(q, &vm->preempt.engines, compute.link) {
+	list_for_each_entry(q, &vm->preempt.exec_queues, compute.link) {
 		if (!q->compute.pfence ||
 		    (q->compute.pfence && test_bit(DMA_FENCE_FLAG_ENABLE_SIGNAL_BIT,
 						   &q->compute.pfence->flags))) {
@@ -197,10 +197,10 @@ static int alloc_preempt_fences(struct xe_vm *vm, struct list_head *list,
 	lockdep_assert_held(&vm->lock);
 	xe_vm_assert_held(vm);
 
-	if (*count >= vm->preempt.num_engines)
+	if (*count >= vm->preempt.num_exec_queues)
 		return 0;
 
-	for (; *count < vm->preempt.num_engines; ++(*count)) {
+	for (; *count < vm->preempt.num_exec_queues; ++(*count)) {
 		struct xe_preempt_fence *pfence = xe_preempt_fence_alloc();
 
 		if (IS_ERR(pfence))
@@ -218,7 +218,7 @@ static int wait_for_existing_preempt_fences(struct xe_vm *vm)
 
 	xe_vm_assert_held(vm);
 
-	list_for_each_entry(q, &vm->preempt.engines, compute.link) {
+	list_for_each_entry(q, &vm->preempt.exec_queues, compute.link) {
 		if (q->compute.pfence) {
 			long timeout = dma_fence_wait(q->compute.pfence, false);
 
@@ -237,7 +237,7 @@ static bool xe_vm_is_idle(struct xe_vm *vm)
 	struct xe_exec_queue *q;
 
 	xe_vm_assert_held(vm);
-	list_for_each_entry(q, &vm->preempt.engines, compute.link) {
+	list_for_each_entry(q, &vm->preempt.exec_queues, compute.link) {
 		if (!xe_exec_queue_is_idle(q))
 			return false;
 	}
@@ -250,7 +250,7 @@ static void arm_preempt_fences(struct xe_vm *vm, struct list_head *list)
 	struct list_head *link;
 	struct xe_exec_queue *q;
 
-	list_for_each_entry(q, &vm->preempt.engines, compute.link) {
+	list_for_each_entry(q, &vm->preempt.exec_queues, compute.link) {
 		struct dma_fence *fence;
 
 		link = list->next;
@@ -267,22 +267,26 @@ static void arm_preempt_fences(struct xe_vm *vm, struct list_head *list)
 static int add_preempt_fences(struct xe_vm *vm, struct xe_bo *bo)
 {
 	struct xe_exec_queue *q;
-	struct ww_acquire_ctx ww;
 	int err;
 
-	err = xe_bo_lock(bo, &ww, vm->preempt.num_engines, true);
+	err = xe_bo_lock(bo, true);
 	if (err)
 		return err;
 
-	list_for_each_entry(q, &vm->preempt.engines, compute.link)
+	err = dma_resv_reserve_fences(bo->ttm.base.resv, vm->preempt.num_exec_queues);
+	if (err)
+		goto out_unlock;
+
+	list_for_each_entry(q, &vm->preempt.exec_queues, compute.link)
 		if (q->compute.pfence) {
 			dma_resv_add_fence(bo->ttm.base.resv,
 					   q->compute.pfence,
 					   DMA_RESV_USAGE_BOOKKEEP);
 		}
 
-	xe_bo_unlock(bo, &ww);
-	return 0;
+out_unlock:
+	xe_bo_unlock(bo);
+	return err;
 }
 
 /**
@@ -311,7 +315,7 @@ static void resume_and_reinstall_preempt_fences(struct xe_vm *vm)
 	lockdep_assert_held(&vm->lock);
 	xe_vm_assert_held(vm);
 
-	list_for_each_entry(q, &vm->preempt.engines, compute.link) {
+	list_for_each_entry(q, &vm->preempt.exec_queues, compute.link) {
 		q->ops->resume(q);
 
 		dma_resv_add_fence(&vm->resv, q->compute.pfence,
@@ -346,8 +350,8 @@ int xe_vm_add_compute_exec_queue(struct xe_vm *vm, struct xe_exec_queue *q)
 		goto out_unlock;
 	}
 
-	list_add(&q->compute.link, &vm->preempt.engines);
-	++vm->preempt.num_engines;
+	list_add(&q->compute.link, &vm->preempt.exec_queues);
+	++vm->preempt.num_exec_queues;
 	q->compute.pfence = pfence;
 
 	down_read(&vm->userptr.notifier_lock);
@@ -519,18 +523,17 @@ void xe_vm_unlock_dma_resv(struct xe_vm *vm,
 
 static void xe_vm_kill(struct xe_vm *vm)
 {
-	struct ww_acquire_ctx ww;
 	struct xe_exec_queue *q;
 
 	lockdep_assert_held(&vm->lock);
 
-	xe_vm_lock(vm, &ww, 0, false);
+	xe_vm_lock(vm, false);
 	vm->flags |= XE_VM_FLAG_BANNED;
 	trace_xe_vm_kill(vm);
 
-	list_for_each_entry(q, &vm->preempt.engines, compute.link)
+	list_for_each_entry(q, &vm->preempt.exec_queues, compute.link)
 		q->ops->kill(q);
-	xe_vm_unlock(vm, &ww);
+	xe_vm_unlock(vm);
 
 	/* TODO: Inform user the VM is banned */
 }
@@ -586,7 +589,7 @@ retry:
 	}
 
 	err = xe_vm_lock_dma_resv(vm, &ww, tv_onstack, &tv, &objs,
-				  false, vm->preempt.num_engines);
+				  false, vm->preempt.num_exec_queues);
 	if (err)
 		goto out_unlock_outer;
 
@@ -1021,12 +1024,11 @@ bo_has_vm_references_locked(struct xe_bo *bo, struct xe_vm *vm,
 static bool bo_has_vm_references(struct xe_bo *bo, struct xe_vm *vm,
 				 struct xe_vma *ignore)
 {
-	struct ww_acquire_ctx ww;
 	bool ret;
 
-	xe_bo_lock(bo, &ww, 0, false);
+	xe_bo_lock(bo, false);
 	ret = !!bo_has_vm_references_locked(bo, vm, ignore);
-	xe_bo_unlock(bo, &ww);
+	xe_bo_unlock(bo);
 
 	return ret;
 }
@@ -1229,7 +1231,7 @@ struct xe_vm *xe_vm_create(struct xe_device *xe, u32 flags)
 
 	INIT_WORK(&vm->destroy_work, vm_destroy_work_func);
 
-	INIT_LIST_HEAD(&vm->preempt.engines);
+	INIT_LIST_HEAD(&vm->preempt.exec_queues);
 	vm->preempt.min_run_period_ms = 10;	/* FIXME: Wire up to uAPI */
 
 	for_each_tile(tile, xe, id)
@@ -1409,14 +1411,13 @@ static void xe_vm_close(struct xe_vm *vm)
 void xe_vm_close_and_put(struct xe_vm *vm)
 {
 	LIST_HEAD(contested);
-	struct ww_acquire_ctx ww;
 	struct xe_device *xe = vm->xe;
 	struct xe_tile *tile;
 	struct xe_vma *vma, *next_vma;
 	struct drm_gpuva *gpuva, *next;
 	u8 id;
 
-	XE_WARN_ON(vm->preempt.num_engines);
+	XE_WARN_ON(vm->preempt.num_exec_queues);
 
 	xe_vm_close(vm);
 	flush_async_ops(vm);
@@ -1432,7 +1433,7 @@ void xe_vm_close_and_put(struct xe_vm *vm)
 	}
 
 	down_write(&vm->lock);
-	xe_vm_lock(vm, &ww, 0, false);
+	xe_vm_lock(vm, false);
 	drm_gpuva_for_each_va_safe(gpuva, next, &vm->mgr) {
 		vma = gpuva_to_vma(gpuva);
 
@@ -1473,7 +1474,7 @@ void xe_vm_close_and_put(struct xe_vm *vm)
 					      NULL);
 		}
 	}
-	xe_vm_unlock(vm, &ww);
+	xe_vm_unlock(vm);
 
 	/*
 	 * VM is now dead, cannot re-add nodes to vm->vmas if it's NULL
@@ -1511,7 +1512,6 @@ static void vm_destroy_work_func(struct work_struct *w)
 {
 	struct xe_vm *vm =
 		container_of(w, struct xe_vm, destroy_work);
-	struct ww_acquire_ctx ww;
 	struct xe_device *xe = vm->xe;
 	struct xe_tile *tile;
 	u8 id;
@@ -1536,14 +1536,14 @@ static void vm_destroy_work_func(struct work_struct *w)
 	 * is needed for xe_vm_lock to work. If we remove that dependency this
 	 * can be moved to xe_vm_close_and_put.
 	 */
-	xe_vm_lock(vm, &ww, 0, false);
+	xe_vm_lock(vm, false);
 	for_each_tile(tile, xe, id) {
 		if (vm->pt_root[id]) {
 			xe_pt_destroy(vm->pt_root[id], vm->flags, NULL);
 			vm->pt_root[id] = NULL;
 		}
 	}
-	xe_vm_unlock(vm, &ww);
+	xe_vm_unlock(vm);
 
 	trace_xe_vm_free(vm);
 	dma_fence_put(vm->rebind_fence);
@@ -2083,7 +2083,7 @@ int xe_vm_destroy_ioctl(struct drm_device *dev, void *data,
 	vm = xa_load(&xef->vm.xa, args->vm_id);
 	if (XE_IOCTL_DBG(xe, !vm))
 		err = -ENOENT;
-	else if (XE_IOCTL_DBG(xe, vm->preempt.num_engines))
+	else if (XE_IOCTL_DBG(xe, vm->preempt.num_exec_queues))
 		err = -EBUSY;
 	else
 		xa_erase(&xef->vm.xa, args->vm_id);
@@ -2267,7 +2267,6 @@ vm_bind_ioctl_ops_create(struct xe_vm *vm, struct xe_bo *bo,
 			 u32 operation, u8 tile_mask, u32 region)
 {
 	struct drm_gem_object *obj = bo ? &bo->ttm.base : NULL;
-	struct ww_acquire_ctx ww;
 	struct drm_gpuva_ops *ops;
 	struct drm_gpuva_op *__op;
 	struct xe_vma_op *op;
@@ -2325,11 +2324,11 @@ vm_bind_ioctl_ops_create(struct xe_vm *vm, struct xe_bo *bo,
 	case XE_VM_BIND_OP_UNMAP_ALL:
 		XE_WARN_ON(!bo);
 
-		err = xe_bo_lock(bo, &ww, 0, true);
+		err = xe_bo_lock(bo, true);
 		if (err)
 			return ERR_PTR(err);
 		ops = drm_gpuva_gem_unmap_ops_create(&vm->mgr, obj);
-		xe_bo_unlock(bo, &ww);
+		xe_bo_unlock(bo);
 		if (IS_ERR(ops))
 			return ops;
 
@@ -2365,13 +2364,12 @@ static struct xe_vma *new_vma(struct xe_vm *vm, struct drm_gpuva_op_map *op,
 {
 	struct xe_bo *bo = op->gem.obj ? gem_to_xe_bo(op->gem.obj) : NULL;
 	struct xe_vma *vma;
-	struct ww_acquire_ctx ww;
 	int err;
 
 	lockdep_assert_held_write(&vm->lock);
 
 	if (bo) {
-		err = xe_bo_lock(bo, &ww, 0, true);
+		err = xe_bo_lock(bo, true);
 		if (err)
 			return ERR_PTR(err);
 	}
@@ -2380,7 +2378,7 @@ static struct xe_vma *new_vma(struct xe_vm *vm, struct drm_gpuva_op_map *op,
 			    op->va.range - 1, read_only, is_null,
 			    tile_mask);
 	if (bo)
-		xe_bo_unlock(bo, &ww);
+		xe_bo_unlock(bo);
 
 	if (xe_vma_is_userptr(vma)) {
 		err = xe_vma_userptr_pin_pages(vma);
@@ -3421,30 +3419,32 @@ free_objs:
 	return err == -ENODATA ? 0 : err;
 }
 
-/*
- * XXX: Using the TTM wrappers for now, likely can call into dma-resv code
- * directly to optimize. Also this likely should be an inline function.
+/**
+ * xe_vm_lock() - Lock the vm's dma_resv object
+ * @vm: The struct xe_vm whose lock is to be locked
+ * @intr: Whether to perform any wait interruptible
+ *
+ * Return: 0 on success, -EINTR if @intr is true and the wait for a
+ * contended lock was interrupted. If @intr is false, the function
+ * always returns 0.
  */
-int xe_vm_lock(struct xe_vm *vm, struct ww_acquire_ctx *ww,
-	       int num_resv, bool intr)
+int xe_vm_lock(struct xe_vm *vm, bool intr)
 {
-	struct ttm_validate_buffer tv_vm;
-	LIST_HEAD(objs);
-	LIST_HEAD(dups);
+	if (intr)
+		return dma_resv_lock_interruptible(&vm->resv, NULL);
 
-	XE_WARN_ON(!ww);
-
-	tv_vm.num_shared = num_resv;
-	tv_vm.bo = xe_vm_ttm_bo(vm);
-	list_add_tail(&tv_vm.head, &objs);
-
-	return ttm_eu_reserve_buffers(ww, &objs, intr, &dups);
+	return dma_resv_lock(&vm->resv, NULL);
 }
 
-void xe_vm_unlock(struct xe_vm *vm, struct ww_acquire_ctx *ww)
+/**
+ * xe_vm_unlock() - Unlock the vm's dma_resv object
+ * @vm: The struct xe_vm whose lock is to be released.
+ *
+ * Unlock a buffer object lock that was locked by xe_vm_lock().
+ */
+void xe_vm_unlock(struct xe_vm *vm)
 {
 	dma_resv_unlock(&vm->resv);
-	ww_acquire_fini(ww);
 }
 
 /**

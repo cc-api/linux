@@ -183,7 +183,7 @@ static void test_copy(struct xe_migrate *m, struct xe_bo *bo,
 
 	xe_bo_vunmap(sysmem);
 out_unlock:
-	xe_bo_unlock_no_vm(sysmem);
+	xe_bo_unlock(sysmem);
 	xe_bo_put(sysmem);
 }
 
@@ -396,14 +396,13 @@ static int migrate_test_run_device(struct xe_device *xe)
 
 	for_each_tile(tile, xe, id) {
 		struct xe_migrate *m = tile->migrate;
-		struct ww_acquire_ctx ww;
 
 		kunit_info(test, "Testing tile id %d.\n", id);
-		xe_vm_lock(m->q->vm, &ww, 0, true);
+		xe_vm_lock(m->q->vm, true);
 		xe_device_mem_access_get(xe);
 		xe_migrate_sanity_test(m, test);
 		xe_device_mem_access_put(xe);
-		xe_vm_unlock(m->q->vm, &ww);
+		xe_vm_unlock(m->q->vm);
 	}
 
 	return 0;
