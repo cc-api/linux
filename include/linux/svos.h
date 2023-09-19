@@ -125,5 +125,12 @@ extern void svos_setup_svos_e820(void);
 extern int svos_trap_hook(int, struct pt_regs *);
 extern int svos_enable_ras_errorcorrect;
 
+extern void svoskern_apic_eoi(void);
+extern unsigned int svoskern_apic_read(unsigned int reg);
+extern void svoskern_apic_write(unsigned int reg, unsigned int val);
+extern unsigned long svoskern_apic_icr_read(void);
+extern void svoskern_apic_icr_write(unsigned int low, unsigned int id);
+extern void svoskern_apic_wait_icr_idle(void);
+
 #endif // __KERNEL__
 #endif // _LINUX_SVOS_H

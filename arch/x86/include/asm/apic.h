@@ -519,7 +519,16 @@ extern struct apic apic_noop;
 
 static inline unsigned int read_apic_id(void)
 {
+#ifdef CONFIG_SVOS
+	// This is a problem in OOT SVOS code that winds up including apic.h.
+	// We have to use our pass-through apic_read function or else the
+	// symbols won't resolve (since they're now static_calls in the
+	// kernel).
+	extern unsigned int svoskern_apic_read(unsigned int reg);
+	unsigned int reg = svoskern_apic_read(APIC_ID);
+#else
 	unsigned int reg = apic_read(APIC_ID);
+#endif
 
 	return apic->get_apic_id(reg);
 }

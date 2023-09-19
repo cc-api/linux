@@ -14,6 +14,7 @@
 #include <linux/svos.h>
 #include <linux/svos_svfs_exports.h>
 #include <asm/e820/api.h>
+#include <asm/apic.h>
 #include <linux/efi.h>
 
 /* Avoid using small segments */
@@ -524,6 +525,43 @@ void svoskern_set_cpu_online(unsigned int cpu, bool online)
 	set_cpu_online(cpu, online);
 }
 EXPORT_SYMBOL(svoskern_set_cpu_online);
+
+
+// We noticed in svfs that we were getting modpost errors for some apic
+// functions when we built it against 6.6. We weren't directly using any of
+// the functions either. It looks like a lot of work by Thomas Gleixner
+// (committed by Dave Hansen) around 8/8/23 and 8/9/23 made a lot of the
+// functions static in a way that hid them. We're now using punchthroughs in
+// the kernel to get to them in 6.6 and newer.
+void svoskern_apic_eoi(void) {
+	apic_eoi();
+}
+EXPORT_SYMBOL(svoskern_apic_eoi);
+
+unsigned int svoskern_apic_read(unsigned int reg) {
+	return apic_read(reg);
+}
+EXPORT_SYMBOL(svoskern_apic_read);
+
+void svoskern_apic_write(unsigned int reg, unsigned int val) {
+	apic_write(reg, val);
+}
+EXPORT_SYMBOL(svoskern_apic_write);
+
+unsigned long svoskern_apic_icr_read(void) {
+	return apic_icr_read();
+}
+EXPORT_SYMBOL(svoskern_apic_icr_read);
+
+void svoskern_apic_icr_write(unsigned int low, unsigned int id) {
+	apic_icr_write(low, id);
+}
+EXPORT_SYMBOL(svoskern_apic_icr_write);
+
+void svoskern_apic_wait_icr_idle(void) {
+	apic_wait_icr_idle();
+}
+EXPORT_SYMBOL(svoskern_apic_wait_icr_idle);
 
 #ifdef CONFIG_KALLSYMS
 unsigned long svoskern_kallsyms_lookup_name(const char *name)
