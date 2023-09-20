@@ -162,6 +162,10 @@ struct hfi_instance {
 	struct delayed_work	update_work;
 	raw_spinlock_t		table_lock;
 	raw_spinlock_t		event_lock;
+#ifdef CONFIG_DEBUG_FS
+	struct hfi_hdr		*cap_upd_hist;
+	unsigned int		cap_upd_hist_idx;
+#endif
 };
 
 /**
@@ -212,6 +216,18 @@ static struct workqueue_struct *hfi_updates_wq;
 #define HFI_MAX_THERM_NOTIFY_COUNT	16
 
 #ifdef CONFIG_DEBUG_FS
+
+#define HFI_CAP_UPD_HIST_SZ 2048
+
+static bool alloc_hfi_cap_upd_hist(struct hfi_instance *hfi_instance)
+{
+	hfi_instance->cap_upd_hist = kzalloc(hfi_features.nr_classes *
+					     sizeof(*hfi_instance->cap_upd_hist) *
+					     HFI_CAP_UPD_HIST_SZ,
+					     GFP_KERNEL);
+
+	return !!hfi_instance->cap_upd_hist;
+}
 
 unsigned long __percpu *hfi_ipcc_history;
 
@@ -367,6 +383,34 @@ static int hfi_class_score_show(struct seq_file *s, void *unused)
 	return 0;
 }
 DEFINE_SHOW_ATTRIBUTE(hfi_class_score);
+
+static int hfi_cap_upd_hist_show(struct seq_file *s, void *unused)
+{
+	struct hfi_instance *hfi_instance = s->private;
+	int i, j;
+
+	if (!hfi_instance->cap_upd_hist)
+		return -ENOMEM;
+
+	for (i = 0; i <  hfi_features.nr_classes; i++)
+		seq_printf(s, "Pe%d\tEf%d\t", i, i);
+
+	seq_puts(s, "\n");
+
+	for (i = 0; i < (hfi_instance->cap_upd_hist_idx % HFI_CAP_UPD_HIST_SZ) ; i++) {
+		struct hfi_hdr *hdr = hfi_instance->cap_upd_hist + i * hfi_features.nr_classes;
+
+		for (j = 0; j < hfi_features.nr_classes; j++) {
+			seq_printf(s, "0x%x\t0x%x\t", hdr->perf_updated, hdr->ee_updated);
+			hdr++;
+		}
+
+		seq_puts(s, "\n");
+	}
+
+	return 0;
+}
+DEFINE_SHOW_ATTRIBUTE(hfi_cap_upd_hist);
 
 /* See definition of CPUID.1A.EAX */
 #define CPU_TYPE_CORE 0x40
@@ -704,11 +748,20 @@ static struct dentry *hfi_debugfs_dir;
 
 static void hfi_debugfs_unregister(void)
 {
+	struct hfi_instance *hfi;
+	int i;
+
 	debugfs_remove_recursive(hfi_debugfs_dir);
 	hfi_debugfs_dir = NULL;
 
 	free_percpu(hfi_ipcc_history);
 	hfi_ipcc_history = NULL;
+
+	for (i = 0; i < max_hfi_instances; i++) {
+		hfi = &hfi_instances[i];
+		kfree(hfi->cap_upd_hist);
+		hfi->cap_upd_hist = NULL;
+	}
 }
 
 static void hfi_debugfs_register(void)
@@ -762,6 +815,15 @@ static void hfi_debugfs_populate_instance(struct hfi_instance *hfi_instance,
 	snprintf(name, 64, "fake_table%u", die_id);
 	f = debugfs_create_file(name, 0444, hfi_debugfs_dir,
 				hfi_instance, &hfi_fake_table_fops);
+	if (!f)
+		goto err;
+
+	if (!alloc_hfi_cap_upd_hist(hfi_instance))
+		goto err;
+
+	snprintf(name, 64, "cap_update_history%u", die_id);
+	f = debugfs_create_file(name, 0444, hfi_debugfs_dir,
+				hfi_instance, &hfi_cap_upd_hist_fops);
 	if (!f)
 		goto err;
 
@@ -1095,6 +1157,19 @@ void intel_hfi_process_event(__u64 pkg_therm_status_msr_val)
 	 */
 	memcpy(hfi_instance->local_table, hfi_instance->hw_table,
 	       hfi_features.nr_table_pages << PAGE_SHIFT);
+
+#ifdef CONFIG_DEBUG_FS
+	if (hfi_instance->cap_upd_hist) {
+		memcpy(hfi_instance->cap_upd_hist + ((hfi_instance->cap_upd_hist_idx %
+						      HFI_CAP_UPD_HIST_SZ) *
+						     hfi_features.nr_classes),
+		       /* Skip the timestamp */
+		       hfi_instance->hw_table + sizeof(hfi_instance->timestamp),
+		       hfi_features.nr_classes * sizeof(*hfi_instance->cap_upd_hist));
+
+		hfi_instance->cap_upd_hist_idx++;
+	}
+#endif
 
 	/*
 	 * Let hardware know that we are done reading the HFI table and it is
