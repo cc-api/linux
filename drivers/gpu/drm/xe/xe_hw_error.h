@@ -7,6 +7,7 @@
 
 #include <linux/stddef.h>
 #include <linux/types.h>
+#include <linux/workqueue.h>
 
 #define XE_RAS_REG_SIZE 32
 
@@ -104,5 +105,5 @@ struct xe_tile;
 void xe_hw_error_irq_handler(struct xe_tile *tile, const u32 master_ctl);
 void xe_assign_hw_err_regs(struct xe_device *xe);
 void xe_process_hw_errors(struct xe_device *xe);
-
+void xe_gsc_hw_error_work(struct work_struct *work);
 #endif

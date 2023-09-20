@@ -614,6 +614,10 @@ int xe_irq_install(struct xe_device *xe)
 	irq_handler_t irq_handler;
 	int err, irq;
 
+	struct xe_tile *tile = xe_device_get_root_tile(xe);
+
+	INIT_WORK(&tile->gsc_hw_err_work, xe_gsc_hw_error_work);
+
 	irq_handler = xe_irq_handler(xe);
 	if (!irq_handler) {
 		drm_err(&xe->drm, "No supported interrupt handler");

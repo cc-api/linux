@@ -198,6 +198,9 @@ struct xe_tile {
 	struct tile_hw_errors {
 		struct xarray hw_error;
 	} errors;
+
+	/** @gsc_hw_err_work: worker for uevent to report GSC HW errors */
+	struct work_struct gsc_hw_err_work;
 };
 
 /**

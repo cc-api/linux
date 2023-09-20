@@ -3,6 +3,8 @@
  * Copyright © 2023 Intel Corporation
  */
 
+#include <drm/xe_drm.h>
+
 #include "xe_hw_error.h"
 
 #include "regs/xe_regs.h"
@@ -378,6 +380,20 @@ xe_gt_hw_error_handler(struct xe_gt *gt, const enum hardware_error hw_err)
 		xe_gt_hw_error_log_vector_reg(gt, hw_err);
 }
 
+void xe_gsc_hw_error_work(struct work_struct *work)
+{
+	struct xe_tile *tile = container_of(work, typeof(*tile), gsc_hw_err_work);
+	struct pci_dev *pdev = to_pci_dev(tile_to_xe(tile)->drm.dev);
+	char *csc_hw_error_event[3];
+
+	csc_hw_error_event[0] = XE_RESET_REQUIRED_UEVENT;
+	csc_hw_error_event[1] = XE_RESET_REQUIRED_UEVENT_REASON_GSC;
+	csc_hw_error_event[2] = NULL;
+
+	kobject_uevent_env(&pdev->dev.kobj, KOBJ_CHANGE,
+			   csc_hw_error_event);
+}
+
 static void
 xe_gsc_hw_error_handler(struct xe_tile *tile, const enum hardware_error hw_err)
 {
@@ -435,6 +451,7 @@ xe_gsc_hw_error_handler(struct xe_tile *tile, const enum hardware_error hw_err)
 			drm_err_ratelimited(&tile_to_xe(tile)->drm, HW_ERR
 					    "Tile0 reported GSC %s %s error, bit[%d] is set\n",
 					    name, hw_err_str, errbit);
+			schedule_work(&tile->gsc_hw_err_work);
 		}
 		if (indx != XE_HW_ERR_TILE_UNSPEC)
 			xe_update_hw_error_cnt(&tile_to_xe(tile)->drm,

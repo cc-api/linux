@@ -32,6 +32,12 @@ extern "C" {
  */
 #define XE_RESET_REQUIRED_UEVENT_REASON_GT    "REASON=GT_RESET_FAILED"
 
+/**
+ * XE_RESET_REQUIRED_UEVENT_REASON_GSC - Reason provided to XE_RESET_REQUIRED_UEVENT
+ * incase of GSC HW reporting Uncorrectable errors. The GSC errors are reported only
+ * on TILE0, therefore no additional information is supplied for this reason.
+ */
+#define XE_RESET_REQUIRED_UEVENT_REASON_GSC    "REASON=GSC_HW_ERROR"
 
 /**
  * struct xe_user_extension - Base class for defining a chain of extensions
