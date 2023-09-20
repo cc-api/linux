@@ -111,17 +111,19 @@ static struct attribute *power_limit_attrs[] = {
 	NULL
 };
 
-static umode_t	power_limit_attr_visible(struct kobject *kobj, struct attribute *attr, int unused)
+static umode_t power_limit_attr_visible(struct kobject *kobj, struct attribute *attr, int unused)
 {
 	struct device *dev = kobj_to_dev(kobj);
-	struct proc_thermal_device *proc_dev = dev_get_drvdata(dev);
+	struct proc_thermal_device *proc_dev;
 
-	if ((attr == &dev_attr_power_floor_status.attr ||
-	     attr == &dev_attr_power_floor_enable.attr) &&
-	    !(proc_dev->mmio_feature_mask & PROC_THERMAL_FEATURE_POWER_FLOOR))
+	if (attr != &dev_attr_power_floor_status.attr && attr != &dev_attr_power_floor_enable.attr)
+		return attr->mode;
+
+	proc_dev = dev_get_drvdata(dev);
+	if (!proc_dev || !(proc_dev->mmio_feature_mask & PROC_THERMAL_FEATURE_POWER_FLOOR))
 		return 0;
 
-	return  attr->mode;
+	return attr->mode;
 }
 
 static const struct attribute_group power_limit_attribute_group = {
@@ -260,8 +262,7 @@ static void proc_thermal_notify(acpi_handle handle, u32 event, void *data)
 	}
 }
 
-int proc_thermal_add(struct device *dev, struct proc_thermal_device *proc_priv,
-			  kernel_ulong_t feature_mask)
+int proc_thermal_add(struct device *dev, struct proc_thermal_device *proc_priv)
 {
 	struct acpi_device *adev;
 	acpi_status status;
@@ -275,7 +276,6 @@ int proc_thermal_add(struct device *dev, struct proc_thermal_device *proc_priv,
 
 	proc_priv->dev = dev;
 	proc_priv->adev = adev;
-	proc_priv->mmio_feature_mask = feature_mask;
 
 	ret = proc_thermal_read_ppcc(proc_priv);
 	if (ret)
@@ -378,10 +378,12 @@ static int proc_thermal_set_mmio_base(struct pci_dev *pdev, struct proc_thermal_
 }
 
 int proc_thermal_mmio_add(struct pci_dev *pdev,
-			  struct proc_thermal_device *proc_priv)
+			  struct proc_thermal_device *proc_priv,
+			  kernel_ulong_t feature_mask)
 {
 	int ret;
-	u32 feature_mask = proc_priv->mmio_feature_mask;
+
+	proc_priv->mmio_feature_mask = feature_mask;
 
 	if (feature_mask) {
 		ret = proc_thermal_set_mmio_base(pdev, proc_priv);
