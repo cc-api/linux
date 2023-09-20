@@ -6414,9 +6414,42 @@
             "last_enabled": "v6.6"
         },
         {
-            "branch": "6.6-rc1_siov",
+            "branch": "6.6-rc2_siov",
             "branch_type": "expiring",
-            "config_options": [],
+            "config_options": [
+                {
+                    "name": "CONFIG_VFIO_DEVICE_CDEV",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_VFIO_CONTAINER",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_VFIO_IOMMU_TYPE1",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_VFIO_PCI_IMS",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_VFIO_DEVICE_IDXD",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_IOASID",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_IOMMU_IOPF",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_PCI_INTEL_IDXD_IMS",
+                    "value": "m"
+                }
+            ],
             "contributor": [
                 {
                     "name": "Yi Sun",
@@ -6424,7 +6457,7 @@
                 }
             ],
             "description": "Internal SIOV kernel development tree ",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3524",
             "name": "siov",
