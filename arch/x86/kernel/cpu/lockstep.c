@@ -26,6 +26,9 @@
 #define CMD_POISON_MISCO			BIT(5)
 #define CMD_SRAR_MISCO				BIT(6)
 
+#define CMD_ACTIVE_ENABLE			(CMD_ACTIVATE | CMD_ROLE_ACTIVE)
+#define CMD_SHADOW_ENABLE			(CMD_ACTIVATE | CMD_ROLE_SHADOW)
+
 #define MSR_IA32_DLSM_DEACTIVATE_STATUS		0x2b1
 #define DEACTIVATE_STATUS_SEVT			BIT(0)
 #define DEACTIVATE_STATUS_SWI			BIT(1)
@@ -55,14 +58,63 @@
 #define ROLE_ACTIVE				BIT(0)
 #define ROLE_SHADOW				BIT(1)
 
+/* User Input */
+#define USER_LOCKSTEP_ENABLE			1
+#define USER_LOCKSTEP_DISABLE			0
+
 struct lockstep_info {
 	int		role;
 	int		peer_cpu;
 	bool		init;
 	bool		enable;
+	bool		offline_in_progress;
 };
 
 static DEFINE_PER_CPU(struct lockstep_info, info);
+
+static int lockstep_active_enable(void *v)
+{
+	u64 val;
+
+	rdmsrl(MSR_IA32_DLSM_ACTIVATE_STATUS, val);
+	if (val != PEER_IN_WF_DLSM) {
+		pr_info("Expected peer_cpu to be waiting for us\n");
+		return -EBUSY;
+	}
+
+	pr_info("active CPU%d is ready for lockstep\n", raw_smp_processor_id());
+	wrmsrl(MSR_IA32_DLSM_CMD, CMD_ACTIVE_ENABLE);
+
+	rdmsrl(MSR_IA32_DLSM_ACTIVATE_STATUS, val);
+	if (val != I_AM_IN_DLSM) {
+		pr_info("Active cpu expected to be in lockstep\n");
+		return -EAGAIN;
+	}
+
+	return 0;
+}
+
+void lockstep_shadow_enable(void)
+{
+	/* Is this a legacy CPU offline operation or a lockstep offline? */
+	if (this_cpu_read(info.offline_in_progress) != true)
+		return;
+
+	pr_info("shadow CPU%d is ready for lockstep\n", raw_smp_processor_id());
+	/*
+	 * Do we need to check if the SHADOW really went into the right state?
+	 * It seems the error handling might need to be done on the ACTIVE
+	 * CPU's side since this side is no longer expected to be responsive.
+	 * Would the status on the ACTIVE side say PEER_ABORTED_ENTRY if this
+	 * step fails for some reason?
+	 *
+	 * Also, what should be done if the the shadow exits the state
+	 * abruptly? Is the expectation that after lockstep activation, any
+	 * deactivation on the SHADOW will always generate an interrupt on the
+	 * ACTIVE?
+	 */
+	wrmsrl(MSR_IA32_DLSM_CMD, CMD_SHADOW_ENABLE);
+}
 
 static ssize_t role_show(struct device *dev,
 			 struct device_attribute *attr, char *buf)
@@ -108,12 +160,60 @@ static ssize_t enable_show(struct device *dev, struct device_attribute *attr, ch
 static ssize_t enable_store(struct device *dev, struct device_attribute *attr,
 			    const char *buf, size_t count)
 {
+	struct lockstep_info *li = per_cpu_ptr(&info, dev->id);
+	int active_cpu, shadow_cpu;
+	struct device *shadow_dev;
 	bool val;
+	int ret;
 
 	if (kstrtobool(buf, &val))
 		return -EINVAL;
 
-	return -EOPNOTSUPP;
+	/* Nothing to do if CPU cores are already in desired state */
+	if (li->enable == val)
+		return count;
+
+	active_cpu = dev->id;
+	shadow_cpu = li->peer_cpu;
+	shadow_dev = get_cpu_device(shadow_cpu);
+
+	ret = lock_device_hotplug_sysfs();
+	if (ret)
+		return ret;
+
+	if (val == USER_LOCKSTEP_ENABLE) {
+
+		if (!cpu_online(shadow_cpu)) {
+			pr_info("Error while activating lockstep: Shadow cpu is not online\n");
+			ret = -EBUSY;
+			goto exit;
+		}
+
+		per_cpu_ptr(&info, shadow_cpu)->offline_in_progress = true;
+		ret = device_offline(shadow_dev);
+		per_cpu_ptr(&info, shadow_cpu)->offline_in_progress = false;
+		if (ret)
+			goto exit;
+
+		ret = stop_one_cpu(active_cpu, lockstep_active_enable, NULL);
+		if (ret) {
+			pr_info("Error while activating lockstep\n");
+			device_online(shadow_dev);
+			goto exit;
+		}
+
+	} else { /* USER_LOCKSTEP_DISABLE */
+		ret = -EOPNOTSUPP;
+		goto exit;
+	}
+
+	per_cpu_ptr(&info, active_cpu)->enable = val;
+	per_cpu_ptr(&info, shadow_cpu)->enable = val;
+	ret = count;
+
+exit:
+	unlock_device_hotplug();
+	return ret;
 }
 static DEVICE_ATTR_RW(enable);
 
@@ -196,6 +296,10 @@ static int lockstep_remove_dev(unsigned int cpu)
 {
 	struct lockstep_info *li = per_cpu_ptr(&info, cpu);
 	struct device *dev = get_cpu_device(cpu);
+
+	/* Check if lockstep is enabled on the ACTIVE CPU. Hotplug offline should fail in that case. */
+	if (li->enable)
+		return -EBUSY;
 
 	if (li->init && (li->role == ROLE_ACTIVE))
 		sysfs_unmerge_group(&dev->kobj, &lockstep_active_attr_group);
