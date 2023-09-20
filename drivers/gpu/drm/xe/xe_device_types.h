@@ -42,7 +42,7 @@ struct xe_pat_ops;
 
 #define XE_GT0		0
 #define XE_GT1		1
-#define XE_MAX_TILES_PER_DEVICE	(XE_GT1 + 1)
+#define XE_MAX_TILES_PER_DEVICE		4	/* Xe3p_XPC limit */
 
 #define XE_MAX_ASID	(BIT(20))
 
