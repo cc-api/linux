@@ -189,6 +189,15 @@ struct xe_reg_sr;
 	  .presi_mode = mode__, }
 
 /**
+ * XE_RTP_RULE_NOT_PRESILICON - Create a rule that fails in presilicon modes
+ *
+ * Refer to XE_RTP_RULES() for expected usage.
+ */
+#define XE_RTP_RULE_NOT_PRESILICON(mode__)                                      \
+	{ .match_type = XE_RTP_MATCH_NOT_PRESILICON,                            \
+	  .presi_mode = mode__, }
+
+/**
  * XE_RTP_ACTION_WR - Helper to write a value to the register, overriding all
  *                    the bits
  * @reg_: Register

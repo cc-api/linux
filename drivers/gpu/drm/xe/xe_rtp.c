@@ -96,6 +96,9 @@ static bool rule_matches(const struct xe_device *xe,
 		case XE_RTP_MATCH_PRESILICON:
 			match = xe->presi_info.mode == r->presi_mode;
 			break;
+		case XE_RTP_MATCH_NOT_PRESILICON:
+			match = xe->presi_info.mode != r->presi_mode;
+			break;
 		case XE_RTP_MATCH_FUNC:
 			match = r->match_func(gt, hwe);
 			break;
