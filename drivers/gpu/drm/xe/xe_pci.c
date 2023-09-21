@@ -394,6 +394,13 @@ static const struct xe_device_desc ptl_desc = {
 	.require_force_probe = true,
 };
 
+static const struct xe_device_desc fs1_desc = {
+	DGFX_FEATURES,
+	PLATFORM(XE_FS1),
+	.has_display = false,
+	.require_force_probe = true,
+};
+
 #undef PLATFORM
 __diag_pop();
 
@@ -446,6 +453,7 @@ static const struct pci_device_id pciidlist[] = {
 	XE_LNL_IDS(INTEL_VGA_DEVICE, &lnl_desc),
 	XE_BMG_IDS(INTEL_VGA_DEVICE, &bmg_desc),
 	XE_PTL_IDS(INTEL_VGA_DEVICE, &ptl_desc),
+	XE_FS1_IDS(INTEL_VGA_DEVICE, &fs1_desc),
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, pciidlist);

@@ -244,4 +244,7 @@
 	XE_PTL_P_IDS(MACRO__, ## __VA_ARGS__), \
 	XE_PTL_U_IDS(MACRO__, ## __VA_ARGS__)
 
+#define XE_FS1_IDS(MACRO__, ...) \
+	MACRO__(0x0B73, ## __VA_ARGS__)
+
 #endif
