@@ -84,9 +84,9 @@ static void intel_histogram_handle_int_work(struct work_struct *work)
 
 	/* Wa: 14014889975 */
 	if (IS_DISPLAY_VER(i915, 12, 13))
-		intel_de_rmw(i915, DPST_CTL(histogram->pipe),
-			     DPST_CTL_GUARDBAND_INTERRUPT_DELAY_CNT |
-			     DPST_CTL_RESTORE, DPST_CTL_RESTORE | 0x00);
+		/* Write the value read from DPST_CTL to DPST_CTL.Interrupt Delay Counter(bit 23:16) */
+		intel_de_write(i915, DPST_CTL(histogram->pipe), intel_de_read(i915,
+			       DPST_CTL(histogram->pipe)) | DPST_CTL_RESTORE);
 
 	/* Enable histogram interrupt */
 	intel_de_rmw(i915, DPST_GUARD(histogram->pipe), DPST_GUARD_HIST_INT_EN,
@@ -159,9 +159,9 @@ static int intel_histogram_enable(struct intel_crtc *intel_crtc)
 
 	/* Wa: 14014889975 */
 	if (IS_DISPLAY_VER(i915, 12, 13))
-		intel_de_rmw(i915, DPST_CTL(histogram->pipe),
-			     DPST_CTL_GUARDBAND_INTERRUPT_DELAY_CNT |
-			     DPST_CTL_RESTORE, DPST_CTL_RESTORE | 0x00);
+		/* Write the value read from DPST_CTL to DPST_CTL.Interrupt Delay Counter(bit 23:16) */
+		intel_de_write(i915, DPST_CTL(histogram->pipe), intel_de_read(i915,
+			       DPST_CTL(histogram->pipe)) | DPST_CTL_RESTORE);
 
 	/*
 	 * enable DPST_CTL Histogram mode
