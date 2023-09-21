@@ -34,9 +34,11 @@
 /**
  * struct bwctrl_service_data - PCIe Port Bandwidth Controller
  * @set_speed_mutex: serializes link speed changes
+ * @cdev: thermal cooling device associated with the port
  */
 struct bwctrl_service_data {
 	struct mutex set_speed_mutex;
+	struct thermal_cooling_device *cdev;
 };
 
 static bool bwctrl_valid_pcie_speed(enum pci_bus_speed speed)
@@ -253,8 +255,16 @@ static int pcie_bandwidth_notification_probe(struct pcie_device *srv)
 	pcie_enable_link_bandwidth_notification(port);
 	pci_info(port, "enabled with IRQ %d\n", srv->irq);
 
+	data->cdev = pcie_cooling_device_register(port, srv);
+	if (IS_ERR(data->cdev)) {
+		ret = PTR_ERR(data->cdev);
+		goto disable_notifications;
+	}
 	return 0;
 
+disable_notifications:
+	pcie_disable_link_bandwidth_notification(srv->port);
+	kfree(data);
 free_irq:
 	free_irq(srv->irq, srv);
 	return ret;
@@ -264,6 +274,7 @@ static void pcie_bandwidth_notification_remove(struct pcie_device *srv)
 {
 	struct bwctrl_service_data *data = get_service_data(srv);
 
+	pcie_cooling_device_unregister(data->cdev);
 	pcie_disable_link_bandwidth_notification(srv->port);
 	free_irq(srv->irq, srv);
 	mutex_destroy(&data->set_speed_mutex);
