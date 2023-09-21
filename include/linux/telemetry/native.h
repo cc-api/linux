@@ -38,28 +38,24 @@
 //
 // ..
 // int hello = 0;
-// // You won't need the KERNEL_VERSION check once 6.3.0 becomes the base version
-// #if LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
-// 	    register_telemetry(SANDBOX_ID, "hello", "1.0.0");
-// 	    session_begin(SANDBOX_ID, "startup");
-// #endif
-// 
+// register_telemetry(SANDBOX_ID, "hello", "1.0.0");
+// session_begin(SANDBOX_ID, "startup");
+//
 // ...
 //
-// #if LINUX_VERSION_CODE >= KERNEL_VERSION(6,3,0)
-// 	    {
-// 	        // Recommend putting buffers in a closure so they only take up space for as long as they are in use.
-// 	        char telemetry_buffer[256];
+// {
+//      // Recommend putting buffers in a closure so they only take up space for as long as they are in use.
+//      char telemetry_buffer[256];
 // 
-// 	        snprintf(telemetry_buffer, 256,
-//                      "{ hello_world: %s }",
-//                      hello == 1 ? "true" : "false");
-// 	        telemetry_msg(SANDBOX_ID, "loaded", telemetry_buffer);
-// 	    }
+// 	snprintf(telemetry_buffer,
+// 		256,
+//      	"{ hello_world: %s }",
+//      	hello == 1 ? "true" : "false");
+// 		telemetry_msg(SANDBOX_ID, "loaded", telemetry_buffer);
+// }
 // 
-// 	    session_end(SANDBOX_ID);
-// 	    unregister_telemetry(SANDBOX_ID);
-// #endif
+// session_end(SANDBOX_ID);
+// unregister_telemetry(SANDBOX_ID);
 
 
 /**
