@@ -236,4 +236,7 @@
 	XE_PTL_U_IDS(MACRO__, ## __VA_ARGS__), \
 	MACRO__(0xB0FF, ## __VA_ARGS__)		/* Pre-si only */
 
+#define XE_FS1_IDS(MACRO__, ...) \
+	MACRO__(0x0B73, ## __VA_ARGS__)
+
 #endif
