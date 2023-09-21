@@ -17,7 +17,8 @@
 #include "dis-asm.h"
 #include "bfd.h"
 
-typedef unsigned long kdb_machreg_t;
+#include "kdba_id.h"
+
 /*
  * kdba_dis_getsym
  *
