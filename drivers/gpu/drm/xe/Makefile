@@ -209,6 +209,7 @@ xe-$(CONFIG_DRM_XE_DISPLAY) += \
 	i915-display/intel_gmbus.o \
 	i915-display/intel_hdcp.o \
 	i915-display/intel_hdmi.o \
+	i915-display/intel_histogram.o \
 	i915-display/intel_hotplug.o \
 	i915-display/intel_hotplug_irq.o \
 	i915-display/intel_hti.o \
