@@ -2564,6 +2564,7 @@ static void pci_set_msi_domain(struct pci_dev *dev)
 
 void pci_device_add(struct pci_dev *dev, struct pci_bus *bus)
 {
+	u8 dev_speeds = 0;
 	int ret;
 
 	pci_configure_device(dev);
@@ -2590,11 +2591,20 @@ void pci_device_add(struct pci_dev *dev, struct pci_bus *bus)
 
 	pci_init_capabilities(dev);
 
+	if (pci_is_pcie(dev) && PCI_FUNC(dev->devfn) == 0) {
+		u32 linkcap, linkcap2;
+
+		pcie_capability_read_dword(dev, PCI_EXP_LNKCAP, &linkcap);
+		pcie_capability_read_dword(dev, PCI_EXP_LNKCAP2, &linkcap2);
+		dev_speeds = pcie_get_supported_speeds(linkcap, linkcap2);
+	}
 	/*
 	 * Add the device to our list of discovered devices
 	 * and the bus list for fixup functions, etc.
 	 */
 	down_write(&pci_bus_sem);
+	if (dev_speeds)
+		bus->pcie_dev_speeds = dev_speeds;
 	list_add_tail(&dev->bus_list, &bus->devices);
 	up_write(&pci_bus_sem);
 
