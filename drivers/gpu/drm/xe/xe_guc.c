@@ -352,7 +352,7 @@ static void select_gamctrl_queue(struct xe_gt *gt)
 	 * registers for pagefault handling and avoid some unnecessary
 	 * complications with MCR register range handling.
 	 */
-	if (gt_to_xe(gt)->info.graphics_verx100 >= 3500)
+	if (gt_to_xe(gt)->info.graphics_verx100 >= 3500 && !XE_WA(gt, FSG_SIM))
 		xe_mmio_write32(gt, MAIN_GAMCTRL_MODE, MAIN_GAMCTRL_QUEUE_SELECT);
 }
 

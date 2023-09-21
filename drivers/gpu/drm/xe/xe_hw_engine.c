@@ -7,6 +7,7 @@
 
 #include <drm/drm_managed.h>
 
+#include "generated/xe_wa_oob.h"
 #include "regs/xe_engine_regs.h"
 #include "regs/xe_gt_regs.h"
 #include "regs/xe_regs.h"
