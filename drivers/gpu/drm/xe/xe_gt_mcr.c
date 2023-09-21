@@ -5,11 +5,13 @@
 
 #include "xe_gt_mcr.h"
 
+#include "generated/xe_wa_oob.h"
 #include "regs/xe_gt_regs.h"
 #include "xe_gt.h"
 #include "xe_gt_topology.h"
 #include "xe_gt_types.h"
 #include "xe_mmio.h"
+#include "xe_wa.h"
 
 /**
  * DOC: GT Multicast/Replicated (MCR) Register Support
@@ -293,6 +295,13 @@ static void init_steering_mslice(struct xe_gt *gt)
 
 static int num_dss_per_grp(struct xe_gt *gt)
 {
+	/*
+	 * FSG_SIM: Can't use XE_WA(FSG_SIM) since OOB workarounds haven't been
+	 * setup yet at this point in init.
+	 */
+	if (GRAPHICS_VERx100(gt_to_xe(gt)) >= 3500 && IS_SIMULATOR(gt_to_xe(gt)))
+		return 4;
+
 	if (GRAPHICS_VERx100(gt_to_xe(gt)) >= 3500)
 		return REG_FIELD_GET(NUM_SS_PER_SLICE, xe_mmio_read32(gt, XEHP_FUSE4));
 	else if (gt_to_xe(gt)->info.platform == XE_PVC)
