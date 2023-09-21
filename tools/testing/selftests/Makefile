@@ -59,6 +59,7 @@ TARGETS += net/mptcp
 TARGETS += net/openvswitch
 TARGETS += netfilter
 TARGETS += nsfs
+TARGETS += pcie_bwctrl
 TARGETS += perf_events
 TARGETS += pidfd
 TARGETS += pid_namespace
