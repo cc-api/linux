@@ -3217,28 +3217,24 @@
             "feature_jiras": ""
         },
         {
-            "branch": "sep_socwatch_linux_v6.5",
+            "branch": "sep_socwatch_linux_v6.6",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
                 {
-                    "name": "Aghajan",
-                    "email": "Aghajan"
-                },
-                {
-                    "name": " Parvaneh",
-                    "email": "parvaneh.aghajani@intel.com"
+                    "name": "Swedhana Viswanathan",
+                    "email": "swedhana.viswanathan@intel.com"
                 }
             ],
             "description": "SoCWatch and SEP drivers",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Benmlih Faycal",
                     "email": "faycal.benmlih@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3532",
             "name": "sep_socwatch",
             "repourl": "https://github.com/intel-sandbox/sep-socwatch.linux.intelnext.kernel.git",
             "sdl_contact": [
@@ -3249,7 +3245,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
