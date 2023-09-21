@@ -40,6 +40,11 @@ static void intel_histogram_handle_int_work(struct work_struct *work)
 	u32 dpstbin;
 	int i, try = 0;
 
+	/* Wa: 14014889975 */
+	if (IS_DISPLAY_VER(i915, 12, 13))
+		intel_de_rmw(i915, DPST_CTL(histogram->pipe),
+			     DPST_CTL_RESTORE, 0);
+
 	/*
 	 * TODO: PSR to be exited while reading the Histogram data
 	 * Set DPST_CTL Bin Reg function select to TC
@@ -76,6 +81,12 @@ static void intel_histogram_handle_int_work(struct work_struct *work)
 	if (kobject_uevent_env(&i915->drm.primary->kdev->kobj, KOBJ_CHANGE,
 			       histogram_event))
 		drm_err(&i915->drm, "sending HISTOGRAM event failed\n");
+
+	/* Wa: 14014889975 */
+	if (IS_DISPLAY_VER(i915, 12, 13))
+		intel_de_rmw(i915, DPST_CTL(histogram->pipe),
+			     DPST_CTL_GUARDBAND_INTERRUPT_DELAY_CNT |
+			     DPST_CTL_RESTORE, DPST_CTL_RESTORE | 0x00);
 
 	/* Enable histogram interrupt */
 	intel_de_rmw(i915, DPST_GUARD(histogram->pipe), DPST_GUARD_HIST_INT_EN,
@@ -145,6 +156,12 @@ static int intel_histogram_enable(struct intel_crtc *intel_crtc)
 
 	/* Pipe Dithering should be enabled with GLOBAL_HIST */
 	intel_histogram_enable_dithering(i915, pipe);
+
+	/* Wa: 14014889975 */
+	if (IS_DISPLAY_VER(i915, 12, 13))
+		intel_de_rmw(i915, DPST_CTL(histogram->pipe),
+			     DPST_CTL_GUARDBAND_INTERRUPT_DELAY_CNT |
+			     DPST_CTL_RESTORE, DPST_CTL_RESTORE | 0x00);
 
 	/*
 	 * enable DPST_CTL Histogram mode
