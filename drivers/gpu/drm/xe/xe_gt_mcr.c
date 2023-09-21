@@ -291,11 +291,21 @@ static void init_steering_mslice(struct xe_gt *gt)
 	gt->steering[LNCF].instance_target = 0;		/* unused */
 }
 
+static int num_dss_per_grp(struct xe_gt *gt)
+{
+	if (GRAPHICS_VERx100(gt_to_xe(gt)) >= 3500)
+		return REG_FIELD_GET(NUM_SS_PER_SLICE, xe_mmio_read32(gt, XEHP_FUSE4));
+	else if (gt_to_xe(gt)->info.platform == XE_PVC)
+		return 8;
+	else
+		return 4;
+}
+
 static void init_steering_dss(struct xe_gt *gt)
 {
 	unsigned int dss = min(xe_dss_mask_group_ffs(gt->fuse_topo.g_dss_mask, 0, 0),
 			       xe_dss_mask_group_ffs(gt->fuse_topo.c_dss_mask, 0, 0));
-	unsigned int dss_per_grp = gt_to_xe(gt)->info.platform == XE_PVC ? 8 : 4;
+	unsigned int dss_per_grp = num_dss_per_grp(gt);
 
 	gt->steering[DSS].group_target = dss / dss_per_grp;
 	gt->steering[DSS].instance_target = dss % dss_per_grp;
