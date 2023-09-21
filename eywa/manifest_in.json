@@ -6508,6 +6508,40 @@
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
+        },
+        {
+            "branch": "dlsm-next",
+            "branch_type": "expiring",
+            "config_options": [
+                {
+                    "name": "CONFIG_X86_LOCKSTEP",
+                    "value": "y"
+                }
+            ],
+            "contributor": [
+                {
+                    "name": "Sohil Mehta",
+                    "email": "sohil.mehta@intel.com"
+                }
+            ],
+            "description": "Dynamic lockstep support",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Samuel Mattord",
+                    "email": "samuel.a.mattord@intel.com"
+                }
+            ],
+            "jira": "NEXT-3533",
+            "name": "dynamic_lockstep",
+            "repourl": "https://github.com/intel-sandbox/sohilmeh.linux.git",
+            "sdl_contact": [],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": "LFE-7276",
+            "last_enabled": "v6.6"
         }
     ]
 }
