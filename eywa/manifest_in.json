@@ -6250,6 +6250,10 @@
                 {
                     "name": "CONFIG_X86_USER_INTERRUPTS",
                     "value": "y"
+                },
+                {
+                    "name": "CONFIG_X86_UINTR_BLOCKING",
+                    "value": "n"
                 }
             ],
             "contributor": [
@@ -6259,9 +6263,9 @@
                 }
             ],
             "description": "Enable User Timer support",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3534",
             "name": "utimer_next",
             "repourl": "https://github.com/intel-sandbox/sohilmeh.linux.git",
             "sdl_contact": [],
@@ -6269,8 +6273,8 @@
             "stuck_at_ref": "",
             "maillist": "",
             "platforms": "",
-            "feature_jiras": "",
-            "last_enabled": "v6.5"
+            "feature_jiras": "LFE-6969",
+            "last_enabled": "v6.6"
         },
         {
             "branch": "hybrid-virtual-for-intel-next",
