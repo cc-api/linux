@@ -19,7 +19,7 @@
 typedef unsigned long kdb_machreg_t;
 
 
-int kdb_dis_fprintf(PTR file, const char *fmt, ...);
+int kdb_dis_fprintf(PTR file, const char *fmt, ...) __attribute__ ((format (gnu_printf, 2, 3)));
 
 extern void kdba_id_init(disassemble_info *);
 extern void kdba_check_pc(kdb_machreg_t *);
