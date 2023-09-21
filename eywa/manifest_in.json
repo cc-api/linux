@@ -1250,7 +1250,7 @@
                 }
             ],
             "description": "Linux thermal",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Jim Hermerding",
@@ -1464,7 +1464,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "139bcde37147b8b761d7f55c84a3a88a555bd795",
+            "stuck_at_ref": "",
             "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "ADL,ARL,LKF,LNL,MTL,RPL",
