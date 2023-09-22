@@ -5096,40 +5096,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "v6.6-rc2-kvm-cet-rebase",
-            "branch_type": "expiring",
-            "config_options": [],
-            "contributor": [
-                {
-                    "name": "Weijiang Yang",
-                    "email": "weijiang.yang@intel.com"
-                }
-            ],
-            "description": "KVM: Arch LBR and CET features",
-            "enabled": true,
-            "ip_owner": [
-                {
-                    "name": "Weijiang Yang",
-                    "email": "weijiang.yang@intel.com"
-                }
-            ],
-            "jira": "NEXT-3531",
-            "name": "kvm_arch_lbr_cet",
-            "repourl": "https://github.com/intel-sandbox/weijiang.linux.kvm.git",
-            "sdl_contact": [
-                {
-                    "name": "Weijiang Yang",
-                    "email": "weijiang.yang@intel.com"
-                }
-            ],
-            "status": "public",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.6",
-            "maillist": "",
-            "platforms": "EMR,GNR,SPR",
-            "feature_jiras": "LFE-60"
-        },
-        {
             "branch": "dev-v6.2-rc3-sgxseamless",
             "branch_type": "expiring",
             "config_options": [
@@ -6546,6 +6512,40 @@
             "platforms": "",
             "feature_jiras": "LFE-7276",
             "last_enabled": "v6.6"
+        },
+        {
+            "branch": "v6.6-rc2-kvm-cet-rebase",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Weijiang Yang",
+                    "email": "weijiang.yang@intel.com"
+                }
+            ],
+            "description": "KVM: Arch LBR and CET features",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Weijiang Yang",
+                    "email": "weijiang.yang@intel.com"
+                }
+            ],
+            "jira": "NEXT-3531",
+            "name": "kvm_cet",
+            "repourl": "https://github.com/intel-sandbox/weijiang.linux.kvm.git",
+            "sdl_contact": [
+                {
+                    "name": "Weijiang Yang",
+                    "email": "weijiang.yang@intel.com"
+                }
+            ],
+            "status": "public",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.6",
+            "maillist": "",
+            "platforms": "EMR,GNR,SPR",
+            "feature_jiras": "LFE-60"
         }
     ]
 }
