@@ -6464,7 +6464,7 @@
                 }
             ],
             "jira": "",
-            "name": "kvm_tdxio",
+            "name": "kvm_1_0",
             "repourl": "https://github.com/intel-sandbox/cqiang-tdx-kvm.git",
             "sdl_contact": [
                 {
