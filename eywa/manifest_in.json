@@ -6456,7 +6456,7 @@
                 }
             ],
             "description": "Adds the KVM support for tdxio",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Caspi Dror",
