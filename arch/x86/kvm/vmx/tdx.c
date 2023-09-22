@@ -1974,7 +1974,8 @@ static enum tdvmcall_service_id tdvmcall_get_service_id(guid_t guid)
 	return id;
 }
 
-static void tdx_handle_service_query(struct tdvmcall_service *cmd_hdr,
+static void tdx_handle_service_query(struct kvm_tdx *tdx,
+		                     struct tdvmcall_service *cmd_hdr,
 				     struct tdvmcall_service *resp_hdr)
 {
 	struct tdvmcall_service_query *cmd_query =
@@ -1995,6 +1996,9 @@ static void tdx_handle_service_query(struct tdvmcall_service *cmd_hdr,
 		resp_query->status = TDVMCALL_SERVICE_QUERY_S_UNSUPPORTED;
 	else
 		resp_query->status = TDVMCALL_SERVICE_QUERY_S_SUPPORTED;
+
+	if (service_id == TDVMCALL_SERVICE_ID_VTPM && !tdx->vtpm_enabled)
+		resp_query->status = TDVMCALL_SERVICE_QUERY_S_UNSUPPORTED;
 
 	resp_query->cmd = cmd_query->cmd;
 	import_guid(&resp_query->guid, cmd_query->guid.b);
@@ -2240,7 +2244,7 @@ static int tdx_handle_service(struct kvm_vcpu *vcpu)
 	case TDVMCALL_SERVICE_ID_QUERY:
 		if (nvector)
 			goto err_vector;
-		tdx_handle_service_query(cmd_buf, resp_buf);
+		tdx_handle_service_query(tdx, cmd_buf, resp_buf);
 		break;
 	case TDVMCALL_SERVICE_ID_MIGTD:
 		if (nvector)
@@ -4497,6 +4501,21 @@ static int tdx_get_migration_info(struct kvm *kvm,
 	return 0;
 }
 
+static int tdx_set_vtpm_enabled(struct kvm *kvm,
+                                struct kvm_tdx_cmd *cmd)
+{
+	struct kvm_tdx *kvm_tdx = to_kvm_tdx(kvm);
+	bool vtpm_enabled;
+
+	if (copy_from_user(&vtpm_enabled, (void __user *)cmd->data,
+			   sizeof(bool)))
+		return -EFAULT;
+
+	kvm_tdx->vtpm_enabled = vtpm_enabled;
+
+	return 0;
+}
+
 int tdx_vm_ioctl(struct kvm *kvm, void __user *argp)
 {
 	struct kvm_tdx_cmd tdx_cmd;
@@ -4530,6 +4549,9 @@ int tdx_vm_ioctl(struct kvm *kvm, void __user *argp)
 		break;
 	case KVM_TDX_GET_MIGRATION_INFO:
 		r = tdx_get_migration_info(kvm, &tdx_cmd);
+		break;
+	case KVM_TDX_SET_VTPM_ENABLED:
+		r = tdx_set_vtpm_enabled(kvm, &tdx_cmd);
 		break;
 	default:
 		r = -EINVAL;
