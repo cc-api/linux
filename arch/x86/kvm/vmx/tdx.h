@@ -115,6 +115,9 @@ struct kvm_tdx {
 	spinlock_t binding_slot_lock;
 
 	struct tdx_mig_state *mig_state;
+
+	/* A TD with vTPM enabled */
+	bool vtpm_enabled;
 };
 
 union tdx_exit_reason {
