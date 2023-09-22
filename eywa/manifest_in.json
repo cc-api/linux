@@ -5096,7 +5096,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "arch-lbr-cet-0726-pull-request",
+            "branch": "v6.6-rc2-kvm-cet-rebase",
             "branch_type": "expiring",
             "config_options": [],
             "contributor": [
@@ -5106,7 +5106,7 @@
                 }
             ],
             "description": "KVM: Arch LBR and CET features",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Weijiang Yang",
