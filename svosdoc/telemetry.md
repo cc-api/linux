@@ -82,7 +82,7 @@ unregister_telemetry(SANDBOX_ID);
 * debian/configs/svos_next_defconfig.fix
 
 # Other Changes
-These kernel build flags were added to svos_next_defconfig.fix:
+These kernel build flags were added to /arch/x86/configs/svos_next_defconfig:
 ```
 CONFIG_NET_ACT_BPF=m
 CONFIG_BPF_JIT=y

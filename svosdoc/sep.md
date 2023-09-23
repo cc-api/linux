@@ -23,7 +23,7 @@ arch/x86/configs/svos_next_defconfig.
 
 # Other Changes
 The settings in SVOS come down to a special pull branch from Intel Next, that is then enabled in SVOS Next via
-kernel build configuration settings:
+kernel build configuration settings added to /arch/x86/configs/svos_next_defconfig:
 
 ```
 CONFIG_INTEL_SOCPERF=m
