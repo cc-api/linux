@@ -6570,6 +6570,49 @@
             "maillist": "",
             "platforms": "EMR,GNR,SPR",
             "feature_jiras": "LFE-60"
+        },
+        {
+            "branch": "intel-next/bwctrl-v6.6-rc",
+            "branch_type": "expiring",
+            "config_options": [
+                {
+                    "name": "CONFIG_PCIE_BW",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_PCIE_THERMAL",
+                    "value": "y"
+                }
+            ],
+            "contributor": [
+                {
+                    "name": "Ilpo Järvinen",
+                    "email": "ilpo.jarvinen@linux.intel.com"
+                }
+            ],
+            "description": "This pull request enables PCIe Bandwidth Controller (bwctrl) and associated PCIe cooling devices on thermal subsystem side",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Don West",
+                    "email": "don.west@intel.com"
+                }
+            ],
+            "jira": "NEXT-3535",
+            "name": "pcie_bwctrl",
+            "repourl": "https://github.com/intel-sandbox/ijarvine.linux.kernel",
+            "sdl_contact": [
+                {
+                    "name": "Ilpo Järvinen",
+                    "email": "ilpo.jarvinen@linux.intel.com"
+                }
+            ],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": "LFE-6898",
+            "last_enabled": "v6.6"
         }
     ]
 }
