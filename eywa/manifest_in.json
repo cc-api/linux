@@ -6433,7 +6433,7 @@
             "last_enabled": "v6.6"
         },
         {
-            "branch": "for-intel-next",
+            "branch": "for-intel-next-1.5",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -6455,7 +6455,7 @@
                     "email": "chao.gao@intel.com"
                 }
             ],
-            "description": "Adds the KVM support for tdxio",
+            "description": "KVM TDX v1.5",
             "enabled": true,
             "ip_owner": [
                 {
@@ -6464,7 +6464,7 @@
                 }
             ],
             "jira": "",
-            "name": "kvm_1_0",
+            "name": "kvm_1_5",
             "repourl": "https://github.com/intel-sandbox/cqiang-tdx-kvm.git",
             "sdl_contact": [
                 {
