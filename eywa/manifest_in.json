@@ -5211,7 +5211,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "fyu/idxd.vdev.6.2",
+            "branch": "fyu/idxd.vdev.6.6.swq",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -5270,15 +5270,15 @@
                 }
             ],
             "description": "SIOV/VFIO/PASID/IDXD enabling",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Chao Peng",
                     "email": "chao.p.peng@intel.com"
                 }
             ],
-            "jira": "",
-            "name": "siov_vfio_iommufd_pasid_idxd",
+            "jira": "NEXT-3537",
+            "name": "swq_vfio_idxd_vdev ",
             "repourl": "https://github.com/intel-sandbox/idxd",
             "sdl_contact": [
                 {
@@ -5288,7 +5288,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
