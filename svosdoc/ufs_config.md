@@ -21,7 +21,7 @@ sorting out what was necessary.
 debian/configs/svos_next_defconfig.fix
 
 # Other Changes
-These kernel build flags were added to /arch/x86/configs/svos_next_defconfig:
+These kernel build flags were added to svos_next_defconfig.fix:
 ```
 CONFIG_SCSI_UFSHCD_PCI=y
 CONFIG_SCSI_UFSHCD=y
