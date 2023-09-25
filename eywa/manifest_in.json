@@ -6599,7 +6599,7 @@
                 }
             ],
             "jira": "NEXT-3537",
-            "name": "swq_vfio_idxd_vdev ",
+            "name": "swq_vfio_idxd_vdev",
             "repourl": "https://github.com/intel-sandbox/idxd",
             "sdl_contact": [
                 {
