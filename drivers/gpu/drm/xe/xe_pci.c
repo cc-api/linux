@@ -213,17 +213,6 @@ static const struct xe_graphics_desc graphics_xe2 = {
 		BIT(XE_HW_ENGINE_BCS8) | BIT(XE_HW_ENGINE_BCS0) | \
 		GENMASK(XE_HW_ENGINE_CCS3, XE_HW_ENGINE_CCS0)
 
-#define XE3P_GFX_FEATURES \
-	.dma_mask_size = 46, \
-	.has_asid = 1, \
-	.has_range_tlb_invalidation = 1, \
-	.supports_usm = 1, \
-	.va_bits = 48, \
-	.vm_max_level = 4, \
-	.hw_engine_mask = \
-		BIT(XE_HW_ENGINE_BCS8) | BIT(XE_HW_ENGINE_BCS0) | \
-		GENMASK(XE_HW_ENGINE_CCS3, XE_HW_ENGINE_CCS0)
-
 static const struct xe_graphics_desc graphics_xe3 = {
 	.name = "Xe3_LPG",
 	XE3_GFX_FEATURES,
@@ -233,13 +222,6 @@ static const struct xe_graphics_desc graphics_xe3 = {
 	 */
 	.has_flat_ccs = false,
 	.supports_usm = false,
-};
-
-static const struct xe_graphics_desc graphics_xe3xpc = {
-	.name = "Xe3_XPC",
-	XE3P_GFX_FEATURES,
-	.dma_mask_size = 52,
-	.va_bits = 57,
 };
 
 static const struct xe_media_desc media_xem = {
@@ -431,7 +413,6 @@ static struct gmdid_map graphics_ip_map[] = {
 	{ 2004, &graphics_xe2 },
 	{ 3000, &graphics_xe3 },
 	{ 3001, &graphics_xe3 },
-	{ 3500, &graphics_xe3xpc },
 };
 
 /* Map of GMD_ID values to media IP */
