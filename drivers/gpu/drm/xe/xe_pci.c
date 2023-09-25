@@ -240,12 +240,6 @@ static const struct xe_graphics_desc graphics_xe3xpc = {
 	XE3P_GFX_FEATURES,
 	.dma_mask_size = 52,
 	.va_bits = 57,
-	/*
-	 * FIXME: Following features temporarily disabled until full driver
-	 * support is added
-	 */
-	.has_flat_ccs = false,
-	.supports_usm = false,
 };
 
 static const struct xe_media_desc media_xem = {
