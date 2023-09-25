@@ -5270,7 +5270,7 @@
                 }
             ],
             "description": "SIOV/VFIO/PASID/IDXD enabling",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Chao Peng",
