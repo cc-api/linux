@@ -400,6 +400,7 @@ static unsigned int get_mocs_settings(struct xe_device *xe,
 	case XE_PANTHERLAKE:
 	case XE_LUNARLAKE:
 	case XE_BATTLEMAGE:
+	case XE_FS1:
 		info->size = ARRAY_SIZE(xe2_mocs_table);
 		info->table = xe2_mocs_table;
 		info->n_entries = XE2_NUM_MOCS_ENTRIES;
