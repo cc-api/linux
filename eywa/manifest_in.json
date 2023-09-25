@@ -6456,7 +6456,7 @@
                 }
             ],
             "description": "KVM TDX v1.5",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Caspi Dror",
@@ -6524,7 +6524,7 @@
                 }
             ],
             "description": "",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [],
             "jira": "",
             "name": "kvm_1_0_fixup",
