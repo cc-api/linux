@@ -5211,89 +5211,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "fyu/idxd.vdev.6.6.swq",
-            "branch_type": "expiring",
-            "config_options": [
-                {
-                    "name": "CONFIG_VFIO_DEVICE_IDXD",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_IOMMUFD",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_IMS_MSI",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_IMS_MSI_ARRAY",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_IOMMUFD_TEST",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_FAULT_INJECTION",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_VFIO_CONTAINER",
-                    "value": "n"
-                },
-                {
-                    "name": "CONFIG_IOMMUFD_VFIO_CONTAINER",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_VFIO_IMS",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_PCI_INTEL_IDXD_IMS",
-                    "value": "m"
-                }
-            ],
-            "contributor": [
-                {
-                    "name": "Fenghua Yu",
-                    "email": "fenghua.yu@intel.com"
-                },
-                {
-                    "name": "Yi Sun",
-                    "email": "yi.sun@intel.com"
-                },
-                {
-                    "name": "Jacob Pan",
-                    "email": "jacob.jun.pan@intel.com"
-                }
-            ],
-            "description": "SIOV/VFIO/PASID/IDXD enabling",
-            "enabled": true,
-            "ip_owner": [
-                {
-                    "name": "Chao Peng",
-                    "email": "chao.p.peng@intel.com"
-                }
-            ],
-            "jira": "NEXT-3537",
-            "name": "swq_vfio_idxd_vdev ",
-            "repourl": "https://github.com/intel-sandbox/idxd",
-            "sdl_contact": [
-                {
-                    "name": "Chao Peng",
-                    "email": "chao.p.peng@intel.com"
-                }
-            ],
-            "status": "public",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.6",
-            "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
-        },
-        {
             "branch": "debox_pm_for_intel_next",
             "branch_type": "expiring",
             "config_options": [],
@@ -6613,6 +6530,89 @@
             "platforms": "",
             "feature_jiras": "LFE-6898",
             "last_enabled": "v6.6"
+        },
+        {
+            "branch": "fyu/idxd.vdev.6.6.swq",
+            "branch_type": "expiring",
+            "config_options": [
+                {
+                    "name": "CONFIG_VFIO_DEVICE_IDXD",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_IOMMUFD",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_IMS_MSI",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_IMS_MSI_ARRAY",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_IOMMUFD_TEST",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_FAULT_INJECTION",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_VFIO_CONTAINER",
+                    "value": "n"
+                },
+                {
+                    "name": "CONFIG_IOMMUFD_VFIO_CONTAINER",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_VFIO_IMS",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_PCI_INTEL_IDXD_IMS",
+                    "value": "m"
+                }
+            ],
+            "contributor": [
+                {
+                    "name": "Fenghua Yu",
+                    "email": "fenghua.yu@intel.com"
+                },
+                {
+                    "name": "Yi Sun",
+                    "email": "yi.sun@intel.com"
+                },
+                {
+                    "name": "Jacob Pan",
+                    "email": "jacob.jun.pan@intel.com"
+                }
+            ],
+            "description": "SIOV/VFIO/PASID/IDXD enabling",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Chao Peng",
+                    "email": "chao.p.peng@intel.com"
+                }
+            ],
+            "jira": "NEXT-3537",
+            "name": "swq_vfio_idxd_vdev ",
+            "repourl": "https://github.com/intel-sandbox/idxd",
+            "sdl_contact": [
+                {
+                    "name": "Chao Peng",
+                    "email": "chao.p.peng@intel.com"
+                }
+            ],
+            "status": "public",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.6",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         }
     ]
 }
