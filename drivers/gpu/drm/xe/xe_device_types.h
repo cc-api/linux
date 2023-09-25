@@ -431,6 +431,10 @@ struct xe_device {
 		const struct err_name_index_pair *err_stat_gt[HARDWARE_ERROR_MAX];
 		const struct err_name_index_pair *err_vctr_gt[HARDWARE_ERROR_MAX];
 		const struct err_name_index_pair *gsc_error[HARDWARE_ERROR_MAX];
+		const struct err_name_index_pair *soc_mstr_glbl[HARDWARE_ERROR_MAX];
+		const struct err_name_index_pair *soc_mstr_lcl[HARDWARE_ERROR_MAX];
+		const struct err_name_index_pair *soc_slave_glbl[HARDWARE_ERROR_MAX];
+		const struct err_name_index_pair *soc_slave_lcl[HARDWARE_ERROR_MAX];
 	} hw_err_regs;
 
 	/* private: */
