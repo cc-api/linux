@@ -34,6 +34,10 @@ static int xe_presi_disable_uc_auth = -1;
 module_param_named_unsafe(disable_uc_auth, xe_presi_disable_uc_auth, int, 0400);
 MODULE_PARM_DESC(disable_uc_auth, "Disable uc authentication (0=enable authentication [default], 1=disable authentication");
 
+bool xe_disable_compute = false;
+module_param_named_unsafe(presi_disable_compute, xe_disable_compute, bool, 0600);
+MODULE_PARM_DESC(presi_disable_compute, "Disable compute mode");
+
 #define XE_PRESI_FORCE_DISABLE_FEATURE(xe, name) \
 	xe->presi_info.disabled_features |= XE_PRESI_FEATURE_BIT(name)
 
@@ -296,4 +300,9 @@ bool xe_presi_setup_guc_wopcm_region(struct xe_gt *gt, u32 *guc_wopcm_base,
 	*guc_wopcm_size = guc_size;
 
 	return true;
+}
+
+bool xe_presi_disable_compute(void)
+{
+	return xe_disable_compute;
 }
