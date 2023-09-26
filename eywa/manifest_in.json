@@ -92,7 +92,7 @@
                 },
                 {
                     "name": "CONFIG_IOMMUFD",
-                    "value": "y "
+                    "value": "y"
                 },
                 {
                     "name": "CONFIG_IOMMUFD_TEST",
