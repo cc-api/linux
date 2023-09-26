@@ -3227,7 +3227,7 @@
                 }
             ],
             "description": "SoCWatch and SEP drivers",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Benmlih Faycal",
