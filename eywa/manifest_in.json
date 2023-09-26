@@ -6561,7 +6561,7 @@
                 },
                 {
                     "name": "CONFIG_VFIO_CONTAINER",
-                    "value": "n"
+                    "value": "y"
                 },
                 {
                     "name": "CONFIG_IOMMUFD_VFIO_CONTAINER",
