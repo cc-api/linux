@@ -213,17 +213,6 @@ static const struct xe_graphics_desc graphics_xe2 = {
 		BIT(XE_HW_ENGINE_BCS8) | BIT(XE_HW_ENGINE_BCS0) | \
 		GENMASK(XE_HW_ENGINE_CCS3, XE_HW_ENGINE_CCS0)
 
-#define XE3P_GFX_FEATURES \
-	.dma_mask_size = 46, \
-	.has_asid = 1, \
-	.has_range_tlb_invalidation = 1, \
-	.supports_usm = 1, \
-	.va_bits = 48, \
-	.vm_max_level = 4, \
-	.hw_engine_mask = \
-		BIT(XE_HW_ENGINE_BCS8) | BIT(XE_HW_ENGINE_BCS0) | \
-		GENMASK(XE_HW_ENGINE_CCS3, XE_HW_ENGINE_CCS0)
-
 static const struct xe_graphics_desc graphics_xe3 = {
 	.name = "Xe3_LPG",
 	XE3_GFX_FEATURES,
@@ -235,17 +224,17 @@ static const struct xe_graphics_desc graphics_xe3 = {
 	.supports_usm = false,
 };
 
-static const struct xe_graphics_desc graphics_xe3xpc = {
-	.name = "Xe3_XPC",
-	XE3P_GFX_FEATURES,
+static const struct xe_graphics_desc graphics_xe3p_xpc = {
+	.name = "Xe3p_XPC",
+
+	XE3_GFX_FEATURES,
 	.dma_mask_size = 52,
+	.hw_engine_mask =
+		GENMASK(XE_HW_ENGINE_BCS3, XE_HW_ENGINE_BCS1) |
+		GENMASK(XE_HW_ENGINE_CCS3, XE_HW_ENGINE_CCS0),
+	.max_remote_tiles = 3,
 	.va_bits = 57,
-	/*
-	 * FIXME: Following features temporarily disabled until full driver
-	 * support is added
-	 */
 	.has_flat_ccs = false,
-	.supports_usm = false,
 };
 
 static const struct xe_media_desc media_xem = {
@@ -424,9 +413,9 @@ static const struct xe_device_desc ptl_desc = {
 	.require_force_probe = true,
 };
 
-static const struct xe_device_desc fsg_desc = {
+static const struct xe_device_desc fs1_desc = {
 	DGFX_FEATURES,
-	PLATFORM(XE_FSG),
+	PLATFORM(XE_FS1),
 	.has_display = false,
 	.require_force_probe = true,
 };
@@ -444,7 +433,7 @@ static struct gmdid_map graphics_ip_map[] = {
 	{ 2004, &graphics_xe2 },
 	{ 3000, &graphics_xe3 },
 	{ 3001, &graphics_xe3 },
-	{ 3500, &graphics_xe3xpc },
+	{ 3500, &graphics_xe3p_xpc },
 };
 
 /* Map of GMD_ID values to media IP */
@@ -482,7 +471,7 @@ static const struct pci_device_id pciidlist[] = {
 	XE_LNL_IDS(INTEL_VGA_DEVICE, &lnl_desc),
 	XE_BMG_IDS(INTEL_VGA_DEVICE, &bmg_desc),
 	XE_PTL_IDS(INTEL_VGA_DEVICE, &ptl_desc),
-	XE_FSG_IDS(INTEL_VGA_DEVICE, &fsg_desc),
+	XE_FS1_IDS(INTEL_VGA_DEVICE, &fs1_desc),
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, pciidlist);
