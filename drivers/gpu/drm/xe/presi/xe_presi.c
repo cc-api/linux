@@ -31,8 +31,8 @@ MODULE_PARM_DESC(presi_timeout_multiplier,
 		 "Timeout multiplier for presilicon execution");
 
 static int xe_presi_disable_uc_auth = -1;
-module_param_named_unsafe(disable_uc_auth, xe_presi_disable_uc_auth, int, 0400);
-MODULE_PARM_DESC(disable_uc_auth, "Disable uc authentication (0=enable authentication [default], 1=disable authentication");
+module_param_named_unsafe(presi_disable_uc_auth, xe_presi_disable_uc_auth, int, 0400);
+MODULE_PARM_DESC(presi_disable_uc_auth, "Disable uc authentication (0=enable authentication [default], 1=disable authentication");
 
 bool xe_disable_compute = false;
 module_param_named_unsafe(presi_disable_compute, xe_disable_compute, bool, 0600);
@@ -230,7 +230,7 @@ int xe_presi_init(struct xe_device *xe)
 		drm_info(&xe->drm, "using pre-silicon timeout multiplier: %d\n",
 				xe->presi_info.timeout_multiplier);
 
-	/* disable_uc_auth param is set */
+	/* presi_disable_uc_auth param is set */
 	if (xe_presi_disable_uc_auth > -1) {
 		if (xe_presi_disable_uc_auth) {
 			XE_PRESI_FORCE_DISABLE_FEATURE(xe, UC_AUTH);
