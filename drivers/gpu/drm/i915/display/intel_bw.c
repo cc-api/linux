@@ -666,6 +666,10 @@ static int xe2_hpd_get_bw_info(struct drm_i915_private *i915,
 		i915->display.bw.max[0].deratedbw[i] =
 			min(maxdebw, (100 - sa->derating) * bw / 100);
 		i915->display.bw.max[0].peakbw[i] = bw;
+
+		drm_dbg_kms(&i915->drm, "QGV %d: deratedbw=%u peakbw: %u\n",
+			    i, i915->display.bw.max[0].deratedbw[i],
+			    i915->display.bw.max[0].peakbw[i]);
 	}
 
 	/* Bandwidth does not depend on # of planes; set all groups the same */
