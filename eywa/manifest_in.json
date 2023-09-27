@@ -4948,7 +4948,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "",
+            "stuck_at_ref": "f051b92e1016467e08396063be349ba4dc1fc2a9",
             "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "ARL,EMR,GNR,GRR,LNL,MTL,SPR,SRF",
@@ -6389,7 +6389,7 @@
                 }
             ],
             "description": "KVM TDX v1.5",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Caspi Dror",
