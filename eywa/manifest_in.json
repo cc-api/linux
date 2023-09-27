@@ -1497,9 +1497,9 @@
                 }
             ],
             "description": "Enable LASS",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
-            "jira": "",
+            "jira": "NEXT-3538",
             "name": "LASS",
             "repourl": "https://github.com/intel-sandbox/linux-perf.git",
             "sdl_contact": [
@@ -1510,7 +1510,7 @@
             ],
             "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
