@@ -638,50 +638,6 @@
             "branch_type": "internal nonexpiring",
             "config_options": [
                 {
-                    "name": "CONFIG_SERIAL_8250_DW",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_SPI_PXA2XX",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_SPI_PXA2XX_PCI",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_I2C_DESIGNWARE_PLATFORM",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_I2C_DESIGNWARE_PCI",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_I2C_I801",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_SPI_INTEL_SPI_PCI",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_SPI_INTEL_SPI_PLATFORM",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_USB4",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_USB4_NET",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_MFD_INTEL_PMC_BXT",
-                    "value": "m"
-                },
-                {
                     "name": "CONFIG_MFD_INTEL_LPSS_ACPI",
                     "value": "m"
                 },
@@ -690,8 +646,64 @@
                     "value": "m"
                 },
                 {
+                    "name": "CONFIG_MFD_INTEL_QUARK_I2C_GPIO",
+                    "value": "m"
+                },
+                {
                     "name": "CONFIG_X86_INTEL_LPSS",
                     "value": "y"
+                },
+                {
+                    "name": "CONFIG_GPIO_DWAPB",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_GPIO_PCH",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_GPIO_ICH",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_GPIO_SCH",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_GPIO_ELKHARTLAKE",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_GPIO_MERRIFIELD",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_GPIO_CRYSTAL_COVE",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_GPIO_WHISKEY_COVE",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_INTEL_SOC_PMIC",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_INTEL_SOC_PMIC_BXTWC",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_INTEL_SOC_PMIC_CHTWC",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_INTEL_SOC_PMIC_MRFLD",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_INTEL_IDMA64",
+                    "value": "m"
                 },
                 {
                     "name": "CONFIG_DW_DMAC",
@@ -706,7 +718,11 @@
                     "value": "m"
                 },
                 {
-                    "name": "CONFIG_INTEL_IDMA64",
+                    "name": "CONFIG_PCH_DMA",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_SERIAL_PCH_UART",
                     "value": "m"
                 },
                 {
@@ -731,6 +747,18 @@
                 },
                 {
                     "name": "CONFIG_PINCTRL_LYNXPOINT",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_PINCTRL_MERRIFIELD",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_PINCTRL_MOOREFIELD",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_PINCTRL_INTEL_PLATFORM",
                     "value": "m"
                 },
                 {
@@ -782,14 +810,6 @@
                     "value": "m"
                 },
                 {
-                    "name": "CONFIG_PINCTRL_SUNRISEPOINT",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_PINCTRL_TIGERLAKE",
-                    "value": "m"
-                },
-                {
                     "name": "CONFIG_PINCTRL_METEORLAKE",
                     "value": "m"
                 },
@@ -798,15 +818,11 @@
                     "value": "m"
                 },
                 {
-                    "name": "CONFIG_PINCTRL_INTEL_PLATFORM",
+                    "name": "CONFIG_PINCTRL_SUNRISEPOINT",
                     "value": "m"
                 },
                 {
-                    "name": "CONFIG_PINCTRL_MERRIFIELD",
-                    "value": "m"
-                },
-                {
-                    "name": "CONFIG_PINCTRL_MOOREFIELD",
+                    "name": "CONFIG_PINCTRL_TIGERLAKE",
                     "value": "m"
                 }
             ],
