@@ -474,3 +474,4 @@ module_platform_driver(mtp_pinctrl_driver);
 MODULE_AUTHOR("Andy Shevchenko <andriy.shevchenko@linux.intel.com>");
 MODULE_DESCRIPTION("Intel Meteor Point PCH pinctrl/GPIO driver");
 MODULE_LICENSE("GPL v2");
+MODULE_IMPORT_NS(PINCTRL_INTEL);
