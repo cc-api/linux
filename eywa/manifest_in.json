@@ -1954,7 +1954,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "for_intel_nxt_v6.2",
+            "branch": "v6.6-rc3-ucode-ifs-for-nxt",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -1969,14 +1969,14 @@
                 }
             ],
             "description": "Enable In Field Scan device driver",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Philip Abraham",
                     "email": "philip.abraham@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3539",
             "name": "In Field Scan",
             "repourl": "https://github.com/intel-sandbox/drivers.saf.git",
             "sdl_contact": [
@@ -1987,7 +1987,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.2",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
