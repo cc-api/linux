@@ -833,7 +833,7 @@
                 }
             ],
             "description": "LPSS(MFD/DMA/UART)/GPIO enabling for LNL,MTL(SoC P, S and PCH S variants),ADL,TGL,ICL and other/older platforms",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Rajesh Bhaskar",
