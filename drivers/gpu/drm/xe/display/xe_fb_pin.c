@@ -17,7 +17,10 @@ static void
 write_dpt_rotated(struct xe_bo *bo, struct iosys_map *map, u32 *dpt_ofs, u32 bo_ofs,
 		  u32 width, u32 height, u32 src_stride, u32 dst_stride)
 {
+	struct xe_device *xe = xe_bo_device(bo);
+	struct xe_ggtt *ggtt = xe_device_get_root_tile(xe)->mem.ggtt;
 	u32 column, row;
+
 	/* TODO: Maybe rewrite so we can traverse the bo addresses sequentially,
 	 * by writing dpt/ggtt in a different order?
 	 */
@@ -26,8 +29,10 @@ write_dpt_rotated(struct xe_bo *bo, struct iosys_map *map, u32 *dpt_ofs, u32 bo_
 		u32 src_idx = src_stride * (height - 1) + column + bo_ofs;
 
 		for (row = 0; row < height; row++) {
-			iosys_map_wr(map, *dpt_ofs, u64,
-				     xe_ggtt_pte_encode(bo, src_idx * XE_PAGE_SIZE));
+			u64 pte = ggtt->pt_ops->pte_encode_bo(bo, src_idx * XE_PAGE_SIZE,
+							      XE_CACHE_WB);
+
+			iosys_map_wr(map, *dpt_ofs, u64, pte);
 			*dpt_ofs += 8;
 			src_idx -= src_stride;
 		}
@@ -46,6 +51,7 @@ static int __xe_pin_fb_vma_dpt(struct intel_framebuffer *fb,
 {
 	struct xe_device *xe = to_xe_device(fb->base.dev);
 	struct xe_tile *tile0 = xe_device_get_root_tile(xe);
+	struct xe_ggtt *ggtt = tile0->mem.ggtt;
 	struct xe_bo *bo = intel_fb_obj(&fb->base), *dpt;
 	u32 dpt_size, size = bo->ttm.base.size;
 
@@ -76,9 +82,12 @@ static int __xe_pin_fb_vma_dpt(struct intel_framebuffer *fb,
 	if (view->type == I915_GTT_VIEW_NORMAL) {
 		u32 x;
 
-		for (x = 0; x < size / XE_PAGE_SIZE; x++)
-			iosys_map_wr(&dpt->vmap, x * 8, u64,
-				     xe_ggtt_pte_encode(bo, x * XE_PAGE_SIZE));
+		for (x = 0; x < size / XE_PAGE_SIZE; x++) {
+			u64 pte = ggtt->pt_ops->pte_encode_bo(bo, x * XE_PAGE_SIZE,
+							      XE_CACHE_WB);
+
+			iosys_map_wr(&dpt->vmap, x * 8, u64, pte);
+		}
 	} else {
 		const struct intel_rotation_info *rot_info = &view->rotated;
 		u32 i, dpt_ofs = 0;
@@ -107,8 +116,10 @@ write_ggtt_rotated(struct xe_bo *bo, struct xe_ggtt *ggtt, u32 *ggtt_ofs, u32 bo
 		u32 src_idx = src_stride * (height - 1) + column + bo_ofs;
 
 		for (row = 0; row < height; row++) {
-			xe_ggtt_set_pte(ggtt, *ggtt_ofs,
-					xe_ggtt_pte_encode(bo, src_idx * XE_PAGE_SIZE));
+			u64 pte = ggtt->pt_ops->pte_encode_bo(bo, src_idx * XE_PAGE_SIZE,
+							      XE_CACHE_WB);
+
+			xe_ggtt_set_pte(ggtt, *ggtt_ofs, pte);
 			*ggtt_ofs += XE_PAGE_SIZE;
 			src_idx -= src_stride;
 		}
@@ -150,8 +161,11 @@ static int __xe_pin_fb_vma_ggtt(struct intel_framebuffer *fb,
 		if (ret)
 			goto out_unlock;
 
-		for (x = 0; x < size; x += XE_PAGE_SIZE)
-			xe_ggtt_set_pte(ggtt, vma->node.start + x, xe_ggtt_pte_encode(bo, x));
+		for (x = 0; x < size; x += XE_PAGE_SIZE) {
+			u64 pte = ggtt->pt_ops->pte_encode_bo(bo, x, XE_CACHE_WB);
+
+			xe_ggtt_set_pte(ggtt, vma->node.start + x, pte);
+		}
 	} else {
 		u32 i, ggtt_ofs;
 		const struct intel_rotation_info *rot_info = &view->rotated;
