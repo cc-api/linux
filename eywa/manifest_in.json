@@ -6366,7 +6366,7 @@
             "last_enabled": "v6.6"
         },
         {
-            "branch": "for-intel-next-1.5",
+            "branch": "for-intel-next-2.0",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -6397,7 +6397,7 @@
                 }
             ],
             "jira": "",
-            "name": "kvm_1_5",
+            "name": "kvm_2_0",
             "repourl": "https://github.com/intel-sandbox/cqiang-tdx-kvm.git",
             "sdl_contact": [
                 {
