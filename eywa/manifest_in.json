@@ -6372,6 +6372,10 @@
                 {
                     "name": "CONFIG_INTEL_TDX_MODULE_UPDATE",
                     "value": "y"
+                },
+                {
+                    "name": "CONFIG_INTEL_TDX_HOST_DEBUG_MEMORY_CORRUPT",
+                    "value": "y"
                 }
             ],
             "contributor": [
