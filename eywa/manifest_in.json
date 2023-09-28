@@ -1497,7 +1497,7 @@
                 }
             ],
             "description": "Enable LASS",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [],
             "jira": "NEXT-3538",
             "name": "LASS",
