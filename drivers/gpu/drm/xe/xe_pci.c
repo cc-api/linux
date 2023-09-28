@@ -409,7 +409,7 @@ static const struct xe_device_desc bmg_desc = {
 
 static const struct xe_device_desc ptl_desc = {
 	PLATFORM(XE_PANTHERLAKE),
-	.has_display = false, /* TODO: not implemented yet */
+	.has_display = true,
 	.require_force_probe = true,
 };
 
