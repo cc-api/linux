@@ -7,6 +7,7 @@
 
 #include <drm/drm_managed.h>
 
+#include "generated/xe_wa_oob.h"
 #include "regs/xe_engine_regs.h"
 #include "regs/xe_gt_regs.h"
 #include "regs/xe_regs.h"
@@ -558,7 +559,10 @@ static void read_copy_fuses(struct xe_gt *gt)
 
 	xe_force_wake_assert_held(gt_to_fw(gt), XE_FW_GT);
 
-	if (GRAPHICS_VERx100(xe) >= 3500)
+	if (XE_WA(gt, FSG_SIM))
+		/* FSG's original definition had only a BCS8 paging engine */
+		bcs_mask = BIT(7);
+	else if (GRAPHICS_VERx100(xe) >= 3500)
 		bcs_mask = read_svccopy_fuses(gt);
 	else if (GRAPHICS_VERx100(xe) == 1260)
 		bcs_mask = infer_svccopy_from_meml3(gt);
