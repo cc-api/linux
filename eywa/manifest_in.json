@@ -6657,6 +6657,30 @@
             "platforms": "GNR,SRF",
             "feature_jiras": "LFE-9970",
             "last_enabled": "v6.6"
+        },
+        {
+            "branch": "swq_vfio_idxd_vdev_fixup",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Michael Bottini",
+                    "email": "michael.a.bottini@intel.com"
+                }
+            ],
+            "description": "Fixup for stub function vfio_ims_msi_virq",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "",
+            "name": "swq_vfio_idxd_vdev_fixup",
+            "repourl": "https://github.com/intel-sandbox/otc_power_kernel.git",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": "",
+            "last_enabled": "v6.6"
         }
     ]
 }
