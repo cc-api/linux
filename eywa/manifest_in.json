@@ -6633,6 +6633,30 @@
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
+        },
+        {
+            "branch": "for-next",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Haitao Huang",
+                    "email": "haitao.huang@linux.intel.com"
+                }
+            ],
+            "description": "Enable Shadow Stacks for SGX Enclaves",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3540",
+            "name": "sgx_enclave_shadow_stacks",
+            "repourl": "https://github.com/haitaohuang/linux.git",
+            "sdl_contact": [],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "GNR,SRF",
+            "feature_jiras": "LFE-9970",
+            "last_enabled": "v6.6"
         }
     ]
 }
