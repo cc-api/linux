@@ -244,6 +244,7 @@ xe-$(CONFIG_DRM_XE_DISPLAY) += \
 	i915-display/skl_watermark.o
 
 xe-$(CONFIG_PERF_EVENTS) += xe_pmu.o
+xe-$(CONFIG_NET) += xe_netlink.o
 
 ifeq ($(CONFIG_ACPI),y)
 	xe-$(CONFIG_DRM_XE_DISPLAY) += \

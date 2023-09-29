@@ -154,6 +154,8 @@ static void xe_driver_release(struct drm_device *dev)
 	pci_set_drvdata(to_pci_dev(xe->drm.dev), NULL);
 }
 
+extern const struct driver_genl_ops xe_genl_ops[];
+
 static struct drm_driver driver = {
 	/* Don't use MTRRs here; the Xserver or userspace app should
 	 * deal with them for Intel hardware.
@@ -162,6 +164,7 @@ static struct drm_driver driver = {
 	    DRIVER_GEM |
 	    DRIVER_RENDER | DRIVER_SYNCOBJ |
 	    DRIVER_SYNCOBJ_TIMELINE | DRIVER_GEM_GPUVA,
+
 	.open = xe_file_open,
 	.postclose = xe_file_close,
 
@@ -173,6 +176,9 @@ static struct drm_driver driver = {
 	.show_fdinfo = xe_drm_client_fdinfo,
 #endif
 	.release = &xe_driver_release,
+#ifdef CONFIG_NET
+	.genl_ops = xe_genl_ops,
+#endif
 
 	.ioctls = xe_ioctls,
 	.num_ioctls = ARRAY_SIZE(xe_ioctls),
