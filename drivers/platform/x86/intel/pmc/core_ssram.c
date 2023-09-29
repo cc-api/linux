@@ -317,6 +317,10 @@ pmc_core_get_primary_pmc(struct pmc_dev *pmcdev)
 
 	pwrm_base = get_base(ssram, SSRAM_PWRM_OFFSET);
 	devid = readw(ssram + SSRAM_DEVID_OFFSET);
+	if(!devid) {
+		devid = ssram_pcidev->device;
+		dev_dbg(&pmcdev->pdev->dev, "devid is not set. Setting it to 0x%x\n", ssram_pcidev->device);
+	}
 
 	/* Find and register and PMC telemetry entries */
 	pmc_add_pmt(pmcdev, ssram_base, ssram);

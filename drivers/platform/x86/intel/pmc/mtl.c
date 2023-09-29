@@ -17,6 +17,7 @@
 #define IOEM_LPM_REQ_GUID	0x4357464
 #define IOEP_LPM_REQ_GUID	0x5077612
 #define SOCS_LPM_REQ_GUID	0x8478657
+#define PCHS_LPM_REQ_GUID	0x9684572
 
 /* Die C6 from PUNIT telemetry */
 #define MTL_PMT_DMU_DIE_C6_OFFSET	15
@@ -1210,6 +1211,7 @@ const struct pmc_reg_map mtl_socs_reg_map = {
 	.lpm_sts_latch_en_offset = MTL_LPM_STATUS_LATCH_EN_OFFSET,
 	.lpm_live_status_offset = MTL_LPM_LIVE_STATUS_OFFSET,
 	.lpm_num_maps = ADL_LPM_NUM_MAPS,
+	.lpm_reg_index = MTL_LPM_REG_INDEX,
 	.etr3_offset = ETR3_OFFSET,
 };
 
@@ -1575,6 +1577,8 @@ const struct pmc_reg_map mtl_pchs_reg_map = {
 	.lpm_status_offset = MTL_LPM_STATUS_OFFSET,
 	.lpm_sts_latch_en_offset = MTL_LPM_STATUS_LATCH_EN_OFFSET,
 	.lpm_live_status_offset = MTL_LPM_LIVE_STATUS_OFFSET,
+        .lpm_num_maps = ADL_LPM_NUM_MAPS,
+        .lpm_reg_index = MTL_LPM_REG_INDEX,
 	.etr3_offset = ETR3_OFFSET,
 };
 
@@ -1597,7 +1601,7 @@ static struct pmc_info mtl_pmc_info_list[] = {
 	{
 		.guid	= IOEM_LPM_REQ_GUID,
 		.devid	= PMC_DEVID_IOEM,
-		.map	= &mtl_ioem_reg_map
+		.map	= &mtl_ioem_reg_map,
 	},
 	{
 		.guid	= SOCS_LPM_REQ_GUID,
@@ -1605,8 +1609,9 @@ static struct pmc_info mtl_pmc_info_list[] = {
 		.map	= &mtl_socs_reg_map,
 	},
 	{
-		.devid = PMC_DEVID_PCHS,
-		.map = &mtl_pchs_reg_map,
+		.guid	= PCHS_LPM_REQ_GUID,
+		.devid	= PMC_DEVID_PCHS,
+		.map	= &mtl_pchs_reg_map,
 	},
 	{}
 };
