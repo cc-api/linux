@@ -1560,6 +1560,46 @@
 		"guid": "0x130670b2"
 	},
 	{
+		"BriefDescription": "SoC Core C-State Counts.",
+		"MetricExpr": "C0_RESIDENCY_CORE0 + C6_RESIDENCY_CORE0",
+		"MetricName": "C_STATE_RESIDENCY_CORE0_TOTAL",
+		"ScaleUnit": "100%"
+	},
+	{
+		"BriefDescription": "SoC Core0 C-State Counts Percent.",
+		"MetricExpr": "C0_RESIDENCY_CORE0 / C_STATE_RESIDENCY_CORE0_TOTAL",
+		"MetricGroup": "pmt",
+		"MetricName": "C0_RESIDENCY_CORE0_PERCENT",
+		"ScaleUnit": "100%"
+	},
+	{
+		"BriefDescription": "SoC Core0 C-State Counts Percent.",
+		"MetricExpr": "C6_RESIDENCY_CORE0 / C_STATE_RESIDENCY_CORE0_TOTAL",
+		"MetricGroup": "pmt",
+		"MetricName": "C6_RESIDENCY_CORE0_PERCENT",
+		"ScaleUnit": "100%"
+	},
+	{
+		"BriefDescription": "SoC Core C-State Counts.",
+		"MetricExpr": "C0_RESIDENCY_CORE1 + C6_RESIDENCY_CORE1",
+		"MetricName": "C_STATE_RESIDENCY_CORE1_TOTAL",
+		"ScaleUnit": "100%"
+	},
+	{
+		"BriefDescription": "SoC Core1 C-State Counts Percent.",
+		"MetricExpr": "C0_RESIDENCY_CORE1 / C_STATE_RESIDENCY_CORE1_TOTAL",
+		"MetricGroup": "pmt",
+		"MetricName": "C0_RESIDENCY_CORE1_PERCENT",
+		"ScaleUnit": "100%"
+	},
+	{
+		"BriefDescription": "SoC Core1 C-State Counts Percent.",
+		"MetricExpr": "C6_RESIDENCY_CORE1 / C_STATE_RESIDENCY_CORE1_TOTAL",
+		"MetricGroup": "pmt",
+		"MetricName": "C6_RESIDENCY_CORE1_PERCENT",
+		"ScaleUnit": "100%"
+	},
+	{
 		"EventName": "PERF_LIMIT_THERM_MODULE_COUNTER_0",
 		"datatypeID": "tevent_counter",
 		"offset": 1480,
@@ -2257,7 +2297,6 @@
 	},
 	{
 		"EventName": "PACKAGE_CSTATE_COUNTS_C8",
-		"MetricGroup": "Power",
 		"datatypeID": "tevent_counter",
 		"offset": 1864,
 		"BriefDescription": "Measures the number of transitions to Package C-state C8",
@@ -2282,7 +2321,6 @@
 	},
 	{
 		"EventName": "PACKAGE_CSTATE_COUNTS_C10",
-		"MetricGroup": "Power",
 		"datatypeID": "tevent_counter",
 		"offset": 1872,
 		"BriefDescription": "Measures the number of transitions to Package C-state C10",
