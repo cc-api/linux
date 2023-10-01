@@ -817,7 +817,9 @@ static int xe_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	if (err)
 		goto err_pci_disable;
 
-	xe_presi_init(xe);
+	err = xe_presi_init(xe);
+	if (err)
+		goto err_drm_put;
 
 	xe_display_info_init(xe);
 
