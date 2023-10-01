@@ -26,6 +26,12 @@ enum xe_presi_feature {
 
 #define XE_PRESI_FEATURE_BIT(name) BIT(XE_PRESI_FEATURE_ENUM(name))
 
+struct xe_presi_ops {
+	int (*features_init)(struct xe_device *xe);
+	int (*device_init)(struct xe_device *xe);
+	void (*device_fini)(struct xe_device *xe);
+};
+
 /*
  * We support different pre-silicon modes:
  * - simulation: GPU is simulated. Model is functionally accurate but
@@ -48,10 +54,15 @@ struct xe_presi_info {
 		XE_PRESI_MODE_EMULATOR_PLDM = 5,
 		XE_NUM_PRESI_MODES
 	} mode;
+
+	struct xe_presi_ops *ops;
 	u64 disabled_features;
 	int timeout_multiplier;
 
 	struct timer_list irq_timer; /* Timer to fake periordic interrupt */
+
+	/* features used in presi phase */
+	void *presi_features;
 };
 
 #define MODPARAM_TO_PRESI_MODE(x) ({ \
@@ -76,10 +87,15 @@ struct xe_presi_info {
 #define XE_PRESI_TIMEOUT_MULTIPLIER(xe) (IS_PRESILICON(xe) ? \
 					 xe->presi_info.timeout_multiplier : 1)
 
-void xe_presi_init(struct xe_device *xe);
+int xe_presi_device_init(struct xe_device *xe);
+int xe_presi_init(struct xe_device *xe);
 
 void xe_presi_skip_uc_auth(struct xe_gt *gt);
 bool xe_presi_setup_guc_wopcm_region(struct xe_gt *gt, u32 *wopcm_base,
 				     u32 *wopcm_size);
+
+#ifdef CONFIG_DRM_XE_FS1
+struct xe_presi_ops *xe_fs1_presi_get_ops(void);
+#endif
 
 #endif
