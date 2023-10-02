@@ -215,6 +215,11 @@ static const struct xe_graphics_desc graphics_xe3p_xpc = {
 	.max_remote_tiles = 3,
 	.va_bits = 57,
 	.has_flat_ccs = false,
+	/*
+	 * FIXME: Following features temporarily disabled until full driver
+	 * support is added
+	 */
+	.supports_usm = false,
 };
 
 static const struct xe_media_desc media_xem = {
