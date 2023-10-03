@@ -336,6 +336,8 @@ int xe_device_probe(struct xe_device *xe)
 
 	xe_display_register(xe);
 
+	xe_presi_device_init(xe);
+
 	xe_debugfs_register(xe);
 
 	err = drmm_add_action_or_reset(&xe->drm, xe_device_sanitize, xe);

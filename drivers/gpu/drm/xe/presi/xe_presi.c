@@ -4,6 +4,7 @@
  */
 
 #include <linux/timer.h>
+#include <drm/drm_managed.h>
 #include <drm/drm_vblank.h>
 
 #include "regs/xe_guc_regs.h"
@@ -16,13 +17,13 @@ static const char * const presi_mode_names[] = {
 	[XE_PRESI_MODE_SIMULATOR] = "simulation",
 	[XE_PRESI_MODE_EMULATOR_PIPEGT] = "emulation pipeGT",
 	[XE_PRESI_MODE_EMULATOR_PIPE2D] = "emulation pipe2D",
+	[XE_PRESI_MODE_EMULATOR_PLDM] = "emulation palladium",
 };
 
 static int xe_presi_mode = 0;
 module_param_named_unsafe(presi_mode, xe_presi_mode, int, 0600);
-MODULE_PARM_DESC(presi_mode, "Select pre-si mode "
-		 "(0=none/silicon [default], 1=simulator,"
-		 "2=pipeGT emulator, 3=pipe2D emulator)");
+MODULE_PARM_DESC(presi_mode,
+		 "Select pre-si mode (0=none/silicon [default], 1=simulator, 2=pipeGT emulator, 3=pipe2D emulator, 4=palladium emulator)");
 
 static int xe_presi_timeout_multiplier = 0;
 module_param_named_unsafe(presi_timeout_multiplier,
@@ -118,6 +119,54 @@ static void xe_presi_init_disabled_features(struct xe_device *xe)
 	/* Other presilicon environments like Pipe2D are yet to be handled */
 }
 
+static struct xe_presi_ops xe_presi_nops;
+
+static void xe_presi_set_funcs(struct xe_device *xe)
+{
+	switch (xe->info.platform) {
+#ifdef CONFIG_DRM_XE_FS1
+	case XE_FS1:
+		xe->presi_info.ops = xe_fs1_presi_get_ops();
+		break;
+#endif
+	default:
+		xe->presi_info.ops = &xe_presi_nops;
+		break;
+	}
+}
+
+/**
+ * xe_presi_device_fini - perform device specific fini sequence
+ * @xe:	xe device
+ */
+static void xe_presi_device_fini(struct drm_device *drm, void *arg)
+{
+	struct xe_device *xe = arg;
+
+	if (xe->presi_info.ops->device_fini)
+		xe->presi_info.ops->device_fini(xe);
+}
+
+/**
+ * xe_presi_device_init - perform device specific init/config
+ * @xe:	xe device
+ *
+ * return 0 on success, otherwise non 0 error code
+ */
+int xe_presi_device_init(struct xe_device *xe)
+{
+	int rc;
+
+	if (!xe->presi_info.ops->device_init)
+		return 0;
+
+	rc = xe->presi_info.ops->device_init(xe);
+	if (rc)
+		return rc;
+
+	return drmm_add_action_or_reset(&xe->drm, xe_presi_device_fini, xe);
+}
+
 /**
  * xe_presi_init - checks the pre-si modparam and acts on it
  * @xe:	xe device
@@ -125,14 +174,14 @@ static void xe_presi_init_disabled_features(struct xe_device *xe)
  * presi_mode is only updated if the modparam is set to a valid value. An
  * error is logged if the modparam is set incorrectly
  */
-void xe_presi_init(struct xe_device *xe)
+int xe_presi_init(struct xe_device *xe)
 {
 	enum xe_presi_mode mode = MODPARAM_TO_PRESI_MODE(xe_presi_mode);
 
 	BUILD_BUG_ON(XE_PRESI_MODE_UNKNOWN); /* unknown needs to be 0 */
 	XE_WARN_ON(xe->presi_info.mode != XE_PRESI_MODE_UNKNOWN);
 
-	if (mode > XE_PRESI_MODE_NONE && mode <= XE_MAX_PRESI_MODE) {
+	if (mode > XE_PRESI_MODE_NONE && mode < XE_NUM_PRESI_MODES) {
 		drm_info(&xe->drm, "using pre-silicon mode from modparam: %s\n",
 				 presi_mode_names[mode]);
 		xe->presi_info.mode = mode;
@@ -142,6 +191,8 @@ void xe_presi_init(struct xe_device *xe)
 				  xe_presi_mode);
 		xe->presi_info.mode = XE_PRESI_MODE_NONE;
 	}
+
+	xe_presi_set_funcs(xe);
 
 	xe_presi_init_disabled_features(xe);
 
@@ -168,6 +219,11 @@ void xe_presi_init(struct xe_device *xe)
 		drm_info(&xe->drm, "uC authentication: %s\n",
 			 (xe_presi_disable_uc_auth) ? "disabled" : "enabled");
 	}
+
+	if (!xe->presi_info.ops->features_init)
+		return 0;
+
+	return xe->presi_info.ops->features_init(xe);
 }
 
 #define GUC_SHIM_CONTROL2_VALUE (GUC_SHA_COMPUTATION_DISABLE	| \

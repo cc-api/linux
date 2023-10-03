@@ -420,6 +420,10 @@ static const struct xe_device_desc ptl_desc = {
 static const struct xe_device_desc fs1_desc = {
 	DGFX_FEATURES,
 	PLATFORM(XE_FS1),
+#ifdef CONFIG_DRM_XE_FS1
+	/* Always use static graphics descriptor in case GT IP is not present */
+	.graphics = &graphics_xe3p_xpc,
+#endif
 	.has_display = false,
 	.require_force_probe = true,
 };
@@ -818,7 +822,9 @@ static int xe_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	if (err)
 		goto err_pci_disable;
 
-	xe_presi_init(xe);
+	err = xe_presi_init(xe);
+	if (err)
+		goto err_drm_put;
 
 	xe_display_info_init(xe);
 
