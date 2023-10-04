@@ -159,6 +159,14 @@ static void xe_pm_runtime_init(struct xe_device *xe)
 	pm_runtime_set_autosuspend_delay(dev, 1000);
 	pm_runtime_set_active(dev);
 	pm_runtime_allow(dev);
+
+	/*
+	 * XXX: There seems to be a potential issue around rpm on PVC. For now
+	 * disable to see if this helps.
+	 */
+	if (xe->info.platform == XE_PVC)
+		pm_runtime_forbid(dev);
+
 	pm_runtime_mark_last_busy(dev);
 	pm_runtime_put(dev);
 }
