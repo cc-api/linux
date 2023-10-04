@@ -229,7 +229,7 @@ static const struct xe_graphics_desc graphics_xe3p_xpc = {
 	XE3_GFX_FEATURES,
 	.dma_mask_size = 52,
 	.hw_engine_mask =
-		GENMASK(XE_HW_ENGINE_BCS3, XE_HW_ENGINE_BCS1) |
+		GENMASK(XE_HW_ENGINE_BCS8, XE_HW_ENGINE_BCS1) |
 		GENMASK(XE_HW_ENGINE_CCS3, XE_HW_ENGINE_CCS0),
 	.max_remote_tiles = 3,
 	.va_bits = 57,
