@@ -94,7 +94,7 @@
  *-------------------------------------------------
  */
 #ifdef MODULE_IMPORT_NS
-    MODULE_IMPORT_NS(INTEL_PMT);
+    MODULE_IMPORT_NS(INTEL_PMT_TELEMETRY);
 #endif
 
 /* -------------------------------------------------
