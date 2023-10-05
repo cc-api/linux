@@ -1,3 +1,5 @@
+#include "svos_intel_idle_hooks_ext.h"
+
 extern int svos_enable_intel_idle_extensions;
 
 // Located in arch/x86/kernel/process.c:721
