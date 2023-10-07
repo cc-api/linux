@@ -6681,6 +6681,35 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.6"
+        },
+        {
+            "branch": "as/cxl-for-inext",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Alison Schofield",
+                    "email": "alison.schofield@intel.com"
+                }
+            ],
+            "description": "",
+            "enabled": true,
+            "ip_owner": [],
+            "jira": "NEXT-3541",
+            "name": "cxl_driver_fixes_gnr",
+            "repourl": "https://github.com/intel-sandbox/cxl.git",
+            "sdl_contact": [
+                {
+                    "name": "Dan Williams",
+                    "email": "dan.j.williams@intel.com"
+                }
+            ],
+            "status": "public",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "GNR",
+            "feature_jiras": "",
+            "last_enabled": "v6.6"
         }
     ]
 }
