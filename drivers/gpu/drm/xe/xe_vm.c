@@ -1602,6 +1602,8 @@ void xe_vm_close_and_put(struct xe_vm *vm)
 	for_each_tile(tile, xe, id)
 		xe_range_fence_tree_fini(&vm->rftree[id]);
 
+	xe_presi_vm_destroy(vm);
+
 	xe_vm_put(vm);
 }
 
@@ -2002,6 +2004,12 @@ int xe_vm_create_ioctl(struct drm_device *dev, void *data,
 			return err;
 		}
 		vm->usm.asid = asid;
+	}
+
+	err = xe_presi_vm_create(vm);
+	if (err) {
+		xe_vm_close_and_put(vm);
+		return err;
 	}
 
 	args->vm_id = id;

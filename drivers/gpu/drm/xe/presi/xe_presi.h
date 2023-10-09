@@ -68,6 +68,11 @@ struct xe_presi_info {
 	void *presi_features;
 };
 
+struct xe_presi_vm_info {
+	/* VM features used in presi phase */
+	void *vm_features;
+};
+
 #define MODPARAM_TO_PRESI_MODE(x) ({ \
 	int val__ = (x); \
 	val__ >= 0 ? val__ + 1 : val__; \

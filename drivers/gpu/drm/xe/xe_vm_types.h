@@ -17,6 +17,8 @@
 #include "xe_pt_types.h"
 #include "xe_range_fence.h"
 
+#include "presi/xe_presi.h"
+
 struct xe_bo;
 struct xe_sync_entry;
 struct xe_vm;
@@ -143,6 +145,9 @@ struct xe_vm {
 
 	/* exec queue used for (un)binding vma's */
 	struct xe_exec_queue *q[XE_MAX_TILES_PER_DEVICE];
+
+	/** @presi_info: PreSi info */
+	struct xe_presi_vm_info presi_info;
 
 	/** Protects @rebind_list and the page-table structures */
 	struct dma_resv resv;
