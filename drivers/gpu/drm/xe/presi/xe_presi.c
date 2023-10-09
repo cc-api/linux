@@ -11,6 +11,7 @@
 #include "xe_device_types.h"
 #include "xe_mmio.h"
 #include "xe_presi.h"
+#include "xe_vm_types.h"
 
 static const char * const presi_mode_names[] = {
 	[XE_PRESI_MODE_NONE] = "none (silicon)",
@@ -157,6 +158,24 @@ int xe_presi_device_init(struct xe_device *xe)
 		return rc;
 
 	return drmm_add_action_or_reset(&xe->drm, xe_presi_device_fini, xe);
+}
+
+int xe_presi_vm_create(struct xe_vm *vm)
+{
+	struct xe_device *xe = vm->xe;
+
+	if (!xe->presi_info.ops->vm_create)
+		return 0;
+
+	return xe->presi_info.ops->vm_create(vm);
+}
+
+void xe_presi_vm_destroy(struct xe_vm *vm)
+{
+	struct xe_device *xe = vm->xe;
+
+	if (xe->presi_info.ops->vm_destroy)
+		xe->presi_info.ops->vm_destroy(vm);
 }
 
 /**
