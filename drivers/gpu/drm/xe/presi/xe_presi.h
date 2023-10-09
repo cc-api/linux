@@ -10,6 +10,7 @@
 #include "xe_gt_types.h"
 
 struct xe_device;
+struct xe_vm;
 
 #define XE_PRESI_FEATURE_LIST(macro) \
 		macro(GUC_RESET), \
@@ -30,6 +31,8 @@ struct xe_presi_ops {
 	int (*features_init)(struct xe_device *xe);
 	int (*device_init)(struct xe_device *xe);
 	void (*device_fini)(struct xe_device *xe);
+	int (*vm_create)(struct xe_vm *vm);
+	void (*vm_destroy)(struct xe_vm *vm);
 };
 
 /*
@@ -89,6 +92,8 @@ struct xe_presi_info {
 
 int xe_presi_device_init(struct xe_device *xe);
 int xe_presi_init(struct xe_device *xe);
+int xe_presi_vm_create(struct xe_vm *vm);
+void xe_presi_vm_destroy(struct xe_vm *vm);
 
 void xe_presi_skip_uc_auth(struct xe_gt *gt);
 bool xe_presi_setup_guc_wopcm_region(struct xe_gt *gt, u32 *wopcm_base,
