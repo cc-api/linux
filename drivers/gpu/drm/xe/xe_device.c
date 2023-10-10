@@ -281,6 +281,7 @@ static void xe_device_sanitize(struct drm_device *drm, void *arg)
 
 int xe_device_probe(struct xe_device *xe)
 {
+	bool disable_compute = xe_presi_disable_compute();
 	struct xe_tile *tile;
 	struct xe_gt *gt;
 	int err;
@@ -316,6 +317,9 @@ int xe_device_probe(struct xe_device *xe)
 	err = xe_irq_install(xe);
 	if (err)
 		goto err;
+
+	if (disable_compute)
+		goto register_device;
 
 	for_each_gt(gt, xe, id) {
 		err = xe_gt_init_early(gt);
@@ -360,6 +364,7 @@ int xe_device_probe(struct xe_device *xe)
 	if (err)
 		goto err_irq_shutdown;
 
+register_device:
 	err = drm_dev_register(&xe->drm, 0);
 	if (err)
 		goto err_fini_display;
