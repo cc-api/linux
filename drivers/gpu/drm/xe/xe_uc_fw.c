@@ -105,7 +105,7 @@ struct fw_blobs_by_type {
 	fw_def(FS1,		mmp_ver(xe,	guc,	xe3pxp,	70, 6, 6))	\
 	fw_def(PANTHERLAKE,	mmp_ver(xe,	guc,	ptl,	70, 9, 0))	\
 	fw_def(BATTLEMAGE,	mmp_ver(xe,	guc,	bmg,	70, 8, 1))	\
-	fw_def(LUNARLAKE,	mmp_ver(xe,	guc,	lnl,	70, 6, 8))	\
+	fw_def(LUNARLAKE,	mmp_ver(xe,	guc,	lnl,	70, 13, 0))	\
 	fw_def(METEORLAKE,	major_ver(i915,	guc,	mtl,	70, 7))		\
 	fw_def(PVC,		mmp_ver(xe,	guc,	pvc,	70, 9, 1))	\
 	fw_def(DG2,		major_ver(i915,	guc,	dg2,	70, 5))		\
