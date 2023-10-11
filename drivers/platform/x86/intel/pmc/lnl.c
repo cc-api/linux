@@ -13,23 +13,17 @@
 
 #include "core.h"
 
-#define SSRAM_HDR_SIZE		0x100
-#define SSRAM_PWRM_OFFSET	0x14
-#define SSRAM_DVSEC_OFFSET	0x1C
-#define SSRAM_DVSEC_SIZE	0x10
-#define SSRAM_PCH_OFFSET	0x60
-#define SSRAM_IOE_OFFSET	0x68
-
-#define SOCS_LPM_REQ_GUID	0x11594920
-#define LPM_REG_INDEX_OFFSET	2
-#define LPM_REG_NUM		28
-#define LPM_SUBSTATE_NUM	1
+#define SOCM_LPM_REQ_GUID	0x11594920
 
 #define PMC_DEVID_SOCM	0xa87f
+
+static const u8 LNL_LPM_REG_INDEX[] = {0, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20};
+
 static struct pmc_info lnl_pmc_info_list[] = {
 	{
-		.devid = PMC_DEVID_SOCM,
-		.map = &lnl_socm_reg_map,
+		.guid	= SOCM_LPM_REQ_GUID,
+		.devid	= PMC_DEVID_SOCM,
+		.map	= &lnl_socm_reg_map,
 	},
 	{}
 };
@@ -357,89 +351,90 @@ const struct pmc_bit_map *lnl_lpm_maps[] = {
 };
 
 const struct pmc_bit_map lnl_pfear_map[] = {
-	{"PMC",                 BIT(0)},
-	{"OPI",			BIT(1)},
-	{"SPI",			BIT(2)},
+	{"PMC_0",               BIT(0)},
+	{"FUSE_OSSE",		BIT(1)},
+	{"ESPISPI",		BIT(2)},
 	{"XHCI",                BIT(3)},
 	{"SPA",                 BIT(4)},
 	{"SPB",                 BIT(5)},
-	{"SBR16B2",		BIT(6)},
+	{"SBR16B0",		BIT(6)},
 	{"GBE",                 BIT(7)},
 
 	{"SBR8B7",		BIT(0)},
-	{"SBR16B0",		BIT(1)},
-	{"MPFPW1",              BIT(2)},
-	{"U3FPW1",              BIT(3)},
-	{"ESE",			BIT(4)},
-	{"SBR8B10",		BIT(5)},
+	{"SBR8B6",		BIT(1)},
+	{"SBR16B1",		BIT(1)},
+	{"SBR8B8",              BIT(2)},
+	{"ESE",			BIT(3)},
+	{"SBR8B10",		BIT(4)},
+	{"D2D_DISP_0",		BIT(5)},
 	{"LPSS",                BIT(6)},
 	{"LPC",                 BIT(7)},
 
 	{"SMB",                 BIT(0)},
 	{"ISH",                 BIT(1)},
-	{"FUSE_OSSE",           BIT(2)},
-	{"NPK_VNN",             BIT(3)},
-	{"FIA_PG",              BIT(4)},
+	{"SBR8B2",		BIT(2)},
+	{"NPK_0",		BIT(3)},
+	{"D2D_NOC_0",		BIT(4)},
 	{"SAFSS",               BIT(5)},
 	{"FUSE",                BIT(6)},
-	{"D2D_DISP_0",          BIT(7)},
+	{"D2D_DISP_1",          BIT(7)},
 
-	{"SBRG",	        BIT(0)},
+	{"MPFPW1",	        BIT(0)},
 	{"XDCI",                BIT(1)},
 	{"EXI",                 BIT(2)},
 	{"CSE",                 BIT(3)},
-	{"CSME_KVM",            BIT(4)},
-	{"CSME_PMT",            BIT(5)},
-	{"CSME_CLINK",          BIT(6)},
-	{"CSME_PTIO",           BIT(7)},
+	{"KVMCC",            	BIT(4)},
+	{"PMT",            	BIT(5)},
+	{"CLINK",          	BIT(6)},
+	{"PTIO",           	BIT(7)},
 
-	{"CSME_USBR",           BIT(0)},
-	{"CSME_SUSRAM",         BIT(1)},
-	{"CSME_SMT1",           BIT(2)},
-	{"SBR16B1",             BIT(3)},
-	{"CSME_SMS2",           BIT(4)},
-	{"CSME_SMS1",           BIT(5)},
-	{"CSME_RTC",            BIT(6)},
-	{"CSME_PSF",            BIT(7)},
+	{"USBR",		BIT(0)},
+	{"SUSRAM",		BIT(1)},
+	{"SMT1",		BIT(2)},
+	{"U3FPW1",		BIT(3)},
+	{"SMS2",           	BIT(4)},
+	{"SMS1",           	BIT(5)},
+	{"CSMERTC",            	BIT(6)},
+	{"CSMEPSF",            	BIT(7)},
 
-	{"SBR8B3",              BIT(0)},
-	{"SBR8B6",              BIT(1)},
-	{"G5FPW1",              BIT(2)},
+	{"FIA_PG",              BIT(0)},
+	{"SBR16B4",             BIT(1)},
+	{"P2SB8B",              BIT(2)},
 	{"DBG_SBR",             BIT(3)},
-	{"SBR8B2",              BIT(4)},
+	{"SBR8B9",              BIT(4)},
 	{"OSSE_SMT1",           BIT(5)},
-	{"P2SB8B",              BIT(6)},
+	{"SBR8B10",             BIT(6)},
 	{"SBR16B3",             BIT(7)},
 
-	{"SBR8B8",              BIT(0)},
-	{"D2D_NOC_2",		BIT(1)},
+	{"G5FPW1",              BIT(0)},
+	{"SBRG",		BIT(1)},
 	{"PSF4",                BIT(2)},
 	{"CNVI",                BIT(3)},
 	{"UFSX2",               BIT(4)},
 	{"ENDBG",               BIT(5)},
 	{"FIACPCB_P5X4",        BIT(6)},
-	{"SBR8B9",              BIT(7)},
+	{"SBR8B3",              BIT(7)},
 
 	{"SBR8B0",              BIT(0)},
-	{"NPK_AON",             BIT(1)},
+	{"NPK_1",             	BIT(1)},
 	{"OSSE_HOTHAM",         BIT(2)},
-	{"D2D_NOC_1",		BIT(3)},
+	{"D2D_NOC_2",		BIT(3)},
 	{"SBR8B1",              BIT(4)},
 	{"PSF6",                BIT(5)},
 	{"PSF7",                BIT(6)},
 	{"FIA_U",               BIT(7)},
 
 	{"PSF8",                BIT(0)},
-	{"D2D_DISP_1",          BIT(1)},
+	{"SBR16B2",          	BIT(1)},
 	{"D2D_IPU",	        BIT(2)},
 	{"FIACPCB_U",		BIT(3)},
 	{"TAM",			BIT(4)},
-	{"D2D_NOC_0",		BIT(5)},
+	{"D2D_NOC_1",		BIT(5)},
 	{"TBTLSX",              BIT(6)},
 	{"THC0",		BIT(7)},
 
 	{"THC1",		BIT(0)},
-	{"PMC",		        BIT(1)},
+	{"PMC_1",	        BIT(1)},
 	{"SBR8B5",	        BIT(2)},
 	{"UFSPW1",		BIT(3)},
 	{"DBC",			BIT(4)},
@@ -495,18 +490,22 @@ const struct pmc_reg_map lnl_socm_reg_map = {
 	.lpm_sts = lnl_lpm_maps,
 	.lpm_status_offset = MTL_LPM_STATUS_OFFSET,
 	.lpm_live_status_offset = MTL_LPM_LIVE_STATUS_OFFSET,
+	.lpm_reg_index = LNL_LPM_REG_INDEX,
 };
 
 int lnl_core_init(struct pmc_dev *pmcdev)
 {
 	int ret;
+	int func = 2;
+	bool ssram_init = true;
 	struct pmc *pmc = pmcdev->pmcs[PMC_IDX_SOC];
 
 	pmcdev->regmap_list = lnl_pmc_info_list;
-	pmc_core_ssram_init(pmcdev, SOC_M);
+	ret = pmc_core_ssram_init(pmcdev, func);
 
 	/* If regbase not assigned, set map and discover using legacy method */
-	if (!pmc->regbase) {
+	if (ret) {
+		ssram_init = false;
 		pmc->map = &lnl_socm_reg_map;
 		ret = get_primary_reg_base(pmc);
 		if (ret)
@@ -515,15 +514,18 @@ int lnl_core_init(struct pmc_dev *pmcdev)
 
 	pmc_core_get_low_power_modes(pmcdev);
 
-	ret = pmc_core_ssram_get_lpm_reqs(pmcdev);
-	if(ret)
-		return ret;
-
 	/* Due to a hardware limitation, the GBE LTR blocks PC10
 	 * when a cable is attached. Tell the PMC to ignore it.
 	 */
 	dev_dbg(&pmcdev->pdev->dev, "ignoring GBE LTR\n");
 	pmc_core_send_ltr_ignore(pmcdev, 3);
 
-	return ret;
+	if (ssram_init)
+	{
+		ret = pmc_core_ssram_get_lpm_reqs(pmcdev);
+		if(ret)
+			return ret;
+	}
+
+	return 0;
 }
