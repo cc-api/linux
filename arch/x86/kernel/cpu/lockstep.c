@@ -28,6 +28,7 @@
 
 #define CMD_ACTIVE_ENABLE			(CMD_ACTIVATE | CMD_ROLE_ACTIVE)
 #define CMD_SHADOW_ENABLE			(CMD_ACTIVATE | CMD_ROLE_SHADOW)
+#define CMD_DISABLE				CMD_DEACTIVATE
 
 #define MSR_IA32_DLSM_DEACTIVATE_STATUS		0x2b1
 #define DEACTIVATE_STATUS_SEVT			BIT(0)
@@ -68,6 +69,7 @@ struct lockstep_info {
 	bool		init;
 	bool		enable;
 	bool		offline_in_progress;
+	bool		online_in_progress;
 };
 
 static DEFINE_PER_CPU(struct lockstep_info, info);
@@ -90,6 +92,28 @@ static int lockstep_active_enable(void *v)
 		pr_info("Active cpu expected to be in lockstep\n");
 		return -EAGAIN;
 	}
+
+	return 0;
+}
+
+static int lockstep_break(void *v)
+{
+	u64 activate_s, deactivate_s;
+
+	rdmsrl(MSR_IA32_DLSM_DEACTIVATE_STATUS, deactivate_s);
+	if (deactivate_s != 0) {
+		rdmsrl(MSR_IA32_DLSM_ACTIVATE_STATUS, activate_s);
+		pr_info("Somehow Lockstep has already been deactivated. Activate status: %llx Deactivate status:%llx\n",
+			activate_s, deactivate_s);
+	}
+
+	pr_info("Deactivating lockstep on active CPU%d\n", raw_smp_processor_id());
+	wrmsrl(MSR_IA32_DLSM_CMD, CMD_DISABLE);
+
+	rdmsrl(MSR_IA32_DLSM_DEACTIVATE_STATUS, deactivate_s);
+	if (deactivate_s != DEACTIVATE_STATUS_SWI)
+		pr_info("Lockstep deactivated due to an unexpected reason. Deactivate status:%llx\n",
+			deactivate_s);
 
 	return 0;
 }
@@ -203,8 +227,18 @@ static ssize_t enable_store(struct device *dev, struct device_attribute *attr,
 		}
 
 	} else { /* USER_LOCKSTEP_DISABLE */
-		ret = -EOPNOTSUPP;
-		goto exit;
+		/* Check: Should the SHADOW be brought online even if stop_one_cpu() has an error on ACTIVE? */
+		ret = stop_one_cpu(active_cpu, lockstep_break, NULL);
+		if (ret)
+			goto exit;
+
+		per_cpu_ptr(&info, shadow_cpu)->online_in_progress = true;
+		ret = device_online(shadow_dev);
+		per_cpu_ptr(&info, shadow_cpu)->online_in_progress = false;
+		if (ret) {
+			pr_info("Error while onlining shadow cpu\n");
+			goto exit;
+		}
 	}
 
 	per_cpu_ptr(&info, active_cpu)->enable = val;
@@ -277,6 +311,15 @@ static int lockstep_add_dev(unsigned int cpu)
 	struct device *dev = get_cpu_device(cpu);
 	struct lockstep_info *li = per_cpu_ptr(&info, cpu);
 	int ret = 0;
+
+	/* Check if this some of these things should be covered in the LVT interrupt upon shadow break? */
+	/* If a shadow core is coming online for whatever reason, update the lockstep state */
+	if (li->init && (li->role == ROLE_SHADOW) && (li->enable == 1)) {
+		if (li->online_in_progress != true)
+			pr_info("CPU%d Unexpected exit from lockstep\n", raw_smp_processor_id());
+		li->enable = 0;
+		per_cpu_ptr(&info, li->peer_cpu)->enable = 0;
+	}
 
 	if (!li->init) {
 		ret = initialize_lockstep_info();
