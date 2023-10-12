@@ -758,14 +758,14 @@ static long idxd_idpte_win_fault(struct file *filp, struct idxd_win_fault *win_f
 		u8 b;
 		int cnt;
 
-		cnt = access_remote_vm(mm, addr, &b, 1, FOLL_REMOTE);
+		cnt = access_remote_vm(mm, addr, &b, 1, FOLL_ANON);
 		if (cnt == 0) {
 			rc = -EFAULT;
 			goto out;
 		}
 
 		if (win_fault->write_fault) {
-			cnt = access_remote_vm(mm, addr, &b, 1, FOLL_WRITE | FOLL_REMOTE);
+			cnt = access_remote_vm(mm, addr, &b, 1, FOLL_WRITE | FOLL_ANON);
 			if (cnt == 0) {
 				rc = -EFAULT;
 				goto out;
