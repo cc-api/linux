@@ -1516,7 +1516,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "dlb2-for-intel-next-v6.5-rc1",
+            "branch": "dlb2-for-intel-next-v6.6-rc5",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -1559,14 +1559,14 @@
                 }
             ],
             "description": "The dlb2 driver is a kernel module that supports configuration and use of the DLB 2.0 device",
-            "enabled": false,
+            "enabled": true,
             "ip_owner": [
                 {
                     "name": "Niall Mcdonnell",
                     "email": "niall.mcdonnell@intel.com"
                 }
             ],
-            "jira": "",
+            "jira": "NEXT-3542",
             "name": "dlb2",
             "repourl": "https://github.com/intel-innersource/drivers.scheduling.dynamic-load-balancer.upstreamed-dlb-linux-driver.git",
             "sdl_contact": [
@@ -1577,7 +1577,7 @@
             ],
             "status": "intel confidential",
             "stuck_at_ref": "",
-            "last_enabled": "v6.5",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
