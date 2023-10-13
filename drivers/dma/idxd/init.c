@@ -692,7 +692,7 @@ static void idxd_setup_idbr(struct idxd_device *idxd)
 		return;
 
 	idbr.pasid_en = 1;
-	idbr.priv = 1;
+	idbr.priv = 0;
 	idbr.bitmap_pasid = idxd->pasid;
 
 	iowrite32(idbr.bits, idxd->reg_base + IDXD_IDBR_OFFSET);
