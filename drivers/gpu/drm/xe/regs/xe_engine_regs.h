@@ -59,6 +59,9 @@
 #define   CMD_CCTL_WRITE_OVERRIDE_MASK		REG_GENMASK(13, 8)
 #define   CMD_CCTL_READ_OVERRIDE_MASK		REG_GENMASK(6, 1)
 
+#define CSFE_CHICKEN1(base)			XE_REG((base) + 0xd4, XE_REG_OPTION_MASKED)
+#define   GHWSP_CSB_REPORT_DIS			REG_BIT(15)
+
 #define RING_BBADDR(base)			XE_REG((base) + 0x140)
 #define RING_BBADDR_UDW(base)			XE_REG((base) + 0x168)
 
