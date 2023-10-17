@@ -7,6 +7,7 @@
 
 #include <kunit/visibility.h>
 
+#include "regs/xe_engine_regs.h"
 #include "regs/xe_gt_regs.h"
 #include "xe_gt_types.h"
 #include "xe_platform_types.h"
@@ -36,6 +37,17 @@ static const struct xe_rtp_entry_sr gt_tunings[] = {
 	  XE_RTP_RULES(MEDIA_VERSION(2000)),
 	  XE_RTP_ACTIONS(FIELD_SET(XE2LPM_L3SQCREG5, L3_PWM_TIMER_INIT_VAL_MASK,
 				   REG_FIELD_PREP(L3_PWM_TIMER_INIT_VAL_MASK, 0x7f)))
+	},
+
+	{}
+};
+
+static const struct xe_rtp_entry_sr engine_tunings[] = {
+	{ XE_RTP_NAME("Tuning: disable HW reporting of ctx switch to GHWSP"),
+	  XE_RTP_RULES(GRAPHICS_VERSION_RANGE(3500, -1)),
+	  XE_RTP_ACTIONS(SET(CSFE_CHICKEN1(0),
+			     GHWSP_CSB_REPORT_DIS,
+			     XE_RTP_ACTION_FLAG(ENGINE_BASE)))
 	},
 
 	{}
@@ -87,6 +99,14 @@ void xe_tuning_process_gt(struct xe_gt *gt)
 	xe_rtp_process_to_sr(&ctx, gt_tunings, &gt->reg_sr);
 }
 EXPORT_SYMBOL_IF_KUNIT(xe_tuning_process_gt);
+
+void xe_tuning_process_engine(struct xe_hw_engine *hwe)
+{
+	struct xe_rtp_process_ctx ctx = XE_RTP_PROCESS_CTX_INITIALIZER(hwe);
+
+	xe_rtp_process_to_sr(&ctx, engine_tunings, &hwe->reg_sr);
+}
+EXPORT_SYMBOL_IF_KUNIT(xe_tuning_process_engine);
 
 /**
  * xe_tuning_process_lrc - process lrc tunings
