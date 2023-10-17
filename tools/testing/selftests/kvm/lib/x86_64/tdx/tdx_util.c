@@ -95,11 +95,13 @@ static struct kvm_tdx_capabilities *tdx_read_capabilities(struct kvm_vm *vm)
 #define XFEATURE_LBR 15
 #define XFEATURE_CET_U 11
 #define XFEATURE_CET_S 12
+#define XFEATURE_PASID 10
 
 #define XFEATURE_MASK_LBR (1 << XFEATURE_LBR)
 #define XFEATURE_MASK_CET_U (1 << XFEATURE_CET_U)
 #define XFEATURE_MASK_CET_S (1 << XFEATURE_CET_S)
 #define XFEATURE_MASK_CET (XFEATURE_MASK_CET_U | XFEATURE_MASK_CET_S)
+#define XFEATURE_MASK_PASID	(1 << XFEATURE_PASID)
 
 static void tdx_apply_cpuid_restrictions(struct kvm_cpuid2 *cpuid_data)
 {
@@ -122,6 +124,8 @@ static void tdx_apply_cpuid_restrictions(struct kvm_cpuid2 *cpuid_data)
 			 * Disable bits from the XCR0 register.
 			 */
 			e->ecx &= ~XFEATURE_MASK_LBR;
+			/* PASID is fixed to 0 */
+			e->ecx &= ~XFEATURE_MASK_PASID;
 			/*
 			 * TDX modules requires both CET_{U, S} to be set even
 			 * if only one is supported.
