@@ -1,6 +1,6 @@
 [
 	{
-		"EventName": "XTAL",
+		"EventName": "XTAL_0x1a067102",
 		"datatypeID": "txtal_time",
 		"offset": 0,
 		"BriefDescription": "Crystal clock count. Used as a reference count in converting many of the counters presented in this telemetry space.",
@@ -12,7 +12,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_BLOCK_REFCNT",
+		"EventName": "DIE_CSTATE_BLOCK_REFCNT_0x1a067102",
 		"datatypeID": "tevent_counter",
 		"offset": 8,
 		"BriefDescription": "Reference count for block cause counters. Counts the number of 1ms intervals during which DieCstate entry was blocked at least once by any reason. To calculate percent blocked by a specific reason, divide corresponding block reason counter by this counter value.",
@@ -24,7 +24,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_WAKE_REFCNT",
+		"EventName": "DIE_CSTATE_WAKE_REFCNT_0x1a067102",
 		"datatypeID": "tevent_counter",
 		"offset": 8,
 		"BriefDescription": "Reference count for wake cause counters. To calculate percent for each wake reason, divide by this number.",
@@ -36,7 +36,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_BLOCK_CAUSE_CORE",
+		"EventName": "DIE_CSTATE_BLOCK_CAUSE_CORE_0x1a067102",
 		"datatypeID": "tpkgc_block_cause",
 		"offset": 16,
 		"BriefDescription": "Counts the number of 1ms intervals during which DieC entry was blocked at least once by CORE",
@@ -48,7 +48,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_BLOCK_CAUSE_RING",
+		"EventName": "DIE_CSTATE_BLOCK_CAUSE_RING_0x1a067102",
 		"datatypeID": "tpkgc_block_cause",
 		"offset": 16,
 		"BriefDescription": "Counts the number of 1ms intervals during which DieC entry was blocked at least once by RING",
@@ -60,7 +60,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_BLOCK_CAUSE_GPSB",
+		"EventName": "DIE_CSTATE_BLOCK_CAUSE_GPSB_0x1a067102",
 		"datatypeID": "tpkgc_block_cause",
 		"offset": 24,
 		"BriefDescription": "Counts the number of 1ms intervals during which DieC entry was blocked at least once by GPSB",
@@ -72,7 +72,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_BLOCK_CAUSE_PUNIT",
+		"EventName": "DIE_CSTATE_BLOCK_CAUSE_PUNIT_0x1a067102",
 		"datatypeID": "tpkgc_block_cause",
 		"offset": 24,
 		"BriefDescription": "Counts the number of 1ms intervals during which DieC entry was blocked at least once by PUNIT",
@@ -84,7 +84,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_BLOCK_CAUSE_ARAT",
+		"EventName": "DIE_CSTATE_BLOCK_CAUSE_ARAT_0x1a067102",
 		"datatypeID": "tpkgc_block_cause",
 		"offset": 32,
 		"BriefDescription": "Counts the number of 1ms intervals during which DieC entry was blocked at least once by ARAT timers",
@@ -96,7 +96,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_WAKE_REASON_PUNIT",
+		"EventName": "DIE_CSTATE_WAKE_REASON_PUNIT_0x1a067102",
 		"datatypeID": "tpkgc_wake_cause",
 		"offset": 32,
 		"BriefDescription": "Die C-state wake due to Punit",
@@ -108,7 +108,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_WAKE_REASON_RING",
+		"EventName": "DIE_CSTATE_WAKE_REASON_RING_0x1a067102",
 		"datatypeID": "tpkgc_wake_cause",
 		"offset": 40,
 		"BriefDescription": "Die C-state wake due to SNOOP",
@@ -120,7 +120,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_WAKE_REASON_SB",
+		"EventName": "DIE_CSTATE_WAKE_REASON_SB_0x1a067102",
 		"datatypeID": "tpkgc_wake_cause",
 		"offset": 40,
 		"BriefDescription": "Die C-state wake due to any SB transaction",
@@ -132,7 +132,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_WAKE_REASON_CORE",
+		"EventName": "DIE_CSTATE_WAKE_REASON_CORE_0x1a067102",
 		"datatypeID": "tpkgc_wake_cause",
 		"offset": 48,
 		"BriefDescription": "Die C-state wake due to TIMER expiry",
@@ -144,7 +144,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "BLOCK_CAUSE_CATEGORY_TIMER",
+		"EventName": "BLOCK_CAUSE_CATEGORY_TIMER_0x1a067102",
 		"datatypeID": "tpkgc_block_cause",
 		"offset": 48,
 		"BriefDescription": "Counts the number of 1ms intervals during which DieC entry was blocked at least once by TIMER.",
@@ -156,7 +156,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "BLOCK_CAUSE_CATEGORY_DEMOTION",
+		"EventName": "BLOCK_CAUSE_CATEGORY_DEMOTION_0x1a067102",
 		"datatypeID": "tpkgc_block_cause",
 		"offset": 56,
 		"BriefDescription": "Counts the number of 1ms intervals during which DieC entry was blocked at least once by DEMOTION.",
@@ -168,7 +168,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "BLOCK_CAUSE_CATEGORY_MISC",
+		"EventName": "BLOCK_CAUSE_CATEGORY_MISC_0x1a067102",
 		"datatypeID": "tpkgc_block_cause",
 		"offset": 56,
 		"BriefDescription": "Counts the number of 1ms intervals during which DieC entry was blocked at least once by MISC.",
@@ -180,7 +180,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "BLOCK_CAUSE_CATEGORY_IP_BUSY",
+		"EventName": "BLOCK_CAUSE_CATEGORY_IP_BUSY_0x1a067102",
 		"datatypeID": "tpkgc_block_cause",
 		"offset": 64,
 		"BriefDescription": "Counts the number of 1ms intervals during which DieC entry was blocked at least once by IP_BUSY.",
@@ -192,7 +192,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "BLOCK_CAUSE_CATEGORY_HYSTERSIS",
+		"EventName": "BLOCK_CAUSE_CATEGORY_HYSTERSIS_0x1a067102",
 		"datatypeID": "tpkgc_block_cause",
 		"offset": 64,
 		"BriefDescription": "Counts the number of 1ms intervals during which DieC entry was blocked at least once by HYSTERESIS.",
@@ -204,7 +204,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_LTR_THRESHOLDS_DC2p1",
+		"EventName": "DIE_CSTATE_LTR_THRESHOLDS_DC2p1_0x1a067102",
 		"datatypeID": "tltr",
 		"offset": 72,
 		"BriefDescription": "Die C State LTR thresholds.",
@@ -216,7 +216,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_LTR_THRESHOLDS_DC2p2",
+		"EventName": "DIE_CSTATE_LTR_THRESHOLDS_DC2p2_0x1a067102",
 		"datatypeID": "tltr",
 		"offset": 72,
 		"BriefDescription": "Die C State LTR thresholds.",
@@ -228,7 +228,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_LTR_THRESHOLDS_DC3p1",
+		"EventName": "DIE_CSTATE_LTR_THRESHOLDS_DC3p1_0x1a067102",
 		"datatypeID": "tltr",
 		"offset": 72,
 		"BriefDescription": "Die C State LTR thresholds.",
@@ -240,7 +240,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_LTR_THRESHOLDS_DC3p2",
+		"EventName": "DIE_CSTATE_LTR_THRESHOLDS_DC3p2_0x1a067102",
 		"datatypeID": "tltr",
 		"offset": 72,
 		"BriefDescription": "Die C State LTR thresholds.",
@@ -252,7 +252,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_LTR_THRESHOLDS_DC6",
+		"EventName": "DIE_CSTATE_LTR_THRESHOLDS_DC6_0x1a067102",
 		"datatypeID": "tltr",
 		"offset": 80,
 		"BriefDescription": "Die C State LTR thresholds.",
@@ -264,7 +264,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_RESIDENCY_DC2p1",
+		"EventName": "DIE_CSTATE_RESIDENCY_DC2p1_0x1a067102",
 		"datatypeID": "txtal_time",
 		"offset": 88,
 		"BriefDescription": "Measures the residency in Die C-state C2. Units are XTAL clocks.",
@@ -276,7 +276,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_RESIDENCY_DC2p2",
+		"EventName": "DIE_CSTATE_RESIDENCY_DC2p2_0x1a067102",
 		"datatypeID": "txtal_time",
 		"offset": 96,
 		"BriefDescription": "Measures the residency in Die C-state C2.2. Units are XTAL clocks.",
@@ -288,7 +288,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_RESIDENCY_DC3p1",
+		"EventName": "DIE_CSTATE_RESIDENCY_DC3p1_0x1a067102",
 		"datatypeID": "txtal_time",
 		"offset": 104,
 		"BriefDescription": "Measures the residency in Die C-state C3.1. Units are XTAL clocks.",
@@ -300,7 +300,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_RESIDENCY_DC3p2",
+		"EventName": "DIE_CSTATE_RESIDENCY_DC3p2_0x1a067102",
 		"datatypeID": "txtal_time",
 		"offset": 112,
 		"BriefDescription": "Measures the residency in Die C-state C3.2. Units are XTAL clocks.",
@@ -312,7 +312,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "DIE_CSTATE_RESIDENCY_DC6",
+		"EventName": "DIE_CSTATE_RESIDENCY_DC6_0x1a067102",
 		"datatypeID": "txtal_time",
 		"offset": 120,
 		"BriefDescription": "Measures the residency in Die C-state C6. Units are XTAL clocks.",
@@ -324,7 +324,7 @@
 		"guid": "0x1a067102"
 	},
 	{
-		"EventName": "LLC_FLUSHED_RESIDENCY",
+		"EventName": "LLC_FLUSHED_RESIDENCY_0x1a067102",
 		"datatypeID": "txtal_time",
 		"offset": 128,
 		"BriefDescription": "Measures the residency in LLC_FLUSHED state. Units are XTAL clocks.",

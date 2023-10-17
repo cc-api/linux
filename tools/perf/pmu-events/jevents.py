@@ -48,7 +48,7 @@ _json_event_attributes = [
     # Short things in alphabetical order.
     'compat', 'deprecated', 'perpkg', 'unit',
     # Longer things (the last won't be iterated over during decompress).
-    'long_desc', 'offset', 'lsb', 'msb', 'guid'
+    'long_desc'
 ]
 
 # Attributes that are in pmu_metric rather than pmu_event.
