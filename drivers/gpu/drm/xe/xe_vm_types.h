@@ -19,7 +19,6 @@
 
 #include "presi/xe_presi.h"
 
-struct async_op_fence;
 struct xe_bo;
 struct xe_sync_entry;
 struct xe_vm;
@@ -168,7 +167,7 @@ struct xe_vm {
 	 */
 #define XE_VM_FLAG_64K			BIT(0)
 #define XE_VM_FLAG_COMPUTE_MODE		BIT(1)
-#define XE_VM_FLAG_ASYNC_BIND_OPS	BIT(2)
+#define XE_VM_FLAG_ASYNC_DEFAULT	BIT(2)
 #define XE_VM_FLAG_MIGRATION		BIT(3)
 #define XE_VM_FLAG_SCRATCH_PAGE		BIT(4)
 #define XE_VM_FLAG_FAULT_MODE		BIT(5)
@@ -227,17 +226,6 @@ struct xe_vm {
 		struct work_struct work;
 		/** @lock: protects list of pending async VM ops and fences */
 		spinlock_t lock;
-		/** @error_capture: error capture state */
-		struct {
-			/** @mm: user MM */
-			struct mm_struct *mm;
-			/**
-			 * @addr: user pointer to copy error capture state too
-			 */
-			u64 addr;
-			/** @wq: user fence wait queue for VM errors */
-			wait_queue_head_t wq;
-		} error_capture;
 		/** @fence: fence state */
 		struct {
 			/** @context: context of async fence */
@@ -417,10 +405,6 @@ struct xe_vma_op {
 	u32 num_syncs;
 	/** @link: async operation link */
 	struct list_head link;
-	/**
-	 * @fence: async operation fence, signaled on last operation complete
-	 */
-	struct async_op_fence *fence;
 	/** @tile_mask: gt mask for this operation */
 	u8 tile_mask;
 	/** @flags: operation flags */

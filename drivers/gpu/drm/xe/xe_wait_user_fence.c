@@ -13,7 +13,6 @@
 #include "xe_device.h"
 #include "xe_gt.h"
 #include "xe_macros.h"
-#include "xe_vm.h"
 
 #include "presi/xe_presi.h"
 
@@ -83,8 +82,7 @@ static int check_hw_engines(struct xe_device *xe,
 }
 
 #define VALID_FLAGS	(DRM_XE_UFENCE_WAIT_SOFT_OP | \
-			 DRM_XE_UFENCE_WAIT_ABSTIME | \
-			 DRM_XE_UFENCE_WAIT_VM_ERROR)
+			 DRM_XE_UFENCE_WAIT_ABSTIME)
 #define MAX_OP		DRM_XE_UFENCE_WAIT_LTE
 
 static long to_jiffies_timeout(struct xe_device *xe,
@@ -139,11 +137,9 @@ int xe_wait_user_fence_ioctl(struct drm_device *dev, void *data,
 	struct drm_xe_engine_class_instance eci[XE_HW_ENGINE_MAX_INSTANCE];
 	struct drm_xe_engine_class_instance __user *user_eci =
 		u64_to_user_ptr(args->instances);
-	struct xe_vm *vm = NULL;
 	u64 addr = args->addr;
 	int err;
-	bool no_engines = args->flags & DRM_XE_UFENCE_WAIT_SOFT_OP ||
-		args->flags & DRM_XE_UFENCE_WAIT_VM_ERROR;
+	bool no_engines = args->flags & DRM_XE_UFENCE_WAIT_SOFT_OP;
 	long timeout;
 	ktime_t start;
 
@@ -164,8 +160,7 @@ int xe_wait_user_fence_ioctl(struct drm_device *dev, void *data,
 	if (XE_IOCTL_DBG(xe, !no_engines && !args->num_engines))
 		return -EINVAL;
 
-	if (XE_IOCTL_DBG(xe, !(args->flags & DRM_XE_UFENCE_WAIT_VM_ERROR) &&
-			 addr & 0x7))
+	if (XE_IOCTL_DBG(xe, addr & 0x7))
 		return -EINVAL;
 
 	if (XE_IOCTL_DBG(xe, args->num_engines > XE_HW_ENGINE_MAX_INSTANCE))
@@ -183,22 +178,6 @@ int xe_wait_user_fence_ioctl(struct drm_device *dev, void *data,
 			return -EINVAL;
 	}
 
-	if (args->flags & DRM_XE_UFENCE_WAIT_VM_ERROR) {
-		if (XE_IOCTL_DBG(xe, args->vm_id >> 32))
-			return -EINVAL;
-
-		vm = xe_vm_lookup(to_xe_file(file), args->vm_id);
-		if (XE_IOCTL_DBG(xe, !vm))
-			return -ENOENT;
-
-		if (XE_IOCTL_DBG(xe, !vm->async_ops.error_capture.addr)) {
-			xe_vm_put(vm);
-			return -EOPNOTSUPP;
-		}
-
-		addr = vm->async_ops.error_capture.addr;
-	}
-
 	timeout = to_jiffies_timeout(xe, args);
 	timeout *= XE_PRESI_TIMEOUT_MULTIPLIER(xe);
 
@@ -210,15 +189,8 @@ int xe_wait_user_fence_ioctl(struct drm_device *dev, void *data,
 	 * hardware engine. Open coding as 'do_compare' can sleep which doesn't
 	 * work with the wait_event_* macros.
 	 */
-	if (vm)
-		add_wait_queue(&vm->async_ops.error_capture.wq, &w_wait);
-	else
-		add_wait_queue(&xe->ufence_wq, &w_wait);
+	add_wait_queue(&xe->ufence_wq, &w_wait);
 	for (;;) {
-		if (vm && xe_vm_is_closed(vm)) {
-			err = -ENODEV;
-			break;
-		}
 		err = do_compare(addr, args->value, args->mask, args->op);
 		if (err <= 0)
 			break;
@@ -235,12 +207,7 @@ int xe_wait_user_fence_ioctl(struct drm_device *dev, void *data,
 
 		timeout = wait_woken(&w_wait, TASK_INTERRUPTIBLE, timeout);
 	}
-	if (vm) {
-		remove_wait_queue(&vm->async_ops.error_capture.wq, &w_wait);
-		xe_vm_put(vm);
-	} else {
-		remove_wait_queue(&xe->ufence_wq, &w_wait);
-	}
+	remove_wait_queue(&xe->ufence_wq, &w_wait);
 
 	if (!(args->flags & DRM_XE_UFENCE_WAIT_ABSTIME)) {
 		args->timeout -= ktime_to_ns(ktime_sub(ktime_get(), start));
