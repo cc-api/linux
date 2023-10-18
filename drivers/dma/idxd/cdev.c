@@ -1034,11 +1034,13 @@ static bool idxd_submitter_exist(struct idxd_idpt_entry_data *idpte_data,
 	return true;
 }
 
+#if 0
 static bool idxd_new_submitter_allowed(struct idxd_idpt_entry_data *idpte_data)
 {
 	lockdep_assert_held(&idpte_data->lock);
 	return list_empty(&idpte_data->submit_list);
 }
+#endif
 
 static int idxd_add_submitter(struct idxd_device *idxd,
 			      struct idxd_idpt_entry_data *idpte_data,
@@ -1164,7 +1166,6 @@ err_add_submitter:
 	kfree(new_submit);
 
 err_submit_alloc:
-err_no_submit:
 err_sva:
 err_invalid_handle:
 	mutex_unlock(&idpte_data->lock);
