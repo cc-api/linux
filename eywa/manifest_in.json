@@ -1647,6 +1647,14 @@
                 {
                     "name": "CONFIG_USB4_DMA_TEST",
                     "value": "m"
+                },
+                {
+                    "name": "CONFIG_USB4_DEBUGFS_WRITE",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_USB4_DEBUGFS_MARGINING",
+                    "value": "y"
                 }
             ],
             "contributor": [
