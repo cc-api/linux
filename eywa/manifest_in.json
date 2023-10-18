@@ -4310,49 +4310,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "fyu/dsa2.idp.6.6",
-            "branch_type": "expiring",
-            "config_options": [
-                {
-                    "name": "CONFIG_IMS_MSI",
-                    "value": "y"
-                },
-                {
-                    "name": "CONFIG_IMS_MSI_ARRAY",
-                    "value": "y"
-                }
-            ],
-            "contributor": [
-                {
-                    "name": "Fenghua Yu",
-                    "email": "fenghua.yu@intel.com"
-                }
-            ],
-            "description": "DSA2.0 inter-domain pasid",
-            "enabled": true,
-            "ip_owner": [
-                {
-                    "name": "Ravi Shankar",
-                    "email": "ravi.v.shankar@intel.com"
-                }
-            ],
-            "jira": "NEXT-3543",
-            "name": "dsa2_pasid",
-            "repourl": "https://github.com/intel-sandbox/idxd",
-            "sdl_contact": [
-                {
-                    "name": "Tony Luck",
-                    "email": "tony.luck@intel.com"
-                }
-            ],
-            "status": "public",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.6",
-            "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
-        },
-        {
             "branch": "dsa.fix.intel_iommu.h ",
             "branch_type": "expiring",
             "config_options": [],
@@ -6718,6 +6675,49 @@
             "platforms": "GNR",
             "feature_jiras": "",
             "last_enabled": "v6.6"
+        },
+        {
+            "branch": "fyu/dsa2.idp.6.6",
+            "branch_type": "expiring",
+            "config_options": [
+                {
+                    "name": "CONFIG_IMS_MSI",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_IMS_MSI_ARRAY",
+                    "value": "y"
+                }
+            ],
+            "contributor": [
+                {
+                    "name": "Fenghua Yu",
+                    "email": "fenghua.yu@intel.com"
+                }
+            ],
+            "description": "DSA2.0 inter-domain pasid",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Ravi Shankar",
+                    "email": "ravi.v.shankar@intel.com"
+                }
+            ],
+            "jira": "NEXT-3543",
+            "name": "dsa2_pasid",
+            "repourl": "https://github.com/intel-sandbox/idxd",
+            "sdl_contact": [
+                {
+                    "name": "Tony Luck",
+                    "email": "tony.luck@intel.com"
+                }
+            ],
+            "status": "public",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.6",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         }
     ]
 }
