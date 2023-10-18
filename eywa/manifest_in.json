@@ -4310,7 +4310,7 @@
             "feature_jiras": ""
         },
         {
-            "branch": "dsa",
+            "branch": "fyu/dsa2.idp.6.6",
             "branch_type": "expiring",
             "config_options": [
                 {
@@ -4328,26 +4328,26 @@
                     "email": "fenghua.yu@intel.com"
                 }
             ],
-            "description": "DSA enabling on SPR/EMR/GNR in Intel Next",
-            "enabled": false,
+            "description": "DSA2.0 inter-domain pasid",
+            "enabled": true,
             "ip_owner": [
-                {
-                    "name": "Tony Luck",
-                    "email": "tony.luck@intel.com"
-                }
-            ],
-            "jira": "",
-            "name": "dsa_enabling",
-            "repourl": "https://github.com/intel-sandbox/kernel",
-            "sdl_contact": [
                 {
                     "name": "Ravi Shankar",
                     "email": "ravi.v.shankar@intel.com"
                 }
             ],
-            "status": "intel confidential",
+            "jira": "NEXT-3543",
+            "name": "dsa2_pasid",
+            "repourl": "https://github.com/intel-sandbox/idxd",
+            "sdl_contact": [
+                {
+                    "name": "Tony Luck",
+                    "email": "tony.luck@intel.com"
+                }
+            ],
+            "status": "public",
             "stuck_at_ref": "",
-            "last_enabled": "v5.19",
+            "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
