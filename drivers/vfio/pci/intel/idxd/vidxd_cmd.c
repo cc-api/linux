@@ -333,7 +333,7 @@ static void vidxd_wq_enable(struct vdcm_idxd *vidxd, int wq_id)
 	bool wq_pasid_enable;
 	int rc;
 	int wq_pasid = -1;
-	bool priv;
+	u8 priv = 0;
 
 	if (wq_id >= VIDXD_MAX_WQS) {
 		idxd_complete_command(vidxd, IDXD_CMDSTS_INVAL_WQIDX);

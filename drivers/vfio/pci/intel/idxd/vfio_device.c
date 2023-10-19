@@ -1322,7 +1322,7 @@ static int vidxd_resume_wq_state(struct vdcm_idxd *vidxd)
 	union wqcfg *vwqcfg, *wqcfg;
 	struct idxd_wq *wq;
 	int wq_id, rc = 0;
-	bool priv;
+	u8 priv = 0;
 	u8 *bar0 = vidxd->bar0;
 
 	dev_dbg(dev, "%s:%d numwqs %d\n", __func__, __LINE__, vidxd->num_wqs);
@@ -1355,7 +1355,7 @@ static int vidxd_resume_wq_state(struct vdcm_idxd *vidxd)
 								  &wq_pasid);
 				} else {
 					wq_pasid = vfio_device_get_pasid(&vidxd->vdev);
-					priv = true;
+					priv = 0;
 				}
 
 				if (wq_pasid >= 0) {
