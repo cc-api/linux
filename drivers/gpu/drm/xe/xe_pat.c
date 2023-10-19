@@ -295,7 +295,7 @@ static void xe2lpg_program_pat(struct xe_gt *gt, const u32 table[], int n_entrie
 	program_pat_mcr(gt, table, n_entries);
 	xe_gt_mcr_multicast_write(gt, XE_REG_MCR(_PAT_ATS), XE2_PAT_ATS);
 
-	if (IS_DGFX(gt_to_xe(gt)))
+	if (IS_DGFX(gt_to_xe(gt)) && GRAPHICS_VERx100(gt_to_xe(gt)) != 3500)
 		xe_gt_mcr_multicast_write(gt, XE_REG_MCR(_PAT_PTA), XE2_PAT_PTA);
 }
 
