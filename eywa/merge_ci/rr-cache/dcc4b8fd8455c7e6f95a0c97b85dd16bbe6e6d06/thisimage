@@ -695,19 +695,13 @@ static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 			 */
 			WARN_ON_ONCE(kvm_is_exception_pending(vcpu));
 			vcpu->arch.exception.injected = true;
-			if (kvm_is_fred_enabled(vcpu)) {
-				vcpu->arch.exception.nested = nested;
-			} else if (WARN_ON_ONCE(has_payload)) {
+			vcpu->arch.exception.nested = nested;
+			if (WARN_ON_ONCE(has_payload)) {
 				/*
-				 * For IDT event delivery, a reinjected event
-				 * has already delivered its payload, i.e., %cr2
-				 * for #PF, or %dr6 for #DB.
-				 *
-				 * However for FRED event delivery, the payload
-				 * needs to be saved for later setting into the
-				 * injected-event data VMCS field to provide the
-				 * event data that will be pushed into the FRED
-				 * stack frame during FRED event reinjection.
+				 * For a reinjected event, KVM delivers its
+				 * payload through saving %cr2 into arch.cr2
+				 * immediately after VM exits and %dr6 into
+				 * arch.dr6 in sync_dirty_debug_regs().
 				 */
 				has_payload = false;
 				payload = 0;
@@ -762,9 +756,9 @@ void kvm_queue_exception(struct kvm_vcpu *vcpu, unsigned nr)
 }
 EXPORT_SYMBOL_GPL(kvm_queue_exception);
 
-void kvm_requeue_exception(struct kvm_vcpu *vcpu, unsigned nr)
+void kvm_requeue_exception(struct kvm_vcpu *vcpu, unsigned nr, bool nested)
 {
-	kvm_multiple_exception(vcpu, nr, false, 0, false, 0, true, false);
+	kvm_multiple_exception(vcpu, nr, false, 0, false, 0, true, nested);
 }
 EXPORT_SYMBOL_GPL(kvm_requeue_exception);
 
@@ -855,21 +849,11 @@ void kvm_queue_exception_e(struct kvm_vcpu *vcpu, unsigned nr, u32 error_code)
 }
 EXPORT_SYMBOL_GPL(kvm_queue_exception_e);
 
-void kvm_requeue_exception_e(struct kvm_vcpu *vcpu, unsigned nr, u32 error_code)
+void kvm_requeue_exception_e(struct kvm_vcpu *vcpu, unsigned nr, u32 error_code, bool nested)
 {
-	kvm_multiple_exception(vcpu, nr, true, error_code, false, 0, true, false);
+	kvm_multiple_exception(vcpu, nr, true, error_code, false, 0, true, nested);
 }
 EXPORT_SYMBOL_GPL(kvm_requeue_exception_e);
-
-void kvm_requeue_exception_e_p(struct kvm_vcpu *vcpu, unsigned nr,
-			       bool has_error, u32 error_code,
-			       bool has_payload, unsigned long payload,
-			       bool nested)
-{
-	kvm_multiple_exception(vcpu, nr, has_error, error_code,
-			       has_payload, payload, true, nested);
-}
-EXPORT_SYMBOL_GPL(kvm_requeue_exception_e_p);
 
 /*
  * Checks if cpl <= required_cpl; if true, return true.  Otherwise queue
