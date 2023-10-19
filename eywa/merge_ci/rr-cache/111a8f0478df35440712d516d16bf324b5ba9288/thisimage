@@ -2210,7 +2210,7 @@ static void vmx_inject_exception(struct kvm_vcpu *vcpu)
 				 * Compared to DR6, FRED #DB event data saved on
 				 * the stack frame have bits 4 ~ 11 and 16 ~ 31
 				 * inverted, i.e.,
-				 *   fred_db_event_data = db_dr6 ^ 0xFFFF0FF0UL
+				 *   fred_db_event_data = dr6 ^ 0xFFFF0FF0UL
 				 */
 				event_data = vcpu->arch.dr6 ^ DR6_RESERVED;
 			else if (is_page_fault(intr_info))
@@ -5277,9 +5277,8 @@ void vmx_set_constant_host_state(struct vcpu_vmx *vmx)
 		vmcs_write64(HOST_IA32_EFER, host_efer);
 
 	/*
-	 * FRED MSRs are per-cpu, however FRED CONFIG and STKLVLS
-	 * MSRs are the same on all CPUs, thus they are initialized
-	 * here.
+	 * FRED MSRs are per-cpu, however FRED CONFIG and STKLVLS MSRs
+	 * are the same on all CPUs, thus they are initialized here.
 	 */
 	if (cpu_feature_enabled(X86_FEATURE_FRED)) {
 		vmcs_write64(HOST_IA32_FRED_CONFIG, read_msr(MSR_IA32_FRED_CONFIG));
@@ -5360,9 +5359,16 @@ static u32 vmx_vmexit_ctrl(void)
 	if (cpu_has_perf_global_ctrl_bug())
 		vmexit_ctrl &= ~VM_EXIT_LOAD_IA32_PERF_GLOBAL_CTRL;
 
-	/* Loading of EFER and PERF_GLOBAL_CTRL are toggled dynamically */
+	/*
+	 * The following features are toggled dynamically:
+	 * - Loading of PERF_GLOBAL_CTRL
+	 * - Loading of EFER
+	 * - Activating of SECONDARY_CONTROLS
+	 */
 	return vmexit_ctrl &
-		~(VM_EXIT_LOAD_IA32_PERF_GLOBAL_CTRL | VM_EXIT_LOAD_IA32_EFER);
+		~(VM_EXIT_LOAD_IA32_PERF_GLOBAL_CTRL |
+		  VM_EXIT_LOAD_IA32_EFER |
+		  VM_EXIT_ACTIVATE_SECONDARY_CONTROLS);
 }
 
 static u64 vmx_secondary_vmexit_ctrl(void)
@@ -8074,8 +8080,7 @@ static void vmx_recover_nmi_blocking(struct vcpu_vmx *vmx)
 static void __vmx_complete_interrupts(struct kvm_vcpu *vcpu,
 				      u32 idt_vectoring_info,
 				      int instr_len_field,
-				      int error_code_field,
-				      int event_data_field)
+				      int error_code_field)
 {
 	u8 vector;
 	int type;
@@ -8108,35 +8113,14 @@ static void __vmx_complete_interrupts(struct kvm_vcpu *vcpu,
 	case INTR_TYPE_SOFT_EXCEPTION:
 		vcpu->arch.event_exit_inst_len = vmcs_read32(instr_len_field);
 		fallthrough;
-	case INTR_TYPE_HARD_EXCEPTION: {
-		bool has_error = idt_vectoring_info & VECTORING_INFO_DELIVER_CODE_MASK;
-		u32 err = has_error ? vmcs_read32(error_code_field) : 0;
-		bool has_payload = false;
-		unsigned long payload = 0;
-
-		if (kvm_is_fred_enabled(vcpu)) {
-			switch (vector) {
-			case DB_VECTOR:
-				/*
-				 * The #DB payload is compatible with the
-				 * pending debug exceptions/exit qualification
-				 * under VMX, thus also compatible with FRED #DB
-				 * event data saved on the stack frame.
-				 */
-			case PF_VECTOR:
-				has_payload = true;
-				payload = vmcs_read64(event_data_field);
-				break;
-			default:
-				break;
-			}
-		}
-
-		kvm_requeue_exception_e_p(vcpu, vector, has_error, err,
-					  has_payload, payload,
-					  idt_vectoring_info & INTR_INFO_NESTED_EXCEPTION_MASK);
+	case INTR_TYPE_HARD_EXCEPTION:
+		if (idt_vectoring_info & VECTORING_INFO_DELIVER_CODE_MASK)
+			kvm_requeue_exception_e(vcpu, vector, vmcs_read32(error_code_field),
+						idt_vectoring_info & INTR_INFO_NESTED_EXCEPTION_MASK);
+		else
+			kvm_requeue_exception(vcpu, vector,
+					      idt_vectoring_info & INTR_INFO_NESTED_EXCEPTION_MASK);
 		break;
-	}
 	case INTR_TYPE_SOFT_INTR:
 		vcpu->arch.event_exit_inst_len = vmcs_read32(instr_len_field);
 		fallthrough;
@@ -8152,8 +8136,7 @@ static void vmx_complete_interrupts(struct vcpu_vmx *vmx)
 {
 	__vmx_complete_interrupts(&vmx->vcpu, vmx->idt_vectoring_info,
 				  VM_EXIT_INSTRUCTION_LEN,
-				  IDT_VECTORING_ERROR_CODE,
-				  ORIGINAL_EVENT_DATA);
+				  IDT_VECTORING_ERROR_CODE);
 }
 
 static void vmx_cancel_injection(struct kvm_vcpu *vcpu)
@@ -8161,8 +8144,7 @@ static void vmx_cancel_injection(struct kvm_vcpu *vcpu)
 	__vmx_complete_interrupts(vcpu,
 				  vmcs_read32(VM_ENTRY_INTR_INFO_FIELD),
 				  VM_ENTRY_INSTRUCTION_LEN,
-				  VM_ENTRY_EXCEPTION_ERROR_CODE,
-				  INJECTED_EVENT_DATA);
+				  VM_ENTRY_EXCEPTION_ERROR_CODE);
 
 	vmcs_write32(VM_ENTRY_INTR_INFO_FIELD, 0);
 }
@@ -8309,6 +8291,7 @@ static noinstr void vmx_vcpu_enter_exit(struct kvm_vcpu *vcpu,
 				   flags);
 
 	vcpu->arch.cr2 = native_read_cr2();
+
 	vcpu->arch.regs_avail &= ~VMX_REGS_LAZY_LOAD_SET;
 
 	vmx->idt_vectoring_info = 0;
@@ -8323,6 +8306,35 @@ static noinstr void vmx_vcpu_enter_exit(struct kvm_vcpu *vcpu,
 	vmx->exit_reason.full = vmcs_read32(VM_EXIT_REASON);
 	if (likely(!vmx->exit_reason.failed_vmentry))
 		vmx->idt_vectoring_info = vmcs_read32(IDT_VECTORING_INFO_FIELD);
+
+	if (unlikely((vmx->idt_vectoring_info & VECTORING_INFO_VALID_MASK) &&
+		     ((vmx->idt_vectoring_info & VECTORING_INFO_TYPE_MASK) ==
+		      INTR_TYPE_HARD_EXCEPTION) &&
+		     kvm_is_fred_enabled(vcpu))) {
+		u8 vector = vmx->idt_vectoring_info & VECTORING_INFO_VECTOR_MASK;
+		u64 original_event_data = vmcs_read64(ORIGINAL_EVENT_DATA);
+
+		switch (vector) {
+		case DB_VECTOR:
+			get_debugreg(vcpu->arch.dr6, 6);
+			WARN_ON(original_event_data != (vcpu->arch.dr6 ^ DR6_RESERVED));
+			break;
+		case NM_VECTOR:
+			if (vcpu->arch.guest_fpu.fpstate->xfd) {
+				rdmsrl(MSR_IA32_XFD_ERR, vcpu->arch.guest_fpu.xfd_err);
+				WARN_ON(original_event_data != vcpu->arch.guest_fpu.xfd_err);
+			} else {
+				WARN_ON(original_event_data != 0);
+			}
+			break;
+		case PF_VECTOR:
+			WARN_ON(original_event_data != vcpu->arch.cr2);
+			break;
+		default:
+			WARN_ON(original_event_data != 0);
+			break;
+		}
+	}
 
 	if ((u16)vmx->exit_reason.basic == EXIT_REASON_EXCEPTION_NMI &&
 	    is_nmi(vmx_get_intr_info(vcpu))) {
@@ -8888,7 +8900,8 @@ static void vmx_vcpu_config_fred_after_set_cpuid(struct kvm_vcpu *vcpu)
 	 * Enable saving guest FRED MSRs into VMCS and loading host FRED MSRs
 	 * from VMCS.
 	 */
-	BUG_ON(!cpu_has_secondary_vmexit_ctrls());
+	WARN_ON(!cpu_has_secondary_vmexit_ctrls());
+	vm_exit_controls_setbit(vmx, VM_EXIT_ACTIVATE_SECONDARY_CONTROLS);
 	secondary_vm_exit_controls_setbit(vmx,
 					  SECONDARY_VM_EXIT_SAVE_IA32_FRED |
 					  SECONDARY_VM_EXIT_LOAD_IA32_FRED);
