@@ -67,6 +67,8 @@ struct lockstep_info {
 	int		role;
 	int		peer_cpu;
 	u64		session;
+	u32		break_reason;
+	u32		break_error_code;
 	bool		init;
 	bool		enable;
 	bool		offline_in_progress;
@@ -260,9 +262,75 @@ static ssize_t session_show(struct device *dev, struct device_attribute *attr, c
 }
 static DEVICE_ATTR_RO(session);
 
+static int lockstep_update_status(void * arg)
+{
+	struct lockstep_info * info = (struct lockstep_info *)arg;
+	u64 status;
+
+	rdmsrl(MSR_IA32_DLSM_DEACTIVATE_STATUS, status);
+
+	/* TODO: Use macro masks */
+	info->break_reason = status & 0xFFFFFFFF;
+	info->break_error_code = status >> 32;
+
+	return 0;
+}
+
+static ssize_t break_reason_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct lockstep_info *li = per_cpu_ptr(&info, dev->id);
+	int ret;
+
+	ret = lock_device_hotplug_sysfs();
+	if (ret)
+		goto error;
+
+	/* Check can we use something other than stop_one_cpu()? */
+	ret = stop_one_cpu(dev->id, lockstep_update_status, (void *)li);
+	if (ret)
+		goto exit;
+
+	unlock_device_hotplug();
+
+	return sysfs_emit(buf, "0x%x\n", li->break_reason);
+
+exit:
+	unlock_device_hotplug();
+error:
+	return sysfs_emit(buf, "-1\n");
+}
+static DEVICE_ATTR_RO(break_reason);
+
+static ssize_t break_error_code_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct lockstep_info *li = per_cpu_ptr(&info, dev->id);
+	int ret;
+
+	ret = lock_device_hotplug_sysfs();
+	if (ret)
+		goto error;
+
+	/* Check can we use something other than stop_one_cpu()? */
+	ret = stop_one_cpu(dev->id, lockstep_update_status, (void *)li);
+	if (ret)
+		goto exit;
+
+	unlock_device_hotplug();
+
+	return sysfs_emit(buf, "0x%x\n", li->break_error_code);
+
+exit:
+	unlock_device_hotplug();
+error:
+	return sysfs_emit(buf, "-1\n");
+}
+static DEVICE_ATTR_RO(break_error_code);
+
 static struct attribute *lockstep_active_attrs[] = {
 	&dev_attr_enable.attr,
 	&dev_attr_session.attr,
+	&dev_attr_break_reason.attr,
+	&dev_attr_break_error_code.attr,
 	NULL
 };
 
