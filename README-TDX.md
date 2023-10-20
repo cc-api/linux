@@ -15,3 +15,6 @@ List the merged patches related to TDX for ease of tracking.
 10. TDX 1.5/2.0 preserving common part2
 11. TDX 1.5/2.0 feature supports: VM preserving: LFE-6428; TD preserving: LFE-104; TD live migration LFE-105
 12. TDXIO support(LFE-472)
+13. gmem issue about the wrong pfn range calculation
+14. TDX kselftest issue due to enqcmd patches (LFE-10112)
+15. Fix the issue about CPU offline when TDX is not enabled (LFE-10150)
