@@ -5922,7 +5922,7 @@ int tdx_offline_cpu(void)
 	int i;
 
 	/* No TD is running.  Allow any cpu to be offline. */
-	if (atomic_read(&nr_configured_hkid) > 0)
+	if (!atomic_read(&nr_configured_hkid))
 		return 0;
 
 	/*
