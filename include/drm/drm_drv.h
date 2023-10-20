@@ -434,6 +434,13 @@ struct drm_driver {
 	 */
 	const struct file_operations *fops;
 
+	/**
+	 * @genl_ops:
+	 *
+	 * Drivers private callback to genl commands
+	 */
+	const struct driver_genl_ops *genl_ops;
+
 #ifdef CONFIG_DRM_LEGACY
 	/* Everything below here is for legacy driver, never use! */
 	/* private: */

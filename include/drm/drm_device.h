@@ -8,6 +8,7 @@
 
 #include <drm/drm_legacy.h>
 #include <drm/drm_mode_config.h>
+#include <drm/drm_netlink.h>
 
 struct drm_driver;
 struct drm_minor;
@@ -317,6 +318,13 @@ struct drm_device {
 	 * Root directory for debugfs files.
 	 */
 	struct dentry *debugfs_root;
+
+	/**
+	 * @drm_genl_family:
+	 *
+	 * Generic netlink family registration structure.
+	 */
+	struct genl_family drm_genl_family;
 
 	/* Everything below here is for legacy driver, never use! */
 	/* private: */

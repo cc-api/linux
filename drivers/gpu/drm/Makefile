@@ -58,6 +58,7 @@ drm-$(CONFIG_DRM_LEGACY) += \
 	drm_memory.o \
 	drm_scatter.o \
 	drm_vm.o
+drm-$(CONFIG_NET) += drm_netlink.o
 drm-$(CONFIG_DRM_LIB_RANDOM) += lib/drm_random.o
 drm-$(CONFIG_COMPAT) += drm_ioc32.o
 drm-$(CONFIG_DRM_PANEL) += drm_panel.o
