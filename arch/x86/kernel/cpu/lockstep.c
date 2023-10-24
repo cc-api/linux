@@ -59,6 +59,7 @@ struct lockstep_info {
 	int		role;
 	int		peer_cpu;
 	bool		init;
+	bool		enable;
 };
 
 static DEFINE_PER_CPU(struct lockstep_info, info);
@@ -95,6 +96,35 @@ static struct attribute *lockstep_common_attrs[] = {
 static const struct attribute_group lockstep_common_attr_group = {
 	.name = "lockstep",
 	.attrs = lockstep_common_attrs,
+};
+
+static ssize_t enable_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct lockstep_info *li = per_cpu_ptr(&info, dev->id);
+
+	return sysfs_emit(buf, "%d\n", li->enable);
+}
+
+static ssize_t enable_store(struct device *dev, struct device_attribute *attr,
+			    const char *buf, size_t count)
+{
+	bool val;
+
+	if (kstrtobool(buf, &val))
+		return -EINVAL;
+
+	return -EOPNOTSUPP;
+}
+static DEVICE_ATTR_RW(enable);
+
+static struct attribute *lockstep_active_attrs[] = {
+	&dev_attr_enable.attr,
+	NULL
+};
+
+static const struct attribute_group lockstep_active_attr_group = {
+	.name = "lockstep",
+	.attrs = lockstep_active_attrs,
 };
 
 /* Is there a better way to do this? */
@@ -156,11 +186,20 @@ static int lockstep_add_dev(unsigned int cpu)
 		ret = sysfs_create_group(&dev->kobj, &lockstep_common_attr_group);
 	}
 
+	if (!ret && (li->role == ROLE_ACTIVE))
+		ret = sysfs_merge_group(&dev->kobj, &lockstep_active_attr_group);
+
 	return ret;
 }
 
 static int lockstep_remove_dev(unsigned int cpu)
 {
+	struct lockstep_info *li = per_cpu_ptr(&info, cpu);
+	struct device *dev = get_cpu_device(cpu);
+
+	if (li->init && (li->role == ROLE_ACTIVE))
+		sysfs_unmerge_group(&dev->kobj, &lockstep_active_attr_group);
+
 	return 0;
 }
 
