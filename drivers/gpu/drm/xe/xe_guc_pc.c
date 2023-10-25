@@ -819,8 +819,7 @@ int xe_guc_pc_start(struct xe_guc_pc *pc)
 	u32 size = PAGE_ALIGN(sizeof(struct slpc_shared_data));
 	int ret;
 
-	if (XE_PRESI_SKIP_FEATURE(xe, GUC_SLPC) ||
-	    GRAPHICS_VERx100(xe) >= 2000)
+	if (XE_PRESI_SKIP_FEATURE(xe, GUC_SLPC))
 		return 0;
 
 	xe_gt_assert(gt, xe_device_uc_enabled(xe));
@@ -871,8 +870,7 @@ int xe_guc_pc_stop(struct xe_guc_pc *pc)
 {
 	int ret;
 
-	if (XE_PRESI_SKIP_FEATURE(pc_to_xe(pc), GUC_SLPC) ||
-	    GRAPHICS_VERx100(pc_to_xe(pc)) >= 2000)
+	if (XE_PRESI_SKIP_FEATURE(pc_to_xe(pc), GUC_SLPC))
 		return 0;
 
 	xe_device_mem_access_get(pc_to_xe(pc));
@@ -918,8 +916,7 @@ int xe_guc_pc_init(struct xe_guc_pc *pc)
 	u32 size = PAGE_ALIGN(sizeof(struct slpc_shared_data));
 	int err;
 
-	if (XE_PRESI_SKIP_FEATURE(pc_to_xe(pc), GUC_SLPC) ||
-	    GRAPHICS_VERx100(xe) >= 2000)
+	if (XE_PRESI_SKIP_FEATURE(pc_to_xe(pc), GUC_SLPC))
 		return 0;
 
 	mutex_init(&pc->freq_lock);
