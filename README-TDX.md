@@ -18,3 +18,4 @@ List the merged patches related to TDX for ease of tracking.
 13. gmem issue about the wrong pfn range calculation
 14. TDX kselftest issue due to enqcmd patches (LFE-10112)
 15. Fix the issue about CPU offline when TDX is not enabled (LFE-10150)
+16. cpuon/off with td-preserving didn't work (LFE-10143)
