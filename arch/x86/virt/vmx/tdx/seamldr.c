@@ -451,6 +451,12 @@ static int do_tdx_module_update(struct update_ctx *ctx)
 	bool live_update;
 	int ret;
 
+	ret = cpu_vmxop_get_all();
+	if (ret) {
+		ctx->recoverable = true;
+		return ret;
+	}
+
 	/*
 	 * Prevent tdx_cpu_enable(), which is called when onlining CPUs. This
 	 * also couples with the following cpu_vmxop_get_all() to ensure all
@@ -472,16 +478,12 @@ static int do_tdx_module_update(struct update_ctx *ctx)
 	}
 	ctx->recoverable = false;
 
-	ret = cpu_vmxop_get_all();
-	if (ret)
-		goto unlock;
-
 	live_update = is_live_update(params);
 	if (live_update) {
 		ret = tdx_prepare_handoff_data((void *)ctx->sig->data);
 		if (ret) {
 			ctx->recoverable = true;
-			goto put;
+			goto unlock;
 		}
 	}
 
@@ -494,10 +496,10 @@ static int do_tdx_module_update(struct update_ctx *ctx)
 		pr_err("Failed to install new TDX module %d\n", ret);
 	}
 
-put:
-	cpu_vmxop_put_all();
 unlock:
 	cpus_read_unlock();
+	cpu_vmxop_put_all();
+
 	return ret;
 }
 
