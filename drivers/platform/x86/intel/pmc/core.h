@@ -274,6 +274,8 @@ enum ppfear_regs {
 #define LNL_NUM_IP_IGN_ALLOWED			27
 #define LNL_PPFEAR_NUM_ENTRIES			12
 
+#define PTL_LPM_NUM_MAPS			16
+#define PTL_PCD_PMC_MMIO_REG_LEN		0x31AC
 extern const char *pmc_lpm_modes[];
 
 struct pmc_bit_map {
@@ -577,6 +579,7 @@ int mtl_core_init(struct pmc_dev *pmcdev);
 int mtl_l_core_init(struct pmc_dev *pmcdev);
 int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp);
 int lnl_core_init(struct pmc_dev *pmcdev);
+int ptl_core_init(struct pmc_dev *pmcdev);
 
 #define pmc_for_each_mode(i, mode, pmcdev)		\
 	for (i = 0, mode = pmcdev->lpm_en_modes[i];	\
