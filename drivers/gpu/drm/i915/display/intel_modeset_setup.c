@@ -567,7 +567,6 @@ static void intel_sanitize_encoder(struct intel_encoder *encoder)
 		to_intel_crtc_state(crtc->base.state) : NULL;
 	struct intel_pmdemand_state *pmdemand_state =
 		to_intel_pmdemand_state(i915->display.pmdemand.obj.state);
-	struct intel_panel *panel;
 
 	/*
 	 * We need to check both for a crtc link (meaning that the encoder is
@@ -639,22 +638,6 @@ static void intel_sanitize_encoder(struct intel_encoder *encoder)
 
 	if (HAS_DDI(i915))
 		intel_ddi_sanitize_encoder_pll_mapping(encoder);
-
-	/*
-	 * validate the histogram struct elements
-	 * TODO: Need to move this logic to eDP encoder.
-	 */
-	if (IS_SIMULATOR(i915))
-		return;
-
-	if (intel_dp_is_port_edp(i915, encoder->port)) {
-		crtc->histogram->has_edp = true;
-		panel = &connector->panel;
-		if (!panel)
-			return;
-		if (panel->backlight.present)
-			crtc->histogram->has_pwm = true;
-	}
 
 }
 

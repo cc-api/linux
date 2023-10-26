@@ -100,8 +100,6 @@ struct intel_histogram {
 	struct workqueue_struct *wq;
 	struct delayed_work handle_histogram_int_work;
 	bool enable;
-	bool has_pwm;
-	bool has_edp;
 	bool can_enable;
 	enum pipe pipe;
 	u32 bindata[HISTOGRAM_BIN_COUNT];
