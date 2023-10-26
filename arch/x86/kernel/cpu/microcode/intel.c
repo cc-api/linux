@@ -1198,7 +1198,7 @@ static enum ucode_state generic_load_microcode(int cpu, struct iov_iter *iter)
 
 		csig = uci->cpu_sig.sig;
 		cpf = uci->cpu_sig.pf;
-		if (ucode_load_same || has_newer_microcode(mc, csig, cpf, new_rev)) {
+		if (ucode_load_same || !committed_ucode || has_newer_microcode(mc, csig, cpf, new_rev)) {
 			vfree(new_mc);
 			new_rev = mc_header.rev;
 			new_mc  = mc;
@@ -1602,26 +1602,24 @@ static enum ucode_state request_microcode_fw(int cpu, struct device *device, enu
 	enum ucode_state ret;
 	struct kvec kvec;
 	char name[30];
+	bool fetch_committed_ucode = false;
 
 	if (is_blacklisted(cpu))
 		return UCODE_NFOUND;
 
+reget:
 	sprintf(name, "intel-ucode/%02x-%02x-%02x",
 		c->x86, c->x86_model, c->x86_stepping);
 
-	/*
-	 * This allows fetching a production ucode that might not be committed by OS,
-	 * but loaded from BIOS directly from the built-in firmware path or initrd.
-	 * This may be needed in case we need to rollback.
-	 */
 	if (type == RELOAD_NO_COMMIT) {
-		if (!committed_ucode) {
-			pr_err("No original ucode found!\n");
-			pr_err("Ensure original ucode is either part of initrd or built-in fw path\n");
-			return UCODE_ERROR;
+		if (committed_ucode) {
+			sprintf(name, "intel-ucode/stage/%02x-%02x-%02x", c->x86, c->x86_model,
+				c->x86_stepping);
+		} else {
+			/* fetch and cache currently committed ucode */
+			fetch_committed_ucode = true;
+			pr_warn("committed ucode is not cached, fetching\n");
 		}
-		sprintf(name, "intel-ucode/stage/%02x-%02x-%02x",
-			c->x86, c->x86_model, c->x86_stepping);
 	}
 
 	if (request_firmware_direct(&firmware, name, device)) {
@@ -1634,9 +1632,30 @@ static enum ucode_state request_microcode_fw(int cpu, struct device *device, enu
 	iov_iter_kvec(&iter, ITER_SOURCE, &kvec, 1, firmware->size);
 	ret = generic_load_microcode(cpu, &iter);
 
+	/*
+	* fetch_orig is a hack since we haven't done a load. Ideally must
+	* be in the initrd
+	*/
+	if (fetch_committed_ucode && ret == UCODE_NEW) {
+		if (unapplied_ucode->hdr.rev == c->microcode) {
+			committed_ucode = unapplied_ucode;
+			clear_ucode_store(&unapplied_ucode);
+		} else {
+			pr_warn("committed ucode not found in firmware prod path!\n");
+			ret = UCODE_NFOUND;
+			goto out;
+		}
+
+		fetch_committed_ucode = false;
+		/* Free the original firmware before getting the staged one. */
+		release_firmware(firmware);
+		goto reget;
+	}
+
 	if (ret == UCODE_NEW && mcu_cap.rollback_supported && !check_ucode_constraints(type))
 		ret = UCODE_ERROR;
 
+out:
 	release_firmware(firmware);
 	if (ret == UCODE_ERROR)
 		free_ucode_store(&unapplied_ucode);
