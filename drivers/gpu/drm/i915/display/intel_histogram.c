@@ -116,17 +116,6 @@ void intel_histogram_irq_handler(struct drm_i915_private *i915, enum pipe pipe)
 int intel_histogram_can_enable(struct intel_crtc *intel_crtc)
 {
 	struct intel_histogram *histogram = intel_crtc->histogram;
-	struct drm_i915_private *i915 = histogram->i915;
-
-	if (!histogram->has_edp) {
-		drm_err(&i915->drm, "Not a eDP panel\n");
-		return -EINVAL;
-	}
-
-	if (!histogram->has_pwm) {
-		drm_err(&i915->drm, "eDP doesn't have PWM based backlight, cannot enable GLOBAL_HIST\n");
-		return -EINVAL;
-	}
 
 	/* TODO: Restrictions for enabling histogram */
 	histogram->can_enable = true;
@@ -148,9 +137,9 @@ static int intel_histogram_enable(struct intel_crtc *intel_crtc)
 	int pipe = intel_crtc->pipe;
 	u32 gbandthreshold;
 
-	if (!histogram->has_pwm) {
+	if (!histogram->can_enable) {
 		drm_err(&i915->drm,
-			"eDP doesn't have PWM based backlight, cannot enable HISTOGRAM\n");
+			"Histogram not supported, compute config failed\n");
 		return -EINVAL;
 	}
 
@@ -224,15 +213,6 @@ static void intel_histogram_disable(struct intel_crtc *intel_crtc)
 
 int intel_histogram_update(struct intel_crtc *intel_crtc, bool enable)
 {
-	struct intel_histogram *histogram = intel_crtc->histogram;
-	struct drm_i915_private *i915 = to_i915(intel_crtc->base.dev);
-
-	if (!histogram->can_enable) {
-		drm_err(&i915->drm,
-			"HISTOGRAM not supported, compute config failed\n");
-		return -EINVAL;
-	}
-
 	if (enable)
 		return intel_histogram_enable(intel_crtc);
 

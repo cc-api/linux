@@ -4355,7 +4355,7 @@ static int intel_crtc_atomic_check(struct intel_atomic_state *state,
 
 	/* HISTOGRAM changed */
 	if (crtc_state->histogram_en_changed)
-		intel_histogram_can_enable(crtc);
+		return intel_histogram_can_enable(crtc);
 
 	return 0;
 }
