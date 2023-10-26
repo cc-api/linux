@@ -23,9 +23,9 @@
 #define STRINGIFY_W(x)  _STRINGIFY_W(x)
 
 #define SEP_MAJOR_VERSION       5
-#define SEP_MINOR_VERSION       41
+#define SEP_MINOR_VERSION       44
 // API version is independent of major/minor and tracks driver version
-#define SEP_API_VERSION         14
+#define SEP_API_VERSION         16
 
 #define SEP_PREV_MAJOR_VERSION  5
 #define EMON_PREV_MAJOR_VERSION 11

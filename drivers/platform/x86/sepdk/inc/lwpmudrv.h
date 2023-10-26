@@ -266,6 +266,8 @@ struct LWPMU_DEVICE_NODE_S {
 	((dev)->pebs_info_node.apebs_xmm_offset)
 #define LWPMU_DEVICE_apebs_lbr_offset(dev) \
 	((dev)->pebs_info_node.apebs_lbr_offset)
+#define LWPMU_DEVICE_apebs_css_offset(dev) \
+	((dev)->pebs_info_node.apebs_css_offset)
 
 extern U32          num_devices;
 extern U32          cur_devices;

@@ -529,6 +529,99 @@ unc_common_Read_MSR_Package(U32 msr_address, U32 package_num)
 }
 
 /*!
+ * @fn          static VOID unc_common_Find_Bus_Based_Valid_Topo
+ *
+ * @brief       This function will iterate through pcie devices
+ *              and identifies available devices
+ *
+ * @param       U32                       dev_node          - device node
+ *       	U32                       unc_topo_node     - index
+ *       	U32                       num_registers     - number of registers
+ *       	PLATFORM_TOPOLOGY_REG_EXT topology_regs_ext - topology reg
+ *
+ * @return      None
+ *
+ * <I>Special Notes:</I>
+ *              Populates PLATFORM_TOPOLOGY_REG_EXT_bus to be used at the userlevel
+ *              to figure out the number of units
+ */
+static VOID
+unc_common_Find_Bus_Based_Valid_Topo (
+	U32                       dev_node,
+	U32                       unc_topo_node,
+	U32                       num_registers,
+	PLATFORM_TOPOLOGY_REG_EXT topology_regs_ext
+)
+{
+	U32 itr, len;
+	U32 bus_num       = 0;
+	U32 domain_num    = 0;
+	U32 func_num      = 0;
+	U32 device_num    = 0;
+	U32 reg_offset    = 0;
+	U32 device_value  = 0;
+	U32 vendor_id;
+	U32 device_id;
+	U32 valid;
+
+	for (itr = 0; itr < GET_NUM_MAP_ENTRIES(unc_topo_node); itr++) {
+		if (!IS_BUS_MAP_VALID(unc_topo_node, itr)) {
+			SEP_DRV_LOG_TRACE("BUS MAP invalid for dev_node=%d unc_topo_node=%d busmap_idx=%d\n",
+						dev_node, unc_topo_node, itr);
+			continue;
+		}
+		bus_num    = GET_BUS_MAP(unc_topo_node, itr);
+		domain_num = GET_DOMAIN_MAP(unc_topo_node, itr);
+		for (len = 0; len < num_registers; len++) {
+			if (PLATFORM_TOPOLOGY_REG_EXT_bus(topology_regs_ext, len)) {
+				SEP_DRV_LOG_TRACE("Skip dev_node=%d unc_topo_node=%d reg_idx=%d valid bus %x\n",
+							dev_node, unc_topo_node, len, PLATFORM_TOPOLOGY_REG_EXT_bus(topology_regs_ext, len));
+				continue;
+			}
+			device_num =
+				PLATFORM_TOPOLOGY_REG_EXT_device(topology_regs_ext, len);
+			func_num =
+				PLATFORM_TOPOLOGY_REG_EXT_function(topology_regs_ext, len);
+			reg_offset =
+				PLATFORM_TOPOLOGY_REG_EXT_reg_id(topology_regs_ext, len);
+
+			// Validation check from PMU list
+			if (!PMU_LIST_Check_PCI((U8)bus_num, (U8)device_num, (U8)func_num,
+						reg_offset)) {
+				SEP_DRV_LOG_ERROR("Received invalid PCI device DBDF(%x:%x:%d:%d) Off=%x Skipped!",
+							domain_num, bus_num, device_num, func_num,
+							reg_offset);
+				continue;
+			}
+
+			device_value = PCI_Read_U32_Valid(domain_num, bus_num, device_num,
+								func_num, 0, 0);
+			CHECK_IF_GENUINE_INTEL_DEVICE(device_value, vendor_id, device_id,
+							valid);
+			if (!valid || (PLATFORM_TOPOLOGY_REG_EXT_device_id(topology_regs_ext, len) &&
+				PLATFORM_TOPOLOGY_REG_EXT_device_id(topology_regs_ext, len) !=
+					device_id)) {
+				SEP_DRV_LOG_TRACE("Invalid PCI dev_node=%d unc_topo_node=%d reg_idx=%d DBDF(%x:%x:%d:%d) Off=%x\n",
+						dev_node, unc_topo_node, len,
+						domain_num, bus_num, device_num,
+						func_num, reg_offset);
+				continue;
+			}
+			PLATFORM_TOPOLOGY_REG_EXT_device_valid(topology_regs_ext,
+								len) = 1;
+			PLATFORM_TOPOLOGY_REG_EXT_bus(topology_regs_ext, len) =
+				(U16)bus_num;
+			SEP_DRV_LOG_DETECTION("Detected PCI dv_node=%d topo_node=%d reg_idx=%d DBDF(%x:%x:%d:%d) Off=%x\n",
+						dev_node, unc_topo_node, len,
+						domain_num, bus_num, device_num,
+						func_num, reg_offset);
+			// skip to next DF combo, new combo start every 12th position
+			len += 12 - (len % 12) - 1; // subtract 1 to offset the for loop increment
+		}
+	}
+}
+
+/*!
  * @fn          extern VOID UNC_COMMON_Get_Platform_Topology()
  *
  * @brief       This function will walk through the platform registers to retrieve information and calculate the bus no.
@@ -570,6 +663,8 @@ UNC_COMMON_Get_Platform_Topology(U32 dev_node)
 	U64           mmio_base1       = 0ULL;
 	U64           mmio_base2       = 0ULL;
 	SEP_MMIO_NODE tmp_map          = { 0 };
+	PMU_MMIO_BAR_INFO_NODE         primary;
+	PMU_MMIO_BAR_INFO_NODE         secondary;
 
 	PLATFORM_TOPOLOGY_REG_EXT topology_regs_ext = NULL;
 	U32 unc_topo_node = PLATFORM_TOPOLOGY_PROG_EXT_topology_device_device_index(
@@ -641,6 +736,11 @@ UNC_COMMON_Get_Platform_Topology(U32 dev_node)
 							      topology_regs_ext, len, i));
 			} else if (PLATFORM_TOPOLOGY_REG_EXT_reg_type(topology_regs_ext, len) ==
 				   PMU_REG_PROG_PCI) {
+				if (dev_node == UNCORE_TOPOLOGY_NODE_PCIEX8 ||
+				    dev_node == UNCORE_TOPOLOGY_NODE_PCIEX16) {
+					unc_common_Find_Bus_Based_Valid_Topo(dev_node, unc_topo_node, num_registers, topology_regs_ext);
+					break;
+				}
 				if (!IS_BUS_MAP_VALID(unc_topo_node, reg_idx)) {
 					SEP_DRV_LOG_TRACE("BUS MAP invalid for device=%d reg_idx=%d\n",
 							  dev_node, reg_idx);
@@ -722,6 +822,28 @@ UNC_COMMON_Get_Platform_Topology(U32 dev_node)
 							  dev_node, reg_idx);
 					continue;
 				}
+
+				SEP_DRV_MEMSET(&primary, 0, sizeof(PMU_MMIO_BAR_INFO_NODE));
+				SEP_DRV_MEMSET(&secondary, 0, sizeof(PMU_MMIO_BAR_INFO_NODE));
+				primary.u.s.bus = PLATFORM_TOPOLOGY_REG_EXT_bus(topology_regs_ext, len);
+				primary.u.s.dev = PLATFORM_TOPOLOGY_REG_EXT_device(topology_regs_ext, len);
+				primary.u.s.func = PLATFORM_TOPOLOGY_REG_EXT_function(topology_regs_ext, len);
+				primary.u.s.offset = PLATFORM_TOPOLOGY_REG_EXT_main_bar_offset(topology_regs_ext, len);
+				primary.mask = PLATFORM_TOPOLOGY_REG_EXT_main_bar_mask(topology_regs_ext, len);
+				primary.shift = PLATFORM_TOPOLOGY_REG_EXT_main_bar_shift(topology_regs_ext, len);
+
+				if (!PLATFORM_TOPOLOGY_REG_EXT_secondary_bar_offset(topology_regs_ext, len)) {
+					primary.bar_prog_type = MMIO_SINGLE_BAR_TYPE;
+				} else {
+					primary.bar_prog_type = MMIO_DUAL_BAR_TYPE;
+					secondary.bar_prog_type = MMIO_DUAL_BAR_TYPE;
+					secondary.u.s.bus = PLATFORM_TOPOLOGY_REG_EXT_bus(topology_regs_ext, len);
+					secondary.u.s.dev = PLATFORM_TOPOLOGY_REG_EXT_device(topology_regs_ext, len);
+					secondary.u.s.func = PLATFORM_TOPOLOGY_REG_EXT_function(topology_regs_ext, len);
+					secondary.u.s.offset = PLATFORM_TOPOLOGY_REG_EXT_secondary_bar_offset(topology_regs_ext, len);
+					secondary.mask = PLATFORM_TOPOLOGY_REG_EXT_secondary_bar_mask(topology_regs_ext, len);
+					secondary.shift = PLATFORM_TOPOLOGY_REG_EXT_secondary_bar_shift(topology_regs_ext, len);
+				}
 				bus_num    = GET_BUS_MAP(unc_topo_node, reg_idx);
 				domain_num = GET_DOMAIN_MAP(unc_topo_node, reg_idx);
 				device_num =
@@ -732,19 +854,12 @@ UNC_COMMON_Get_Platform_Topology(U32 dev_node)
 					PLATFORM_TOPOLOGY_REG_EXT_reg_id(topology_regs_ext, len);
 
 				// Validation check from PMU list
-				if (!PMU_LIST_Check_PCI((U8)bus_num, (U8)device_num, (U8)func_num,
-							PLATFORM_TOPOLOGY_REG_EXT_main_bar_offset(
-								topology_regs_ext, len)) ||
-				    !PMU_LIST_Check_PCI(
-					    (U8)bus_num, (U8)device_num, (U8)func_num,
-					    PLATFORM_TOPOLOGY_REG_EXT_secondary_bar_offset(
-						    topology_regs_ext, len))) {
+				if (!PMU_LIST_Check_MMIO(primary, secondary, reg_offset)) {
 					PLATFORM_TOPOLOGY_REG_EXT_device_valid(topology_regs_ext,
 									       len) = 0;
-					SEP_DRV_LOG_ERROR("Received invalid MMIO device DBDF(%x:%x:%d:%d) Off=%llx Skipped!",
-							  domain_num, bus_num, device_num, func_num,
-							  PLATFORM_TOPOLOGY_REG_EXT_main_bar_offset(
-								  topology_regs_ext, len));
+					SEP_DRV_LOG_ERROR("Invalid topo MMIO information! Offset:0x%x, B%d.D%d.F%d.O0x%x, M0x%llx.S%d, Sec O0x%x, M0x%llx.S%d",
+								reg_id, primary.u.s.bus, primary.u.s.dev, primary.u.s.func, primary.u.s.offset,
+								primary.mask, primary.shift, secondary.u.s.offset, secondary.mask, secondary.shift);
 					continue;
 				}
 				mmio_base1 = PCI_Read_U32(domain_num, bus_num, device_num, func_num,

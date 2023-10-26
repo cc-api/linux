@@ -503,8 +503,9 @@ extern "C" {
 #define DRV_STOP_ASYNC  2
 #define DRV_STOP_CANCEL 3
 
-#define MAX_DEVICES	30
-#define MAX_EVENTS 256 // Limiting maximum multiplexing events to 256.
+#define MAX_DEVICES_OLD	30
+#define MAX_DEVICES	64
+#define MAX_EVENTS      256 // Limiting maximum multiplexing events to 256.
 #if defined(DRV_OS_UNIX)
 #define UNREFERENCED_PARAMETER(p) ((p) = (p))
 #endif
@@ -572,12 +573,11 @@ extern "C" {
 #endif
 
 #define SEP_FREE(loc)                                                                                \
-	if ( (loc) )                                                                                     \
-	{                                                                                                \
-		free(loc);                                                                                   \
-		LOGIT((LOG_AREA_GENERAL|LOG_LEVEL_VERBOSE, "%s:%d Memory free: %d bytes\n",                  \
-				__FUNCTION__, __LINE__, sizeof(loc)));                                               \
-		loc = NULL;                                                                                  \
+	if ((loc)) {                                                                                 \
+		free(loc);                                                                           \
+		LOGIT((LOG_AREA_GENERAL | LOG_LEVEL_VERBOSE, "%s:%d Memory free: %lu bytes\n",       \
+				__FUNCTION__, __LINE__, sizeof(loc)));                               \
+		loc = NULL;                                                                          \
 	}
 
 /*
@@ -591,8 +591,8 @@ extern "C" {
 		       "%s:%d Malloc failed\n", __FUNCTION__, __LINE__));      \
 	} else {                                                               \
 		LOGIT((LOG_AREA_GENERAL | LOG_LEVEL_VERBOSE,                   \
-		       "%s:%d Memory allocation: %d bytes\n", __FUNCTION__,    \
-		       __LINE__, size));                                       \
+		       "%s:%d Memory allocation: %lu bytes\n", __FUNCTION__,   \
+		       __LINE__, (unsigned long)size));                        \
 	}
 
 #define SEP_CALLOC(loc, num, size, type)                                       \
@@ -601,8 +601,8 @@ extern "C" {
 		       "%s:%d Calloc failed\n", __FUNCTION__, __LINE__));      \
 	} else {                                                               \
 		LOGIT((LOG_AREA_GENERAL | LOG_LEVEL_VERBOSE,                   \
-		       "%s:%d Memory allocation: %d bytes\n", __FUNCTION__,    \
-		       __LINE__, size));                                       \
+		       "%s:%d Memory allocation: %lu bytes\n", __FUNCTION__,   \
+		       __LINE__, (unsigned long)size));                        \
 	}
 
 #define SEP_REALLOC(new_loc, old_loc, size, type)                              \
@@ -611,8 +611,9 @@ extern "C" {
 		       "%s:%d Realloc failed\n", __FUNCTION__, __LINE__));     \
 	} else {                                                               \
 		LOGIT((LOG_AREA_GENERAL | LOG_LEVEL_VERBOSE,                   \
-		       "%s:%d Memory reallocation:  %d -> %d bytes\n",         \
-		       __FUNCTION__, __LINE__, sizeof(old_loc), size));        \
+		       "%s:%d Memory reallocation:  %lu -> %lu bytes\n",       \
+			__FUNCTION__, __LINE__,                                \
+			sizeof(old_loc), (unsigned long)size));                \
 	}
 
 #if defined(__cplusplus)

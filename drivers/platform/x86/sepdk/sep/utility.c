@@ -86,7 +86,7 @@ UTILITY_down_read_mm(struct mm_struct *mm, bool lock_required)
 {
 	SEP_DRV_LOG_TRACE_IN("Mm: %p.", mm);
 
-	if (lock_required || !in_atomic()) {
+	if (lock_required && !in_atomic()) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
 		down_read((struct rw_semaphore *)&mm->mmap_sem);
 #else
@@ -103,7 +103,7 @@ UTILITY_up_read_mm(struct mm_struct *mm, bool lock_required)
 {
 	SEP_DRV_LOG_TRACE_IN("Mm: %p.", mm);
 
-	if (lock_required || !in_atomic()) {
+	if (lock_required && !in_atomic()) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
 		up_read((struct rw_semaphore *)&mm->mmap_sem);
 #else

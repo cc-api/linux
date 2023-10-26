@@ -36,7 +36,7 @@
 U32 drv_type     = DRV_TYPE_PRIVATE;
 S8 *drv_type_str = "PRIVATE";
 
-#define MAX_PERFMON_VERSION 5
+#define MAX_PERFMON_VERSION 6
 
 static const PMU_INFO_NODE architectural_pmu_info_list[] = {
 	// No Perfmon version
@@ -56,6 +56,9 @@ static const PMU_INFO_NODE architectural_pmu_info_list[] = {
 
 	// Perfmon version 5
 	{ 0x6, 0x0, 0x0, 0xF, perfmon_v5_msr_list, NULL, NULL},
+
+	// Perfmon version 6
+	{ 0x6, 0x0, 0x0, 0xF, perfmon_v6_msr_list, NULL, NULL},
 
 	// Last
 	{ 0x0, 0x0, 0x0, 0x0, NULL,                NULL, NULL}
@@ -243,8 +246,20 @@ static const PMU_INFO_NODE pmu_info_list[] = {
 	// CTI number = 158
 	{ 0x6, 0xB6, 0x0, 0xF, plat7_msr_list,   plat7_pci_list,  plat7_mmio_info_list   },
 
-    // CTI number = 159
+	// CTI number = 159
 	{ 0x6, 0xAF, 0x0, 0xF, plat8_msr_list,   plat3_pci_list,  plat3_mmio_info_list	 },
+
+	// CTI number = 167
+	{ 0x6, 0xBD, 0x0, 0xF, plat9_msr_list,   NULL,            plat9_mmio_info_list   },
+
+	// CTI number = 168
+	{ 0x6, 0xC6, 0x0, 0xF, plat10_msr_list,	 NULL,			  plat6_mmio_info_list	 },
+
+	// CTI number = 169
+	{ 0x6, 0xC5, 0x0, 0xF, plat10_msr_list,	 NULL,			  plat6_mmio_info_list   },
+
+	// CTI number = 170
+	{ 0x6, 0xAE, 0x0, 0xF, plat3_msr_list,   plat10_pci_list,  plat10_mmio_info_list },
 
 	// Last
 	{ 0x0, 0x0,  0x0, 0x0, NULL,             NULL,            NULL                   }

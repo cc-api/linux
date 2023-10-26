@@ -214,7 +214,8 @@ struct DEV_CONFIG_NODE_S {
 			U64 collect_fixed_counter_pebs : 1;
 			U64 collect_os_callstacks : 1;
 			U64 enable_arch_lbrs : 1;
-			U64 reserved_field1 : 43;
+			U64 apebs_collect_css : 1;
+			U64 reserved_field1 : 42;
 		} s1;
 	} u1;
 	U32 emon_unc_offset[MAX_EMON_GROUPS];
@@ -264,6 +265,7 @@ struct DEV_CONFIG_NODE_S {
 	((cfg)->u1.s1.collect_fixed_counter_pebs)
 #define DEV_CONFIG_collect_os_callstacks(cfg)    ((cfg)->u1.s1.collect_os_callstacks)
 #define DEV_CONFIG_enable_arch_lbrs(cfg)         ((cfg)->u1.s1.enable_arch_lbrs)
+#define DEV_CONFIG_apebs_collect_css(cfg)        ((cfg)->u1.s1.apebs_collect_css)
 #define DEV_CONFIG_enable_bit_fields(cfg)        ((cfg)->u1.enable_bit_fields)
 #define DEV_CONFIG_emon_unc_offset(cfg, grp_num) ((cfg)->emon_unc_offset[grp_num])
 #define DEV_CONFIG_ebc_group_id_offset(cfg)      ((cfg)->ebc_group_id_offset)
@@ -1265,7 +1267,7 @@ struct DEVICE_INFO_NODE_S {
 	U32            device_scope;
 	U32            num_subunits;
 	U32            core_model_id;
-	U8            *core_arch_name;
+	S8            *core_arch_name;
 	U32            reserved1;
 	U64            reserved2;
 	PMT_DEVICE_INFO_NODE pmt_device;
@@ -1445,6 +1447,14 @@ struct UNCORE_TOPOLOGY_INFO_NODE_S {
 						      funcno)                  \
 	((x)->device[dev_index].pcidev[devno].func_info[funcno].num_entries)
 
+// OLD UNCORE_TOPOLOGY_INFO STRUCT (for backward compatibility)
+typedef struct UNCORE_TOPOLOGY_INFO_OLD_NODE_S UNCORE_TOPOLOGY_INFO_OLD_NODE;
+typedef UNCORE_TOPOLOGY_INFO_OLD_NODE         *UNCORE_TOPOLOGY_INFO_OLD;
+
+struct UNCORE_TOPOLOGY_INFO_OLD_NODE_S {
+	UNCORE_PCIDEV_NODE device[MAX_DEVICES_OLD];
+};
+
 // Structures used to store platform uncore discovery table
 
 typedef enum {
@@ -1610,14 +1620,16 @@ struct UNCORE_DISCOVERY_TABLE_LIST_NODE_S {
 #define UNCORE_DISCOVERY_table_list_entry(x, i) ((x)->discovery_table_list[i])
 
 typedef enum {
-	CORE_TOPOLOGY_NODE         = 0,
-	UNCORE_TOPOLOGY_NODE_IMC   = 1,
-	UNCORE_TOPOLOGY_NODE_UBOX  = 2,
-	UNCORE_TOPOLOGY_NODE_QPI   = 3,
-	UNCORE_TOPOLOGY_NODE_IIO   = 4,
-	UNCORE_TOPOLOGY_NODE_MCHBM = 5,
-	UNCORE_TOPOLOGY_NODE_PMEM  = 6,
-	MAX_TOPOLOGY_DEV           = 16,
+	CORE_TOPOLOGY_NODE            = 0,
+	UNCORE_TOPOLOGY_NODE_IMC      = 1,
+	UNCORE_TOPOLOGY_NODE_UBOX     = 2,
+	UNCORE_TOPOLOGY_NODE_QPI      = 3,
+	UNCORE_TOPOLOGY_NODE_IIO      = 4,
+	UNCORE_TOPOLOGY_NODE_MCHBM    = 5,
+	UNCORE_TOPOLOGY_NODE_PMEM     = 6,
+	UNCORE_TOPOLOGY_NODE_PCIEX8   = 7,
+	UNCORE_TOPOLOGY_NODE_PCIEX16  = 8,
+	MAX_TOPOLOGY_DEV              = 16,
 } UNCORE_TOPOLOGY_NODE_INDEX_TYPE;
 
 /**************************************************************
@@ -1872,6 +1884,15 @@ struct FPGA_GB_DEV_NODE_S {
 #define FPGA_GB_DEV_scan(x, dev_index)  ((x)->fpga_gb_device[dev_index].scan)
 #define FPGA_GB_DEV_valid(x, dev_index) ((x)->fpga_gb_device[dev_index].valid)
 
+// OLD FPGA_GB_DEV STRUCT (for backward compatibility)
+typedef struct FPGA_GB_DEV_OLD_NODE_S FPGA_GB_DEV_OLD_NODE;
+typedef FPGA_GB_DEV_OLD_NODE         *FPGA_GB_DEV_OLD;
+
+struct FPGA_GB_DEV_OLD_NODE_S {
+	U32                    num_devices;
+	FPGA_GB_DISCOVERY_NODE fpga_gb_device[MAX_DEVICES_OLD];
+};
+
 /**************************************************************
  * FPGA TOPOLOGY STRUCTS END
 ***************************************************************/
@@ -1906,7 +1927,9 @@ typedef enum {
 	UNCORE_TOPOLOGY_INFO_NODE_OOBMSM       = 26,
 	UNCORE_TOPOLOGY_INFO_NODE_R2PCIE       = 27,
 	UNCORE_TOPOLOGY_INFO_NODE_NOC          = 28,
-	UNCORE_TOPOLOGY_INFO_NODE_MSE          = 29
+	UNCORE_TOPOLOGY_INFO_NODE_MSE          = 29,
+	UNCORE_TOPOLOGY_INFO_NODE_PCIEX8       = 30,
+	UNCORE_TOPOLOGY_INFO_NODE_PCIEX16      = 31
 } UNCORE_TOPOLOGY_INFO_NODE_INDEX_TYPE;
 
 /**************************************************************

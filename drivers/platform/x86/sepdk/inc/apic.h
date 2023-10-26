@@ -113,6 +113,8 @@ extern VOID APIC_Enable_Pmi(VOID);
 extern VOID APIC_Init(PVOID param);
 extern VOID APIC_Install_Interrupt_Handler(PVOID param);
 extern VOID APIC_Restore_LVTPC(PVOID param);
+extern U32  APIC_Read(U32 reg);
+extern VOID APIC_Write(U32 reg, U32 val);
 
 #endif
 

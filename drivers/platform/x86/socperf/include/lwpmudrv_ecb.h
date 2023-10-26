@@ -104,9 +104,10 @@ struct EVENT_DESC_NODE_S {
 	U16 xmm_info_offset;
 	U16 xmm_info_size;
 	U16 lbr_info_size;
+	U16 css_info_offset;
+	U16 css_info_size;
 	/*------------------------------------------*/
-	U32 reserved2;
-	U64 reserved3;
+	U64 reserved1;
 };
 
 //
@@ -142,6 +143,8 @@ struct EVENT_DESC_NODE_S {
 #define EVENT_DESC_xmm_info_offset(ec) ((ec)->xmm_info_offset)
 #define EVENT_DESC_xmm_info_size(ec)   ((ec)->xmm_info_size)
 #define EVENT_DESC_lbr_info_size(ec)   ((ec)->lbr_info_size)
+#define EVENT_DESC_css_info_offset(ec) ((ec)->css_info_offset)
+#define EVENT_DESC_css_info_size(ec)   ((ec)->css_info_size)
 
 // ***************************************************************************
 
@@ -326,6 +329,9 @@ typedef enum {
     DEVICE_UNC_CMS,
     DEVICE_UNC_MSE,
     DEVICE_UNC_CRS,
+    DEVICE_UNC_SANTA,
+    DEVICE_UNC_PCIEX8,
+    DEVICE_UNC_PCIEX16,
     DEVICE_UNC_TELEMETRY  = 150,      // TELEMETRY DEVICE
     DEVICE_UNC_CHAP       = 200,      // CHIPSET DEVICES START
     DEVICE_UNC_GMCH,

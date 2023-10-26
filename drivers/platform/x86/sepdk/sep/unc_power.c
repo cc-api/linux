@@ -222,6 +222,12 @@ unc_power_Free(PVOID param)
 
 	SEP_DRV_LOG_TRACE_IN("Param: %p.", param);
 
+	if (DRV_CONFIG_rdt_auto_rmid(drv_cfg) && acc_per_thread && prev_val_per_thread) {
+		U32 is_save_pqr_assoc = FALSE;
+		CONTROL_Invoke_Parallel(unc_rdt_program_autormid,
+					(VOID *)&is_save_pqr_assoc);
+	}
+
 	if (acc_per_thread) {
 		for (i = 0; i < (U32)GLOBAL_STATE_num_cpus(driver_state); i++) {
 			acc_per_thread[i] =
@@ -236,12 +242,6 @@ unc_power_Free(PVOID param)
 				CONTROL_Free_Memory(prev_val_per_thread[i]);
 		}
 		prev_val_per_thread = CONTROL_Free_Memory(prev_val_per_thread);
-	}
-
-	if (DRV_CONFIG_rdt_auto_rmid(drv_cfg)) {
-		U32 is_save_pqr_assoc = FALSE;
-		CONTROL_Invoke_Parallel(unc_rdt_program_autormid,
-					(VOID *)&is_save_pqr_assoc);
 	}
 
 	SEP_DRV_LOG_TRACE_OUT("");
@@ -263,7 +263,7 @@ unc_power_Free(PVOID param)
  * <I>Special Notes:</I>
  */
 static VOID
-rdt_Write_PMU(ECB pecb, U32 idx)
+rdt_Write_PMU(ECB pecb, U32 idx, U32 reg_type)
 {
 	U64 msr_value        = 0;
 	U64 read_val         = 0;
@@ -273,16 +273,18 @@ rdt_Write_PMU(ECB pecb, U32 idx)
 	SEP_DRV_LOG_TRACE_IN("Param: %p, %u.", pecb, idx);
 
 	msr_value = ECB_entries_reg_value(pecb, idx);
-	read_val  = 1;
-	while (!(ECB_entries_aux_read_mask(pecb, idx) & read_val)) {
-		read_val = read_val << 1;
-		read_shift_index++;
+	if (reg_type == PMU_REG_RW_READ_MASK_WRITE) {
+		read_val  = 1;
+		while (!(ECB_entries_aux_read_mask(pecb, idx) & read_val)) {
+			read_val = read_val << 1;
+			read_shift_index++;
+		}
+		read_val = SYS_Read_MSR((U32)ECB_entries_aux_reg_id_to_read(pecb, idx));
+		masked_val = (read_val & ECB_entries_aux_read_mask(pecb, idx)) >>
+				read_shift_index;
+		masked_val <<= ECB_entries_aux_shift_index(pecb, idx);
+		msr_value |= (U64)masked_val;
 	}
-	read_val = SYS_Read_MSR((U32)ECB_entries_aux_reg_id_to_read(pecb, idx));
-	masked_val = (read_val & ECB_entries_aux_read_mask(pecb, idx)) >>
-		     read_shift_index;
-	masked_val <<= ECB_entries_aux_shift_index(pecb, idx);
-	msr_value |= (U64)masked_val;
 	SYS_Write_MSR(ECB_entries_reg_id(pecb, idx), msr_value);
 	SEP_DRV_LOG_TRACE("Wrote 0x%x with 0x%x.",
 			  ECB_entries_reg_id(pecb, idx), msr_value);
@@ -310,6 +312,7 @@ common_Read_Data_Counter(ECB pecb, U32 idx)
 	U32 read_shift_index = 0;
 	U64 mask_value       = 0;
 	U64 value            = 0;
+	U32 multiplier       = 1;
 
 	SEP_DRV_LOG_TRACE_IN("Param: %p, %u.", pecb, idx);
 
@@ -323,10 +326,12 @@ common_Read_Data_Counter(ECB pecb, U32 idx)
 				  pecb, idx)) &
 			  ECB_entries_aux_read_mask(pecb, idx)) >>
 			 read_shift_index;
+
+		multiplier = ECB_entries_reg_data_size(pecb, idx);
 	}
 	// The SYS_Read_MSR call below is common for RDT and Power event reads.
 	// Offset is 0 except for RDT CAT Mask events.
-	value = SYS_Read_MSR(ECB_entries_reg_id(pecb, idx) + (U32)offset);
+	value = SYS_Read_MSR(ECB_entries_reg_id(pecb, idx) + (U32)(offset * multiplier));
 
 	// Verify error bit (CTR[63]) and unavailable bit (CTR[62])
 	// and discard data if they are set in CTR.
@@ -377,7 +382,7 @@ unc_power_Trigger_Read(PVOID param, U32 id, U32 read_from_intr)
 	FOR_EACH_REG_UNC_OPERATION (pecb, id, idx, PMU_OPERATION_READ) {
 		if (ECB_entries_reg_rw_type(pecb, idx) ==
 		    PMU_REG_RW_READ_MASK_WRITE) {
-			rdt_Write_PMU(pecb, idx);
+			rdt_Write_PMU(pecb, idx, ECB_entries_reg_rw_type(pecb, idx));
 			continue;
 		}
 		// If the function is invoked from pmi, the event we are
@@ -449,14 +454,15 @@ unc_power_Enable_PMU(PVOID param)
 	U32       dev_idx;
 	U32       this_cpu;
 	CPU_STATE pcpu;
-	U32       package_event_count = 0;
-	U32       thread_event_count  = 0;
-	U32       module_event_count  = 0;
-	U64       tmp_value           = 0;
-	U32       package_id          = 0;
-	U32       module_id           = 0;
-	U32       core_id             = 0;
-	U32       thread_id           = 0;
+	U32       package_event_count 	= 0;
+	U32       thread_event_count  	= 0;
+	U32       module_event_count  	= 0;
+	U64       tmp_value           	= 0;
+	U32       package_id          	= 0;
+	U32       module_id           	= 0;
+	U32       core_id             	= 0;
+	U32       thread_id           	= 0;
+	U32       device_buffer_offset	= 0;
 
 	SEP_DRV_LOG_TRACE_IN("Param: %p.", param);
 
@@ -475,10 +481,17 @@ unc_power_Enable_PMU(PVOID param)
 		return;
 	}
 
+	FOR_EACH_REG_UNC_OPERATION (pecb, dev_idx, idx, PMU_OPERATION_ENABLE) {
+		if (ECB_entries_reg_rw_type(pecb, idx) == PMU_REG_RW_READ_WRITE) {
+			rdt_Write_PMU(pecb, idx, ECB_entries_reg_rw_type(pecb, idx));
+		}
+	}
+	END_FOR_EACH_REG_UNC_OPERATION;
+
 	FOR_EACH_REG_UNC_OPERATION (pecb, dev_idx, idx, PMU_OPERATION_READ) {
 		if (ECB_entries_reg_rw_type(pecb, idx) ==
 		    PMU_REG_RW_READ_MASK_WRITE) {
-			rdt_Write_PMU(pecb, idx);
+			rdt_Write_PMU(pecb, idx, ECB_entries_reg_rw_type(pecb, idx));
 			continue;
 		}
 		if (ECB_entries_event_scope(pecb, idx) == PACKAGE_EVENT) {
@@ -505,12 +518,19 @@ unc_power_Enable_PMU(PVOID param)
 				module_event_count);
 			module_event_count++;
 		} else {
+			if (ECB_device_type(pecb) == DEVICE_UNC_RDT) {
+				device_buffer_offset = ECB_entries_uncore_buffer_offset_in_package(
+						pecb, idx);
+			} else {
+				device_buffer_offset = EMON_BUFFER_DRIVER_HELPER_power_device_offset_in_package(
+						emon_buffer_driver_helper);
+			}
+
 			j = EMON_BUFFER_UNCORE_THREAD_POWER_EVENT_OFFSET(
 				package_id,
 				EMON_BUFFER_DRIVER_HELPER_num_entries_per_package(
 					emon_buffer_driver_helper),
-				EMON_BUFFER_DRIVER_HELPER_power_device_offset_in_package(
-					emon_buffer_driver_helper),
+				device_buffer_offset,
 				EMON_BUFFER_DRIVER_HELPER_power_num_package_events(
 					emon_buffer_driver_helper),
 				GLOBAL_STATE_num_modules(driver_state),
@@ -522,7 +542,10 @@ unc_power_Enable_PMU(PVOID param)
 				EMON_BUFFER_DRIVER_HELPER_power_num_thread_events(
 					emon_buffer_driver_helper),
 				thread_event_count);
-			thread_event_count++;
+
+			if (ECB_device_type(pecb) == DEVICE_UNC_POWER) {
+				thread_event_count++;
+			}
 		}
 
 		tmp_value = SYS_Read_MSR(ECB_entries_reg_id(pecb, idx));
@@ -569,10 +592,11 @@ unc_power_Read_PMU_Data(PVOID param, U32 dev_idx)
 	U32       thread_event_count  = 0;
 	U32       module_event_count  = 0;
 	U64       tmp_value;
-	U32       package_id = 0;
-	U32       module_id  = 0;
-	U32       core_id    = 0;
-	U32       thread_id  = 0;
+	U32       package_id            = 0;
+	U32       module_id             = 0;
+	U32       core_id               = 0;
+	U32       thread_id             = 0;
+	U32       device_buffer_offset  = 0;
 
 	SEP_DRV_LOG_TRACE_IN("Param: %p.", param);
 
@@ -592,7 +616,7 @@ unc_power_Read_PMU_Data(PVOID param, U32 dev_idx)
 	FOR_EACH_REG_UNC_OPERATION (pecb, dev_idx, idx, PMU_OPERATION_READ) {
 		if (ECB_entries_reg_rw_type(pecb, idx) ==
 		    PMU_REG_RW_READ_MASK_WRITE) {
-			rdt_Write_PMU(pecb, idx);
+			rdt_Write_PMU(pecb, idx, ECB_entries_reg_rw_type(pecb, idx));
 			continue;
 		}
 
@@ -620,12 +644,19 @@ unc_power_Read_PMU_Data(PVOID param, U32 dev_idx)
 				module_event_count);
 			module_event_count++;
 		} else {
+			if (ECB_device_type(pecb) == DEVICE_UNC_RDT) {
+				device_buffer_offset = ECB_entries_uncore_buffer_offset_in_package(
+						pecb, idx);
+			} else {
+				device_buffer_offset = EMON_BUFFER_DRIVER_HELPER_power_device_offset_in_package(
+						emon_buffer_driver_helper);
+			}
+
 			j = EMON_BUFFER_UNCORE_THREAD_POWER_EVENT_OFFSET(
 				package_id,
 				EMON_BUFFER_DRIVER_HELPER_num_entries_per_package(
 					emon_buffer_driver_helper),
-				EMON_BUFFER_DRIVER_HELPER_power_device_offset_in_package(
-					emon_buffer_driver_helper),
+				device_buffer_offset,
 				EMON_BUFFER_DRIVER_HELPER_power_num_package_events(
 					emon_buffer_driver_helper),
 				GLOBAL_STATE_num_modules(driver_state),
@@ -637,7 +668,10 @@ unc_power_Read_PMU_Data(PVOID param, U32 dev_idx)
 				EMON_BUFFER_DRIVER_HELPER_power_num_thread_events(
 					emon_buffer_driver_helper),
 				thread_event_count);
-			thread_event_count++;
+
+			if (ECB_device_type(pecb) == DEVICE_UNC_POWER) {
+				thread_event_count++;
+			}
 		}
 
 		tmp_value = common_Read_Data_Counter(pecb, idx);

@@ -834,10 +834,10 @@ linuxos_Handle_Offline_cpu(PVOID param)
 	if (dispatch && dispatch->freeze) {
 		dispatch->freeze(NULL);
 	}
-	apic_lvterr = apic_read(APIC_LVTERR);
-	apic_write(APIC_LVTERR, apic_lvterr | APIC_LVT_MASKED);
+	apic_lvterr = APIC_Read(APIC_LVTERR);
+	APIC_Write(APIC_LVTERR, apic_lvterr | APIC_LVT_MASKED);
 	APIC_Restore_LVTPC(NULL);
-	apic_write(APIC_LVTERR, apic_lvterr);
+	APIC_Write(APIC_LVTERR, apic_lvterr);
 
 	SEP_DRV_LOG_NOTIFICATION_TRACE_OUT(SEP_IN_NOTIFICATION, "");
 	return;

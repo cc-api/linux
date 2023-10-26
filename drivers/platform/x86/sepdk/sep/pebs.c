@@ -670,7 +670,7 @@ pebs_Alloc_DTS_Buffer(VOID)
 	    DEV_CONFIG_collect_fixed_counter_pebs(pcfg)) {
 		if (DEV_CONFIG_pebs_mode(pcfg) == 6) {
 			dts_size = sizeof(DTS_BUFFER_EXT1_NODE);
-		} else if (DEV_CONFIG_pebs_mode(pcfg) == 7) {
+		} else if (DEV_CONFIG_pebs_mode(pcfg) == 7 || DEV_CONFIG_pebs_mode(pcfg) == 8) {
 			dts_size = sizeof(DTS_BUFFER_EXT2_NODE);
 		} else {
 			SEP_DRV_LOG_ERROR_TRACE_OUT("Invalid PEBS mode for Adaptive pebs(%d).", DEV_CONFIG_pebs_mode(pcfg));
@@ -1222,7 +1222,7 @@ PEBS_Reset_Counter(S32 this_cpu, U32 index, U32 op_type)
     value = ECB_entries_reg_value(pecb, index);
 
     if (ECB_entries_fixed_reg_get(pecb, index)) {
-	if (DEV_CONFIG_pebs_mode(pcfg) == 7) {
+	if (DEV_CONFIG_pebs_mode(pcfg) == 7 || DEV_CONFIG_pebs_mode(pcfg) == 8) {
 	    fixed_offset = EXT2_FIXED_OFFSET;
 	} else if (DEV_CONFIG_pebs_mode(pcfg) <= 6) {
 	    fixed_offset = EXT1_FIXED_OFFSET;
@@ -1301,7 +1301,7 @@ PEBS_Reset_Counter(S32 this_cpu, U32 index, U32 op_type)
 	    DTS_BUFFER_EXT1_fixed_counter_reset3(dts_ext) = value;
 	    break;
 	}
-    } else if (DEV_CONFIG_pebs_mode(pcfg) == 7) {
+    } else if (DEV_CONFIG_pebs_mode(pcfg) == 7 || DEV_CONFIG_pebs_mode(pcfg) == 8) {
 	dts_ext2 = CPU_STATE_dts_buffer(&pcb[this_cpu]);
 
 	if (counter_index < (NUM_EXT_COUNTER_RESET + NUM_EXT2_COUNTER_RESET)) {
@@ -1741,6 +1741,13 @@ APEBS_Fill_Buffer(S8 *buffer, EVENT_DESC evt_desc, U32 rec_index)
 						 LWPMU_DEVICE_apebs_lbr_offset(
 							 &devices[dev_idx])));
 	}
+	if (DEV_CONFIG_apebs_collect_css(pcfg) &&
+		EVENT_DESC_css_info_offset(evt_desc)) {
+		memcpy(buffer + EVENT_DESC_css_info_offset(evt_desc),
+			   pebs_base +
+					LWPMU_DEVICE_apebs_css_offset(&devices[dev_idx]),
+			   EVENT_DESC_css_info_size(evt_desc));
+	}
 	return lbr_tos_from_ip;
 }
 
@@ -1802,6 +1809,7 @@ PEBS_Initialize(U32 dev_idx)
 		break;
 	case 6:
 	case 7:
+	case 8:
 		if (!DEV_CONFIG_enable_adaptive_pebs(pcfg)) {
 			SEP_DRV_LOG_TRACE("APEBS need to be enabled in perf version4 SNC dispatch mode.");
 		}
@@ -1836,6 +1844,14 @@ PEBS_Initialize(U32 dev_idx)
 			LWPMU_DEVICE_pebs_record_size(&devices[dev_idx]) +=
 				(sizeof(ADAPTIVE_PEBS_LBR_INFO_NODE) *
 				 DEV_CONFIG_num_lbr_entries(pcfg));
+		}
+		if (DEV_CONFIG_apebs_collect_css(pcfg)) {
+			U32 num_perf_metrics_entries = DEV_CONFIG_num_perf_metrics(pcfg) ? (sizeof(U64) * 2) : 0;
+			LWPMU_DEVICE_apebs_css_offset(&devices[dev_idx]) =
+				LWPMU_DEVICE_pebs_record_size(
+					&devices[dev_idx]);
+			LWPMU_DEVICE_pebs_record_size(&devices[dev_idx]) +=
+				(sizeof(ADAPTIVE_PEBS_CSS_INFO_NODE) + (sizeof(U64) * LWPMU_DEVICE_num_events(&devices[dev_idx])) + num_perf_metrics_entries);
 		}
 		SEP_DRV_LOG_TRACE("Size of adaptive pebs record - %d.",
 				  LWPMU_DEVICE_pebs_record_size(
@@ -1889,7 +1905,7 @@ PEBS_Allocate(VOID)
 	    if (DEV_CONFIG_enable_adaptive_pebs(pcfg)) {
 		if (DEV_CONFIG_pebs_mode(pcfg) == 6) {
 		    dts_size = sizeof(DTS_BUFFER_EXT1_NODE);
-		} else if (DEV_CONFIG_pebs_mode(pcfg) == 7) {
+		} else if (DEV_CONFIG_pebs_mode(pcfg) == 7 || DEV_CONFIG_pebs_mode(pcfg) == 8) {
 		    dts_size = sizeof(DTS_BUFFER_EXT2_NODE);
 		} else {
 		    SEP_DRV_LOG_ERROR_TRACE_OUT("Invalid PEBS mode for Adaptive pebs(%d).", DEV_CONFIG_pebs_mode(pcfg));

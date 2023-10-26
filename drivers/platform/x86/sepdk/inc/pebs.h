@@ -348,6 +348,20 @@ struct ADAPTIVE_PEBS_LBR_INFO_NODE_S {
 #define ADAPTIVE_PEBS_LBR_INFO_lbr_to(x)   ((x)->lbr_to)
 #define ADAPTIVE_PEBS_LBR_INFO_lbr_info(x) ((x)->lbr_info)
 
+typedef struct ADAPTIVE_PEBS_CSS_INFO_NODE_S ADAPTIVE_PEBS_CSS_INFO_NODE;
+typedef ADAPTIVE_PEBS_CSS_INFO_NODE         *ADAPTIVE_PEBS_cSS_INFO;
+
+struct ADAPTIVE_PEBS_CSS_INFO_NODE_S {
+	U32 pmc_bitvector;
+	U32 fixedctr_bitvector;
+	U64 metrics_bitvector:2;
+	U64 reserved:62;
+};
+
+#define ADAPTIVE_PEBS_CSS_INFO_pmc_bitvector(x)         ((x)->pmc_bitvector)
+#define ADAPTIVE_PEBS_CSS_INFO_fixedctr_bitvector(x)    ((x)->fixedctr_bitvector)
+#define ADAPTIVE_PEBS_CSS_INFO_metrics_bitvector(x)     ((x)->metrics_bitvector)
+
 typedef struct LATENCY_INFO_NODE_S LATENCY_INFO_NODE;
 typedef LATENCY_INFO_NODE         *LATENCY_INFO;
 
@@ -513,6 +527,7 @@ struct PEBS_INFO_NODE_S {
 	U16           apebs_gpr_offset;
 	U16           apebs_xmm_offset;
 	U16           apebs_lbr_offset;
+	U16           apebs_css_offset;
 };
 
 #define APEBS_RECORD_SIZE_MASK       0xFFFF000000000000ULL //[63:48]
@@ -522,5 +537,7 @@ struct PEBS_INFO_NODE_S {
 #define APEBS_GPR_RECORD_FORMAT_MASK 0x2ULL
 #define APEBS_XMM_RECORD_FORMAT_MASK 0x4ULL
 #define APEBS_LBR_RECORD_FORMAT_MASK 0x8ULL
+#define APEBS_CSS_CTR_RECORD_FORMAT_MASK        0x10ULL
+#define APEBS_CSS_METRICS_RECORD_FORMAT_MASK    0x20ULL
 #endif
 

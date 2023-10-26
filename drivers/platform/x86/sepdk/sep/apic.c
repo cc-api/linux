@@ -51,7 +51,7 @@
 #include "control.h"
 #include "utility.h"
 
-static DEFINE_PER_CPU(unsigned long, saved_apic_lvtpc);
+static DEFINE_PER_CPU(U32, saved_apic_lvtpc);
 
 /*!
  * @fn          VOID apic_Get_APIC_ID(S32 cpu)
@@ -93,7 +93,11 @@ apic_Get_APIC_ID(S32 cpu)
 		}
 	} else {
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+		apic_id = APIC_Read(APIC_ID);
+#else
 		apic_id = read_apic_id();
+#endif
 #if defined(CONFIG_XEN_DOM0) && LINUX_VERSION_CODE > KERNEL_VERSION(3, 3, 0)
 	}
 #endif
@@ -155,8 +159,8 @@ APIC_Install_Interrupt_Handler(PVOID param)
 	this_cpu = CONTROL_THIS_CPU();
 	preempt_enable();
 
-	per_cpu(saved_apic_lvtpc, this_cpu) = apic_read(APIC_LVTPC);
-	apic_write(APIC_LVTPC, APIC_DM_NMI);
+	per_cpu(saved_apic_lvtpc, this_cpu) = APIC_Read(APIC_LVTPC);
+	APIC_Write(APIC_LVTPC, APIC_DM_NMI);
 
 	SEP_DRV_LOG_TRACE_OUT("");
 }
@@ -178,7 +182,7 @@ APIC_Enable_Pmi(VOID)
 {
 	SEP_DRV_LOG_TRACE_IN("");
 
-	apic_write(APIC_LVTPC, APIC_DM_NMI);
+	APIC_Write(APIC_LVTPC, APIC_DM_NMI);
 
 	SEP_DRV_LOG_TRACE_OUT("");
 }
@@ -205,8 +209,61 @@ APIC_Restore_LVTPC(PVOID param)
 	this_cpu = CONTROL_THIS_CPU();
 	preempt_enable();
 
-	apic_write(APIC_LVTPC, per_cpu(saved_apic_lvtpc, this_cpu));
+	APIC_Write(APIC_LVTPC, per_cpu(saved_apic_lvtpc, this_cpu));
 
 	SEP_DRV_LOG_TRACE_OUT("");
+}
+
+/*!
+ * @fn          extern U32 APIC_Read(U32 reg)
+ *
+ * @brief       Read APIC register value
+ *
+ * @param       U32 reg - APIC register
+ *
+ * @return      APIC register value
+ *
+ * <I>Special Notes:</I>
+ *             <NONE>
+ */
+extern U32
+APIC_Read(U32 reg)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+	if (apic_is_x2apic_enabled()) {
+		return native_apic_msr_read(reg);
+	} else {
+		return native_apic_mem_read(reg);
+	}
+#else
+	return apic_read(reg);
+#endif
+}
+
+/*!
+ * @fn          extern VOID APIC_Write(U32 reg, U32 val)
+ *
+ * @brief       Write value to APIC register
+ *
+ * @param       U32 reg - APIC register
+ *              U32 val - value to write in APIC register
+ *
+ * @return      None
+ *
+ * <I>Special Notes:</I>
+ *             <NONE>
+ */
+extern VOID
+APIC_Write(U32 reg, U32 val)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+	if (apic_is_x2apic_enabled()) {
+		native_apic_msr_write(reg, val);
+	} else {
+		native_apic_mem_write(reg, val);
+	}
+#else
+	apic_write(reg, val);
+#endif
 }
 

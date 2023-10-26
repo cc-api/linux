@@ -282,6 +282,7 @@
 #define VT_UNCORE_DISCOVERY_NOT_SUPPORTED      233
 #define VT_UNCORE_DISCOVERY_DATA_INVALID       234
 #define VT_INCORRECT_COUNTER_MASK	       235
+#define VT_PERFSCRIPT_ERROR	               236
 /*
  * define error code for checking on async marker request
  */
@@ -302,7 +303,7 @@
 // To make error checking easier, the special VT_LAST_ERROR_CODE
 // should be set to whatever is the last error on the list above
 //
-#define VT_LAST_ERROR_CODE VT_INCORRECT_COUNTER_MASK
+#define VT_LAST_ERROR_CODE VT_PERFSCRIPT_ERROR
 
 //
 // Define a macro to determine success or failure. Users of this

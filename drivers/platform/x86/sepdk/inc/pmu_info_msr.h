@@ -72,6 +72,13 @@ static PMU_MSR_INFO_NODE perfmon_v5_architectural[] = {
 	{ 0x3F2 }, { 0x0 }
 };
 
+static PMU_MSR_INFO_NODE perfmon_v6_architectural[] = {
+	{ 0x1D9 }, { 0x3F1 },          { 0x345, 0, 0 }, { 0x38D, 0, 0 },
+	{ 0x38E }, { 0x38F },          { 0x390 },       { 0x600 },
+	{ 0x1A0 }, { 0x186, 0, 0x10 }, { 0x8b },        { 0x392 },
+	{ 0x0 }
+};
+
 // CORE
 
 /*      Big cores       - All
@@ -146,6 +153,15 @@ static PMU_MSR_INFO_NODE core_10[] = {
  *      Small cores - Goldmont and later
  */
 static PMU_MSR_INFO_NODE core_11[] = { { 0x392 }, { 0x0 } };
+
+/*  Big cores - LNC and later
+ *  Small cores - SKT and later
+ */
+static PMU_MSR_INFO_NODE core_12[] = {
+	{ 0x18C }, { 0x18D }, { 0x18E }, { 0x18F },
+	{ 0xC7 },  { 0xC8 },   { 0xC9 }, { 0x0CA },
+	{ 0x30D }, { 0x30E }, { 0x30F }, { 0x0 }
+};
 
 /*************************************************************************************************************************/
 // UNCORE
@@ -641,7 +657,8 @@ static PMU_MSR_INFO_NODE pmu12_5[] = {
 // RDT
 static PMU_MSR_INFO_NODE pmu13[] = {
 	{ 0xC8D }, { 0xC8E }, { 0xC8F }, { 0xD10 }, { 0xD11 }, { 0xD12 },
-	{ 0xD13 }, { 0xC90 }, { 0xC91 }, { 0xC92 }, { 0xC93 }, { 0x0 }
+	{ 0xD13 }, { 0xC90 }, { 0xC91 }, { 0xC92 }, { 0xC93 },
+	{ 0xC81, 0, 0x3 }, { 0xD50, 0, 0xF }, { 0x0 }
 };
 
 /*************************************************************************************************************************/
@@ -685,6 +702,10 @@ static PMU_MSR_INFO_NODE *perfmon_v4_msr_list[] = {
 
 static PMU_MSR_INFO_NODE *perfmon_v5_msr_list[] = {
 	perfmon_v5_architectural, 0
+};
+
+static PMU_MSR_INFO_NODE *perfmon_v6_msr_list[] = {
+	perfmon_v6_architectural, 0
 };
 
 static PMU_MSR_INFO_NODE *bdx_msr_list[] = {
@@ -822,7 +843,7 @@ static PMU_MSR_INFO_NODE *plat5_msr_list[] = {
 
 static PMU_MSR_INFO_NODE *plat3_msr_list[] = {
 	core_1,  core_2,   core_4, core_9, core_11, pmu2_5, pmu2_6, pmu3_2, pmu4_5,
-	pmu6_5, pmu8_7, pmu9_1, pmu9_2, pmu9_3, pmu9_19, pmu9_20, pmu12_5, pmu14,
+	pmu6_5, pmu8_7, pmu9_1, pmu9_2, pmu9_3, pmu9_19, pmu9_20, pmu12_5, pmu13, pmu14,
 	pmu15, pmu16, uncore_8,
 	0
 };
@@ -837,7 +858,23 @@ static PMU_MSR_INFO_NODE *plat7_msr_list[] = {
 static PMU_MSR_INFO_NODE *plat8_msr_list[] = {
 	core_1, core_2, core_3, core_4, core_6, core_7, core_9, core_10, core_11,
 	pmu2_5, pmu2_6, pmu3_2, pmu4_5, pmu6_5, pmu8_7, pmu9_1, pmu9_2, pmu9_3,
-	pmu9_19, pmu9_20, pmu12_5, pmu14, pmu15, uncore_8,
+	pmu9_19, pmu9_20, pmu12_5, pmu14, pmu15, pmu16, uncore_8,
+	0
+};
+
+static PMU_MSR_INFO_NODE *plat9_msr_list[] = {
+	core_1, core_2, core_3, core_4, core_6, core_7, core_9, core_10, core_11, core_12,
+	pmu1_1, pmu1_10, uncore_9, pmu7_4,
+	pmu9_6, pmu9_7, pmu9_8, pmu9_11, pmu9_13, pmu9_15, pmu9_19,
+	0
+};
+
+static PMU_MSR_INFO_NODE *plat10_msr_list[] = {
+	core_1, core_2, core_3, core_4, core_6, core_7, core_9, core_10, core_11, core_12,
+	pmu1_1, pmu1_10,
+	pmu7_4,
+	uncore_9,
+	pmu9_6, pmu9_7, pmu9_8, pmu9_13, pmu9_19,
 	0
 };
 

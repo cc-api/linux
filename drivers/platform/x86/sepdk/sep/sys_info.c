@@ -1201,6 +1201,8 @@ SYS_INFO_Build(VOID)
 			// Core ID resets across module boundary, module enumeration is supported
 			module_enum_supported = 1;
 		}
+		prev_module_num = VTSA_GEN_PER_CPU_cpu_module_num(local_gpc);
+		prev_core_num = VTSA_GEN_PER_CPU_cpu_core_num(local_gpc);
 	}
 	SEP_DRV_LOG_TRACE("MODULE COUNT=%d.", num_modules);
 	GLOBAL_STATE_num_modules(driver_state) = num_modules;

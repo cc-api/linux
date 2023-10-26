@@ -51,7 +51,7 @@ extern EMON_BUFFER_DRIVER_HELPER emon_buffer_driver_helper;
  * @fn          static VOID unc_pci_Write_PMU(VOID*)
  *
  * @brief       Initial write of PMU registers
- *              Walk through the enties and write the value of the register accordingly.
+ *              Walk through the entries and write the value of the register accordingly.
  *              When current_group = 0, then this is the first time this routine is called,
  *
  * @param       None
@@ -119,7 +119,12 @@ unc_pci_Write_PMU(PVOID param)
 
 		// otherwise, we have a valid entry
 		// now we just need to find the corresponding bus #
-		ECB_entries_bus_no(pecb, idx) = busno;
+		// if bus # is not invalid, it is populated from usermode
+		if (ECB_entries_bus_no(pecb, idx) != 0) {
+			busno = ECB_entries_bus_no(pecb, idx);
+			SEP_DRV_LOG_TRACE("updated busno=%u", busno);
+		}
+
 		value                         = PCI_Read_U32(domainno, busno,
 							     ECB_entries_dev_no(pecb, idx),
 							     ECB_entries_func_no(pecb, idx), 0);
@@ -157,6 +162,12 @@ unc_pci_Write_PMU(PVOID param)
 	END_FOR_EACH_REG_UNC_OPERATION;
 
 	FOR_EACH_REG_UNC_OPERATION (pecb, dev_idx, idx, PMU_OPERATION_READ) {
+		// if bus # is not invalid, it is populated from usermode
+		if (ECB_entries_bus_no(pecb, idx) != 0) {
+			busno = ECB_entries_bus_no(pecb, idx);
+			SEP_DRV_LOG_TRACE("updated busno=%u", busno);
+		}
+
 		PCI_Write_U64(domainno, busno, ECB_entries_dev_no(pecb, idx),
 			      ECB_entries_func_no(pecb, idx),
 			      ECB_entries_reg_id(pecb, idx), 0);
@@ -227,6 +238,13 @@ unc_pci_Enable_PMU(PVOID param)
 				      ECB_entries_reg_value(pecb, idx));
 			continue;
 		}
+
+		// if bus # is not invalid, it is populated from usermode
+		if (ECB_entries_bus_no(pecb, idx) != 0) {
+			busno = ECB_entries_bus_no(pecb, idx);
+			SEP_DRV_LOG_TRACE("updated busno=%u", busno);
+		}
+
 		reg_val = (U32)ECB_entries_reg_value(pecb, idx);
 		if (ECB_entries_reg_rw_type(pecb, idx) ==
 		    PMU_REG_RW_READ_WRITE) {
@@ -301,6 +319,13 @@ unc_pci_Disable_PMU(PVOID param)
 		if (ECB_entries_reg_type(pecb, idx) == PMU_REG_GLOBAL_CTRL) {
 			continue;
 		}
+
+		// if bus # is not invalid, it is populated from usermode
+		if (ECB_entries_bus_no(pecb, idx) != 0) {
+			busno = ECB_entries_bus_no(pecb, idx);
+			SEP_DRV_LOG_TRACE("updated busno=%u", busno);
+		}
+
 		reg_val = (U32)ECB_entries_reg_value(pecb, idx);
 		if (ECB_entries_reg_rw_type(pecb, idx) ==
 		    PMU_REG_RW_READ_WRITE) {
@@ -389,6 +414,12 @@ unc_pci_Trigger_Read(PVOID param, U32 id, U32 read_from_intr)
 			data = (U64 *)((S8 *)param + ECB_group_offset(pecb));
 		}
 		*data = cur_grp + 1;
+
+		// if bus # is not invalid, it is populated from usermode
+		if (ECB_entries_bus_no(pecb, idx) != 0) {
+			busno = ECB_entries_bus_no(pecb, idx);
+			SEP_DRV_LOG_TRACE("updated busno=%u", busno);
+		}
 
 		// read lower 4 bytes
 		value_low = PCI_Read_U32(domainno, busno,
@@ -501,6 +532,12 @@ unc_pci_Read_PMU_Data(PVOID param, U32 dev_idx)
 					emon_buffer_driver_helper),
 				ECB_entries_uncore_buffer_offset_in_package(
 					pecb, idx));
+		}
+
+		// if bus # is not invalid, it is populated from usermode
+		if (ECB_entries_bus_no(pecb, idx) != 0) {
+			busno = ECB_entries_bus_no(pecb, idx);
+			SEP_DRV_LOG_TRACE("updated busno=%u", busno);
 		}
 
 		buffer[j] = PCI_Read_U64(domainno, busno,

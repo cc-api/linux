@@ -49,6 +49,8 @@
 //     m2m          |        pmu10
 //     pmem         |        pmu11
 //     mchbm        |        pmu12
+//     pciex8       |        pmu13
+//     pciex16      |        pmu14
 ///////////////////////////////////////////
 
 static U16 common_reg_list[] = {
@@ -157,6 +159,14 @@ static U16 icx_r_pmu10_reg_list[] = {
 };
 
 static U16 pmu11_reg_list[] = { 0x2A0, 0x2A4, 0x2A8, 0x2AC, 0x0 };
+
+static U16 pmu13_reg_list[] = {
+	0x620, 0x630, 0x638, 0x640, 0x648, 0x650, 0x658, 0x660, 0x668, 0x0
+};
+
+static U16 pmu14_reg_list[] = {
+	0x620, 0x630, 0x638, 0x640, 0x648, 0x650, 0x658, 0x660, 0x668, 0x0
+};
 
 static PMU_PCI_UNIT_INFO_NODE hsx_pci_list[] = {
 	// HA
@@ -442,6 +452,12 @@ static PMU_PCI_UNIT_INFO_NODE plat3_pci_list[] = {
 	{ 8,  2, icx_r_pmu10_reg_list }, { 8,  3, icx_r_pmu10_reg_list },
 	// IIO
 	{ 0,  0, pmu3_reg_list1       }, { 3,  0, pmu3_reg_list3       },
+	// PCIe x8
+	{ 3,  0, pmu13_reg_list       }, { 5,  0, pmu13_reg_list       },
+	{ 7,  0, pmu13_reg_list       }, { 9,  0, pmu13_reg_list       },
+	// PCIe x16
+	{ 2,  0, pmu14_reg_list       }, { 4,  0, pmu14_reg_list       },
+	{ 6,  0, pmu14_reg_list       }, { 8,  0, pmu14_reg_list       },
 	// End of list
 	{ 0 }
 };
@@ -457,5 +473,20 @@ static PMU_PCI_UNIT_INFO_NODE plat7_pci_list[] = {
 	// End of list
 	{ 0 }
 };
+
+static PMU_PCI_UNIT_INFO_NODE plat10_pci_list[] = {
+	// IMC
+	{ 0, 1, pmu2_dimm_reg_list2  },
+	// M2M
+	{ 5,  1, icx_r_pmu10_reg_list }, { 5,  2, icx_r_pmu10_reg_list },
+	{ 5,  3, icx_r_pmu10_reg_list }, { 5,  4, icx_r_pmu10_reg_list },
+	{ 5,  5, icx_r_pmu10_reg_list }, { 5,  6, icx_r_pmu10_reg_list },
+	{ 5,  7, icx_r_pmu10_reg_list }, { 6,  1, icx_r_pmu10_reg_list },
+	// IIO
+	{ 0,  0, pmu3_reg_list1       }, { 3,  0, pmu3_reg_list3       },
+	// End of list
+	{ 0 }
+};
+
 #endif
 
