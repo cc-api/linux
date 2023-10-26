@@ -57,6 +57,9 @@
 
 #define SOFTWARE_FLAGS_SPR33			XE_REG(0x4f084)
 
+#define DEV_PCIEERR_STATUS			XE_REG(0x100180)
+#define   DEV_PCIEERR_IS_FATAL(x)		REG_BIT(x * 4 + 2)
+
 #define GU_CNTL					XE_REG(0x101010)
 #define   LMEM_INIT				REG_BIT(7)
 
@@ -95,6 +98,7 @@
 #define   GU_MISC_IRQ				REG_BIT(29)
 #define   DISPLAY_IRQ				REG_BIT(16)
 #define   GT_DW_IRQ(x)				REG_BIT(x)
+#define   XE_ERROR_IRQ(x)			REG_BIT(26 + (x))
 
 #define PVC_RP_STATE_CAP			XE_REG(0x281014)
 

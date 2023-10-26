@@ -550,16 +550,17 @@ static int do_gt_restart(struct xe_gt *gt)
 
 static void xe_uevent_gt_reset_failure(struct pci_dev *pdev, u8 tile_id, u8 gt_id)
 {
-	char *reset_event[4];
+	char *reset_event[5];
 
-	reset_event[0] = XE_RESET_FAILED_UEVENT "=NEEDS_RESET";
-	reset_event[1] = kasprintf(GFP_KERNEL, "TILE_ID=%d", tile_id);
-	reset_event[2] = kasprintf(GFP_KERNEL, "GT_ID=%d", gt_id);
-	reset_event[3] = NULL;
+	reset_event[0] = XE_RESET_REQUIRED_UEVENT;
+	reset_event[1] = XE_RESET_REQUIRED_UEVENT_REASON_GT;
+	reset_event[2] = kasprintf(GFP_KERNEL, "TILE_ID=%d", tile_id);
+	reset_event[3] = kasprintf(GFP_KERNEL, "GT_ID=%d", gt_id);
+	reset_event[4] = NULL;
 	kobject_uevent_env(&pdev->dev.kobj, KOBJ_CHANGE, reset_event);
 
-	kfree(reset_event[1]);
 	kfree(reset_event[2]);
+	kfree(reset_event[3]);
 }
 
 static int gt_reset(struct xe_gt *gt)
