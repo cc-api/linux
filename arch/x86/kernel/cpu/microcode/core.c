@@ -49,6 +49,7 @@ static bool dis_ucode_ldr = true;
 struct dentry *dentry_ucode;
 bool override_minrev;
 bool ucode_load_same;
+bool relax_rbmeta = false;
 
 bool initrd_gone;
 
@@ -977,6 +978,7 @@ static int __init microcode_init(void)
 
 	debugfs_create_bool("override_minrev", 0644, dentry_ucode, &override_minrev);
 	debugfs_create_bool("load_same", 0644, dentry_ucode, &ucode_load_same);
+	debugfs_create_bool("relax_rbmeta", 0644, dentry_ucode, &relax_rbmeta);
 
 	pr_info("Microcode Update Driver: v%s.", DRIVER_VERSION);
 

@@ -1513,17 +1513,18 @@ static bool check_svn_update(struct ucode_meta *rb_meta)
 
 static bool is_ucode_listed(struct ucode_meta *rb_meta)
 {
-	//int i;
-	int cpu = raw_smp_processor_id();
-	struct ucode_cpu_info *uci;
-	//int rev, svn;
-
-	uci = ucode_cpu_info + cpu;
-	//rev = uci->cpu_sig.rev;
-	//svn = bsp_svn_info.committed_mcu_svn;
 
 	/* TODO: Uncomment this check when ucode supports rollback_id and rollback_svn */
 #if 0
+	int i;
+	int cpu = raw_smp_processor_id();
+	struct ucode_cpu_info *uci;
+	int rev, svn;
+
+	uci = ucode_cpu_info + cpu;
+	rev = uci->cpu_sig.rev;
+	svn = bsp_svn_info.committed_mcu_svn;
+
 	for (i = 0; i < NUM_RB_INFO; i++) {
 		if (!rb_meta->rollback_id[i])
 			return false;
@@ -1582,8 +1583,15 @@ static bool check_ucode_constraints(enum reload_type type)
 	 */
 	rb_meta = (struct ucode_meta *)intel_microcode_find_meta_data((void *)unapplied_ucode,
 								      META_TYPE_ROLLBACK);
-	if (!rb_meta)
-		return false;
+	if (!rb_meta) {
+		/* TODO: `relax_rbmeta` is temp hack as many test ucode
+		 * do not have metadata. Needs to be removed before
+		 * upstreaming!
+		 */
+		if (!relax_rbmeta)
+			return false;
+		goto out;
+	}
 
 	if (type == RELOAD_NO_COMMIT && !can_do_nocommit(rb_meta))
 		return false;
@@ -1591,6 +1599,7 @@ static bool check_ucode_constraints(enum reload_type type)
 	if (type == RELOAD_COMMIT && !check_svn_update(rb_meta))
 		return false;
 
+out:
 	return true;
 }
 
