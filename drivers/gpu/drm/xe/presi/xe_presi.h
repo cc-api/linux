@@ -62,8 +62,6 @@ struct xe_presi_info {
 	u64 disabled_features;
 	int timeout_multiplier;
 
-	struct timer_list irq_timer; /* Timer to fake periordic interrupt */
-
 	/* features used in presi phase */
 	void *presi_features;
 };
