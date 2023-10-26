@@ -6718,6 +6718,40 @@
             "maillist": "",
             "platforms": "",
             "feature_jiras": ""
+        },
+        {
+            "branch": "iommu-devtlb-fix-6.6",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Adam Preble",
+                    "email": "adam.c.preble@intel.com"
+                }
+            ],
+            "description": "Fixes a kernel initialization hang with the kernel boot parameter 'iommu=pt.' ",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Adam Preble",
+                    "email": "adam.c.preble@intel.com"
+                }
+            ],
+            "jira": "NEXT-3545",
+            "name": "iommu_hotfix",
+            "repourl": "https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next.git",
+            "sdl_contact": [
+                {
+                    "name": "Adam Preble",
+                    "email": "adam.c.preble@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": "",
+            "last_enabled": "v6.6"
         }
     ]
 }
