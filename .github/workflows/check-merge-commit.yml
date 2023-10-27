@@ -1,0 +1,37 @@
+name: 'Check merge commit'
+
+on:
+  pull_request:
+    branches:
+      - xe-internal
+
+jobs:
+  check:
+    runs-on: [ self-hosted ]
+    steps:
+      - name: 'Checkout - PR commits only'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: ${{ github.event.pull_request.commits }}
+
+      - name: 'List commits'
+        run: |
+          echo "Commits checked:" >> $GITHUB_STEP_SUMMARY
+          git log --oneline --abbrev-commit
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          git log --oneline --abbrev-commit >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # TODO: when dii xe-check-rebase is done, this should trigger additional
+      # checks rather than causing a straight failure
+      - name: 'Has merge commits'
+        run: |
+          if [ -n "$(git log --oneline --merges)" ]; then
+              echo "✘ PRs shouldn't contain merge commits" >> $GITHUB_STEP_SUMMARY
+              exit 1
+          fi
+
+      - name: 'Done'
+        run: |
+          echo "✅ All checks done: success" >> $GITHUB_STEP_SUMMARY
