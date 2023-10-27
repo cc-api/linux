@@ -66,6 +66,7 @@
 struct lockstep_info {
 	int		role;
 	int		peer_cpu;
+	u64		session;
 	bool		init;
 	bool		enable;
 	bool		offline_in_progress;
@@ -232,6 +233,8 @@ static ssize_t enable_store(struct device *dev, struct device_attribute *attr,
 		if (ret)
 			goto exit;
 
+		per_cpu_ptr(&info, li->peer_cpu)->session += 1;
+
 		per_cpu_ptr(&info, shadow_cpu)->online_in_progress = true;
 		ret = device_online(shadow_dev);
 		per_cpu_ptr(&info, shadow_cpu)->online_in_progress = false;
@@ -251,8 +254,15 @@ exit:
 }
 static DEVICE_ATTR_RW(enable);
 
+static ssize_t session_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sysfs_emit(buf, "%lld\n", per_cpu_ptr(&info, dev->id)->session);
+}
+static DEVICE_ATTR_RO(session);
+
 static struct attribute *lockstep_active_attrs[] = {
 	&dev_attr_enable.attr,
+	&dev_attr_session.attr,
 	NULL
 };
 
@@ -301,6 +311,8 @@ static int initialize_lockstep_info(void)
 	this_cpu_write(info.peer_cpu,
 		       apic_to_cpu(FIELD_GET(CAP_PEER_TOPOLOGY_ID, reg) << SMT_SHIFT));
 
+	this_cpu_write(info.session, 1);
+
 	this_cpu_write(info.init, true);
 
 	return 0;
@@ -319,6 +331,7 @@ static int lockstep_add_dev(unsigned int cpu)
 			pr_info("CPU%d Unexpected exit from lockstep\n", raw_smp_processor_id());
 		li->enable = 0;
 		per_cpu_ptr(&info, li->peer_cpu)->enable = 0;
+		per_cpu_ptr(&info, li->peer_cpu)->session += 1;
 	}
 
 	if (!li->init) {
