@@ -144,7 +144,7 @@ obj-$(CONFIG_WINMATE_FM07_KEYS)		+= winmate-fm07-keys.o
 obj-$(CONFIG_SEL3350_PLATFORM)		+= sel3350-platform.o
 
 # sep and socwatch drivers
-#obj-$(CONFIG_INTEL_SOCPERF)     += socperf/
+obj-$(CONFIG_INTEL_SOCPERF)     += socperf/
 obj-$(CONFIG_INTEL_SOCWATCH)    += socwatch/ socperf/
 obj-$(CONFIG_INTEL_SOCWATCH_HV) += socwatchhv/
-#obj-$(CONFIG_INTEL_SEP)         += sepdk/ socperf/
+obj-$(CONFIG_INTEL_SEP)         += sepdk/ socperf/
