@@ -1454,7 +1454,7 @@ int idxd_copy_cr(struct idxd_wq *wq, ioasid_t pasid, unsigned long addr,
 		 * This ensures that the user receives the correct completion
 		 * record information once polling for a non-zero status.
 		 */
-		wmb();
+		smp_wmb();
 		status = *(u8 *)cr;
 		if (put_user(status, (u8 __user *)addr))
 			left += status_size;
