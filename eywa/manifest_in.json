@@ -6752,6 +6752,40 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.6"
+        },
+        {
+            "branch": "tdx_mca",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Tony Luck",
+                    "email": "tony.luck@intel.com"
+                }
+            ],
+            "description": "TDX non-root machine check recovery",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Tony Luck",
+                    "email": "tony.luck@intel.com"
+                }
+            ],
+            "jira": "NEXT-3546",
+            "name": "tdx_mca",
+            "repourl": "https://github.com/intel-sandbox/agluck-linux.git",
+            "sdl_contact": [
+                {
+                    "name": "Baruch Chaikin",
+                    "email": "baruch.chaikin@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": "",
+            "last_enabled": "v6.6"
         }
     ]
 }
