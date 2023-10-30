@@ -466,6 +466,10 @@ struct thread_struct {
 	unsigned int		iopl_warn:1;
 	unsigned int		sig_on_uaccess_err:1;
 
+	/* User MSR control */
+	u64 umsr_control;
+	u8 *umsr_bitmap;
+
 	/*
 	 * Protection Keys Register for Userspace.  Loaded immediately on
 	 * context switch. Store it in thread_struct to avoid a lookup in
