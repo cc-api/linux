@@ -134,7 +134,13 @@
 #define PEBS_DATACFG_GP	BIT_ULL(1)
 #define PEBS_DATACFG_XMMS	BIT_ULL(2)
 #define PEBS_DATACFG_LBRS	BIT_ULL(3)
+/* Not a bit in HW. */
 #define PEBS_DATACFG_CNTR	BIT_ULL(4)
+#define PEBS_DATACFG_YMM	BIT_ULL(5)
+#define PEBS_DATACFG_OPMASK	BIT_ULL(6)
+#define PEBS_DATACFG_ZMMLH	BIT_ULL(7)
+#define PEBS_DATACFG_ZMMH	BIT_ULL(8)
+
 #define PEBS_DATACFG_LBR_SHIFT	24
 
 /* Steal the highest bit of pebs_data_cfg for SW usage */
@@ -525,7 +531,11 @@ struct arch_pebs_header {
 			    lbr:2,
 			    rsvd3:7,
 			    xmm:1,
-			    vecr:6,
+			    ymmh:1,
+			    vecr:2,
+			    opmask:1,
+			    zmmlh:1,
+			    zmmh:1,
 			    rsvd4:5,
 			    gpr:1,
 			    aux:1,
@@ -570,6 +580,19 @@ struct arch_pebs_gprs {
 
 struct arch_pebs_xmm {
 	u64 xmm[16*2];	/* two entries for each register */
+};
+
+struct arch_pebs_ymmh {
+	u64 ymmh[16*2];	/* two entries for each register */
+};
+struct arch_pebs_opmask {
+	u64 opmask[8];
+};
+struct arch_pebs_zmmlh {
+	u64 zmmlh[16][4];	/* four entries for each register */
+};
+struct arch_pebs_zmmh {
+	u64 zmmh[16][8];	/* eight entries for each register */
 };
 
 struct arch_pebs_lbr_header {
@@ -672,7 +695,12 @@ extern void perf_events_lapic_init(void);
 struct pt_regs;
 struct x86_perf_regs {
 	struct pt_regs	regs;
+	u64		ssp;
 	u64		*xmm_regs;
+	u64		*opmask_regs;
+	u64		*ymmh_regs;
+	u64		**zmmlh_regs;
+	u64		**zmmh_regs;
 };
 
 extern unsigned long perf_instruction_pointer(struct pt_regs *regs);

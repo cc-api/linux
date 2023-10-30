@@ -6896,6 +6896,21 @@ perf_output_sample_regs(struct perf_output_handle *handle,
 	}
 }
 
+static void
+perf_output_sample_regs_ext(struct perf_output_handle *handle,
+			    struct pt_regs *regs,
+			    unsigned long *mask,
+			    unsigned int size)
+{
+	int bit;
+	u64 val;
+
+	for_each_set_bit(bit, mask, size) {
+		val = perf_reg_value(regs, bit + PERF_REG_EXTENDED_OFFSET);
+		perf_output_put(handle, val);
+	}
+}
+
 static void perf_sample_regs_user(struct perf_regs *regs_user,
 				  struct pt_regs *regs)
 {
@@ -7321,6 +7336,12 @@ static void perf_output_read(struct perf_output_handle *handle,
 		perf_output_read_one(handle, event, enabled, running);
 }
 
+static inline bool has_extended_regs_array(struct perf_event *event)
+{
+	return !!bitmap_weight((unsigned long *)event->attr.sample_regs_intr_ext,
+			       PERF_REGS_EXT_ARRAY_SIZE);
+}
+
 void perf_output_sample(struct perf_output_handle *handle,
 			struct perf_event_header *header,
 			struct perf_sample_data *data,
@@ -7472,6 +7493,12 @@ void perf_output_sample(struct perf_output_handle *handle,
 			perf_output_sample_regs(handle,
 						data->regs_intr.regs,
 						mask);
+			if (has_extended_regs_array(event)) {
+				perf_output_sample_regs_ext(handle,
+							    data->regs_intr.regs,
+							    (unsigned long *)event->attr.sample_regs_intr_ext,
+							    PERF_REGS_EXT_ARRAY_SIZE);
+			}
 		}
 	}
 
@@ -7786,6 +7813,11 @@ void perf_prepare_sample(struct perf_sample_data *data,
 			u64 mask = event->attr.sample_regs_intr;
 
 			size += hweight64(mask) * sizeof(u64);
+
+			if (has_extended_regs_array(event)) {
+				size += bitmap_weight((unsigned long *)event->attr.sample_regs_intr_ext,
+						      PERF_REGS_EXT_ARRAY_SIZE) * sizeof(u64);
+			}
 		}
 
 		data->dyn_size += size;
@@ -11677,6 +11709,10 @@ static int perf_try_init_event(struct pmu *pmu, struct perf_event *event)
 		    has_extended_regs(event))
 			ret = -EOPNOTSUPP;
 
+		if (!(pmu->capabilities & PERF_PMU_CAP_EXTENDED_REGS_ARRAY) &&
+		    has_extended_regs_array(event))
+			ret = -EOPNOTSUPP;
+
 		if (pmu->capabilities & PERF_PMU_CAP_NO_EXCLUDE &&
 		    event_has_any_exclude_flag(event))
 			ret = -EINVAL;
@@ -12215,8 +12251,16 @@ static int perf_copy_attr(struct perf_event_attr __user *uattr,
 	if (!attr->sample_max_stack)
 		attr->sample_max_stack = sysctl_perf_event_max_stack;
 
-	if (attr->sample_type & PERF_SAMPLE_REGS_INTR)
-		ret = perf_reg_validate(attr->sample_regs_intr);
+	if (attr->sample_type & PERF_SAMPLE_REGS_INTR) {
+		if (attr->sample_regs_intr != 0)
+			ret = perf_reg_validate(attr->sample_regs_intr);
+		if (ret)
+			return ret;
+		if (!!bitmap_weight((unsigned long *)attr->sample_regs_intr_ext, PERF_REGS_EXT_ARRAY_SIZE))
+			ret = perf_reg_ext_validate((unsigned long *)attr->sample_regs_intr_ext, PERF_REGS_EXT_ARRAY_SIZE);
+		if (ret)
+			return ret;
+	}
 
 #ifndef CONFIG_CGROUP_PERF
 	if (attr->sample_type & PERF_SAMPLE_CGROUP)

@@ -1236,6 +1236,7 @@ static u64 pebs_update_adaptive_cfg(struct perf_event *event)
 	u64 sample_type = attr->sample_type;
 	u64 pebs_data_cfg = 0;
 	bool gprs, tsx_weight;
+	int bit = 0;
 
 	if (!(sample_type & ~(PERF_SAMPLE_IP|PERF_SAMPLE_TIME)) &&
 	    attr->precise_ip > 1)
@@ -1260,9 +1261,32 @@ static u64 pebs_update_adaptive_cfg(struct perf_event *event)
 	if (gprs || (attr->precise_ip < 2) || tsx_weight)
 		pebs_data_cfg |= PEBS_DATACFG_GP;
 
-	if ((sample_type & PERF_SAMPLE_REGS_INTR) &&
-	    (attr->sample_regs_intr & PERF_REG_EXTENDED_MASK))
-		pebs_data_cfg |= PEBS_DATACFG_XMMS;
+	if (sample_type & PERF_SAMPLE_REGS_INTR) {
+		if (attr->sample_regs_intr & PERF_REG_EXTENDED_MASK)
+			pebs_data_cfg |= PEBS_DATACFG_XMMS;
+
+		for_each_set_bit_from(bit, (unsigned long *)event->attr.sample_regs_intr_ext,
+				      PERF_REGS_EXT_ARRAY_SIZE) {
+			switch (bit + PERF_REG_EXTENDED_OFFSET) {
+			case PERF_REG_X86_OPMASK0 ... PERF_REG_X86_OPMASK7:
+				pebs_data_cfg |= PEBS_DATACFG_OPMASK;
+				bit = PERF_REG_X86_YMMH0 - PERF_REG_EXTENDED_OFFSET - 1;
+				break;
+			case PERF_REG_X86_YMMH0 ... PERF_REG_X86_ZMMH0 - 1:
+				pebs_data_cfg |= PEBS_DATACFG_YMM;
+				bit = PERF_REG_X86_ZMMH0 - PERF_REG_EXTENDED_OFFSET - 1;
+				break;
+			case PERF_REG_X86_ZMMH0 ... PERF_REG_X86_ZMM16 - 1:
+				pebs_data_cfg |= PEBS_DATACFG_ZMMLH;
+				bit = PERF_REG_X86_ZMM16 - PERF_REG_EXTENDED_OFFSET - 1;
+				break;
+			case PERF_REG_X86_ZMM16 ... PERF_REG_X86_ZMM_MAX - 1:
+				pebs_data_cfg |= PEBS_DATACFG_ZMMH;
+				bit = PERF_REG_X86_ZMM_MAX - PERF_REG_EXTENDED_OFFSET - 1;
+				break;
+			}
+		}
+	}
 
 	if (sample_type & PERF_SAMPLE_BRANCH_STACK) {
 		/*
@@ -2108,6 +2132,8 @@ __intel_pmu_pebs_event(struct perf_event *event,
 	void *at = get_next_pebs_record_by_bit(base, top, bit);
 	static struct pt_regs dummy_iregs;
 
+	perf_regs.ssp = 0;
+
 	if (hwc->flags & PERF_X86_EVENT_AUTO_RELOAD) {
 		/*
 		 * Now, auto-reload is only enabled in fixed period mode.
@@ -2454,8 +2480,10 @@ static void setup_arch_pebs_sample_data(struct perf_event *event,
 			regs->flags &= ~PERF_EFLAGS_EXACT;
 		}
 
-		if (sample_type & PERF_SAMPLE_REGS_INTR)
+		if (sample_type & PERF_SAMPLE_REGS_INTR) {
 			adaptive_pebs_save_regs(regs, (struct pebs_gprs *)gprs);
+			perf_regs->ssp = gprs->ssp;
+		}
 	}
 
 	if (header->aux) {
@@ -2497,6 +2525,34 @@ static void setup_arch_pebs_sample_data(struct perf_event *event,
 
 		next_record = xmm + 1;
 		perf_regs->xmm_regs = xmm->xmm;
+	}
+
+	if (header->ymmh) {
+		struct arch_pebs_ymmh *ymmh = next_record;
+
+		next_record = ymmh + 1;
+		perf_regs->ymmh_regs = ymmh->ymmh;
+	}
+
+	if (header->opmask) {
+		struct arch_pebs_opmask *opmask = next_record;
+
+		next_record = opmask + 1;
+		perf_regs->opmask_regs = opmask->opmask;
+	}
+
+	if (header->zmmlh) {
+		struct arch_pebs_zmmlh *zmmlh = next_record;
+
+		next_record = zmmlh + 1;
+		perf_regs->zmmlh_regs = (u64 **)zmmlh->zmmlh;
+	}
+
+	if (header->zmmh) {
+		struct arch_pebs_zmmh *zmmh = next_record;
+
+		next_record = zmmh + 1;
+		perf_regs->zmmh_regs = (u64 **)zmmh->zmmh;
 	}
 
 	if (header->lbr) {
@@ -2709,6 +2765,9 @@ static int intel_arch_pebs_init(void)
 
 	x86_pmu.drain_pebs = intel_pmu_drain_arch_pebs;
 	x86_pmu.pebs_capable = ~0ULL;
+
+	x86_get_pmu(smp_processor_id())->capabilities |= PERF_PMU_CAP_EXTENDED_REGS;
+	x86_get_pmu(smp_processor_id())->capabilities |= PERF_PMU_CAP_EXTENDED_REGS_ARRAY;
 
 	return 0;
 }

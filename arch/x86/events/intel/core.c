@@ -2889,7 +2889,19 @@ static void intel_pmu_enable_event_ext(struct perf_event *event)
 			ext |= ARCH_PEBS_GPR & cap->group_map;
 
 		if (cpuc->pebs_data_cfg & PEBS_DATACFG_XMMS)
-			ext |= (1ULL << ARCH_PEBS_VECR_SHIFT) & cap->group_map;
+			ext |= ARCH_PEBS_VECR_XMM & cap->group_map;
+
+		if (cpuc->pebs_data_cfg & PEBS_DATACFG_YMM)
+			ext |= ARCH_PEBS_VECR_YMM & cap->group_map;
+
+		if (cpuc->pebs_data_cfg & PEBS_DATACFG_OPMASK)
+			ext |= ARCH_PEBS_VECR_OPMASK & cap->group_map;
+
+		if (cpuc->pebs_data_cfg & PEBS_DATACFG_ZMMLH)
+			ext |= ARCH_PEBS_VECR_ZMMLH & cap->group_map;
+
+		if (cpuc->pebs_data_cfg & PEBS_DATACFG_ZMMH)
+			ext |= ARCH_PEBS_VECR_ZMMH & cap->group_map;
 
 		if (cpuc->pebs_data_cfg & PEBS_DATACFG_LBRS)
 			ext |= ARCH_PEBS_LBR & cap->group_map;
@@ -5074,8 +5086,11 @@ static bool init_hybrid_pmu(int cpu)
 		update_pmu_cap(pmu);
 
 	pmu->arch_pebs = this_cpu_has(X86_FEATURE_ARCH_PEBS);
-	if (pmu->arch_pebs)
+	if (pmu->arch_pebs) {
+		cpuc->pmu->capabilities |= PERF_PMU_CAP_EXTENDED_REGS;
+		cpuc->pmu->capabilities |= PERF_PMU_CAP_EXTENDED_REGS_ARRAY;
 		intel_arch_pebs_enum_cap(&pmu->arch_pebs_cap);
+	}
 
 	/* Must run after update_pmu_cap which could upate counter bitmaps */
 	intel_pmu_check_hybrid_pmus();
@@ -5142,6 +5157,11 @@ static void intel_pmu_cpu_starting(int cpu)
 			x86_pmu.intel_cap.perf_metrics = 0;
 			x86_pmu.intel_ctrl &= ~(1ULL << GLOBAL_CTRL_EN_PERF_METRICS);
 		}
+	}
+
+	if (x86_pmu.arch_pebs) {
+		cpuc->pmu->capabilities |= PERF_PMU_CAP_EXTENDED_REGS;
+		cpuc->pmu->capabilities |= PERF_PMU_CAP_EXTENDED_REGS_ARRAY;
 	}
 
 	if (!cpuc->shared_regs)
