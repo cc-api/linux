@@ -13,3 +13,4 @@ iopl
 mpx-mini-test
 ioperm
 test_vdso
+umsr
