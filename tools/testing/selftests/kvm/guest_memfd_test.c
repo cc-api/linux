@@ -123,6 +123,7 @@ static void test_invalid_punch_hole(int fd, size_t page_size, size_t total_size)
 
 static void test_create_guest_memfd_invalid(struct kvm_vm *vm)
 {
+	uint64_t valid_flags = 0;
 	size_t page_size = getpagesize();
 	uint64_t flag;
 	size_t size;
@@ -135,8 +136,22 @@ static void test_create_guest_memfd_invalid(struct kvm_vm *vm)
 			    size);
 	}
 
+	if (thp_configured()) {
+		for (size = page_size * 2; size < get_trans_hugepagesz(); size += page_size) {
+			fd = __vm_create_guest_memfd(vm, size, KVM_GUEST_MEMFD_ALLOW_HUGEPAGE);
+			TEST_ASSERT(fd == -1 && errno == EINVAL,
+				    "guest_memfd() with non-hugepage-aligned page size '0x%lx' should fail with EINVAL",
+				    size);
+		}
+
+		valid_flags = KVM_GUEST_MEMFD_ALLOW_HUGEPAGE;
+	}
+
 	for (flag = 1; flag; flag <<= 1) {
 		uint64_t bit;
+
+		if (flag & valid_flags)
+			continue;
 
 		fd = __vm_create_guest_memfd(vm, page_size, flag);
 		TEST_ASSERT(fd == -1 && errno == EINVAL,
