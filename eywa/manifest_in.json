@@ -4878,48 +4878,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "perf-intel-next",
-            "branch_type": "expiring",
-            "config_options": [],
-            "contributor": [
-                {
-                    "name": "Zhenyu Wang",
-                    "email": "zhenyuw@linux.intel.com"
-                }
-            ],
-            "description": "This pull request introduces the Linux perf PMU support for PMU core and uncore support. It also has fixes for the SPR uncore support, IOMMU PerfMon and MSRL.",
-            "enabled": true,
-            "ip_owner": [
-                {
-                    "name": "Beeman Strong",
-                    "email": "beeman.strong@intel.com"
-                },
-                {
-                    "name": "Ahmad Yasin",
-                    "email": "ahmad.yasin@intel.com"
-                },
-                {
-                    "name": "Jeremiah D. Williamson",
-                    "email": "jeremiah.d.williamson@intel.com"
-                }
-            ],
-            "jira": "NEXT-3515",
-            "name": "perf",
-            "repourl": "https://github.com/intel-innersource/os.linux.perf.intel-next.git",
-            "sdl_contact": [
-                {
-                    "name": "Andi Kleen",
-                    "email": "andi.kleen@intel.com"
-                }
-            ],
-            "status": "intel confidential",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.6",
-            "maillist": "",
-            "platforms": "ARL,EMR,GNR,GRR,LNL,MTL,SPR,SRF",
-            "feature_jiras": ""
-        },
-        {
             "branch": "hybrid_virt_fixup",
             "branch_type": "expiring",
             "config_options": [],
@@ -6786,6 +6744,48 @@
             "platforms": "",
             "feature_jiras": "",
             "last_enabled": "v6.6"
+        },
+        {
+            "branch": "perf-intel-next",
+            "branch_type": "expiring",
+            "config_options": [],
+            "contributor": [
+                {
+                    "name": "Zhenyu Wang",
+                    "email": "zhenyuw@linux.intel.com"
+                }
+            ],
+            "description": "This pull request introduces the Linux perf PMU support for PMU core and uncore support. It also has fixes for the SPR uncore support, IOMMU PerfMon and MSRL.",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Beeman Strong",
+                    "email": "beeman.strong@intel.com"
+                },
+                {
+                    "name": "Ahmad Yasin",
+                    "email": "ahmad.yasin@intel.com"
+                },
+                {
+                    "name": "Jeremiah D. Williamson",
+                    "email": "jeremiah.d.williamson@intel.com"
+                }
+            ],
+            "jira": "NEXT-3515",
+            "name": "perf",
+            "repourl": "https://github.com/intel-innersource/os.linux.perf.intel-next.git",
+            "sdl_contact": [
+                {
+                    "name": "Andi Kleen",
+                    "email": "andi.kleen@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.6",
+            "maillist": "",
+            "platforms": "ARL,EMR,GNR,GRR,LNL,MTL,SPR,SRF",
+            "feature_jiras": ""
         }
     ]
 }
