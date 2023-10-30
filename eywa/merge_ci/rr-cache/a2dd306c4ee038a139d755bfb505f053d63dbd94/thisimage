@@ -48,15 +48,12 @@
 #define MSR_IA32_FRED_SSP3	0x1d3			/* Level 3 shadow stack pointer */
 #define MSR_IA32_FRED_CONFIG	0x1d4			/* Entrypoint and interrupt stack level */
 
-<<<<<<<
 #define MSR_IA32_USER_MSR_CTL			0x1C
 #define USER_MSR_CTL_ENABLE			BIT_ULL(0)
 #define USER_MSR_CTL_RESERVED			GENMASK_ULL(11,1)
 #define USER_MSR_CTL_BITMAPADDR			GENMASK_ULL(63,12)
 
-=======
 /* Intel MSRs. Some also available on other CPUs */
->>>>>>>
 #define MSR_TEST_CTRL				0x00000033
 #define MSR_TEST_CTRL_SPLIT_LOCK_DETECT_BIT	29
 #define MSR_TEST_CTRL_SPLIT_LOCK_DETECT		BIT(MSR_TEST_CTRL_SPLIT_LOCK_DETECT_BIT)
@@ -573,6 +570,9 @@
 /* Auto-reload via MSR instead of DS area */
 #define MSR_RELOAD_PMC0			0x000014c1
 #define MSR_RELOAD_FIXED_CTR0		0x00001309
+
+/* KeyID partitioning between MKTME and TDX */
+#define MSR_IA32_MKTME_KEYID_PARTITIONING	0x00000087
 
 /*
  * AMD64 MSRs. Not complete. See the architecture manual for a more
@@ -1128,6 +1128,22 @@
 /* Geode defined MSRs */
 #define MSR_GEODE_BUSCONT_CONF0		0x00001900
 
+/* MKTME MSRs */
+#define MSR_IA32_TME_ACTIVATE		0x00000982
+
+/* Helpers to access TME_ACTIVATE MSR */
+#define TME_ACTIVATE_LOCKED(x)		(x & 0x1)
+#define TME_ACTIVATE_ENABLED(x)		(x & 0x2)
+
+#define TME_ACTIVATE_POLICY(x)		((x >> 4) & 0xf)	/* Bits 7:4 */
+#define TME_ACTIVATE_KEYID_BITS(x)	((x >> 32) & 0xf)	/* Bits 35:32 */
+
+#define TME_ACTIVATE_POLICY_AES_XTS_128	0
+
+#define TME_ACTIVATE_CRYPTO_ALGS(x)	((x >> 48) & 0xffff)	/* Bits 63:48 */
+#define TME_ACTIVATE_CRYPTO_AES_XTS_128	1
+
+
 /* Intel VT MSRs */
 #define MSR_IA32_VMX_BASIC              0x00000480
 #define MSR_IA32_VMX_PINBASED_CTLS      0x00000481
@@ -1151,6 +1167,7 @@
 #define MSR_IA32_VMX_EXIT_CTLS2		0x00000493
 
 /* VMX_BASIC bits and bitmasks */
+<<<<<<<
 #define VMX_BASIC_VMCS_SIZE_SHIFT		32
 #define VMX_BASIC_ALWAYS_0			BIT_ULL(31)
 #define VMX_BASIC_RESERVED_RANGE_1		GENMASK_ULL(47, 45)
@@ -1180,6 +1197,16 @@
 	 VMX_BASIC_RESERVED_RANGE_1 |		\
 	 VMX_BASIC_RESERVED_RANGE_2 |		\
 	 VMX_BASIC_RESERVED_RANGE_3)
+=======
+#define VMX_BASIC_VMCS_SIZE_SHIFT	32
+#define VMX_BASIC_TRUE_CTLS		(1ULL << 55)
+#define VMX_BASIC_64		0x0001000000000000LLU
+#define VMX_BASIC_MEM_TYPE_SHIFT	50
+#define VMX_BASIC_MEM_TYPE_MASK	0x003c000000000000LLU
+#define VMX_BASIC_MEM_TYPE_WB	6LLU
+#define VMX_BASIC_INOUT		0x0040000000000000LLU
+#define VMX_BASIC_NO_HW_ERROR_CODE_CC	0x0100000000000000LLU
+>>>>>>>
 
 /* Resctrl MSRs: */
 /* - Intel: */
