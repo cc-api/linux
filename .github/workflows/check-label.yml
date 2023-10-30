@@ -1,4 +1,4 @@
-name: 'Mergeable?'
+name: 'Check labels'
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ on:
       - unlabeled
 
 jobs:
-  check-label:
+  check-upstream:
     runs-on: [ self-hosted ]
     steps:
       - name: Fail if PR is labeled "upstream-discussion-needed"
