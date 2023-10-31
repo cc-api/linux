@@ -36,6 +36,11 @@
 #define EFER_FFXSR		(1<<_EFER_FFXSR)
 #define EFER_AUTOIBRS		(1<<_EFER_AUTOIBRS)
 
+#define MSR_IA32_USER_MSR_CTL			0x1C
+#define USER_MSR_CTL_ENABLE			BIT_ULL(0)
+#define USER_MSR_CTL_RESERVED			GENMASK_ULL(11,1)
+#define USER_MSR_CTL_BITMAPADDR			GENMASK_ULL(63,12)
+
 /* Intel MSRs. Some also available on other CPUs */
 
 #define MSR_TEST_CTRL				0x00000033
