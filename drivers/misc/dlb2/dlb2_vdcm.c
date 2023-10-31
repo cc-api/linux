@@ -32,10 +32,12 @@ MODULE_IMPORT_NS(IOMMUFD);
 #endif
 
 /* Helper macros copied from pci/vfio_pci_private.h */
-#define VFIO_PCI_OFFSET_SHIFT		40
-#define VFIO_PCI_OFFSET_TO_INDEX(off)	((off) >> VFIO_PCI_OFFSET_SHIFT)
+#ifndef VFIO_PCI_OFFSET_SHIFT
+#define VFIO_PCI_OFFSET_SHIFT 40
+#define VFIO_PCI_OFFSET_TO_INDEX(off) ((off) >> VFIO_PCI_OFFSET_SHIFT)
 #define VFIO_PCI_INDEX_TO_OFFSET(index) ((u64)(index) << VFIO_PCI_OFFSET_SHIFT)
-#define VFIO_PCI_OFFSET_MASK		(((u64)1 << VFIO_PCI_OFFSET_SHIFT) - 1)
+#define VFIO_PCI_OFFSET_MASK (((u64)1 << VFIO_PCI_OFFSET_SHIFT) - 1)
+#endif
 
 #define VDCM_MSIX_MSG_CTRL_OFFSET	(0x60 + PCI_MSIX_FLAGS)
 #define VDCM_MSIX_MAX_ENTRIES		256
@@ -1886,12 +1888,16 @@ static int dlb2_vdcm_remove(struct mdev_device *mdev)
 	vdev = dlb2_dev_get_drvdata(mdev_dev(mdev));
 	dlb2 = mdev_get_dlb2(mdev);
 
+#ifndef DLB2_NEW_MDEV_IOMMUFD
 	/*
 	 * Ensure this dlb2_vdev's release operation completes before acquiring the
 	 * resource_mutex.
+	 * flush_schedule_work() was depreciated in kernel 6.6. It is not needed
+	 * anyway as we do not use/schedule release_work with new iommufd.
+	 * Todo: clean up release_work related code.
 	 */
 	flush_scheduled_work();
-
+#endif
 	mutex_lock(&dlb2->resource_mutex);
 
 	list_del(&vdev->next);
@@ -2231,7 +2237,6 @@ static int dlb2_vdcm_bind_iommufd(struct vfio_device *vfio_dev,
 {
 	struct dlb2_vdev *vdev = container_of(vfio_dev, struct dlb2_vdev, vfio_dev);
 	struct dlb2 *dlb2 = mdev_get_dlb2(vdev->mdev);
-	struct mdev_device *mdev = vdev->mdev;
 	struct iommufd_device *idev;
 	int rc = 0;
 #if KERNEL_VERSION(5, 19, 0) >= LINUX_VERSION_CODE
@@ -2247,7 +2252,7 @@ static int dlb2_vdcm_bind_iommufd(struct vfio_device *vfio_dev,
 		goto out;
 	}
 #if KERNEL_VERSION(6, 6, 0) <= LINUX_VERSION_CODE
-	rc = dlb2_get_mdev_pasid(mdev);
+	rc = dlb2_get_mdev_pasid(vdev->mdev);
 	if (rc < 0) {
 		dev_err(dlb2->dev,
 			"[%s()] PASID get failed with error %d\n",
@@ -2456,9 +2461,9 @@ static int dlb2_vdcm_attach_ioas(struct vfio_device *vfio_dev,
 		if (!hwpt) {
 			goto out_unlock;
 		}
-		xa_erase(&vdev->pasid_xa, pasid);
+		xa_erase(&vdev->pasid_xa, hwpt->pasid);
 		kfree(hwpt);
-		iommufd_device_detach(vdev->idev);
+		iommufd_device_detach(vdev->idev, pasid);
 		goto out_unlock;
         }
 #endif
