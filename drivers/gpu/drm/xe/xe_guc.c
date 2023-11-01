@@ -76,8 +76,7 @@ static u32 guc_ctl_feature_flags(struct xe_guc *guc)
 	if (enable_psmi)
 		flags |= GUC_CTL_ENABLE_PSMI;
 
-	if (!(XE_PRESI_SKIP_FEATURE(guc_to_xe(guc), GUC_SLPC) ||
-	      GRAPHICS_VERx100(guc_to_xe(guc)) >= 2000))
+	if (!(XE_PRESI_SKIP_FEATURE(guc_to_xe(guc), GUC_SLPC)))
 		flags |= GUC_CTL_ENABLE_SLPC;
 
 	return flags;
