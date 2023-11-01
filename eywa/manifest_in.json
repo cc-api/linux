@@ -6803,7 +6803,7 @@
                 }
             ],
             "description": "This pull request is for enabling KVM User MSR support.",
-            "enabled": true,
+            "enabled": false,
             "ip_owner": [
                 {
                     "name": "Kameswar Subramaniam",
