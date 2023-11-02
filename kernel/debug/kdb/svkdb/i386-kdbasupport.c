@@ -122,38 +122,6 @@ kdba_putdr6(kdb_machreg_t contents)
 	kdba_putdr(6, contents);
 }
 
-/*
- * kdba_getregcontents
- *
- *	Return the contents of the register specified by the
- *	input string argument.   Return an error if the string
- *	does not match a machine register.
- *
- *	The following pseudo register names are supported:
- *	   &regs	 - Prints address of exception frame
- *	   kesp		 - Prints kernel stack pointer at time of fault
- *	   cesp		 - Prints current kernel stack pointer, inside kdb
- *	   ceflags	 - Prints current flags, inside kdb
- *	   %<regname>	 - Uses the value of the registers at the
- *			   last time the user process entered kernel
- *			   mode, instead of the registers at the time
- *			   kdb was entered.
- *
- * Parameters:
- *	regname		Pointer to string naming register
- *	regs		Pointer to structure containing registers.
- * Outputs:
- *	*contents	Pointer to unsigned long to recieve register contents
- * Returns:
- *	0		Success
- *	KDB_BADREG	Invalid register name
- * Locking:
- * 	None.
- * Remarks:
- * 	If kdb was entered via an interrupt from the kernel itself then
- *	ss and esp are *not* on the stack.
- */
-
 static struct kdbregs {
 	char   *reg_name;
 	size_t	reg_offset;

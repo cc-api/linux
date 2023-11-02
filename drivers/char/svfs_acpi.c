@@ -100,7 +100,6 @@ svfs_acpi_pic(int mode)
 {
 	acpi_object acpi_myobj;
 	acpi_object_list acpi_mylist;
-	acpi_buffer acpi_mybuf;
 	char retbuf[512];
 	acpi_status status;
 
@@ -109,7 +108,6 @@ svfs_acpi_pic(int mode)
 	acpi_myobj.integer.value = mode;
 	acpi_mylist.count = 1;
 	acpi_mylist.pointer = &acpi_myobj;
-	acpi_mybuf.length = sizeof(retbuf);
 
 	status = acpi_evaluate_object(NULL, "\\_PIC", &acpi_mylist, NULL);
 	if (ACPI_FAILURE(status)) {

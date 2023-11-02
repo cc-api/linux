@@ -130,38 +130,6 @@ kdba_putdr(int regnum, kdb_machreg_t contents)
 	}
 }
 
-/*
- * kdba_getregcontents
- *
- *	Return the contents of the register specified by the
- *	input string argument.   Return an error if the string
- *	does not match a machine register.
- *
- *	The following pseudo register names are supported:
- *	   &regs	 - Prints address of exception frame
- *	   krsp		 - Prints kernel stack pointer at time of fault
- *	   crsp		 - Prints current kernel stack pointer, inside kdb
- *	   ceflags	 - Prints current flags, inside kdb
- *	   %<regname>	 - Uses the value of the registers at the
- *			   last time the user process entered kernel
- *			   mode, instead of the registers at the time
- *			   kdb was entered.
- *
- * Parameters:
- *	regname		Pointer to string naming register
- *	regs		Pointer to structure containing registers.
- * Outputs:
- *	*contents	Pointer to unsigned long to recieve register contents
- * Returns:
- *	0		Success
- *	KDB_BADREG	Invalid register name
- * Locking:
- * 	None.
- * Remarks:
- * 	If kdb was entered via an interrupt from the kernel itself then
- *	ss and rsp are *not* on the stack.
- */
-
 static struct kdbregs {
 	char   *reg_name;
 	size_t	reg_offset;
@@ -352,33 +320,6 @@ kdba_setregcontents(const char *regname,
 
 	return KDB_BADREG;
 }
-
-/*
- * kdba_dumpregs
- *
- *	Dump the specified register set to the display.
- *
- * Parameters:
- *	regs		Pointer to structure containing registers.
- *	type		Character string identifying register set to dump
- *	extra		string further identifying register (optional)
- * Outputs:
- * Returns:
- *	0		Success
- * Locking:
- * 	None.
- * Remarks:
- *	This function will dump the general register set if the type
- *	argument is NULL (struct pt_regs).   The alternate register
- *	set types supported by this function:
- *
- *	d 		Debug registers
- *	c		Control registers
- *	u		User registers at most recent entry to kernel
- * Following not yet implemented:
- *	m		Model Specific Registers (extra defines register #)
- *	r		Memory Type Range Registers (extra defines register)
- */
 
 int
 kdba_dumpregs(struct pt_regs *regs,
