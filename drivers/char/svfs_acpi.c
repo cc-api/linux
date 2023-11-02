@@ -100,7 +100,6 @@ svfs_acpi_pic(int mode)
 {
 	acpi_object acpi_myobj;
 	acpi_object_list acpi_mylist;
-	char retbuf[512];
 	acpi_status status;
 
 		// execute \_PIC(1|2) for SYM mode or \_PIC(0) for VWx mode */
