@@ -121,6 +121,10 @@
                 {
                     "name": "CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE",
                     "value": "n"
+                },
+                {
+                    "name": "CONFIG_INTEL_TELEMETRY",
+                    "value": "y"
                 }
             ],
             "contributor": [
