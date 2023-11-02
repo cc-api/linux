@@ -206,11 +206,7 @@ static int kvm_check_cpuid(struct kvm_vcpu *vcpu,
 {
 	struct kvm_cpuid_entry2 *best;
 	u64 xfeatures;
-<<<<<<<
-	int r;
-=======
 	int ret;
->>>>>>>
 
 	/*
 	 * The existing code assumes virtual address is 48-bit or 57-bit in the
@@ -234,16 +230,6 @@ static int kvm_check_cpuid(struct kvm_vcpu *vcpu,
 		xfeatures = best->eax | ((u64)best->edx << 32);
 		xfeatures &= XFEATURE_MASK_USER_DYNAMIC;
 		if (xfeatures) {
-<<<<<<<
-			r = fpu_enable_guest_xfd_features(&vcpu->arch.guest_fpu,
-							  xfeatures);
-			if (r)
-				return r;
-		}
-	}
-
-	return static_call(kvm_x86_vcpu_check_cpuid)(vcpu, entries, nent);
-=======
 			ret = fpu_enable_guest_xfd_features(&vcpu->arch.guest_fpu,
 							    xfeatures);
 			if (ret)
@@ -252,7 +238,6 @@ static int kvm_check_cpuid(struct kvm_vcpu *vcpu,
 	}
 
 	return kvm_check_hfi_cpuid(entries, nent);
->>>>>>>
 }
 
 /* Check whether the supplied CPUID data is equal to what is already set for the vCPU. */
@@ -377,19 +362,9 @@ static void __kvm_update_cpuid_runtime(struct kvm_vcpu *vcpu, struct kvm_cpuid_e
 		best->ebx = xstate_required_size(vcpu->arch.xcr0, false);
 
 	best = cpuid_entry2_find(entries, nent, 0xD, 1);
-	if (best) {
-		if (cpuid_entry_has(best, X86_FEATURE_XSAVES) ||
-		    cpuid_entry_has(best, X86_FEATURE_XSAVEC))  {
-			u64 xstate = vcpu->arch.xcr0 | vcpu->arch.ia32_xss;
-
-			best->ebx = xstate_required_size(xstate, true);
-		}
-
-		if (!cpuid_entry_has(best, X86_FEATURE_XSAVES)) {
-			best->ecx = 0;
-			best->edx = 0;
-		}
-	}
+	if (best && (cpuid_entry_has(best, X86_FEATURE_XSAVES) ||
+		     cpuid_entry_has(best, X86_FEATURE_XSAVEC)))
+		best->ebx = xstate_required_size(vcpu->arch.xcr0, true);
 
 	best = __kvm_find_kvm_cpuid_features(vcpu, entries, nent);
 	if (kvm_hlt_in_guest(vcpu->kvm) && best &&
@@ -762,7 +737,7 @@ void kvm_set_cpu_caps(void)
 		F(AVX512VBMI) | F(LA57) | F(PKU) | 0 /*OSPKE*/ | F(RDPID) |
 		F(AVX512_VPOPCNTDQ) | F(UMIP) | F(AVX512_VBMI2) | F(GFNI) |
 		F(VAES) | F(VPCLMULQDQ) | F(AVX512_VNNI) | F(AVX512_BITALG) |
-		F(CLDEMOTE) | F(MOVDIRI) | F(MOVDIR64B) | F(ENQCMD) |
+		F(CLDEMOTE) | F(MOVDIRI) | F(MOVDIR64B) | 0 /*WAITPKG*/ |
 		F(SGX_LC) | F(BUS_LOCK_DETECT)
 	);
 	/* Set LA57 based on hardware capability. */
@@ -796,10 +771,16 @@ void kvm_set_cpu_caps(void)
 		kvm_cpu_cap_set(X86_FEATURE_SPEC_CTRL_SSBD);
 
 	kvm_cpu_cap_mask(CPUID_7_1_EAX,
-		F(AVX_VNNI) | F(AVX512_BF16) | F(LASS) | F(CMPCCXADD) |
+<<<<<<<
+		F(AVX_VNNI) | F(AVX512_BF16) | F(CMPCCXADD) |
 		F(FZRM) | F(FSRS) | F(FSRC) | F(FRED) | F(LKGS) |
-		F(WRMSRNS) | F(AMX_FP16) | F(AVX_IFMA) | F(LAM) |
+		F(WRMSRNS) | F(AMX_FP16) | F(AVX_IFMA)
+=======
+		F(AVX_VNNI) | F(AVX512_BF16) | F(LASS) | F(CMPCCXADD) |
+		F(FZRM) | F(FSRS) | F(FSRC) |
+		F(AMX_FP16) | F(AVX_IFMA) | F(LAM) |
 		F(SHA512) | F(SM3) | F(SM4) | F(AVX512_MEDIAX) | F(RAO_INT) | F(MOVRS)
+>>>>>>>
 	);
 
 	/* Currently HRESET is used to reset the ITD related history. */
@@ -1617,13 +1598,6 @@ out_free:
 	kvfree(array.entries);
 	return r;
 }
-
-struct kvm_cpuid_entry2 *kvm_find_cpuid_entry2(
-	struct kvm_cpuid_entry2 *entries, int nent, u32 function, u64 index)
-{
-	return cpuid_entry2_find(entries, nent, function, index);
-}
-EXPORT_SYMBOL_GPL(kvm_find_cpuid_entry2);
 
 struct kvm_cpuid_entry2 *kvm_find_cpuid_entry_index(struct kvm_vcpu *vcpu,
 						    u32 function, u32 index)
