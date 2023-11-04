@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0-only
 config DRM_XE
 	tristate "Intel Xe Graphics"
-	depends on DRM && PCI && MMU
+	# depend on 'm' to fix allyesconfig builds (due to duplicated
+	# display symbols between i915 and xe)
+	depends on DRM && PCI && MMU && m
 	select INTERVAL_TREE
 	# we need shmfs for the swappable backing store, and in particular
 	# the shmem_readpage() which depends upon tmpfs

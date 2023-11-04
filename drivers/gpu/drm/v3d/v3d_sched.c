@@ -400,7 +400,7 @@ v3d_sched_init(struct v3d_dev *v3d)
 			     &v3d_render_sched_ops, NULL,
 			     hw_jobs_limit, job_hang_limit,
 			     msecs_to_jiffies(hang_limit_ms), NULL,
-			     ULL, "v3d_render", DRM_SCHED_POLICY_DEFAULT,
+			     NULL, "v3d_render", DRM_SCHED_POLICY_DEFAULT,
 			     v3d->drm.dev);
 	if (ret)
 		goto fail;

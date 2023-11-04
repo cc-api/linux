@@ -127,7 +127,7 @@ static struct xe_presi_ops xe_presi_nops;
 static void xe_presi_set_funcs(struct xe_device *xe)
 {
 	switch (xe->info.platform) {
-#ifdef CONFIG_DRM_XE_FS1
+#if 0 // def CONFIG_DRM_XE_FS1
 	case XE_FS1:
 		xe->presi_info.ops = xe_fs1_presi_get_ops();
 		break;

@@ -103,7 +103,7 @@ bool xe_presi_setup_guc_wopcm_region(struct xe_gt *gt, u32 *wopcm_base,
 				     u32 *wopcm_size);
 bool xe_presi_disable_compute(void);
 
-#ifdef CONFIG_DRM_XE_FS1
+#if 0 // def CONFIG_DRM_XE_FS1
 struct xe_presi_ops *xe_fs1_presi_get_ops(void);
 #endif
 
