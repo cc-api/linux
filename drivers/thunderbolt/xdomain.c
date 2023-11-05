@@ -1945,7 +1945,19 @@ struct tb_xdomain *tb_xdomain_alloc(struct tb *tb, struct device *parent,
 			goto err_free_local_uuid;
 	} else {
 		xd->needs_uuid = true;
-		xd->bonding_possible = !!down->dual_link_port;
+
+		if (down->dual_link_port) {
+			/*
+			 * Gen 4 links come up already as bonded so only update
+			 * the port structures here.
+			 */
+			if (tb_port_get_link_generation(down) >= 4) {
+				down->bonded = true;
+				down->dual_link_port->bonded = true;
+			} else {
+				xd->bonding_possible = true;
+			}
+		}
 	}
 
 	device_initialize(&xd->dev);
