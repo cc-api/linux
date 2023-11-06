@@ -1932,7 +1932,7 @@ static int __kvm_set_msr(struct kvm_vcpu *vcpu, u32 index, u64 data,
 		/*
 		 * Inject #GP upon FRED MSRs accesses from a non-FRED guest to
 		 * make sure no malicious guest can write to FRED MSRs thus to
-		 * corrupt the host FRED MSRs.
+		 * corrupt host FRED MSRs.
 		 */
 		return 1;
 	}
@@ -1985,7 +1985,7 @@ int __kvm_get_msr(struct kvm_vcpu *vcpu, u32 index, u64 *data,
 		/*
 		 * Inject #GP upon FRED MSRs accesses from a non-FRED guest to
 		 * make sure no malicious guest can write to FRED MSRs thus to
-		 * corrupt the host FRED MSRs.
+		 * corrupt host FRED MSRs.
 		 */
 		return 1;
 	}

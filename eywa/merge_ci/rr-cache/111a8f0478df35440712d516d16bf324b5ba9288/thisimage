@@ -1425,6 +1425,12 @@ void vmx_prepare_switch_to_guest(struct kvm_vcpu *vcpu)
 
 	if (cpu_feature_enabled(X86_FEATURE_FRED) &&
 	    guest_cpuid_has(vcpu, X86_FEATURE_FRED)) {
+		/*
+		 * MSR_IA32_FRED_RSP0 is top of task stack, which never changes.
+		 * Thus it should be initialized only once.
+		 */
+		if (unlikely(vmx->msr_host_fred_rsp0 == 0))
+			vmx->msr_host_fred_rsp0 = read_msr(MSR_IA32_FRED_RSP0);
 		wrmsrl(MSR_IA32_FRED_RSP0, vmx->msr_guest_fred_rsp0);
 	}
 #else
@@ -1451,11 +1457,6 @@ static void vmx_prepare_switch_to_host(struct vcpu_vmx *vmx)
 
 #ifdef CONFIG_X86_64
 	rdmsrl(MSR_KERNEL_GS_BASE, vmx->msr_guest_kernel_gs_base);
-
-	if (cpu_feature_enabled(X86_FEATURE_FRED) &&
-	    guest_cpuid_has(&vmx->vcpu, X86_FEATURE_FRED)) {
-		rdmsrl(MSR_IA32_FRED_RSP0, vmx->msr_guest_fred_rsp0);
-	}
 #endif
 	if (host_state->ldt_sel || (host_state->gs_sel & 7)) {
 		kvm_load_ldt(host_state->ldt_sel);
@@ -1479,6 +1480,7 @@ static void vmx_prepare_switch_to_host(struct vcpu_vmx *vmx)
 
 	if (cpu_feature_enabled(X86_FEATURE_FRED) &&
 	    guest_cpuid_has(&vmx->vcpu, X86_FEATURE_FRED)) {
+		vmx->msr_guest_fred_rsp0 = read_msr(MSR_IA32_FRED_RSP0);
 		wrmsrl(MSR_IA32_FRED_RSP0, vmx->msr_host_fred_rsp0);
 	}
 #endif
@@ -1510,7 +1512,7 @@ static u64 vmx_read_guest_fred_rsp0(struct vcpu_vmx *vmx)
 {
 	preempt_disable();
 	if (vmx->guest_state_loaded)
-		rdmsrl(MSR_IA32_FRED_RSP0, vmx->msr_guest_fred_rsp0);
+		vmx->msr_guest_fred_rsp0 = read_msr(MSR_IA32_FRED_RSP0);
 	preempt_enable();
 	return vmx->msr_guest_fred_rsp0;
 }
@@ -8870,18 +8872,6 @@ static void vmx_vcpu_config_fred_after_set_cpuid(struct kvm_vcpu *vcpu)
 	if (!cpu_feature_enabled(X86_FEATURE_FRED) ||
 	    !guest_cpuid_has(vcpu, X86_FEATURE_FRED))
 		return;
-
-#ifdef CONFIG_X86_64
-	/*
-	 * MSR_IA32_FRED_RSP0 is used during ring 3 event delivery only,
-	 * and set to point to the stack top of the next task in context
-	 * switch.
-	 *
-	 * Initialize vmx->msr_host_fred_rsp0 with host MSR_IA32_FRED_RSP0
-	 * once, Because the stack top of a task never changes.
-	 */
-	rdmsrl(MSR_IA32_FRED_RSP0, vmx->msr_host_fred_rsp0);
-#endif
 
 	/* Enable loading guest FRED MSRs from VMCS */
 	vm_entry_controls_setbit(vmx, VM_ENTRY_LOAD_IA32_FRED);
