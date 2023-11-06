@@ -745,14 +745,8 @@ static bool is_valid_passthrough_msr(u32 msr)
 	case MSR_LBR_CORE_TO ... MSR_LBR_CORE_TO + 8:
 		/* LBR MSRs. These are handled in vmx_update_intercept_for_lbr_msrs() */
 		return true;
-<<<<<<<
 	case MSR_IA32_FRED_RSP0 ... MSR_IA32_FRED_CONFIG:
 		/* FRED MSRs should be passthrough to FRED guests only */
-=======
-	case MSR_IA32_U_CET:
-	case MSR_IA32_S_CET:
-	case MSR_IA32_PL0_SSP ... MSR_IA32_INT_SSP_TAB:
->>>>>>>
 		return true;
 	}
 
@@ -2525,15 +2519,6 @@ int vmx_get_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		else
 			msr_info->data = vmx->pt_desc.guest.addr_a[index / 2];
 		break;
-	case MSR_IA32_S_CET:
-		msr_info->data = vmcs_readl(GUEST_S_CET);
-		break;
-	case MSR_KVM_SSP:
-		msr_info->data = vmcs_readl(GUEST_SSP);
-		break;
-	case MSR_IA32_INT_SSP_TAB:
-		msr_info->data = vmcs_readl(GUEST_INTR_SSP_TABLE);
-		break;
 	case MSR_IA32_DEBUGCTLMSR:
 		msr_info->data = vmcs_read64(GUEST_IA32_DEBUGCTL);
 		break;
@@ -3143,15 +3128,6 @@ int vmx_set_msr(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		else
 			vmx->pt_desc.guest.addr_a[index / 2] = data;
 		break;
-	case MSR_IA32_S_CET:
-		vmcs_writel(GUEST_S_CET, data);
-		break;
-	case MSR_KVM_SSP:
-		vmcs_writel(GUEST_SSP, data);
-		break;
-	case MSR_IA32_INT_SSP_TAB:
-		vmcs_writel(GUEST_INTR_SSP_TABLE, data);
-		break;
 	case MSR_IA32_PERF_CAPABILITIES:
 		if (data && !vcpu_to_pmu(vcpu)->version)
 			return 1;
@@ -3453,7 +3429,6 @@ static int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 		{ VM_ENTRY_LOAD_IA32_EFER,		VM_EXIT_LOAD_IA32_EFER },
 		{ VM_ENTRY_LOAD_BNDCFGS,		VM_EXIT_CLEAR_BNDCFGS },
 		{ VM_ENTRY_LOAD_IA32_RTIT_CTL,		VM_EXIT_CLEAR_IA32_RTIT_CTL },
-		{ VM_ENTRY_LOAD_CET_STATE,		VM_EXIT_LOAD_CET_STATE },
 	};
 
 	memset(vmcs_conf, 0, sizeof(*vmcs_conf));
@@ -3565,6 +3540,11 @@ static int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 		_vmexit_control &= ~x_ctrl;
 	}
 
+<<<<<<<
+	basic_msr = this_cpu_read(vmx_basic);
+	/* A valid MSR_IA32_VMX_BASIC value cannot be 0 */
+	if (!basic_msr)
+=======
 	if (_vmexit_control & VM_EXIT_ACTIVATE_SECONDARY_CONTROLS) {
 		_secondary_vmexit_control =
 			adjust_vmx_controls64(KVM_OPTIONAL_VMX_SECONDARY_VM_EXIT_CONTROLS,
@@ -3587,12 +3567,17 @@ static int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 			return -EIO;
 	}
 
-	basic_msr = this_cpu_read(vmx_basic);
-	/* A valid MSR_IA32_VMX_BASIC value cannot be 0 */
-	if (!basic_msr)
+	rdmsr(MSR_IA32_VMX_BASIC, vmx_msr_low, vmx_msr_high);
+
+	/* IA-32 SDM Vol 3B: VMCS size is never greater than 4kB. */
+	if ((vmx_msr_high & 0x1fff) > PAGE_SIZE)
 		return -EIO;
 
 #ifdef CONFIG_X86_64
+	/* IA-32 SDM Vol 3B: 64-bit CPUs always have VMX_BASIC_MSR[48]==0. */
+	if (vmx_msr_high & (1u << (VMX_BASIC_32BIT_PHYS_ADDR_ONLY_SHIFT - 32)))
+		return -EIO;
+
 	/*
 	 * FRED draft Spec 5.0 Section 9.2:
 	 *
@@ -3600,12 +3585,17 @@ static int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 	 * will also enumerate VMX nested-exception support.
 	 */
 	if (cpu_feature_enabled(X86_FEATURE_FRED) &&
-	    !(basic_msr & (1u << (VMX_BASIC_NESTED_EXCEPTION_SHIFT - 32)))) {
+	    !(vmx_msr_high & (1u << (VMX_BASIC_NESTED_EXCEPTION_SHIFT - 32)))) {
 		pr_warn_once("FRED enabled but no VMX nested-exception support\n");
 		if (error_on_inconsistent_vmcs_config)
 			return -EIO;
 	}
 #endif
+
+	/* Require Write-Back (WB) memory type for VMCS accesses. */
+	if (((vmx_msr_high >> 18) & 15) != 6)
+>>>>>>>
+		return -EIO;
 
 	rdmsrl(MSR_IA32_VMX_MISC, misc_msr);
 
@@ -5121,27 +5111,12 @@ void vmx_set_constant_host_state(struct vcpu_vmx *vmx)
 		vmcs_write64(HOST_IA32_EFER, host_efer);
 
 	/*
-<<<<<<<
 	 * FRED MSRs are per-cpu, however FRED CONFIG and STKLVLS MSRs
 	 * are the same on all CPUs, thus they are initialized here.
 	 */
 	if (cpu_feature_enabled(X86_FEATURE_FRED)) {
 		vmcs_write64(HOST_IA32_FRED_CONFIG, read_msr(MSR_IA32_FRED_CONFIG));
 		vmcs_write64(HOST_IA32_FRED_STKLVLS, read_msr(MSR_IA32_FRED_STKLVLS));
-=======
-	 * Supervisor shadow stack is not enabled on host side, i.e.,
-	 * host IA32_S_CET.SHSTK_EN bit is guaranteed to 0 now, per SDM
-	 * description(RDSSP instruction), SSP is not readable in CPL0,
-	 * so resetting the two registers to 0s at VM-Exit does no harm
-	 * to kernel execution. When execution flow exits to userspace,
-	 * SSP is reloaded from IA32_PL3_SSP. Check SDM Vol.2A/B Chapter
-	 * 3 and 4 for details.
-	 */
-	if (cpu_has_load_cet_ctrl()) {
-		vmcs_writel(HOST_S_CET, host_s_cet);
-		vmcs_writel(HOST_SSP, 0);
-		vmcs_writel(HOST_INTR_SSP_TABLE, 0);
->>>>>>>
 	}
 }
 
@@ -5777,14 +5752,6 @@ void vmx_vcpu_reset(struct kvm_vcpu *vcpu, bool init_event)
 		vmcs_write64(GUEST_BNDCFGS, 0);
 
 	vmcs_write32(VM_ENTRY_INTR_INFO_FIELD, 0);  /* 22.2.1 */
-
-	if (kvm_cpu_cap_has(X86_FEATURE_SHSTK)) {
-		vmcs_writel(GUEST_SSP, 0);
-		vmcs_writel(GUEST_S_CET, 0);
-		vmcs_writel(GUEST_INTR_SSP_TABLE, 0);
-	} else if (kvm_cpu_cap_has(X86_FEATURE_IBT)) {
-		vmcs_writel(GUEST_S_CET, 0);
-	}
 
 	kvm_make_request(KVM_REQ_APIC_PAGE_RELOAD, vcpu);
 
@@ -7235,12 +7202,6 @@ void dump_vmcs(struct kvm_vcpu *vcpu)
 						vmcs_read16(GUEST_APIC_TIMER_VECTOR));
 	}
 
-	if (vmentry_ctl & VM_ENTRY_LOAD_CET_STATE) {
-		pr_err("S_CET = 0x%016lx\n", vmcs_readl(GUEST_S_CET));
-		pr_err("SSP = 0x%016lx\n", vmcs_readl(GUEST_SSP));
-		pr_err("INTR SSP TABLE = 0x%016lx\n",
-		       vmcs_readl(GUEST_INTR_SSP_TABLE));
-	}
 	pr_err("*** Host State ***\n");
 	pr_err("RIP = 0x%016lx  RSP = 0x%016lx\n",
 	       vmcs_readl(HOST_RIP), vmcs_readl(HOST_RSP));
@@ -7337,7 +7298,6 @@ void dump_vmcs(struct kvm_vcpu *vcpu)
 	if (secondary_exec_control & SECONDARY_EXEC_ENABLE_VPID)
 		pr_err("Virtual processor ID = 0x%04x\n",
 		       vmcs_read16(VIRTUAL_PROCESSOR_ID));
-<<<<<<<
 	if (secondary_exec_control & SECONDARY_EXEC_EPT_VIOLATION_VE) {
 		struct vmx_ve_information *ve_info;
 
@@ -7349,13 +7309,6 @@ void dump_vmcs(struct kvm_vcpu *vcpu)
 		       ve_info->exit_qualification,
 		       ve_info->guest_linear_address,
 		       ve_info->guest_physical_address, ve_info->eptp_index);
-=======
-	if (vmexit_ctl & VM_EXIT_LOAD_CET_STATE) {
-		pr_err("S_CET = 0x%016lx\n", vmcs_readl(HOST_S_CET));
-		pr_err("SSP = 0x%016lx\n", vmcs_readl(HOST_SSP));
-		pr_err("INTR SSP TABLE = 0x%016lx\n",
-		       vmcs_readl(HOST_INTR_SSP_TABLE));
->>>>>>>
 	}
 }
 
@@ -7914,6 +7867,10 @@ void vmx_handle_external_interrupt_irqoff(struct kvm_vcpu *vcpu,
 							u32 intr_info)
 {
 	unsigned int vector = intr_info & INTR_INFO_VECTOR_MASK;
+<<<<<<<
+=======
+	gate_desc *desc = (gate_desc *)vmx_host_idt_base + vector;
+>>>>>>>
 
 	if (KVM_BUG(!is_external_intr(intr_info), vcpu->kvm,
 	    "unexpected VM-Exit interrupt info: 0x%x", intr_info))
@@ -7923,7 +7880,7 @@ void vmx_handle_external_interrupt_irqoff(struct kvm_vcpu *vcpu,
 	if (cpu_feature_enabled(X86_FEATURE_FRED))
 		fred_entry_from_kvm(EVENT_TYPE_EXTINT, vector);
 	else
-		vmx_do_interrupt_irqoff(gate_offset((gate_desc *)vmx_host_idt_base + vector));
+		vmx_do_interrupt_irqoff(gate_offset((gate_desc *)host_idt_base + vector));
 	kvm_after_interrupt(vcpu);
 
 	vcpu->arch.at_instruction_boundary = true;
@@ -7964,8 +7921,6 @@ bool vmx_has_emulated_msr(struct kvm *kvm, u32 index)
 	case MSR_AMD64_TSC_RATIO:
 		/* This is AMD only.  */
 		return false;
-	case MSR_KVM_SSP:
-		return kvm_cpu_cap_has(X86_FEATURE_SHSTK);
 	default:
 		return true;
 	}
@@ -8603,8 +8558,12 @@ static int vmx_vm_init_pkg_therm(struct kvm *kvm)
 #define L1TF_MSG_SMT "L1TF CPU bug present and SMT on, data leak possible. See CVE-2018-3646 and https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/l1tf.html for details.\n"
 #define L1TF_MSG_L1D "L1TF CPU bug present and virtualization mitigation disabled, data leak possible. See CVE-2018-3646 and https://www.kernel.org/doc/html/latest/admin-guide/hw-vuln/l1tf.html for details.\n"
 
+<<<<<<<
+int vmx_vm_init(struct kvm *kvm)
+=======
 static inline struct page *vmx_pasid_dir_page(struct kvm_vmx *kvm_vmx,
 					      ioasid_t gpasid)
+>>>>>>>
 {
 	if (!kvm_vmx->pasid_dirs)
 		return NULL;
@@ -8960,8 +8919,6 @@ static void nested_vmx_cr_fixed1_bits_update(struct kvm_vcpu *vcpu)
 	cr4_fixed1_update(X86_CR4_PKE,        ecx, feature_bit(PKU));
 	cr4_fixed1_update(X86_CR4_UMIP,       ecx, feature_bit(UMIP));
 	cr4_fixed1_update(X86_CR4_LA57,       ecx, feature_bit(LA57));
-	cr4_fixed1_update(X86_CR4_CET,	      ecx, feature_bit(SHSTK));
-	cr4_fixed1_update(X86_CR4_CET,	      edx, feature_bit(IBT));
 
 	entry = kvm_find_cpuid_entry_index(vcpu, 0x7, 1);
 	cr4_fixed1_update(X86_CR4_LAM_SUP,    eax, feature_bit(LAM));
@@ -9041,46 +8998,7 @@ static void update_intel_pt_cfg(struct kvm_vcpu *vcpu)
 }
 
 <<<<<<<
-static void vmx_update_intercept_for_cet_msr(struct kvm_vcpu *vcpu)
-{
-	bool incpt;
-
-	if (kvm_cpu_cap_has(X86_FEATURE_SHSTK)) {
-		incpt = !guest_cpuid_has(vcpu, X86_FEATURE_SHSTK);
-
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_U_CET,
-					  MSR_TYPE_RW, incpt);
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_S_CET,
-					  MSR_TYPE_RW, incpt);
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL0_SSP,
-					  MSR_TYPE_RW, incpt);
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL1_SSP,
-					  MSR_TYPE_RW, incpt);
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL2_SSP,
-					  MSR_TYPE_RW, incpt);
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_PL3_SSP,
-					  MSR_TYPE_RW, incpt);
-		if (guest_cpuid_has(vcpu, X86_FEATURE_LM))
-			vmx_set_intercept_for_msr(vcpu, MSR_IA32_INT_SSP_TAB,
-						  MSR_TYPE_RW, incpt);
-		if (!incpt)
-			return;
-	}
-
-	if (kvm_cpu_cap_has(X86_FEATURE_IBT)) {
-		incpt = !guest_cpuid_has(vcpu, X86_FEATURE_IBT);
-
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_U_CET,
-					  MSR_TYPE_RW, incpt);
-		vmx_set_intercept_for_msr(vcpu, MSR_IA32_S_CET,
-					  MSR_TYPE_RW, incpt);
-	}
-}
-
-static void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
-=======
 static void vmx_vcpu_config_fred_after_set_cpuid(struct kvm_vcpu *vcpu)
->>>>>>>
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 
@@ -9112,7 +9030,10 @@ static void vmx_vcpu_config_fred_after_set_cpuid(struct kvm_vcpu *vcpu)
 	vmx_disable_intercept_for_msr(vcpu, MSR_IA32_FRED_CONFIG, MSR_TYPE_RW);
 }
 
+static void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
+=======
 void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
+>>>>>>>
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
 
@@ -9128,12 +9049,7 @@ void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
 		kvm_governed_feature_check_and_set(vcpu, X86_FEATURE_XSAVES);
 
 	kvm_governed_feature_check_and_set(vcpu, X86_FEATURE_VMX);
-<<<<<<<
 	kvm_governed_feature_check_and_set(vcpu, X86_FEATURE_LAM);
-=======
-	kvm_governed_feature_check_and_set(vcpu, X86_FEATURE_SHSTK);
-	kvm_governed_feature_check_and_set(vcpu, X86_FEATURE_IBT);
->>>>>>>
 
 	vmx_setup_uret_msrs(vmx);
 
@@ -9203,13 +9119,9 @@ void vmx_vcpu_after_set_cpuid(struct kvm_vcpu *vcpu)
 	/* Refresh #PF interception to account for MAXPHYADDR changes. */
 	vmx_update_exception_bitmap(vcpu);
 
-<<<<<<<
 	if (cpu_has_vmx_pasid_trans() &&
 		guest_cpuid_has(vcpu, X86_FEATURE_ENQCMD))
 		vmx_vcpu_pasid_trans_init(vcpu);
-=======
-	vmx_update_intercept_for_cet_msr(vcpu);
->>>>>>>
 }
 
 static u64 vmx_get_perf_capabilities(void)
@@ -9274,6 +9186,7 @@ static __init void vmx_set_cpu_caps(void)
 		kvm_cpu_cap_set(X86_FEATURE_UMIP);
 
 	/* CPUID 0xD.1 */
+	kvm_caps.supported_xss = 0;
 	if (!cpu_has_vmx_xsaves())
 		kvm_cpu_cap_clear(X86_FEATURE_XSAVES);
 
@@ -9286,18 +9199,10 @@ static __init void vmx_set_cpu_caps(void)
 	if (cpu_has_vmx_waitpkg())
 		kvm_cpu_cap_check_and_set(X86_FEATURE_WAITPKG);
 
-<<<<<<<
-	if (!cpu_has_load_cet_ctrl() || !enable_unrestricted_guest ||
-	    !cpu_has_vmx_basic_no_hw_errcode()) {
-		kvm_cpu_cap_clear(X86_FEATURE_SHSTK);
-		kvm_cpu_cap_clear(X86_FEATURE_IBT);
-	}
-=======
 	if (!cpu_has_vmx_pasid_trans())
 		kvm_cpu_cap_clear(X86_FEATURE_ENQCMD);
 	else if (kvm_cpu_cap_has(X86_FEATURE_ENQCMD))
 		kvm_caps.supported_xss |= XFEATURE_MASK_PASID;
->>>>>>>
 }
 
 void vmx_request_immediate_exit(struct kvm_vcpu *vcpu)
@@ -9872,11 +9777,16 @@ struct kvm_x86_ops vt_x86_ops __initdata = {
 	.pi_start_assignment = vmx_pi_start_assignment,
 
 #ifdef CONFIG_X86_64
-	.set_hv_timer = vt_set_hv_timer,
-	.cancel_hv_timer = vt_cancel_hv_timer,
+<<<<<<<
+	.set_hv_timer = vmx_set_hv_timer,
+	.cancel_hv_timer = vmx_cancel_hv_timer,
 	.set_guest_virt_timer = vmx_set_guest_virt_timer,
 	.cancel_guest_virt_timer = vmx_cancel_guest_virt_timer,
 	.get_guest_tsc_deadline_virt = vmx_get_guest_tsc_deadline_virt,
+=======
+	.set_hv_timer = vt_set_hv_timer,
+	.cancel_hv_timer = vt_cancel_hv_timer,
+>>>>>>>
 #endif
 
 	.setup_mce = vt_setup_mce,
@@ -9895,14 +9805,17 @@ struct kvm_x86_ops vt_x86_ops __initdata = {
 	.msr_filter_changed = vt_msr_filter_changed,
 	.complete_emulated_msr = kvm_complete_insn_gp,
 
-	.vcpu_deliver_sipi_vector = vt_vcpu_deliver_sipi_vector,
-	.vcpu_deliver_init = vt_vcpu_deliver_init,
+<<<<<<<
+	.vcpu_deliver_sipi_vector = kvm_vcpu_deliver_sipi_vector,
 
 	.get_untagged_addr = vmx_get_untagged_addr,
 
 	.is_lass_violation = vmx_is_lass_violation,
 	.update_hfi = vmx_dynamic_update_hfi_table,
 	.ioasid_bind = vmx_ioasid_bind,
+=======
+	.vcpu_deliver_sipi_vector = vt_vcpu_deliver_sipi_vector,
+	.vcpu_deliver_init = vt_vcpu_deliver_init,
 
 #ifdef CONFIG_KVM_PRIVATE_MEM
 	.gmem_invalidate = vt_gmem_invalidate,
@@ -9923,6 +9836,7 @@ struct kvm_x86_ops vt_x86_ops __initdata = {
 	.tdi_get_info = vt_tdi_get_info,
 	.tdi_user_request = vt_tdi_user_request,
 	/* tdx connect stuff end */
+>>>>>>>
 };
 
 static unsigned int vmx_handle_intel_pt_intr(void)

@@ -1504,12 +1504,9 @@ static const u32 msrs_to_save_base[] = {
 
 	MSR_IA32_XFD, MSR_IA32_XFD_ERR,
 	MSR_IA32_XSS,
-<<<<<<<
-=======
 	MSR_IA32_U_CET, MSR_IA32_S_CET,
 	MSR_IA32_PL0_SSP, MSR_IA32_PL1_SSP, MSR_IA32_PL2_SSP,
 	MSR_IA32_PL3_SSP, MSR_IA32_INT_SSP_TAB,
->>>>>>>
 };
 
 static const u32 msrs_to_save_pmu[] = {
@@ -1953,6 +1950,7 @@ static int __kvm_set_msr(struct kvm_vcpu *vcpu, u32 index, u64 data,
 
 		data = (u32)data;
 		break;
+<<<<<<<
 	case MSR_IA32_FRED_RSP0 ... MSR_IA32_FRED_CONFIG:
 		if (host_initiated || guest_cpuid_has(vcpu, X86_FEATURE_FRED))
 			break;
@@ -1963,6 +1961,7 @@ static int __kvm_set_msr(struct kvm_vcpu *vcpu, u32 index, u64 data,
 		 * corrupt host FRED MSRs.
 		 */
 		return 1;
+=======
 	case MSR_IA32_U_CET:
 	case MSR_IA32_S_CET:
 		if (host_msr_reset && (kvm_cpu_cap_has(X86_FEATURE_SHSTK) ||
@@ -2003,6 +2002,7 @@ static int __kvm_set_msr(struct kvm_vcpu *vcpu, u32 index, u64 data,
 		if (index != MSR_IA32_INT_SSP_TAB && !IS_ALIGNED(data, 4))
 			return 1;
 		break;
+>>>>>>>
 	}
 
 	msr.data = data;
@@ -2046,6 +2046,7 @@ static int __kvm_get_msr(struct kvm_vcpu *vcpu, u32 index, u64 *data,
 		    !guest_cpuid_has(vcpu, X86_FEATURE_RDPID))
 			return 1;
 		break;
+<<<<<<<
 	case MSR_IA32_FRED_RSP0 ... MSR_IA32_FRED_CONFIG:
 		if (host_initiated || guest_cpuid_has(vcpu, X86_FEATURE_FRED))
 			break;
@@ -2056,6 +2057,7 @@ static int __kvm_get_msr(struct kvm_vcpu *vcpu, u32 index, u64 *data,
 		 * corrupt host FRED MSRs.
 		 */
 		return 1;
+=======
 	case MSR_IA32_U_CET:
 	case MSR_IA32_S_CET:
 		if (!guest_can_use(vcpu, X86_FEATURE_IBT) &&
@@ -2073,6 +2075,7 @@ static int __kvm_get_msr(struct kvm_vcpu *vcpu, u32 index, u64 *data,
 		if (index == MSR_KVM_SSP && !host_initiated)
 			return 1;
 		break;
+>>>>>>>
 	}
 
 	msr.index = index;
@@ -3957,14 +3960,17 @@ int kvm_set_msr_common(struct kvm_vcpu *vcpu, struct msr_data *msr_info)
 		 */
 		if (data & ~vcpu->arch.guest_supported_xss)
 			return 1;
+<<<<<<<
 		if (vcpu->arch.ia32_xss != data) {
 			vcpu->arch.ia32_xss = data;
 			kvm_update_cpuid_runtime(vcpu);
 		}
+=======
 		if (vcpu->arch.ia32_xss == data)
 			break;
 		vcpu->arch.ia32_xss = data;
 		kvm_update_cpuid_runtime(vcpu);
+>>>>>>>
 		break;
 	}
 	case MSR_SMI_COUNT:
@@ -7521,8 +7527,6 @@ static void kvm_probe_msr_to_save(u32 msr_index)
 		if (!kvm_caps.supported_xss)
 			return;
 		break;
-<<<<<<<
-=======
 	case MSR_IA32_U_CET:
 	case MSR_IA32_S_CET:
 		if (!kvm_cpu_cap_has(X86_FEATURE_SHSTK) &&
@@ -7537,7 +7541,6 @@ static void kvm_probe_msr_to_save(u32 msr_index)
 		if (!kvm_cpu_cap_has(X86_FEATURE_SHSTK))
 			return;
 		break;
->>>>>>>
 	default:
 		break;
 	}
@@ -9951,9 +9954,10 @@ static int __kvm_x86_vendor_init(struct kvm_x86_init_ops *ops)
 	if (!kvm_cpu_cap_has(X86_FEATURE_XSAVES))
 		kvm_caps.supported_xss = 0;
 
+<<<<<<<
 	if (!kvm_pasid_supported())
 		kvm_cpu_cap_clear(X86_FEATURE_ENQCMD);
-
+=======
 	if ((kvm_caps.supported_xss & (XFEATURE_MASK_CET_USER |
 	     XFEATURE_MASK_CET_KERNEL)) !=
 	    (XFEATURE_MASK_CET_USER | XFEATURE_MASK_CET_KERNEL)) {
@@ -9962,6 +9966,7 @@ static int __kvm_x86_vendor_init(struct kvm_x86_init_ops *ops)
 		kvm_caps.supported_xss &= ~XFEATURE_CET_USER;
 		kvm_caps.supported_xss &= ~XFEATURE_CET_KERNEL;
 	}
+>>>>>>>
 
 #define __kvm_cpu_cap_has(UNUSED_, f) kvm_cpu_cap_has(f)
 	cr4_reserved_bits = __cr4_reserved_bits(__kvm_cpu_cap_has, UNUSED_);
