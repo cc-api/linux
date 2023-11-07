@@ -320,6 +320,26 @@
                 {
                     "name": "CONFIG_DRM_I915",
                     "value": "m"
+                },
+                {
+                    "name": "CONFIG_DRM_XE",
+                    "value": "m"
+                },
+                {
+                    "name": "CONFIG_DRM_XE_DISPLAY",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_DRM_XE_FORCE_PROBE",
+                    "value": "\"*\""
+                },
+                {
+                    "name": "CONFIG_DRM_XE_SIMPLE_ERROR_CAPTURE",
+                    "value": "y"
+                },
+                {
+                    "name": "CONFIG_DRM_XE_LARGE_GUC_BUFFER",
+                    "value": "y"
                 }
             ],
             "contributor": [
