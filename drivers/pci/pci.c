@@ -4963,6 +4963,11 @@ int pcie_retrain_link(struct pci_dev *pdev, bool use_lt)
 		return rc;
 
 	pcie_capability_set_word(pdev, PCI_EXP_LNKCTL, PCI_EXP_LNKCTL_RL);
+	/*
+	 * Work around for Barlow Ridge A-step bug. Need to wait
+	 * ~15us after setting the link train bit.
+	 */
+	usleep_range(15, 30);
 	if (pdev->clear_retrain_link) {
 		/*
 		 * Due to an erratum in some devices the Retrain Link bit
