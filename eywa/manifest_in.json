@@ -1067,7 +1067,7 @@
                 }
             ],
             "status": "intel confidential",
-            "stuck_at_ref": "",
+            "stuck_at_ref": "d208cc9be6d9aa044d0886e39cf3ee36584fa69c",
             "last_enabled": "v6.6",
             "maillist": "",
             "platforms": "LNL,MTL,SKL,TGL",
