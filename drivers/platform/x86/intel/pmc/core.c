@@ -1092,6 +1092,68 @@ int get_primary_reg_base(struct pmc *pmc)
 	return 0;
 }
 
+void mtl_set_device_d3(unsigned int device)
+{
+	struct pci_dev *pcidev;
+
+	pcidev = pci_get_device(PCI_VENDOR_ID_INTEL, device, NULL);
+	if (pcidev) {
+		if (!device_trylock(&pcidev->dev)) {
+			pci_dev_put(pcidev);
+			return;
+		}
+		if (!pcidev->dev.driver) {
+			dev_info(&pcidev->dev, "Setting to D3hot\n");
+			pci_set_power_state(pcidev, PCI_D3hot);
+		}
+		device_unlock(&pcidev->dev);
+		pci_dev_put(pcidev);
+	}
+}
+
+/*
+ * Set power state of select devices that do not have drivers to D3
+ * so that they do not block Package C entry.
+ */
+void mtl_d3_fixup(void)
+{
+	mtl_set_device_d3(MTL_GNA_PCI_DEV);
+	mtl_set_device_d3(MTL_IPU_PCI_DEV);
+	mtl_set_device_d3(MTL_VPU_PCI_DEV);
+}
+
+int mtl_resume(struct pmc_dev *pmcdev)
+{
+	mtl_d3_fixup();
+	return pmc_core_resume_common(pmcdev);
+}
+
+void punit_pmt_init(struct pmc_dev *pmcdev, u32 guid)
+{
+	struct telem_endpoint *ep;
+	struct pci_dev *pcidev;
+
+	pcidev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(10, 0));
+	if (!pcidev) {
+		dev_err(&pmcdev->pdev->dev, "PUNIT PMT device not found.");
+		return;
+	}
+
+	ep = pmt_telem_find_and_register_endpoint(pcidev, guid, 0);
+	if (IS_ERR(ep)) {
+		dev_err(&pmcdev->pdev->dev,
+			"pmc_core: couldn't get DMU telem endpoint %ld",
+			PTR_ERR(ep));
+		return;
+	}
+
+	pci_dev_put(pcidev);
+	pmcdev->punit_ep = ep;
+
+	pmcdev->has_die_c6 = true;
+	pmcdev->die_c6_offset = MTL_PMT_DMU_DIE_C6_OFFSET;
+}
+
 static void pmc_core_dbgfs_unregister(struct pmc_dev *pmcdev)
 {
 	debugfs_remove_recursive(pmcdev->dbgfs_dir);
@@ -1194,6 +1256,8 @@ static const struct x86_cpu_id intel_pmc_core_ids[] = {
 	X86_MATCH_INTEL_FAM6_MODEL(METEORLAKE_L,	mtl_l_core_init),
 	X86_MATCH_INTEL_FAM6_MODEL(METEORLAKE,		mtl_core_init),
 	X86_MATCH_INTEL_FAM6_MODEL(LAKEFIELD,		lkf_core_init),
+	X86_MATCH_INTEL_FAM6_MODEL(ARROWLAKE,		arl_core_init),
+//	X86_MATCH_INTEL_FAM6_MODEL(ARROWLAKE_H,		arl_h_core_init),
 	X86_MATCH_INTEL_FAM6_MODEL(LUNARLAKE_M, 	lnl_core_init),
 	X86_MATCH_INTEL_FAM6_MODEL(PANTHERLAKE_L, 	ptl_core_init),
 	{}

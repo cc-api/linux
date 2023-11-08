@@ -276,6 +276,16 @@ enum ppfear_regs {
 
 #define PTL_LPM_NUM_MAPS			16
 #define PTL_PCD_PMC_MMIO_REG_LEN		0x31AC
+
+/* Die C6 from PUNIT telemetry */
+#define MTL_PMT_DMU_DIE_C6_OFFSET	15
+#define MTL_PMT_DMU_GUID		0x1A067102
+#define ARL_PMT_DMU_GUID		0x1A06A000
+
+#define MTL_GNA_PCI_DEV			0x7e4c
+#define MTL_IPU_PCI_DEV			0x7d19
+#define MTL_VPU_PCI_DEV			0x7d1d
+
 extern const char *pmc_lpm_modes[];
 
 struct pmc_bit_map {
@@ -569,6 +579,13 @@ extern void pmc_core_get_low_power_modes(struct pmc_dev *pmcdev);
 
 extern int pmc_core_ssram_init(struct pmc_dev *pmcdev, int func);
 
+extern void punit_pmt_init(struct pmc_dev *pmcdev, u32 guid);
+
+void mtl_set_device_d3(unsigned int device);
+
+void mtl_d3_fixup(void);
+int mtl_resume(struct pmc_dev *pmcdev);
+
 int spt_core_init(struct pmc_dev *pmcdev);
 int cnp_core_init(struct pmc_dev *pmcdev);
 int icl_core_init(struct pmc_dev *pmcdev);
@@ -580,6 +597,9 @@ int mtl_l_core_init(struct pmc_dev *pmcdev);
 int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp);
 int lnl_core_init(struct pmc_dev *pmcdev);
 int ptl_core_init(struct pmc_dev *pmcdev);
+int arl_core_init(struct pmc_dev *pmcdev);
+int arl_h_core_init(struct pmc_dev *pmcdev);
+int arl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp);
 
 #define pmc_for_each_mode(i, mode, pmcdev)		\
 	for (i = 0, mode = pmcdev->lpm_en_modes[i];	\

@@ -19,10 +19,6 @@
 #define SOCS_LPM_REQ_GUID	0x8478657
 #define PCHS_LPM_REQ_GUID	0x9684572
 
-/* Die C6 from PUNIT telemetry */
-#define MTL_PMT_DMU_DIE_C6_OFFSET	15
-#define MTL_PMT_DMU_GUID		0x1A067102
-
 static const u8 MTL_LPM_REG_INDEX[] = {0, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20};
 
 /*
@@ -1616,71 +1612,6 @@ static struct pmc_info mtl_pmc_info_list[] = {
 	{}
 };
 
-static void mtl_punit_pmt_init(struct pmc_dev *pmcdev)
-{
-	struct telem_endpoint *ep;
-	struct pci_dev *pcidev;
-
-	pcidev = pci_get_domain_bus_and_slot(0, 0, PCI_DEVFN(10, 0));
-	if (!pcidev) {
-		dev_err(&pmcdev->pdev->dev, "PUNIT PMT device not found.");
-		return;
-	}
-
-	ep = pmt_telem_find_and_register_endpoint(pcidev, MTL_PMT_DMU_GUID, 0);
-	if (IS_ERR(ep)) {
-		dev_err(&pmcdev->pdev->dev,
-			"pmc_core: couldn't get DMU telem endpoint %ld",
-			PTR_ERR(ep));
-		return;
-	}
-
-	pci_dev_put(pcidev);
-	pmcdev->punit_ep = ep;
-
-	pmcdev->has_die_c6 = true;
-	pmcdev->die_c6_offset = MTL_PMT_DMU_DIE_C6_OFFSET;
-}
-
-#define MTL_GNA_PCI_DEV	0x7e4c
-#define MTL_IPU_PCI_DEV	0x7d19
-#define MTL_VPU_PCI_DEV	0x7d1d
-static void mtl_set_device_d3(unsigned int device)
-{
-	struct pci_dev *pcidev;
-
-	pcidev = pci_get_device(PCI_VENDOR_ID_INTEL, device, NULL);
-	if (pcidev) {
-		if (!device_trylock(&pcidev->dev)) {
-			pci_dev_put(pcidev);
-			return;
-		}
-		if (!pcidev->dev.driver) {
-			dev_info(&pcidev->dev, "Setting to D3hot\n");
-			pci_set_power_state(pcidev, PCI_D3hot);
-		}
-		device_unlock(&pcidev->dev);
-		pci_dev_put(pcidev);
-	}
-}
-
-/*
- * Set power state of select devices that do not have drivers to D3
- * so that they do not block Package C entry.
- */
-static void mtl_d3_fixup(void)
-{
-	mtl_set_device_d3(MTL_GNA_PCI_DEV);
-	mtl_set_device_d3(MTL_IPU_PCI_DEV);
-	mtl_set_device_d3(MTL_VPU_PCI_DEV);
-}
-
-static int mtl_resume(struct pmc_dev *pmcdev)
-{
-	mtl_d3_fixup();
-	return pmc_core_resume_common(pmcdev);
-}
-
 int mtl_l_core_init(struct pmc_dev *pmcdev) {
 	return mtl_core_generic_init(pmcdev, SOC_M);
 }
@@ -1724,7 +1655,7 @@ int mtl_core_generic_init(struct pmc_dev *pmcdev, int soc_tp)
 	}
 
 	pmc_core_get_low_power_modes(pmcdev);
-	mtl_punit_pmt_init(pmcdev);
+	punit_pmt_init(pmcdev, MTL_PMT_DMU_GUID);
 
 	/* Due to a hardware limitation, the GBE LTR blocks PC10
 	 * when a cable is attached. Tell the PMC to ignore it.
