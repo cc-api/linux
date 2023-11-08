@@ -125,6 +125,10 @@
                 {
                     "name": "CONFIG_INTEL_TELEMETRY",
                     "value": "y"
+                },
+                {
+                    "name": "CONFIG_FW_LOADER_COMPRESS_ZSTD",
+                    "value": "y"
                 }
             ],
             "contributor": [
