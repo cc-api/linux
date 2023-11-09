@@ -31,7 +31,7 @@ cat >> $release_notes_file << EOF
 For more information about intel next visit: http://goto.intel.com/intelnext
 
 Links to Intel Next binaries are avaliable on Github 1Source: https://github.com/intel-innersource/os.linux.intelnext.kernel/releases
-Intel Next validation results: http://mozart.sh.intel.com:8080/dashboard/quick_entrance/LTP-DDT/Lab/all
+Intel Next validation results: http://mozart.intel.com
 $rule
 EOF
 #We want to skip the patch list on the first release because it will contain 
