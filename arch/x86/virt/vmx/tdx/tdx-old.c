@@ -25,9 +25,9 @@
 #include <linux/compiler_attributes.h>
 
 #include <asm/pgtable_types.h>
+#include <asm/vmx.h>
 #include <asm/msr.h>
 #include <asm/tdx.h>
-#include <asm/virtext.h>
 #include <asm/cpu.h>
 #include <asm/set_memory.h>
 
@@ -144,181 +144,7 @@ static bool __init is_seamrr_enabled(void)
 	return true;
 }
 
-struct vmcs_hdr {
-	u32 revision_id:31;
-	u32 shadow_vmcs:1;
-};
-
-struct vmcs {
-	struct vmcs_hdr hdr;
-	u32 abort;
-	char data[];
-};
-
-static u32 seam_vmxon_version_id __initdata;
-static DEFINE_PER_CPU(struct vmcs *, seam_vmxon_region);
-
 static struct cmr_info tdx_cmr_array[MAX_CMRS] __aligned(CMR_INFO_ARRAY_ALIGNMENT);
-
-/*
- * This function must be called after init_ia32_feat_ctl() that sets
- * X86_FEATURE_VMX.
- */
-static int __init seam_init_vmx_early(void)
-{
-	u32 vmx_msr_low, vmx_msr_high;
-
-	if (!this_cpu_has(X86_FEATURE_VMX))
-		return -EOPNOTSUPP;
-
-	rdmsr(MSR_IA32_VMX_BASIC, vmx_msr_low, vmx_msr_high);
-
-	/*
-	 * IA-32 SDM Vol 3C: VMCS size is never greater than 4kB.  The size of
-	 * VMXON region is same to VMCS size.
-	 */
-	if ((vmx_msr_high & 0x1fff) > PAGE_SIZE)
-		return -EIO;
-
-	seam_vmxon_version_id = vmx_msr_low;
-
-	return 0;
-}
-
-/*
- * seam_init_vmxon_vmcs - initialize VMXON region with version id for this CPU.
- * @vmcs: vmxon region to initialize.  zero it before call.
- *
- * VMXON region has the same header format as the vmcs region.  It is assumed
- * that all CPUs have the same vmcs version.  The KVM kernel module has this
- * same assumption.  Even if the version differs, VMXON fails with
- * seam_vmxon_on_each_cpu() to catch it.
- */
-static void __init seam_init_vmxon_vmcs(struct vmcs *vmcs)
-{
-	vmcs->hdr.revision_id = seam_vmxon_version_id;
-}
-
-static void __init seam_free_vmcs_tmp_set(void)
-{
-	int cpu;
-
-	for_each_online_cpu(cpu) {
-		/* It's safe to pass NULL to free_page() that ignores NULL. */
-		free_page((unsigned long)per_cpu(seam_vmxon_region, cpu));
-		per_cpu(seam_vmxon_region, cpu) = NULL;
-	}
-}
-
-/*
- * seam_alloc_init_vmcs_tmp_set -
- *	allocate temporary one page for VMXON region for each CPU and stash
- *	pages to the per-cpu variable, seam_vmxon_region, and initialize those
- *	regions on each CPU for later VMXON.
- * @return: 0 on success, -ENOMEM on failure.
- *
- * Call this function before use of seam_vmxon_on_each_cpu() and
- * seam_vmxoff_on_each_cpu().
- *
- * Disable cpu hotplug by cpus_read_lock() and cpus_read_unlock() until
- * seam_free_vmcs_tmp_set().
- */
-static int __init seam_alloc_init_vmcs_tmp_set(void)
-{
-	int cpu;
-	struct vmcs *vmxon_region;
-
-	if (!this_cpu_has(X86_FEATURE_VMX))
-		return -EOPNOTSUPP;
-
-	for_each_online_cpu(cpu) {
-		/* VMXON region must be 4K-aligned. */
-		vmxon_region = (struct vmcs *)get_zeroed_page(GFP_KERNEL);
-		if (!vmxon_region)
-			goto err;
-		seam_init_vmxon_vmcs(vmxon_region);
-		per_cpu(seam_vmxon_region, cpu) = vmxon_region;
-	}
-
-	return 0;
-
-err:
-	seam_free_vmcs_tmp_set();
-	return -ENOMEM;
-}
-
-/*
- * cpu_vmxon() - Enable VMX on the current CPU
- *
- * Set CR4.VMXE and enable VMX
- */
-static inline int cpu_vmxon(u64 vmxon_pointer)
-{
-	u64 msr;
-
-	cr4_set_bits(X86_CR4_VMXE);
-
-	asm_volatile_goto("1: vmxon %[vmxon_pointer]\n\t"
-			_ASM_EXTABLE(1b, %l[fault])
-			: : [vmxon_pointer] "m"(vmxon_pointer)
-			: : fault);
-	return 0;
-
-fault:
-	WARN_ONCE(1, "VMXON faulted, MSR_IA32_FEAT_CTL (0x3a) = 0x%llx\n",
-		rdmsrl_safe(MSR_IA32_FEAT_CTL, &msr) ? 0xdeadbeef : msr);
-	cr4_clear_bits(X86_CR4_VMXE);
-
-	return -EFAULT;
-}
-
-static void __init seam_vmxon(void *data)
-{
-	atomic_t *error = data;
-	int r;
-
-	r = cpu_vmxon(__pa(this_cpu_read(seam_vmxon_region)));
-	if (r)
-		atomic_set(error, r);
-}
-
-static int __init seam_vmxon_on_each_cpu(void)
-{
-	atomic_t error;
-
-	atomic_set(&error, 0);
-	on_each_cpu(seam_vmxon, &error, 1);
-
-	/*
-	 * Check if any of the CPUs fail.  Don't care how many CPUs failed and
-	 * about the exact error code.
-	 */
-	return atomic_read(&error);
-}
-
-static void __init seam_vmxoff(void *data)
-{
-	atomic_t *error = data;
-	int r;
-
-	r = cpu_vmxoff();
-	if (r)
-		atomic_set(error, r);
-}
-
-static int __init seam_vmxoff_on_each_cpu(void)
-{
-	atomic_t error;
-
-	atomic_set(&error, 0);
-	on_each_cpu(seam_vmxoff, &error, 1);
-
-	/*
-	 * Check if any of the CPUs fail.  Don't care how many CPUs failed and
-	 * about the exact error code.
-	 */
-	return atomic_read(&error);
-}
 
 /* Kernel defined TDX module status during module initialization. */
 enum tdx_module_status_t {
@@ -450,7 +276,7 @@ static struct notifier_block tdx_memory_nb = {
 	.notifier_call = tdx_memory_notifier,
 };
 
-static int __init tdx_init(void)
+static int __init tdx_init_old(void)
 {
 	int err;
 
@@ -482,7 +308,7 @@ no_tdx:
 	clear_tdx();
 	return -ENODEV;
 }
-early_initcall(tdx_init);
+early_initcall(tdx_init_old);
 
 /* Return whether the BIOS has enabled TDX */
 static bool old_platform_tdx_enabled(void)
@@ -496,44 +322,36 @@ static bool old_platform_tdx_enabled(void)
  * leaf function return code and the additional output respectively if
  * not NULL.
  */
-static int seamcall(u64 fn, u64 rcx, u64 rdx, u64 r8, u64 r9,
-		    u64 *seamcall_ret, struct tdx_module_output *out)
+static int seamcall(u64 fn, struct tdx_module_args *args)
 {
 	u64 sret;
+	int cpu;
 
-	sret = __seamcall(fn, rcx, rdx, r8, r9, out);
-
-	/* Save SEAMCALL return code if the caller wants it */
-	if (seamcall_ret)
-		*seamcall_ret = sret;
-
-	/* SEAMCALL was successful */
-	if (!sret)
-		return 0;
+	/* Need a stable CPU id for printing error message */
+	cpu = get_cpu();
+	sret = __seamcall_ret(fn, args);
+	put_cpu();
 
 	switch (sret) {
-	case TDX_SEAMCALL_GP:
-		/*
-		 * tdx_enable() has already checked that BIOS has
-		 * enabled TDX at the very beginning before going
-		 * forward.  It's likely a firmware bug if the
-		 * SEAMCALL still caused #GP.
-		 */
-		pr_err_once("[firmware bug]: TDX is not enabled by BIOS.\n");
-		return -ENODEV;
+	case 0:
+		/* SEAMCALL was successful */
+		return 0;
 	case TDX_SEAMCALL_VMFAILINVALID:
-		pr_err_once("TDX module is not loaded.\n");
+		pr_err_once("module is not loaded.\n");
+		return -ENODEV;
+	case TDX_SEAMCALL_GP:
+		pr_err_once("not enabled by BIOS.\n");
 		return -ENODEV;
 	case TDX_SEAMCALL_UD:
-		pr_err_once("CPU is not in VMX operation.\n");
+		pr_err_once("SEAMCALL failed: CPU %d is not in VMX operation.\n",
+				cpu);
 		return -EINVAL;
 	default:
-		pr_err_once("SEAMCALL failed: leaf %llu, error 0x%llx.\n",
-				fn, sret);
-		if (out)
-			pr_err_once("additional output: rcx 0x%llx, rdx 0x%llx, r8 0x%llx, r9 0x%llx, r10 0x%llx, r11 0x%llx.\n",
-					out->rcx, out->rdx, out->r8,
-					out->r9, out->r10, out->r11);
+		pr_err_once("SEAMCALL failed: CPU %d: leaf %llu, error 0x%llx.\n",
+				cpu, fn, sret);
+		pr_err_once("additional output: rcx 0x%llx, rdx 0x%llx, r8 0x%llx, r9 0x%llx, r10 0x%llx, r11 0x%llx.\n",
+				args->rcx, args->rdx, args->r8,
+				args->r9, args->r10, args->r11);
 		return -EIO;
 	}
 }
@@ -571,7 +389,7 @@ static void print_cmrs(struct cmr_info *cmr_array, int nr_cmrs)
 static int __tdx_get_sysinfo(struct tdsysinfo_struct *sysinfo,
 			   struct cmr_info *cmr_array)
 {
-	struct tdx_module_output out;
+	struct tdx_module_args args = {};
 	u64 sysinfo_pa, cmr_array_pa;
 	int ret;
 
@@ -581,8 +399,12 @@ static int __tdx_get_sysinfo(struct tdsysinfo_struct *sysinfo,
 	 */
 	sysinfo_pa = slow_virt_to_phys(sysinfo);
 	cmr_array_pa = slow_virt_to_phys(cmr_array);
-	ret = seamcall(TDH_SYS_INFO, sysinfo_pa, TDSYSINFO_STRUCT_SIZE,
-			cmr_array_pa, MAX_CMRS, NULL, &out);
+
+	args.rcx = sysinfo_pa;
+	args.rdx = TDSYSINFO_STRUCT_SIZE;
+	args.r8 = cmr_array_pa;
+	args.r9 = MAX_CMRS;
+	ret = seamcall(TDH_SYS_INFO, &args);
 	if (ret)
 		return ret;
 
@@ -592,7 +414,7 @@ static int __tdx_get_sysinfo(struct tdsysinfo_struct *sysinfo,
 		sysinfo->build_date,	sysinfo->build_num);
 
 	/* R9 contains the actual entries written to the CMR array. */
-	print_cmrs(cmr_array, out.r9);
+	print_cmrs(cmr_array, args.r9);
 
 	return 0;
 }
@@ -1258,6 +1080,7 @@ err:
 
 static int config_tdx_module(struct tdmr_info_list *tdmr_list, u64 global_keyid)
 {
+	struct tdx_module_args args = {};
 	u64 *tdmr_pa_array, *p;
 	size_t array_sz;
 	int i, ret;
@@ -1277,8 +1100,10 @@ static int config_tdx_module(struct tdmr_info_list *tdmr_list, u64 global_keyid)
 	for (i = 0; i < tdmr_list->nr_tdmrs; i++)
 		tdmr_pa_array[i] = __pa(tdmr_entry(tdmr_list, i));
 
-	ret = seamcall(TDH_SYS_CONFIG, __pa(tdmr_pa_array), tdmr_list->nr_tdmrs,
-				global_keyid, 0, NULL, NULL);
+	args.rcx = __pa(tdmr_pa_array);
+	args.rdx = tdmr_list->nr_tdmrs;
+	args.r8 = global_keyid;
+	ret = seamcall(TDH_SYS_CONFIG, &args);
 
 	/* Free the array as it is not required anymore. */
 	kfree(p);
@@ -1288,6 +1113,7 @@ static int config_tdx_module(struct tdmr_info_list *tdmr_list, u64 global_keyid)
 
 static void do_global_key_config(void *data)
 {
+	struct tdx_module_args args = {};
 	int ret;
 
 	/*
@@ -1295,7 +1121,7 @@ static void do_global_key_config(void *data)
 	 * recoverable error).  Assume this is exceedingly rare and
 	 * just return error if encountered instead of retrying.
 	 */
-	ret = seamcall(TDH_SYS_KEY_CONFIG, 0, 0, 0, 0, NULL, NULL);
+	ret = seamcall(TDH_SYS_KEY_CONFIG, &args);
 
 	*(int *)data = ret;
 }
@@ -1356,19 +1182,19 @@ static int init_tdmr(struct tdmr_info *tdmr)
 	 * TDMR in each call.
 	 */
 	do {
-		struct tdx_module_output out;
+		struct tdx_module_args args = {
+			.rcx = tdmr->base,
+		};
 		int ret;
 
-		/* All 0's are unused parameters, they mean nothing. */
-		ret = seamcall(TDH_SYS_TDMR_INIT, tdmr->base, 0, 0, 0, NULL,
-				&out);
+		ret = seamcall(TDH_SYS_TDMR_INIT, &args);
 		if (ret)
 			return ret;
 		/*
 		 * RDX contains 'next-to-initialize' address if
 		 * TDH.SYS.TDMR.INT succeeded.
 		 */
-		next = out.rdx;
+		next = args.rdx;
 		cond_resched();
 		/* Keep making SEAMCALLs until the TDMR is done */
 	} while (next < tdmr->base + tdmr->size);
@@ -1395,41 +1221,20 @@ static int init_tdmrs(struct tdmr_info_list *tdmr_list)
 	return 0;
 }
 
-static void do_lp_init(void *data)
-{
-	int ret;
-	ret = seamcall(TDH_SYS_LP_INIT, 0, 0, 0, 0, NULL, NULL);
-	*(int *)data = ret;
-}
-static int tdx_module_init_cpus(void)
-{
-	int cpu, ret = 0;
-
-	for_each_online_cpu(cpu) {
-		int err;
-
-		ret = smp_call_function_single(cpu, do_lp_init, &err, true);
-		if (ret)
-			break;
-		if (err) {
-			ret = err;
-			break;
-		}
-	}
-
-	return ret;
-}
-
 static void tdx_trace_seamcalls_old(u64 level)
 {
 	static bool debugconfig_supported = true;
-	int ret;
 
 	if (debugconfig_supported) {
-		ret = seamcall(SEAMCALL_TDDEBUGCONFIG,
-			       DEBUGCONFIG_SET_TRACE_LEVEL, level, 0, 0, NULL, NULL);
-		if (ret) {
-			pr_info("TDDEBUGCONFIG isn't supported.\n");
+		struct tdx_module_args args = {
+			.rcx = DEBUGCONFIG_SET_TRACE_LEVEL,
+			.rdx = level,
+		};
+		u64 err;
+
+		err = __seamcall(SEAMCALL_TDDEBUGCONFIG, &args);
+		if (err) {
+			pr_info_once("TDDEBUGCONFIG isn't supported.\n");
 			debugconfig_supported = false;
 		}
 	}
@@ -1446,21 +1251,10 @@ static int init_tdx_module(void)
 	struct tdmr_info_list tdmr_list;
 	int ret;
 
-	preempt_disable();
-	ret = seamcall(TDH_SYS_INIT, 0, 0, 0, 0, NULL, NULL);
-	preempt_enable();
-	if (ret)
-		goto out;
-
 	if (trace_boot_seamcalls)
 		tdx_trace_seamcalls_old(DEBUGCONFIG_TRACE_ALL);
 	else
 		tdx_trace_seamcalls_old(tdx_trace_level);
-
-	/* Logical-cpu scope initialization */
-	ret = tdx_module_init_cpus();
-	if (ret)
-		goto out;
 
 	ret = __tdx_get_sysinfo(sysinfo, tdx_cmr_array);
 	if (ret)
@@ -1642,7 +1436,6 @@ early_param("tdx_init_rsvd_mem", parse_tdx_init_rsvd_mem);
  */
 static int __init tdx_arch_init(void)
 {
-	int vmxoff_err;
 	int ret;
 
 	/* TDX requires SEAM mode. */
@@ -1654,8 +1447,7 @@ static int __init tdx_arch_init(void)
 	else 
 		return 0;
 
-	/* TDX requires VMX. */
-	ret = seam_init_vmx_early();
+	ret = cpu_vmxop_get_all();
 	if (ret)
 		return ret;
 
@@ -1680,34 +1472,13 @@ static int __init tdx_arch_init(void)
 		goto out_err;
 	}
 
-	/* SEAMCALL requires to enable VMX on CPUs. */
-	ret = seam_alloc_init_vmcs_tmp_set();
-	if (ret)
-		goto out_err;
-	ret = seam_vmxon_on_each_cpu();
-	if (ret)
-		goto out;
-
 	ret = old_tdx_enable();
 	if (ret)
 		pr_err("Failed to initialize TDX module %d\n", ret);
 
-out:
-	/*
-	 * Other codes (especially kvm_intel) expect that they're the first to
-	 * use VMX.  That is, VMX is off on their initialization as a reset
-	 * state.  Maintain the assumption to keep them working.
-	 */
-	vmxoff_err = seam_vmxoff_on_each_cpu();
-	if (vmxoff_err) {
-		pr_info("Failed to VMXOFF.\n");
-		if (!ret)
-			ret = vmxoff_err;
-	}
-	seam_free_vmcs_tmp_set();
-
 out_err:
 	cpus_read_unlock();
+	cpu_vmxop_put_all();
 
 	if (ret)
 		pr_err("Failed to find the TDX module. %d\n", ret);
