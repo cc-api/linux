@@ -229,6 +229,7 @@ static u32 vmx_possible_passthrough_msrs[MAX_POSSIBLE_PASSTHROUGH_MSRS] = {
 	MSR_IA32_XFD,
 	MSR_IA32_XFD_ERR,
 	MSR_IA32_TSC_DEADLINE,
+	MSR_IA32_USER_MSR_CTL,
 #endif
 	MSR_IA32_SYSENTER_CS,
 	MSR_IA32_SYSENTER_ESP,
@@ -8370,6 +8371,11 @@ fastpath_t vmx_vcpu_run(struct kvm_vcpu *vcpu)
 
 	kvm_load_guest_xsave_state(vcpu);
 
+	if (cpu_feature_enabled(X86_FEATURE_USER_MSR)) {
+		rdmsrl(MSR_IA32_USER_MSR_CTL, vmx->host_umsr_ctrl);
+		wrmsrl(MSR_IA32_USER_MSR_CTL, vmx->guest_umsr_ctrl);
+	}
+
 	pt_guest_enter(vmx);
 
 	hreset_guest_enter(vmx);
@@ -8417,6 +8423,11 @@ fastpath_t vmx_vcpu_run(struct kvm_vcpu *vcpu)
 	hreset_guest_exit(vmx);
 
 	pt_guest_exit(vmx);
+
+	if (cpu_feature_enabled(X86_FEATURE_USER_MSR)) {
+		rdmsrl(MSR_IA32_USER_MSR_CTL, vmx->guest_umsr_ctrl);
+		wrmsrl(MSR_IA32_USER_MSR_CTL, vmx->host_umsr_ctrl);
+	}
 
 	kvm_load_host_xsave_state(vcpu);
 
@@ -8539,6 +8550,8 @@ int vmx_vcpu_create(struct kvm_vcpu *vcpu)
 	vmx_disable_intercept_for_msr(vcpu, MSR_FS_BASE, MSR_TYPE_RW);
 	vmx_disable_intercept_for_msr(vcpu, MSR_GS_BASE, MSR_TYPE_RW);
 	vmx_disable_intercept_for_msr(vcpu, MSR_KERNEL_GS_BASE, MSR_TYPE_RW);
+	if (cpu_feature_enabled(X86_FEATURE_USER_MSR))
+		vmx_disable_intercept_for_msr(vcpu, MSR_IA32_USER_MSR_CTL, MSR_TYPE_RW);
 #endif
 	vmx_disable_intercept_for_msr(vcpu, MSR_IA32_SYSENTER_CS, MSR_TYPE_RW);
 	vmx_disable_intercept_for_msr(vcpu, MSR_IA32_SYSENTER_ESP, MSR_TYPE_RW);

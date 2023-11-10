@@ -48,6 +48,8 @@
 #define MSR_IA32_FRED_SSP3	0x1d3			/* Level 3 shadow stack pointer */
 #define MSR_IA32_FRED_CONFIG	0x1d4			/* Entrypoint and interrupt stack level */
 
+/* Intel MSRs. Some also available on other CPUs */
+
 #define MSR_IA32_USER_MSR_CTL			0x1C
 #define USER_MSR_CTL_ENABLE			BIT_ULL(0)
 #define USER_MSR_CTL_RESERVED			GENMASK_ULL(11,1)

@@ -69,3 +69,4 @@ obj-$(CONFIG_TPS6594_ESM)	+= tps6594-esm.o
 obj-$(CONFIG_TPS6594_PFSM)	+= tps6594-pfsm.o
 obj-$(CONFIG_INTEL_DLB2)        += dlb2/
 obj-$(CONFIG_RPB)		+= rpb.o
+obj-$(CONFIG_USER_MSR)		+= umsr.o

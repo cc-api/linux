@@ -424,6 +424,12 @@ config PCH_PHUB
 	  To compile this driver as a module, choose M here: the module will
 	  be called pch_phub.
 
+config USER_MSR
+	tristate "user msr control"
+	default	m
+	help
+	  This option enables support for user msr.
+
 config LATTICE_ECP3_CONFIG
 	tristate "Lattice ECP3 FPGA bitstream configuration via SPI"
 	depends on SPI && SYSFS

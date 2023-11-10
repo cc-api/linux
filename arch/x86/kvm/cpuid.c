@@ -843,7 +843,8 @@ void kvm_set_cpu_caps(void)
 		F(AMX_COMPLEX) | F(AVX_VNNI_INT16) | F(AVX512_VNNI_INT8) |
 		F(AVX512_VNNI_FP16) | F(AVX512_NE_CONVERT) | F(AVX512_BF16_NE) |
 		F(AMX_TRANSPOSE) | F(AMX_TF32) | F(AMX_AVX512) | F(AMX_SPARSE) |
-		F(AMX_MOVRS) | F(AVX10_MOVRS)
+		F(AMX_MOVRS) | F(AVX10_MOVRS) |
+		F(USER_MSR)
 	);
 
 	kvm_cpu_cap_init_kvm_defined(CPUID_7_1_EBX,

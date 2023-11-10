@@ -687,6 +687,12 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 		switch_uintr_finish(next_p);
 	}
 
+	if (cpu_feature_enabled(X86_FEATURE_USER_MSR) &&
+		 ((prev->umsr_control & USER_MSR_CTL_ENABLE) ||
+		    (next->umsr_control & USER_MSR_CTL_ENABLE))) {
+		wrmsrl(MSR_IA32_USER_MSR_CTL, next->umsr_control);
+	}
+
 	switch_to_extra(prev_p, next_p);
 
 	if (static_cpu_has_bug(X86_BUG_SYSRET_SS_ATTRS)) {

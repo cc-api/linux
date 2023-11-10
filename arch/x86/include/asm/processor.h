@@ -481,9 +481,10 @@ struct thread_struct {
 	/* User Timer state */
 	u64 utimer_deadline;
 
+#endif
 	/* User MSR control */
 	u64 umsr_control;
-#endif
+	u8 *umsr_bitmap;
 
 	/*
 	 * Protection Keys Register for Userspace.  Loaded immediately on
