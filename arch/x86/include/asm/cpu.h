@@ -108,4 +108,10 @@ struct metadata_header *intel_microcode_find_meta_data(void *mc, unsigned int me
 
 extern struct cpumask cpus_stop_mask;
 
+#ifdef CONFIG_X86_LOCKSTEP
+extern void lockstep_shadow_enable(void);
+#else
+static inline void lockstep_shadow_enable(void) {}
+#endif
+
 #endif /* _ASM_X86_CPU_H */

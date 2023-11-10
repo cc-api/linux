@@ -1898,6 +1898,18 @@ config X86_UINTR_BLOCKING
 	  experimental and flaky. Enable this only if you are specifically
 	  testing this. Failures can happen when stressed.
 
+config X86_LOCKSTEP
+	bool "Dynamic CPU Core Lockstep"
+	depends on X86_64 && CPU_SUP_INTEL && HOTPLUG_CPU
+	help
+	  Dynamic lockstep is a RAS capability that can be enabled/disabled
+	  at runtime to protect high integrity applications or containers.
+	  This option enables the Sysfs interface to put certain pairs of
+	  cores into lockstep mode (and get them back out again). When the
+	  core-pairs are put into lockstep mode any functional divergence
+	  between the two is detected providing a much higher rate of error
+	  detection.
+
 choice
 	prompt "TSX enable mode"
 	depends on CPU_SUP_INTEL

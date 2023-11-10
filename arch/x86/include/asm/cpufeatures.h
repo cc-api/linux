@@ -314,6 +314,8 @@
 #define X86_FEATURE_IBPB_ON_VMEXIT	(11*32+26) /* "" Issue an IBPB only on VMEXIT */
 #define X86_FEATURE_UTIMER		(11*32+27) /* User Timer support */
 #define X86_FEATURE_USER_MSR		(11*32+28) /* User MSR support */
+/* Leave some space for other features in development */
+#define X86_FEATURE_LOCKSTEP		(11*32+29) /* "DLSM" Dynamic Lockstep Mode */
 
 /* Intel-defined CPU features, CPUID level 0x00000007:1 (EAX), word 12 */
 #define X86_FEATURE_SHA512		(12*32+ 0) /* "" SHA512 instructions */

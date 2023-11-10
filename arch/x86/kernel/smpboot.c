@@ -1470,6 +1470,8 @@ void play_dead_common(void)
 
 	cpuhp_ap_report_dead();
 
+	lockstep_shadow_enable();
+
 	local_irq_disable();
 }
 
