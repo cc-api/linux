@@ -385,6 +385,11 @@ static int idxd_setup_internals(struct idxd_device *idxd)
 	struct device *dev = &idxd->pdev->dev;
 	int rc, i;
 
+	if (idxd->hw.gen_cap.inter_domain) {
+		mutex_init(&idxd->idpt_lock);
+		ida_init(&idxd->idpt_ida);
+	}
+
 	init_waitqueue_head(&idxd->cmd_waitq);
 
 	rc = idxd_setup_wqs(idxd);
@@ -405,13 +410,24 @@ static int idxd_setup_internals(struct idxd_device *idxd)
 		goto err_wkq_create;
 	}
 
+	if (idxd->idpt_size) {
+		idxd->idpte_data = kcalloc_node(idxd->idpt_size,
+						sizeof(struct idpte_data *),
+						GFP_KERNEL, dev_to_node(dev));
+		if (!idxd->idpte_data)
+			goto err_idtp;
+	}
+
 	rc = idxd_init_evl(idxd);
 	if (rc < 0)
 		goto err_evl;
 
+
 	return 0;
 
  err_evl:
+	kfree(idxd->idpte_data);
+ err_idtp:
 	destroy_workqueue(idxd->wq);
  err_wkq_create:
 	for (i = 0; i < idxd->max_groups; i++)
@@ -443,6 +459,8 @@ static void idxd_read_table_offsets(struct idxd_device *idxd)
 	dev_dbg(dev, "IDXD IMS Offset: %#x\n", idxd->ims_offset);
 	idxd->perfmon_offset = offsets.perfmon * IDXD_TABLE_MULT;
 	dev_dbg(dev, "IDXD Perfmon Offset: %#x\n", idxd->perfmon_offset);
+	idxd->idpt_offset = offsets.idpt * IDXD_TABLE_MULT;
+	dev_dbg(dev, "IDXD IDPT offset: %#x\n", idxd->idpt_offset);
 }
 
 void multi_u64_to_bmap(unsigned long *bmap, u64 *val, int count)
@@ -518,11 +536,26 @@ static void idxd_read_caps(struct idxd_device *idxd)
 				IDXD_OPCAP_OFFSET + i * sizeof(u64));
 		dev_dbg(dev, "opcap[%d]: %#llx\n", i, idxd->hw.opcap.bits[i]);
 	}
+
 	multi_u64_to_bmap(idxd->opcap_bmap, &idxd->hw.opcap.bits[0], 4);
 
 	/* read iaa cap */
 	if (idxd->data->type == IDXD_TYPE_IAX && idxd->hw.version >= DEVICE_VERSION_2)
 		idxd->hw.iaa_cap.bits = ioread64(idxd->reg_base + IDXD_IAACAP_OFFSET);
+
+	/* reading inter-domain capabilities */
+	if (idxd->hw.gen_cap.inter_domain) {
+		idxd->hw.id_cap.bits = ioread64(idxd->reg_base + IDXD_IDCAP_OFFSET);
+		dev_dbg(dev, "idcap: %#llx\n", idxd->hw.id_cap.bits);
+
+		idxd->idpt_size = idxd->hw.id_cap.idpt_size;
+		dev_dbg(dev, "IDPT size: %u\n", idxd->idpt_size);
+		idxd->idpte_support_mask = idxd->hw.id_cap.idpte_support_mask;
+		dev_dbg(dev, "IDPTE support mask: %#x\n", idxd->idpte_support_mask);
+		dev_dbg(dev, "IDPT offset mode support: %u\n", idxd->hw.id_cap.ofs_mode);
+		dev_dbg(dev, "IDPT update window suppress drain support: %u\n",
+			idxd->hw.id_cap.win_drain_suppress);
+	}
 }
 
 static struct idxd_device *idxd_alloc(struct pci_dev *pdev, struct idxd_driver_data *data)
@@ -648,6 +681,24 @@ static void idxd_disable_sva(struct pci_dev *pdev)
 	iommu_dev_disable_feature(&pdev->dev, IOMMU_DEV_FEAT_IOPF);
 }
 
+static void idxd_setup_idbr(struct idxd_device *idxd)
+{
+	union idbr_reg idbr = {};
+
+	if (!idxd->hw.gen_cap.inter_domain ||
+	    !(idxd->hw.id_cap.idpte_support_mask & BIT(1)) ||
+	    !device_user_pasid_enabled(idxd) ||
+	    !device_pasid_enabled(idxd))
+		return;
+
+	idbr.pasid_en = 1;
+	idbr.priv = 0;
+	idbr.bitmap_pasid = idxd->pasid;
+
+	iowrite32(idbr.bits, idxd->reg_base + IDXD_IDBR_OFFSET);
+	dev_dbg(&idxd->pdev->dev, "IDBR: %#x\n", ioread32(idxd->reg_base + IDXD_IDBR_OFFSET));
+}
+
 static int idxd_probe(struct idxd_device *idxd)
 {
 	struct pci_dev *pdev = idxd->pdev;
@@ -701,6 +752,8 @@ printk("%s: %d\n", __func__, __LINE__);
 	idxd_setup_ims(idxd);
 
 	idxd->major = idxd_cdev_get_major(idxd);
+
+	idxd_setup_idbr(idxd);
 
 	rc = perfmon_pmu_init(idxd);
 	if (rc < 0)

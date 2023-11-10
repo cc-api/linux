@@ -1370,6 +1370,8 @@ enum {
 	FOLL_HONOR_NUMA_FAULT = 1 << 12,
 
 	/* See also internal only FOLL flags in mm/internal.h */
+	/* we are working on non-current tsk/mm */
+	FOLL_REMOTE = 1 << 18,
 };
 
 #endif /* _LINUX_MM_TYPES_H */

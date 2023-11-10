@@ -259,6 +259,7 @@ struct idxd_hw {
 	struct opcap opcap;
 	u32 cmd_cap;
 	union iaa_cap_reg iaa_cap;
+	union idcap_reg id_cap;
 };
 
 enum idxd_device_state {
@@ -318,6 +319,24 @@ struct vdev_device_ops {
 	int (*device_remove)(struct idxd_device *idxd, char *vdev_name);
 };
 
+struct idxd_idpt_entry_data {
+	struct files_struct *owner_id;
+	struct list_head submit_list;
+	struct mutex lock;
+	u16 handle;
+	bool handle_valid;
+	struct idxd_device *idxd;
+	struct list_head next;
+	u32 access_pasid;
+	struct iommu_sva *owner_sva;
+	struct mm_struct *owner_mm;
+//	struct vm_struct *bitmap_vma;
+	void *bitmap;
+	dma_addr_t bitmap_dma;
+//	void *page_bitmap;
+	bool multi_user;
+};
+
 struct idxd_device {
 	struct idxd_dev idxd_dev;
 	struct idxd_driver_data *data;
@@ -353,6 +372,7 @@ struct idxd_device {
 	u32 wqcfg_offset;
 	u32 grpcfg_offset;
 	u32 perfmon_offset;
+	u32 idpt_offset;
 
 	u64 max_xfer_bytes;
 	u32 max_batch_size;
@@ -366,6 +386,12 @@ struct idxd_device {
 	int nr_rdbufs;		/* non-reserved read buffers */
 	unsigned int wqcfg_size;
 	unsigned long *wq_enable_map;
+
+	unsigned int idpt_size;
+	unsigned int idpte_support_mask;
+	struct ida idpt_ida;
+	struct mutex idpt_lock;
+	struct idxd_idpt_entry_data **idpte_data;
 
 	union sw_err_reg sw_err;
 	wait_queue_head_t cmd_waitq;

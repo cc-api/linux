@@ -163,7 +163,7 @@ int idxd_enqcmds(struct idxd_wq *wq, void __iomem *portal, const void *desc)
 	return rc;
 }
 
-static void dump_desc(struct dsa_hw_desc *hw)
+void dump_desc(struct dsa_hw_desc *hw)
 {
 	pr_debug("========== dump_desc ===========\n");
 	pr_debug("desc: priv = 0x%x\n", hw->priv);
