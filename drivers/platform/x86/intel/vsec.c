@@ -428,6 +428,16 @@ static const struct intel_vsec_platform_info tgl_info = {
 	.quirks = VSEC_QUIRK_TABLE_SHIFT | VSEC_QUIRK_EARLY_HW,
 };
 
+/* LNL info */
+static const struct intel_vsec_platform_info lnl_info = {
+	.caps = VSEC_CAP_TELEMETRY | VSEC_CAP_WATCHER,
+};
+
+/* PTL info */
+static const struct intel_vsec_platform_info ptl_info = {
+	.caps = VSEC_CAP_TELEMETRY | VSEC_CAP_WATCHER,
+};
+
 #define PCI_DEVICE_ID_INTEL_VSEC_ADL		0x467d
 #define PCI_DEVICE_ID_INTEL_VSEC_DG1		0x490e
 #define PCI_DEVICE_ID_INTEL_VSEC_MTL_M		0x7d0d
@@ -435,6 +445,8 @@ static const struct intel_vsec_platform_info tgl_info = {
 #define PCI_DEVICE_ID_INTEL_VSEC_OOBMSM		0x09a7
 #define PCI_DEVICE_ID_INTEL_VSEC_RPL		0xa77d
 #define PCI_DEVICE_ID_INTEL_VSEC_TGL		0x9a0d
+#define PCI_DEVICE_ID_INTEL_VSEC_LNL_M		0x647d
+#define PCI_DEVICE_ID_INTEL_VSEC_PTL		0xb07d
 static const struct pci_device_id intel_vsec_pci_ids[] = {
 	{ PCI_DEVICE_DATA(INTEL, VSEC_ADL, &tgl_info) },
 	{ PCI_DEVICE_DATA(INTEL, VSEC_DG1, &dg1_info) },
@@ -443,6 +455,8 @@ static const struct pci_device_id intel_vsec_pci_ids[] = {
 	{ PCI_DEVICE_DATA(INTEL, VSEC_OOBMSM, &oobmsm_info) },
 	{ PCI_DEVICE_DATA(INTEL, VSEC_RPL, &tgl_info) },
 	{ PCI_DEVICE_DATA(INTEL, VSEC_TGL, &tgl_info) },
+	{ PCI_DEVICE_DATA(INTEL, VSEC_LNL_M, &lnl_info) },
+	{ PCI_DEVICE_DATA(INTEL, VSEC_PTL, &ptl_info) },
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, intel_vsec_pci_ids);
