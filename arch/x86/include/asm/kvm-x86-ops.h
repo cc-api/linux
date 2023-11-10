@@ -140,6 +140,7 @@ KVM_X86_OP_OPTIONAL_RET0(vcpu_get_apicv_inhibit_reasons)
 KVM_X86_OP(get_untagged_addr)
 KVM_X86_OP_OPTIONAL_RET0(is_lass_violation)
 KVM_X86_OP_OPTIONAL(update_hfi)
+KVM_X86_OP(ioasid_bind)
 
 #undef KVM_X86_OP
 #undef KVM_X86_OP_OPTIONAL
