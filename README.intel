@@ -3,6 +3,110 @@ INTEL CONFIDENTIAL. FOR INTERNAL USE ONLY.
 README.intel.mei:
 
 ======================
+CSE post v6.6 changes
+======================
+
+Base: v6.6-rc1
+---------------------
+
+Affected IP: CSE/CSME
+----------------------
+
+Non public MEI Devices
+======================
+
+Tiger Lake Point
+-----------------
+0x42E0  /* Tiger Lake K */
+
+Lake Field
+-----------
+0x98E0  /* Lake Field */
+
+Inovation Engine
+-----------------
+0xA1F8  /* Lewisburg IE (SPT) */
+0xA278  /* Lewisburg IE SSX (SPT) */
+
+Jasper Lake
+------------
+0x38E0  /* Jasper Point - testing only */
+
+Denverton
+----------
+0x19D3  /* Denverton (BXT) */
+
+Meteor Lake
+------------
+0x7E58  /* Meteor Lake Point M ESE */
+
+Embargoed Supported MEI Devices
+===============================
+
+Lunar Lake
+-----------
+0xA870  /* Lunar Lake Point M */
+
+Panter Lake
+------------
+0xE470  /* Panter Lake P */
+0xE370  /* Panther Lake H */
+
+Arrow Lake
+-----------
+0x7F68  /* Arrow Lake Point S */
+
+Nova Lake
+----------
+
+0x6E68  /* Nova Lake Point S */
+0xD270  /* Nova Lake Point P */
+0xD370  /* Nova Lake Point H */
+
+Not upstreamed yet MEI Devices
+==============================
+
+New Features:
+=============
+
+PVC force wake workaround
+Prevent HW access while device is offline
+Suppress unexpected reset error print in some case
+
+New Drivers:
+============
+MEI_IAF - MEI Intel Accelerator Fabric Connector
+MEI_VIRTIO - MEI Virtio frontend driver
+MEI_BUS_DMA_TEST - test driver for client DMA feature
+
+
+Known Issues:
+=============
+PXP is not functional over consumer SKU
+
+README.intel_th:
+
+# Intel Trace Hub
+# Contains support for Granite Rapids, Sapphire Rapids, Meteor Lake-S, Lunar Lake, Panther Lake.
+# Classification: IC
+# SDL contact: Kai Svahn <kai.svahn@intel.com>
+# IP owners: Swarnakumar Aswatnarayana <swarnakumar.aswatnarayana@intel.com>, Saish Amonkar <saish.amonkar@intel.com>
+# Maintained by Alexander Shishkin <alexander.shishkin@linux.intel.com>
+# Authorized use contact: Alexander Shishkin <alexander.shishkin@linux.intel.com>
+# Config options: CONFIG_STM*=m CONFIG_INTEL_TH*=m
+# Supplementary tool: https://git-amr-1.devtools.intel.com/gerrit/gitweb?p=linux-npk-npktool.git;tflink=projects.linux-npk/scm.npktool
+# Intel-Next branch: intel_th-for-intel-next
+# Public subset: intel_th-pub
+# Fixes subset: intel_th-fixes
+
+
+README.intel:
+
+INTEL CONFIDENTIAL. FOR INTERNAL USE ONLY.
+------------------------------------------------------------------------
+README.intel.mei:
+
+======================
 CSE post v6.5 changes
 ======================
 
@@ -75,6 +179,24 @@ MEI_BUS_DMA_TEST - test driver for client DMA feature
 Known Issues:
 =============
 PXP is not functional over consumer SKU
+
+
+------------------------------------------------------------------------
+Intel Next Maintainers <intel-next-maintainers@eclists.intel.com>
+README.intel.bwctrl:
+
+New Features:
+=============
+
+PCIe Bandwidth Control (allows throttling PCIe Link Speed)
+PCIe Cooling Device per PCIe Root Port
+
+The PCIe Cooling Devices provide userspace interface that can be managed by
+thermald (an userspace daemon).
+
+While PCIe Bandwidth Control is targeted for LNL and MTL to help staying
+within thermal envelope under some scenarios, the mechanism is generic and
+can be used on older platforms as well.
 
 
 ------------------------------------------------------------------------

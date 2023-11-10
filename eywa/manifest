@@ -1,0 +1,1020 @@
+#Linux upstream
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git v6.6 master ffc253263a1375a65fa6c9f62a893e9767fbebfa
+
+#Topic Branch: eywa
+#Classification: intel confidential
+#Description: intel-next scripts and patches
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3492
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Intel Next Maintainers <intel-next-maintainers@eclists.intel.com>
+#Branch Type: internal nonexpiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options: N/A
+https://github.com/intel-innersource/os.linux.intelnext.kernel.git eywa 75c9a6c1201688127315edb8604c91b0c03b9bbb
+
+#Topic Branch: configs
+#Classification: intel confidential
+#Description: intel-next scripts and patches
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3493
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Intel Next Maintainers <intel-next-maintainers@eclists.intel.com>
+#Branch Type: internal nonexpiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options:
+#	CONFIG_VFIO_DEVICE_IDXD=m
+#	CONFIG_INTEL_RAPL_TPMI=m
+#	CONFIG_INTEL_TDX_MODULE_LOADER_OLD=y
+#	CONFIG_CRYPTO_ECDSA=y
+#	CONFIG_CRYPTO_ECRDSA=y
+#	CONFIG_CRYPTO_SM2=y
+#	CONFIG_CRYPTO_CURVE25519=y
+#	CONFIG_CRYPTO_CURVE25519_X86=y
+#	CONFIG_CRYPTO_CRC32=y
+#	CONFIG_X86_KERNEL_IBT=y
+#	CONFIG_RUNTIME_TESTING_MENU=y
+#	CONFIG_TEST_FPU=y
+#	CONFIG_IOMMUFD=y
+#	CONFIG_IOMMUFD_TEST=y
+#	CONFIG_IOMMUFD_VFIO_CONTAINER=y
+#	CONFIG_FAULT_INJECTION=y
+#	CONFIG_DEBUG_KERNEL=y
+#	CONFIG_RUNTIME_TESTING_MENU=y
+#	CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL=y
+#	CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE=n
+#	CONFIG_INTEL_TELEMETRY=y
+#	CONFIG_FW_LOADER_COMPRESS_ZSTD=y
+https://github.com/intel-innersource/os.linux.intelnext.kernel.git configs 68fd50a0704cfddaf1737853272e03889d2bc0c5
+
+#Topic Branch: packaging
+#Classification: intel confidential
+#Description: intel-next scripts and patches
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3494
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Intel Next Maintainers <intel-next-maintainers@eclists.intel.com>
+#Branch Type: internal nonexpiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options: N/A
+https://github.com/intel-innersource/os.linux.intelnext.kernel.git packaging a5b375a2a61c0172782a45d5502247eb71315298
+
+#Topic Branch: SVOS Kernel
+#Classification: intel confidential
+#Description: SVOS Kernel/Driver Changes 
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3525
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Adam Preble <adam.c.preble@intel.com>
+#Branch Type: expiring
+#Ip Owner: Adam Preble <adam.c.preble@intel.com>
+#SDL Contact: Adam Preble <adam.c.preble@intel.com>
+#Config Options:
+#	CONFIG_SVOS=n
+#	CONFIG_SVFS_ACPI=n
+#	CONFIG_SVOS_RAS_ERRORCORRECT=n
+https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next svos-next-pull-6.6 e00ea68df73348b2cf067572a2b5426127c24782
+
+#Topic Branch: branding
+#Classification: intel confidential
+#Description: Custom intel-next logo on bootup
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3495
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Kyle Pelton <kyle.d.pelton@intel.com>
+#Branch Type: internal nonexpiring
+#Ip Owner: Kyle Pelton <kyle.d.pelton@intel.com>
+#SDL Contact: Charles Prestopine <charles.d.prestopine@intel.com>
+#Config Options:
+#	CONFIG_LOGO=y
+#	CONFIG_LOGO_LINUX_NEXT_CLUT224=y
+https://github.com/intel-sandbox/otc_power_kernel intel_next_branding 2c8737a3e419ce4e8d2fc81547e0ed8c75991af9
+
+#Topic Branch: pm-testing
+#Classification: public
+#Description: Linux Next PM public tree
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3500
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Rafael Wysocki <rafael.j.wysocki@intel.com>
+#Branch Type: public
+#Ip Owner: 
+#SDL Contact: 
+#Config Options: N/A
+https://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm.git testing 25839bdc2530446faa0704f1bc6119ba6f161415
+
+#Topic Branch: tpm
+#Classification: public
+#Description: Linux Next TPM public next tree
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3501
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Jarkko Sakkinen <jarkko.sakkinen@intel.com>
+#Branch Type: public
+#Ip Owner: 
+#SDL Contact: 
+#Config Options: N/A
+https://git.kernel.org/pub/scm/linux/kernel/git/jarkko/linux-tpmdd.git next 03acb9ccec3f8cbcc0ed93c188b7a119ef30ef64
+
+#Topic Branch: drm
+#Classification: intel confidential
+#Description: Drm embargo branch
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3496
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Ashutosh Dixit <ashutosh.dixit@intel.com>
+#Branch Type: internal nonexpiring
+#Ip Owner: Rodrigio Vivi <rodrigo.vivi@intel.com>
+#SDL Contact: Rodrigo Vivi <rodrigo.vivi@intel.com>
+#Config Options:
+#	CONFIG_DRM_I915_ALPHA_SUPPORT=y
+#	CONFIG_DRM_I915=m
+#	CONFIG_DRM_XE=m
+#	CONFIG_DRM_XE_DISPLAY=y
+#	CONFIG_DRM_XE_FORCE_PROBE="*"
+#	CONFIG_DRM_XE_SIMPLE_ERROR_CAPTURE=y
+#	CONFIG_DRM_XE_LARGE_GUC_BUFFER=y
+https://github.com/intel-innersource/drivers.gpu.i915.drm-intel.git for-intel-next 5b80791b3b3caf7f5c38edf4e9645507cfbea755
+
+#Topic Branch: mmc
+#Classification: intel confidential
+#Description: MMC Subsystem and SCS (eMMC/ SD card / SDIO / UFS) driver enabling
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3518
+#Pull Request: N/A
+#Targeted Platforms: LNL
+#Feature JIRAs: N/A
+#Contributor: Adrian Hunter <adrian.hunter@intel.com>
+#Branch Type: expiring
+#Ip Owner: Rajesh Bhaskar <rajesh.bhaskar@intel.com>, Tomasz Pielaszkiewicz <tomasz.pielaszkiewicz@intel.com>, Chattopadhyay Arijit <arijit.chattopadhyay@intel.com>
+#SDL Contact: Kai Svahn <kai.svahn@intel.com>
+#Config Options:
+#	CONFIG_MMC=y
+#	CONFIG_MMC_SDHCI=y
+#	CONFIG_MMC_SDHCI_PCI=y
+#	CONFIG_MMC_SDHCI_ACPI=m
+#	CONFIG_SCSI_LOWLEVEL=y
+#	CONFIG_SCSI_UFSHCD=m
+#	CONFIG_SCSI_UFSHCD_PCI=m
+#	CONFIG_BLK_INLINE_ENCRYPTION=y
+#	CONFIG_SCSI_UFS_CRYPTO=y
+#	CONFIG_FS_ENCRYPTION=y
+#	CONFIG_FS_ENCRYPTION_INLINE_CRYPT=y
+#	CONFIG_CRYPTO_CTS=m
+#	CONFIG_CRYPTO_XTS=m
+#	CONFIG_CRYPTO_AES=m
+#	CONFIG_SCSI_UFS_BSG=y
+#	CONFIG_BLK_DEV_BSGLIB=m
+https://github.com/intel-sandbox/ahunter6.next.git scs-v6.6 a2db273729e4ce3d6443b95ef9b1693314583942
+
+#Topic Branch: mei
+#Classification: intel confidential
+#Description: CSE/CSME MEI driver and MEI client drivers
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3523
+#Pull Request: N/A
+#Targeted Platforms: LNL,MTL,PNL
+#Feature JIRAs: N/A
+#Contributor: Alexander Usyskin <alexander.usyskin@intel.com>
+#Branch Type: expiring
+#Ip Owner: William A. Stevens <William.a.stevens@intel.com>
+#SDL Contact: Daniel Ohayon <daniel.ohayon@intel.com>, Alexander Usyskin <alexander.usyskin@intel.com>, Tomas Winkler <tomas.winkler@intel.com>, Vitaly Lubart <vitaly.lubart@intel.com>
+#Config Options:
+#	CONFIG_PCI=y
+#	CONFIG_INTEL_MEI=m
+#	CONFIG_INTEL_MEI_ME=m
+#	CONFIG_INTEL_MEI_TXE=m
+#	CONFIG_INTEL_MEI_HDCP=m
+#	CONFIG_INTEL_MEI_IAF=m
+#	CONFIG_INTEL_MEI_GSC_PROXY=m
+#	CONFIG_WATCHDOG_CORE=y
+#	CONFIG_INTEL_MEI_WDT=m
+#	CONFIG_NFC=m
+#	CONFIG_NFC_HCI=m
+#	CONFIG_NFC_MEI_PHY=m
+#	CONFIG_NFC_PN544=m
+#	CONFIG_NFC_PN544_MEI=m
+#	CONFIG_NFC_MICROREAD=m
+#	CONFIG_NFC_MICROREAD_MEI=m
+#	CONFIG_SAMPLE_INTEL_MEI =n
+https://github.com/intel-innersource/drivers.security.cse.drivers.linux-mei-pk.git cse-6.6 3051008f8ffde839d188fabd9e4bfc608cac3007
+
+#Topic Branch: lpss_gpio
+#Classification: intel confidential
+#Description: LPSS(MFD/DMA/UART)/GPIO enabling for LNL,MTL(SoC P, S and PCH S variants),ADL,TGL,ICL and other/older platforms
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3497
+#Pull Request: N/A
+#Targeted Platforms: ADL,ICL,LNL,MTL,TGL
+#Feature JIRAs: N/A
+#Contributor: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+#Branch Type: internal nonexpiring
+#Ip Owner: Rajesh Bhaskar <rajesh.bhaskar@intel.com>, Eric Thian Aun Tan <eric.thian.aun.tan@intel.com>
+#SDL Contact: Kai Svahn <kai.svahn@intel.com>
+#Config Options:
+#	CONFIG_MFD_INTEL_LPSS_ACPI=m
+#	CONFIG_MFD_INTEL_LPSS_PCI=m
+#	CONFIG_MFD_INTEL_QUARK_I2C_GPIO=m
+#	CONFIG_X86_INTEL_LPSS=y
+#	CONFIG_GPIO_DWAPB=m
+#	CONFIG_GPIO_PCH=m
+#	CONFIG_GPIO_ICH=m
+#	CONFIG_GPIO_SCH=m
+#	CONFIG_GPIO_ELKHARTLAKE=m
+#	CONFIG_GPIO_MERRIFIELD=m
+#	CONFIG_GPIO_CRYSTAL_COVE=m
+#	CONFIG_GPIO_WHISKEY_COVE=m
+#	CONFIG_INTEL_SOC_PMIC=m
+#	CONFIG_INTEL_SOC_PMIC_BXTWC=m
+#	CONFIG_INTEL_SOC_PMIC_CHTWC=m
+#	CONFIG_INTEL_SOC_PMIC_MRFLD=m
+#	CONFIG_INTEL_IDMA64=m
+#	CONFIG_DW_DMAC=m
+#	CONFIG_DW_DMAC_PCI=m
+#	CONFIG_HSU_DMA=m
+#	CONFIG_PCH_DMA=m
+#	CONFIG_SERIAL_PCH_UART=m
+#	CONFIG_SERIAL_8250_DW=m
+#	CONFIG_SERIAL_8250_LPSS=m
+#	CONFIG_SERIAL_8250_MID=m
+#	CONFIG_PINCTRL_BAYTRAIL=m
+#	CONFIG_PINCTRL_CHERRYVIEW=m
+#	CONFIG_PINCTRL_LYNXPOINT=m
+#	CONFIG_PINCTRL_MERRIFIELD=m
+#	CONFIG_PINCTRL_MOOREFIELD=m
+#	CONFIG_PINCTRL_INTEL_PLATFORM=m
+#	CONFIG_PINCTRL_ALDERLAKE=m
+#	CONFIG_PINCTRL_BROXTON=m
+#	CONFIG_PINCTRL_CANNONLAKE=m
+#	CONFIG_PINCTRL_CEDARFORK=m
+#	CONFIG_PINCTRL_DENVERTON=m
+#	CONFIG_PINCTRL_ELKHARTLAKE=m
+#	CONFIG_PINCTRL_EMMITSBURG=m
+#	CONFIG_PINCTRL_GEMINILAKE=m
+#	CONFIG_PINCTRL_ICELAKE=m
+#	CONFIG_PINCTRL_JASPERLAKE=m
+#	CONFIG_PINCTRL_LAKEFIELD=m
+#	CONFIG_PINCTRL_LEWISBURG=m
+#	CONFIG_PINCTRL_METEORLAKE=m
+#	CONFIG_PINCTRL_METEORPOINT=m
+#	CONFIG_PINCTRL_SUNRISEPOINT=m
+#	CONFIG_PINCTRL_TIGERLAKE=m
+https://github.com/intel-sandbox/ashevche.linux.kernel intel/for-next 0d7cb9784bf05af8fee86964d5cc40caeed39d6a
+
+#Topic Branch: edac
+#Classification: intel confidential
+#Description: EDAC for SPR and IEH for TGL
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3511
+#Pull Request: N/A
+#Targeted Platforms: SPR,TGL
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-4945
+#	https://jira.devtools.intel.com/browse/LFE-631
+#Contributor: Qiuxu Zhou <qiuxu.zhuo@intel.com>
+#Branch Type: expiring
+#Ip Owner: Ahmad, Annie <quarat-ul-ann.ahmad@intel.com>, Revuelta, Julian J <julian.j.revuelta@intel.com>, Radjai, Amir <amir.radjai@intel.com>, Levy, Tomer <tomer.levy@intel.com>
+#SDL Contact: Tony Luck <tony.luck@intel.com>
+#Config Options:
+#	CONFIG_ACPI_ADXL=y
+#	CONFIG_EDAC_DEBUG=y
+#	CONFIG_EDAC_SKX=m
+#	CONFIG_EDAC_I10NM=m
+#	CONFIG_EDAC_IGEN6=m
+#	CONFIG_EDAC_IEH=m
+#	CONFIG_PCIEPORTBUS=y
+#	CONFIG_PCIEAER=y
+#	CONFIG_PCIE_PME=y
+#	CONFIG_PCIEAER_INJECT=m
+#	CONFIG_ACPI_APEI_PCIEAER=y
+#	CONFIG_ACPI_APEI_EINJ=m
+https://github.com/intel-sandbox/qzhuo-linux.git edac-for-intel-next a989ed2c3cb0c72939c07cb47a740ab6e5816347
+
+#Topic Branch: pmc_core
+#Classification: intel confidential
+#Description: PMC core driver
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3498
+#Pull Request: N/A
+#Targeted Platforms: LNL,MTL,SKL,TGL
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-7063
+#Contributor: Xi Pardee <xi.pardee@intel.com>
+#Branch Type: internal nonexpiring
+#Ip Owner: Mark Charney <mark.charney@intel.com>, Christopher Lake <christopher.j.lake@intel.com>
+#SDL Contact: David Box <david.e.box@intel.com>
+#Config Options:
+#	CONFIG_INTEL_PMC_CORE=y
+#	CONFIG_PM_SLEEP=y
+#	CONFIG_DEBUG_FS=y
+https://github.com/intel-sandbox/xi_linux.git pmc_core_intel_next 3700d4b8abf4eab0163309ff25b623e2a12b5699
+
+#Topic Branch: tracehub
+#Classification: intel confidential
+#Description: Contains tracehub support for Granite Rapids, Meteor Lake, Raptor Lake.
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3544
+#Pull Request: N/A
+#Targeted Platforms: GNR,MTL,RPL
+#Feature JIRAs: N/A
+#Contributor: Alexander Shishkin <alexander.shishkin@linux.intel.com>, Adrian Hunter <adrian.hunter@intel.com>
+#Branch Type: expiring
+#Ip Owner: Swarnakumar Aswatnarayana <swarnakumar.aswatnarayana@intel.com>, Saish Amonkar <saish.amonkar@intel.com>
+#SDL Contact: Kai Svahn <kai.svahn@intel.com>, Alexander Shishkin <alexander.shishkin@linux.intel.com>
+#Config Options:
+#	CONFIG_STM=m
+#	CONFIG_STM_DUMMY=m
+#	CONFIG_STM_SOURCE_CONSOLE=m
+#	CONFIG_STM_SOURCE_HEARTBEAT=m
+#	CONFIG_STM_SOURCE_FTRACE=m
+#	CONFIG_INTEL_TH=m
+#	CONFIG_INTEL_TH_PCI=m
+#	CONFIG_INTEL_TH_ACPI=m
+#	CONFIG_INTEL_TH_GTH=m
+#	CONFIG_INTEL_TH_STH=m
+#	CONFIG_INTEL_TH_MSU=m
+#	CONFIG_INTEL_TH_PTI=m
+https://github.com/intel-sandbox/linux-stm.git intel_th-for-intel-next 5495650f9a4b2efe31fab7051e33a826d579d1c5
+
+#Topic Branch: usb-typec
+#Classification: intel confidential
+#Description: USB Type-C/DWC3 for MTL-S
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3513
+#Pull Request: N/A
+#Targeted Platforms: MTL-S
+#Feature JIRAs: N/A
+#Contributor: Heikki Krogerus <heikki.krogerus@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: Abdul Rahman Ismail <abdul.r.ismail@intel.com>
+#SDL Contact: Svahn Kai <kai.svahn@intel.com>
+#Config Options:
+#	CONFIG_TYPEC=m
+#	CONFIG_TYPEC_UCSI=m
+#	CONFIG_UCSI_ACPI=m
+#	CONFIG_TYPEC_CCG_HPI=m
+#	CONFIG_USB_DWC3=m
+#	CONFIG_USB_DWC3_PCI=m
+https://github.com/intel-sandbox/hkrogeru-linux.git for-eywa 3550e9ed240fc6b15975a50d6b9570faf5e8b139
+
+#Topic Branch: rapl/idle
+#Classification: intel confidential
+#Description: intel_rapl/intel_idle/thermal/turbostat support
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3499
+#Pull Request: N/A
+#Targeted Platforms: ADL,EMR,GNR,MTL,RPL
+#Feature JIRAs: N/A
+#Contributor: Rui Zhang <rui.zhang@intel.com>
+#Branch Type: internal nonexpiring
+#Ip Owner: Evelyn Fields <evelyn.fields@intel.com>
+#SDL Contact: Charles D Prestopine <charles.d.prestopine@intel.com>
+#Config Options:
+#	CONFIG_INTEL_RAPL=m
+#	CONFIG_INTEL_TCC_COOLING=m 
+https://github.com/intel-sandbox/rzhang1.git for-intel-next 3620fcde32cb419694e3121d213990922bed1a00
+
+#Topic Branch: perf-tools
+#Classification: public
+#Description: Updates to perf tools for Intel PT
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3514
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Adrian Hunter <adrian.hunter@intel.com>
+#Branch Type: expiring
+#Ip Owner: Jeyasingh Stalinselvaraj <stalinselvaraj.jeyasingh@intel.com>
+#SDL Contact: Kai Svahn <kai.svahn@intel.com>
+#Config Options: N/A
+https://github.com/intel-sandbox/ahunter6.next.git intel-pt-perf-tools-v6.6 73df50c65ffca69eb1a96d3f01772dfed1382cb6
+
+#Topic Branch: hybrid
+#Classification: intel confidential
+#Description: Enable Intel Thread Director (ITD) as well as code to discover and enumerate the topology of hybrid CPUs.
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3516
+#Pull Request: N/A
+#Targeted Platforms: ADL,ARL,LKF,LNL,MTL,RPL
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-3935
+#	https://jira.devtools.intel.com/browse/LFE-3936
+#	https://jira.devtools.intel.com/browse/LFE-6953
+#Contributor: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: Eliezer Weissman <eliezer.weissmann@intel.com>, Muhammad Abozaed <muhammad.abozaed@intel.com>
+#SDL Contact: Ravi V. Shankar <ravi.v.shankar@intel.com>
+#Config Options:
+#	CONFIG_INTEL_HFI_THERMAL=y
+#	CONFIG_IPC_CLASSES=y
+https://github.com/intel-sandbox/ranerica.linux.git rneri/hybrid-for-intel-next 1f3779e9022027fd3db744fa7c481e7ca69e968f
+
+#Topic Branch: LASS
+#Classification: public
+#Description: Enable LASS
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3538
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Alexander Shishkin <alexander.shishkin@intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: Svahn, Kai <kai.svahn@intel.com>
+#Config Options: N/A
+https://github.com/intel-sandbox/linux-perf.git lass 805a56cb7a7d689dbea2d7305d526be17acae270
+
+#Topic Branch: dlb2
+#Classification: intel confidential
+#Description: The dlb2 driver is a kernel module that supports configuration and use of the DLB 2.0 device
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3542
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Mike Ximing Chen <mike.ximing.chen@intel.com>
+#Branch Type: expiring
+#Ip Owner: Niall Mcdonnell <niall.mcdonnell@intel.com>
+#SDL Contact: Randy Carpenter <randy.b.carpenter@intel.com>
+#Config Options:
+#	CONFIG_INTEL_DLB2=m
+#	CONFIG_INTEL_DLB2_DATAPATH=y
+#	CONFIG_INTEL_DLB2_SIOV=n
+#	CONFIG_INTEL_IOMMU=y
+#	CONFIG_VFIO=y
+#	CONFIG_VFIO_MDEV=y
+#	CONFIG_VFIO_MDEV_DEVICE=y
+#	CONFIG_PCI_IOV=y
+https://github.com/intel-innersource/drivers.scheduling.dynamic-load-balancer.upstreamed-dlb-linux-driver.git dlb2-for-intel-next-v6.6-rc5 54d08ed33b5df16d13f4cceefd6082886c4fae2c
+
+#Topic Branch: SPI-NOR/PCI/Thunderbolt/USB4
+#Classification: intel confidential
+#Description: SPI-NOR/PCI/Thunderbolt/USB4 enabling for LNL-M, Barlow Ridge
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3506
+#Pull Request: N/A
+#Targeted Platforms: LNL-M
+#Feature JIRAs: N/A
+#Contributor: Mika Westerberg <mika.westerberg@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: Kevin Zhenyu Zhu <kevin.zhenyu.zhu@intel.com>, Reuven Rozic <reuven.rozic@intel.com>
+#SDL Contact: Kai Svahn <kai.svahn@intel.com>
+#Config Options:
+#	CONFIG_SPI_INTEL_PCI=m
+#	CONFIG_SPI_INTEL_PLATFORM=m
+#	CONFIG_USB4=m
+#	CONFIG_USB4_NET=m
+#	CONFIG_SPI_INTEL=m
+#	CONFIG_USB4_DEBUGFS_WRITE=y
+#	CONFIG_USB4_DMA_TEST=m
+#	CONFIG_USB4_DEBUGFS_WRITE=y
+#	CONFIG_USB4_DEBUGFS_MARGINING=y
+https://github.com/intel-sandbox/mwesterb-linux.git for-eywa 7136d48146937cc26c4dd176355d2f50257fd348
+
+#Topic Branch: prm_linux_support
+#Classification: intel confidential
+#Description: PRM runtime update support for Intel PRM-capable platforms
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3520
+#Pull Request: N/A
+#Targeted Platforms: EMR,GNR
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-745
+#Contributor: Aubrey Li <aubrey.li@intel.com>
+#Branch Type: expiring
+#Ip Owner: Sinha, Ankit <ankit.sinha@intel.com>
+#SDL Contact: Li, Aubrey <aubrey.li@intel.com>, Williams, Dan J <dan.j.williams@intel.com>, Raj, Ashok <ashok.raj@intel.com>
+#Config Options:
+#	CONFIG_ACPI_DEBUGGER=y
+#	CONFIG_ACPI_DEBUGGER_USER=m
+#	CONFIG_ACPI_PRMT=y
+https://github.com/intel-sandbox/aubrey-linux.git prm_v6.6_for_intel_next 36f0dc0bec7a5d74ec3779916026722769ad4840
+
+#Topic Branch: In Field Scan
+#Classification: intel confidential
+#Description: Enable In Field Scan device driver
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3539
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Jithu Joseph <jithu.joseph@intel.com>
+#Branch Type: expiring
+#Ip Owner: Philip Abraham <philip.abraham@intel.com>
+#SDL Contact: Ashok Raj <ashok.raj@intel.com>
+#Config Options:
+#	CONFIG_INTEL_IFS=m
+https://github.com/intel-sandbox/drivers.saf.git v6.6-rc3-ucode-ifs-for-nxt c450663966d9e788d906af59657f6e942dac4329
+
+#Topic Branch: cxl
+#Classification: public
+#Description: CXL Memory Expander support 
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3502
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Dan J Williams <dan.j.williams@intel.com>, CXL list <cxl-linux@eclists.intel.com>
+#Branch Type: public
+#Ip Owner: 
+#SDL Contact: Dan Williams <dan.j.williams@intel.com>
+#Config Options:
+#	CONFIG_CXL_BUS=m
+#	CONFIG_CXL_PCI=m
+#	CONFIG_CXL_MEM_RAW_COMMANDS=y
+#	CONFIG_CXL_ACPI=m
+#	CONFIG_CXL_PMEM=m
+#	CONFIG_CXL_MEM=m
+#	CONFIG_CXL_PORT=m
+https://git.kernel.org/pub/scm/linux/kernel/git/cxl/cxl next 5d09c63f11f083707b60c8ea0bb420651c47740f
+
+#Topic Branch: LPSS/SMBus
+#Classification: intel confidential
+#Description: Add I2C support for MTl, Birchstream
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3509
+#Pull Request: N/A
+#Targeted Platforms: GNR,MTL
+#Feature JIRAs: N/A
+#Contributor: Jarkko Nikula <jarkko.nikula@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: Rajesh Bhaskar <rajesh.bhaskar@intel.com>, Ming Chew Lee <ming.chew.lee@intel.com>, Abdul Rahman Ismail <abdul.r.ismail@intel.com>, Raymond Tan <raymond.tan@intel.com>
+#SDL Contact: Kai Svahn <kai.svahn@intel.com>
+#Config Options:
+#	CONFIG_I2C_DESIGNWARE_PLATFORM=y
+#	CONFIG_I2C_DESIGNWARE_PCI=m
+#	CONFIG_I2C_I801=m
+#	CONFIG_MFD_INTEL_LPSS_ACPI=m
+#	CONFIG_MFD_INTEL_LPSS_PCI=m
+#	CONFIG_SPI_PXA2XX=m
+#	CONFIG_SPI_PXA2XX_PCI=m
+https://github.com/intel-sandbox/jarkkoni.linux.kernel.git for-intel-next 50d4ec3eafb7d9dbb39dc7a65884d708383fc420
+
+#Topic Branch: sep_socwatch
+#Classification: public
+#Description: SoCWatch and SEP drivers
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3532
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Swedhana Viswanathan <swedhana.viswanathan@intel.com>
+#Branch Type: expiring
+#Ip Owner: Benmlih Faycal <faycal.benmlih@intel.com>
+#SDL Contact: Kalinin Alexei V <alexei.v.kalinin@intel.com>
+#Config Options: N/A
+https://github.com/intel-sandbox/sep-socwatch.linux.intelnext.kernel.git sep_socwatch_linux_v6.6 4a8a476502a42de9e1acc04b40e4cfb7592cbf1e
+
+#Topic Branch: MTLDIDs
+#Classification: public
+#Description: Add DIDs 8086:7D0B and 8086:AD0B for Intel MTL-M/S SKU's
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3503
+#Pull Request: N/A
+#Targeted Platforms: MTL-M
+#Feature JIRAs: N/A
+#Contributor: Francisco Munoz Ruiz <francisco.munoz.ruiz@intel.com>
+#Branch Type: internal nonexpiring
+#Ip Owner: Nirmal Patel <nirmal.patel@intel.com>
+#SDL Contact: 
+#Config Options:
+#	CONFIG_VMD=y
+#	CONFIG_NVME_CORE=y
+#	CONFIG_BLK_DEV_NVME=y
+#	CONFIG_NVME_MULTIPATH=y
+#	CONFIG_HWMON=y
+#	CONFIG_NVME_RDMA=y
+#	CONFIG_NVME_FC=y
+#	CONFIG_NVME_TCP=y
+#	CONFIG_NVME_TARGET=y
+#	CONFIG_NVME_TARGET_PASSTHRU=y
+#	CONFIG_NVME_TARGET_LOOP=y
+#	CONFIG_NVME_TARGET_RDMA=y
+#	CONFIG_NVME_TARGET_FC=y
+#	CONFIG_NVME_TARGET_FCLOOP=y
+#	CONFIG_NVME_TARGET_TCP=y
+https://github.com/intel-sandbox/otc_power_kernel mtl_dids_linus_rc c600f9c2babba00df0c0fba95c35c8da353f9989
+
+#Topic Branch: tdx_guest
+#Classification: public
+#Description: TDX Guest support 
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3517
+#Pull Request: N/A
+#Targeted Platforms: EMR,GNR,SPR,SRF
+#Feature JIRAs: N/A
+#Contributor: Sathyanarayanan Kuppuswamy <sathyanarayanan.kuppuswamy@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: Prajwal Karur Mohan <prajwal.karur.mohan@intel.com>
+#SDL Contact: Prajwal Karur Mohan <prajwal.karur.mohan@intel.com>
+#Config Options:
+#	CONFIG_INTEL_TDX_GUEST=y
+#	CONFIG_TDX_GUEST_DRIVER=y
+#	CONFIG_VIRT_DRIVERS=y
+https://github.com/intel/tdx.git guest-next 9b0a9612ce55c4a30160f661ae80ea8042f987bf
+
+#Topic Branch: lam_lass_kvm
+#Classification: public
+#Description: Linear Address Masking KVM Enabling
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3530
+#Pull Request: N/A
+#Targeted Platforms: GRR,LNL,SRF
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-28
+#	https://jira.devtools.intel.com/browse/LFE-843
+#Contributor: Binbin Wu <binbin.wu@intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options: N/A
+https://github.com/binbinwu1/linux lam_lass_combined 4e96fe29c695b9edfc3c411ad06bda0c07599e39
+
+#Topic Branch: tracepoint_xsave
+#Classification: public
+#Description: Measure the latency of XSAVE and XRSTOR
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3507
+#Pull Request: N/A
+#Targeted Platforms: EMR,GNR,SPR
+#Feature JIRAs: N/A
+#Contributor: Yi Sun <yi.sun@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options:
+#	CONFIG_EVENT_TRACING=y
+#	CONFIG_TRACING=y
+#	CONFIG_TRACING_SUPPORT=y
+#	CONFIG_FUNCTION_TRACER=y
+https://github.com/intel-sandbox/linux-sy.git tracepoint-xsave-for-inext-v6.6 b2c2a765e9932905dd5d801efc843dab391b5a53
+
+#Topic Branch: tdx_compliance
+#Classification: public
+#Description: TDX compliance is designed to verify TDX environment.
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3508
+#Pull Request: N/A
+#Targeted Platforms: EMR,GNR,SPR
+#Feature JIRAs: N/A
+#Contributor: Yi Sun <yi.sun@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: Yi Sun <yi.sun@linux.intel.com>
+#SDL Contact: Yi Sun <yi.sun@linux.intel.com>
+#Config Options:
+#	CONFIG_INTEL_TDX_COMPLIANCE=m
+https://github.com/intel-sandbox/linux-sy.git tdx-compliance-for-inext-v6.6 8c8fc0c3e6aa3d1527e9ee3c26a9242c0cf393e5
+
+#Topic Branch: lnlm_telemetry
+#Classification: public
+#Description: LNL-M telemetry and watcher support
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3527
+#Pull Request: N/A
+#Targeted Platforms: LNL
+#Feature JIRAs: N/A
+#Contributor: Rajvi Jingar <rajvi.jingar@intel.com>
+#Branch Type: expiring
+#Ip Owner: Rajvi Jingar <rajvi.jingar@intel.com>
+#SDL Contact: 
+#Config Options: N/A
+https://github.com/intel-sandbox/linux-kernel-rjingar.git for-intel-next ee6e59cbf44ad2d0a6fa5185dfdab81159b23c0f
+
+#Topic Branch: guest_apic_virt
+#Classification: intel confidential
+#Description: Guest apic virt timer patches for CWF
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3504
+#Pull Request: N/A
+#Targeted Platforms: CWF
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-7429
+#Contributor: Yang Zhong <yang.zhong@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: Gil Neiger <gil.neiger@intel.com>
+#SDL Contact: Yang Zhong <yang.zhong@intel.com>
+#Config Options: N/A
+https://github.com/intel-sandbox/yangzhon-linux.git for-intel-next 609b17edf1a08148baa9c8cec6cb1eabde0ea2b3
+
+#Topic Branch: cpuid_cwf_dmr_nis
+#Classification: public
+#Description: Advertise CPUID of CWF/DMR instructions to userspace
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3505
+#Pull Request: N/A
+#Targeted Platforms: CWF,DMR
+#Feature JIRAs: N/A
+#Contributor: Tao Su <tao1.su@intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options: N/A
+https://github.com/intel-sandbox/taosu.linux.git     cwf-dmr-nis-6.6 aff24d33e8a78c9f05742d82596440d5637af9ed
+
+#Topic Branch: utimer_next
+#Classification: public
+#Description: Enable User Timer support
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3534
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-6969
+#Contributor: Sohil Mehta <sohil.mehta@intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options:
+#	CONFIG_X86_USER_INTERRUPTS=y
+#	CONFIG_X86_UINTR_BLOCKING=n
+https://github.com/intel-sandbox/sohilmeh.linux.git utimer-next c1fa984f761c82a50de59773b9f6d48afbaff910
+
+#Topic Branch: thread_director_virt
+#Classification: intel confidential
+#Description: Enable Intel Thread Director (ITD) in virtualization scenario
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3519
+#Pull Request: N/A
+#Targeted Platforms: ADL,LNL,MTL,RPL
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/CROSVT-1327
+#Contributor: Zhao Liu <zhao1.liu@intel.com>
+#Branch Type: expiring
+#Ip Owner: Eliezer Weissmann <eliezer.weissmann@intel.com>, Muhammad Abozaed <muhammad.abozaed@intel.com>
+#SDL Contact: Zhenyu Wang <zhenyu.z.wang@intel.com>
+#Config Options:
+#	CONFIG_INTEL_HFI_THERMAL=y
+#	CONFIG_IPC_CLASSES=y
+#	CONFIG_KVM_INTEL=y
+https://github.com/intel-sandbox/zhaoliu.linux.git hybrid-virtual-for-intel-next 06e45b993d27a681b5a99f5e53cc7f16db7a69e9
+
+#Topic Branch: fred_support
+#Classification: public
+#Description: Intel FRED support
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3529
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-7271
+#	https://jira.devtools.intel.com/browse/LFE-7272
+#Contributor: Xin Li <xin3.li@intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: Ravi Shankar <ravi.v.shankar@intel.com>
+#Config Options:
+#	CONFIG_X86_FRED=y
+https://github.com/intel-sandbox/linux-fred.git intel-next-fred-v6.6-rc1 202b061701b77f25c9f4209fedb3d01e8998f677
+
+#Topic Branch: disable_cet_before_shutdown
+#Classification: public
+#Description: Disable CET before shutdown
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3510
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Mateusz Mowka <mateusz.mowka@intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options: N/A
+https://github.com/mateusz-mowka/tboot_linux.git tboot_disable_cet_before_shutdown a76b9863bc5ec131aefd9b314e3e04861600e2b4
+
+#Topic Branch: siov
+#Classification: public
+#Description: Internal SIOV kernel development tree 
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3524
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Yi Sun <yi.y.sun@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options:
+#	CONFIG_VFIO_DEVICE_CDEV=y
+#	CONFIG_VFIO_CONTAINER=y
+#	CONFIG_VFIO_IOMMU_TYPE1=y
+#	CONFIG_VFIO_PCI_IMS=m
+#	CONFIG_VFIO_DEVICE_IDXD=m
+#	CONFIG_IOASID=y
+#	CONFIG_IOMMU_IOPF=y
+#	CONFIG_PCI_INTEL_IDXD_IMS=m
+https://github.com/intel-sandbox/yisun1-siov.git 6.6-rc2_siov 33660de216fdce1c44233cc932f5021c2d44dd7b
+
+#Topic Branch: kvm_2_0
+#Classification: intel confidential
+#Description: KVM TDX v1.5
+#Topic Branch JIRA: N/A
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Chenyi Qiang <chenyi.qiang@intel.com>, Wei Wang <wei.w.wang@intel.com>, Gao Chao <chao.gao@intel.com>
+#Branch Type: expiring
+#Ip Owner: Caspi Dror <dror.caspi@intel.com>
+#SDL Contact: Chenyi Qiang <chenyi.qiang@intel.com>
+#Config Options:
+#	CONFIG_INTEL_TDX_MODULE_UPDATE=y
+#	CONFIG_INTEL_TDX_HOST_DEBUG_MEMORY_CORRUPT=y
+https://github.com/intel-sandbox/cqiang-tdx-kvm.git for-intel-next-2.0 357d0cdec16a1a3d8da7d61067bf1fcc3eef2993
+
+#Topic Branch: dynamic_lockstep
+#Classification: intel confidential
+#Description: Dynamic lockstep support
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3533
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-7276
+#Contributor: Sohil Mehta <sohil.mehta@intel.com>
+#Branch Type: expiring
+#Ip Owner: Samuel Mattord <samuel.a.mattord@intel.com>
+#SDL Contact: 
+#Config Options:
+#	CONFIG_X86_LOCKSTEP=y
+https://github.com/intel-sandbox/sohilmeh.linux.git dlsm-next fb035a6c67b7457547ce701ff4e1d447eca99ff0
+
+#Topic Branch: kvm_1_0_fixup
+#Classification: public
+#Description: 
+#Topic Branch JIRA: N/A
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Michael Bottini <michael.a.bottini@intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options: N/A
+https://github.com/intel-sandbox/otc_power_kernel.git kvm_1_0_fixup a6cd91ba3835b31cdf454227889f73b1954a9f38
+
+#Topic Branch: kvm_cet
+#Classification: public
+#Description: KVM: Arch LBR and CET features
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3531
+#Pull Request: N/A
+#Targeted Platforms: EMR,GNR,SPR
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-60
+#Contributor: Weijiang Yang <weijiang.yang@intel.com>
+#Branch Type: expiring
+#Ip Owner: Weijiang Yang <weijiang.yang@intel.com>
+#SDL Contact: Weijiang Yang <weijiang.yang@intel.com>
+#Config Options: N/A
+https://github.com/intel-sandbox/weijiang.linux.kvm.git v6.6-rc2-kvm-cet-rebase 7e8bfbee1dd9c371371c1a68d9a8692ea4e4c55d
+
+#Topic Branch: pcie_bwctrl
+#Classification: public
+#Description: This pull request enables PCIe Bandwidth Controller (bwctrl) and associated PCIe cooling devices on thermal subsystem side
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3535
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-6898
+#Contributor: Ilpo Järvinen <ilpo.jarvinen@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: Don West <don.west@intel.com>
+#SDL Contact: Ilpo Järvinen <ilpo.jarvinen@linux.intel.com>
+#Config Options:
+#	CONFIG_PCIE_BW=y
+#	CONFIG_PCIE_THERMAL=y
+https://github.com/intel-sandbox/ijarvine.linux.kernel intel-next/bwctrl-v6.6-rc 335d83208472a713d72c8fb917681e46f7809ed4
+
+#Topic Branch: swq_vfio_idxd_vdev
+#Classification: public
+#Description: SIOV/VFIO/PASID/IDXD enabling
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3537
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Fenghua Yu <fenghua.yu@intel.com>, Yi Sun <yi.sun@intel.com>, Jacob Pan <jacob.jun.pan@intel.com>
+#Branch Type: expiring
+#Ip Owner: Chao Peng <chao.p.peng@intel.com>
+#SDL Contact: Chao Peng <chao.p.peng@intel.com>
+#Config Options:
+#	CONFIG_VFIO_DEVICE_IDXD=m
+#	CONFIG_IOMMUFD=y
+#	CONFIG_IMS_MSI=y
+#	CONFIG_IMS_MSI_ARRAY=y
+#	CONFIG_IOMMUFD_TEST=y
+#	CONFIG_FAULT_INJECTION=y
+#	CONFIG_VFIO_CONTAINER=y
+#	CONFIG_IOMMUFD_VFIO_CONTAINER=y
+#	CONFIG_VFIO_IMS=y
+#	CONFIG_PCI_INTEL_IDXD_IMS=m
+https://github.com/intel-sandbox/idxd fyu/idxd.vdev.6.6.swq b91c6f7e0e5c279cababf581a06a3023db01342a
+
+#Topic Branch: sgx_enclave_shadow_stacks
+#Classification: public
+#Description: Enable Shadow Stacks for SGX Enclaves
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3540
+#Pull Request: N/A
+#Targeted Platforms: GNR,SRF
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-9970
+#Contributor: Haitao Huang <haitao.huang@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options: N/A
+https://github.com/haitaohuang/linux.git for-next 900ad9d7e23182b22feb04e77ccef6ddb7e01a16
+
+#Topic Branch: swq_vfio_idxd_vdev_fixup
+#Classification: public
+#Description: Fixup for stub function vfio_ims_msi_virq
+#Topic Branch JIRA: N/A
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Michael Bottini <michael.a.bottini@intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: 
+#Config Options: N/A
+https://github.com/intel-sandbox/otc_power_kernel.git swq_vfio_idxd_vdev_fixup c0d364386f04beb3d766f7c5305bcf53289232ee
+
+#Topic Branch: cxl_driver_fixes_gnr
+#Classification: public
+#Description: 
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3541
+#Pull Request: N/A
+#Targeted Platforms: GNR
+#Feature JIRAs: N/A
+#Contributor: Alison Schofield <alison.schofield@intel.com>
+#Branch Type: expiring
+#Ip Owner: 
+#SDL Contact: Dan Williams <dan.j.williams@intel.com>
+#Config Options: N/A
+https://github.com/intel-sandbox/cxl.git as/cxl-for-inext 962fdd6dcb969101ceef7371da620efb6cdaaab0
+
+#Topic Branch: dsa2_pasid
+#Classification: public
+#Description: DSA2.0 inter-domain pasid
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3543
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Fenghua Yu <fenghua.yu@intel.com>
+#Branch Type: expiring
+#Ip Owner: Ravi Shankar <ravi.v.shankar@intel.com>
+#SDL Contact: Tony Luck <tony.luck@intel.com>
+#Config Options:
+#	CONFIG_IMS_MSI=y
+#	CONFIG_IMS_MSI_ARRAY=y
+https://github.com/intel-sandbox/idxd fyu/dsa2.idp.6.6 0f0477315a826a2fd18663f65a550c5293d49306
+
+#Topic Branch: iommu_hotfix
+#Classification: intel confidential
+#Description: Fixes a kernel initialization hang with the kernel boot parameter 'iommu=pt.' 
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3545
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Adam Preble <adam.c.preble@intel.com>
+#Branch Type: expiring
+#Ip Owner: Adam Preble <adam.c.preble@intel.com>
+#SDL Contact: Adam Preble <adam.c.preble@intel.com>
+#Config Options: N/A
+https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next.git iommu-devtlb-fix-6.6 a53fec56d4ddcd5c0bbcdbd6aec70f32658bb02d
+
+#Topic Branch: tdx_mca
+#Classification: intel confidential
+#Description: TDX non-root machine check recovery
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3546
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Tony Luck <tony.luck@intel.com>
+#Branch Type: expiring
+#Ip Owner: Tony Luck <tony.luck@intel.com>
+#SDL Contact: Baruch Chaikin <baruch.chaikin@intel.com>
+#Config Options: N/A
+https://github.com/intel-sandbox/agluck-linux.git tdx_mca 5d4f1f30a5eeb1b1aad158d451fa704ba17a683c
+
+#Topic Branch: perf
+#Classification: intel confidential
+#Description: This pull request introduces the Linux perf PMU support for PMU core and uncore support. It also has fixes for the SPR uncore support, IOMMU PerfMon and MSRL.
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3515
+#Pull Request: N/A
+#Targeted Platforms: ARL,EMR,GNR,GRR,LNL,MTL,SPR,SRF
+#Feature JIRAs: N/A
+#Contributor: Zhenyu Wang <zhenyuw@linux.intel.com>
+#Branch Type: expiring
+#Ip Owner: Beeman Strong <beeman.strong@intel.com>, Ahmad Yasin <ahmad.yasin@intel.com>, Jeremiah D. Williamson <jeremiah.d.williamson@intel.com>
+#SDL Contact: Andi Kleen <andi.kleen@intel.com>
+#Config Options: N/A
+https://github.com/intel-innersource/os.linux.perf.intel-next.git perf-intel-next 1cd87c857361f8b45cd6105050ef02478aee38c6
+
+#Topic Branch: kvm_msr_support
+#Classification: intel confidential
+#Description: This pull request is for enabling KVM User MSR support.
+#Topic Branch JIRA: N/A
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: 
+#	https://jira.devtools.intel.com/browse/LFE-9151
+#Contributor: Yunhong Jiang <yunhong.jiang@intel.com>
+#Branch Type: expiring
+#Ip Owner: Kameswar Subramaniam <kameswar.subramaniam@intel.com>
+#SDL Contact: 
+#Config Options:
+#	CONFIG_USER_MSR=y
+https://github.com/intel-sandbox/linux-royalkvm.git umsr-next 008aa29cac8208a47c9379f56083cf874cd21631
+
+#Topic Branch: svos_tdx
+#Classification: intel confidential
+#Description: SVOS TDX Modifications for v6.5
+#Topic Branch JIRA: https://jira.devtools.intel.com/browse/NEXT-3549
+#Pull Request: N/A
+#Targeted Platforms: N/A
+#Feature JIRAs: N/A
+#Contributor: Rodolfo Gomez Zurita <rodolfo.gomez.zurita@intel.com>
+#Branch Type: expiring
+#Ip Owner: Sergio Perez Gonzalez <sergio.perez.gonzalez@intel.com>
+#SDL Contact: Rodolfo Gomez Zurita <rodolfo.gomez.zurita@intel.com>
+#Config Options:
+#	CONFIG_SVOS=n
+https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next.git svos-next-tdx-pull-6.6 f93a8c5956a04d0259d904056ae516a207d18a9a
+
