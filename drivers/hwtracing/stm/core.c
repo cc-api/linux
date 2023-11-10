@@ -600,7 +600,7 @@ EXPORT_SYMBOL_GPL(stm_data_write);
 
 static ssize_t notrace
 stm_write(struct stm_device *stm, struct stm_output *output,
-	  unsigned int chan, const char *buf, size_t count)
+	  unsigned int chan, const char *buf, size_t count, struct stm_source_data *source)
 {
 	int err;
 
@@ -608,7 +608,7 @@ stm_write(struct stm_device *stm, struct stm_output *output,
 	if (!stm->pdrv)
 		return -ENODEV;
 
-	err = stm->pdrv->write(stm->data, output, chan, buf, count);
+	err = stm->pdrv->write(stm->data, output, chan, buf, count, source);
 	if (err < 0)
 		return err;
 
@@ -657,7 +657,7 @@ static ssize_t stm_char_write(struct file *file, const char __user *buf,
 
 	pm_runtime_get_sync(&stm->dev);
 
-	count = stm_write(stm, &stmf->output, 0, kbuf, count);
+	count = stm_write(stm, &stmf->output, 0, kbuf, count, NULL);
 
 	pm_runtime_mark_last_busy(&stm->dev);
 	pm_runtime_put_autosuspend(&stm->dev);
@@ -1298,7 +1298,7 @@ int notrace stm_source_write(struct stm_source_data *data,
 
 	stm = srcu_dereference(src->link, &stm_source_srcu);
 	if (stm)
-		count = stm_write(stm, &src->output, chan, buf, count);
+		count = stm_write(stm, &src->output, chan, buf, count, data);
 	else
 		count = -ENODEV;
 
@@ -1328,12 +1328,6 @@ static int __init stm_core_init(void)
 	INIT_LIST_HEAD(&stm_pdrv_head);
 	mutex_init(&stm_pdrv_mutex);
 
-	/*
-	 * So as to not confuse existing users with a requirement
-	 * to load yet another module, do it here.
-	 */
-	if (IS_ENABLED(CONFIG_STM_PROTO_BASIC))
-		(void)request_module_nowait("stm_p_basic");
 	stm_core_up++;
 
 	return 0;
@@ -1358,6 +1352,7 @@ static void __exit stm_core_exit(void)
 
 module_exit(stm_core_exit);
 
+MODULE_SOFTDEP("post: stm_p_basic");
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("System Trace Module device class");
 MODULE_AUTHOR("Alexander Shishkin <alexander.shishkin@linux.intel.com>");
