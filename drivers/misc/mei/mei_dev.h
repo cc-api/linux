@@ -64,7 +64,8 @@ enum mei_dev_state {
 	MEI_DEV_DISABLED,
 	MEI_DEV_POWERING_DOWN,
 	MEI_DEV_POWER_DOWN,
-	MEI_DEV_POWER_UP
+	MEI_DEV_POWER_UP,
+	MEI_DEV_FW_DOWN,
 };
 
 /**
@@ -80,6 +81,19 @@ enum mei_dev_pxp_mode {
 	MEI_DEV_PXP_INIT    = 1,
 	MEI_DEV_PXP_SETUP   = 2,
 	MEI_DEV_PXP_READY   = 3,
+};
+
+/**
+ * enum mei_dev_reset_to_pxp - reset to PXP mode performed
+ *
+ * @MEI_DEV_RESET_TO_PXP_DEFAULT: before reset
+ * @MEI_DEV_RESET_TO_PXP_PERFORMED: reset performed
+ * @MEI_DEV_RESET_TO_PXP_DONE: reset processed
+ */
+enum mei_dev_reset_to_pxp {
+	MEI_DEV_RESET_TO_PXP_DEFAULT = 0,
+	MEI_DEV_RESET_TO_PXP_PERFORMED = 1,
+	MEI_DEV_RESET_TO_PXP_DONE = 2,
 };
 
 const char *mei_dev_state_str(int state);
@@ -343,6 +357,9 @@ struct mei_cl {
  *
  * @read_hdr         : get first 4 bytes (header)
  * @read             : read a buffer from the FW
+ *
+ * @forcewake_get    : get forcewake counter
+ * @forcewake_put    : put forcewake counter
  */
 struct mei_hw_ops {
 
@@ -377,6 +394,12 @@ struct mei_hw_ops {
 	u32 (*read_hdr)(const struct mei_device *dev);
 	int (*read)(struct mei_device *dev,
 		     unsigned char *buf, unsigned long len);
+
+	int (*forcewake_get)(struct mei_device *dev);
+	int (*forcewake_put)(struct mei_device *dev);
+
+	int (*pg_enter_sync)(struct mei_device *dev);
+	int (*pg_exit_sync)(struct mei_device *dev);
 };
 
 /* MEI bus API*/
@@ -452,6 +475,8 @@ struct mei_dev_timeouts {
 	unsigned int d0i3; /* D0i3 set/unset max response time, in jiffies */
 	unsigned long hbm; /* HBM operation timeout, in jiffies */
 	unsigned long mkhi_recv; /* receive timeout, in jiffies */
+	unsigned long gt_forcewake; /* GT forcewake timeout, in jiffies */
+	unsigned long gt_forcewake_link; /* GT forcewake link timeout, in jiffies */
 };
 
 /**
@@ -481,6 +506,7 @@ struct mei_dev_timeouts {
  *
  * @reset_count : number of consecutive resets
  * @dev_state   : device state
+ * @wait_dev_state : wait queue for receive dev state changes
  * @hbm_state   : state of host bus message protocol
  * @pxp_mode    : PXP device mode
  * @init_clients_timer : HBM init handshake timeout
@@ -534,6 +560,16 @@ struct mei_dev_timeouts {
  *
  * @dbgfs_dir   : debugfs mei root directory
  *
+ * @saved_fw_status      : saved firmware status
+ * @saved_dev_state      : saved device state
+ * @saved_fw_status_flag : flag indicating that firmware status was saved
+ * @gsc_reset_to_pxp     : state of reset to the PXP mode
+ *
+ * @forcewake_needed     : forcewake should be asserted before operations
+ * @forcewake_count      : forcewake status counter
+ * @forcewake_wait_done  : wait for reset after forcewake performed
+ * @gt_forcewake_init_on : the GT forcewake is on in init flow
+ *
  * @ops:        : hw specific operations
  * @hw          : hw specific data
  */
@@ -567,6 +603,7 @@ struct mei_device {
 	 */
 	unsigned long reset_count;
 	enum mei_dev_state dev_state;
+	wait_queue_head_t wait_dev_state;
 	enum mei_hbm_state hbm_state;
 	enum mei_dev_pxp_mode pxp_mode;
 	u16 init_clients_timer;
@@ -629,6 +666,19 @@ struct mei_device {
 #if IS_ENABLED(CONFIG_DEBUG_FS)
 	struct dentry *dbgfs_dir;
 #endif /* CONFIG_DEBUG_FS */
+
+	unsigned int stall_timer_cl:1;
+	unsigned int stall_timer_init:1;
+
+	struct mei_fw_status saved_fw_status;
+	enum mei_dev_state saved_dev_state;
+	bool saved_fw_status_flag;
+	enum mei_dev_reset_to_pxp gsc_reset_to_pxp;
+
+	bool forcewake_needed;
+	int forcewake_count;
+	bool forcewake_wait_done;
+	bool gt_forcewake_init_on;
 
 	const struct mei_hw_ops *ops;
 	char hw[] __aligned(sizeof(void *));
@@ -826,6 +876,16 @@ static inline int mei_fw_status(struct mei_device *dev,
 	return dev->ops->fw_status(dev, fw_status);
 }
 
+static inline bool mei_pg_enter_sync(struct mei_device *dev)
+{
+	return dev->ops->pg_enter_sync(dev);
+}
+
+static inline bool mei_pg_exit_sync(struct mei_device *dev)
+{
+	return dev->ops->pg_exit_sync(dev);
+}
+
 bool mei_hbuf_acquire(struct mei_device *dev);
 
 bool mei_write_is_idle(struct mei_device *dev);
@@ -874,5 +934,55 @@ static inline ssize_t mei_fw_status_str(struct mei_device *dev,
 	return ret;
 }
 
+/**
+ * kind_is_gsc - checks whether the device is gsc
+ *
+ * @dev: the device structure
+ *
+ * Return: whether the device is gsc
+ */
+static inline bool kind_is_gsc(struct mei_device *dev)
+{
+	/* check kind for NULL because it may be not set, like at the fist call to hw_start */
+	return dev->kind && (strcmp(dev->kind, "gsc") == 0);
+}
 
+/**
+ * kind_is_gscfi - checks whether the device is gscfi
+ *
+ * @dev: the device structure
+ *
+ * Return: whether the device is gscfi
+ */
+static inline bool kind_is_gscfi(struct mei_device *dev)
+{
+	/* check kind for NULL because it may be not set, like at the fist call to hw_start */
+	return dev->kind && (strcmp(dev->kind, "gscfi") == 0);
+}
+
+/**
+ * mei_forcewake_get - run forcewake_get if forcewake is needed
+ *
+ * @dev: the device structure
+ *
+ */
+static inline void mei_forcewake_get(struct mei_device *dev)
+{
+	if (!dev->forcewake_needed)
+		return;
+	dev->ops->forcewake_get(dev);
+}
+
+/**
+ * mei_forcewake_put - run forcewake_put if forcewake is needed
+ *
+ * @dev: the device structure
+ *
+ */
+static inline void mei_forcewake_put(struct mei_device *dev)
+{
+	if (!dev->forcewake_needed)
+		return;
+	dev->ops->forcewake_put(dev);
+}
 #endif

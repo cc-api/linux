@@ -64,13 +64,20 @@
 #define MEI_DEV_ID_SPT_H_2    0xA13B  /* Sunrise Point H 2 */
 
 #define MEI_DEV_ID_LBG        0xA1BA  /* Lewisburg (SPT) */
+#define MEI_DEV_ID_LBG_SSX    0xA23A  /* Lewisburg SSX (SPT) */
+
+#define MEI_DEV_ID_LBG_IE     0xA1F8  /* Lewisburg IE (SPT) */
+#define MEI_DEV_ID_LBG_IE_SSX 0xA278  /* Lewisburg IE SSX (SPT) */
 
 #define MEI_DEV_ID_BXT_M      0x1A9A  /* Broxton M */
 #define MEI_DEV_ID_APL_I      0x5A9A  /* Apollo Lake I */
+#define MEI_DEV_ID_DNV        0x19D3  /* Denverton (BXT) */
 
 #define MEI_DEV_ID_DNV_IE     0x19E5  /* Denverton IE */
 
 #define MEI_DEV_ID_GLK        0x319A  /* Gemini Lake */
+
+#define MEI_DEV_ID_LKF        0x98E0  /* Lake Field */
 
 #define MEI_DEV_ID_KBP        0xA2BA  /* Kaby Point */
 #define MEI_DEV_ID_KBP_2      0xA2BB  /* Kaby Point 2 */
@@ -95,8 +102,10 @@
 #define MEI_DEV_ID_ICP_N      0x38E0  /* Ice Lake Point N */
 
 #define MEI_DEV_ID_JSP_N      0x4DE0  /* Jasper Lake Point N */
+#define MEI_DEV_ID_JSP_P      0x38E0  /* Jasper Point - testing only (REMOVE) */
 
 #define MEI_DEV_ID_TGP_LP     0xA0E0  /* Tiger Lake Point LP */
+#define MEI_DEV_ID_TGP_K      0x42E0  /* Tiger Lake Point K */
 #define MEI_DEV_ID_TGP_H      0x43E0  /* Tiger Lake Point H */
 
 #define MEI_DEV_ID_MCC        0x4B70  /* Mule Creek Canyon (EHL) */
@@ -112,6 +121,17 @@
 #define MEI_DEV_ID_RPL_S      0x7A68  /* Raptor Lake Point S */
 
 #define MEI_DEV_ID_MTL_M      0x7E70  /* Meteor Lake Point M */
+#define MEI_DEV_ID_ARL_S      0x7F68  /* Arrow Lake Point S */
+#define MEI_DEV_ID_MTL_M_ESE  0x7E58  /* Meteor Lake Point M ESE */
+
+#define MEI_DEV_ID_LNL_M      0xA870  /* Lunar Lake Point M */
+
+#define MEI_DEV_ID_PTL_H      0xE370  /* Panther Lake H */
+#define MEI_DEV_ID_PTL_P      0xE470  /* Panther Lake P */
+
+#define MEI_DEV_ID_NVL_S      0x6E68  /* Nova Lake Point S */
+#define MEI_DEV_ID_NVL_P      0xD270  /* Nova Lake Point P */
+#define MEI_DEV_ID_NVL_H      0xD370  /* Nova Lake Point H */
 
 /*
  * MEI HW Section
@@ -122,7 +142,11 @@
 #  define PCI_CFG_HFS_1_D0I3_MSK     0x80000000
 #  define PCI_CFG_HFS_1_OPMODE_MSK 0xf0000 /* OP MODE Mask: SPS <= 4.0 */
 #  define PCI_CFG_HFS_1_OPMODE_SPS 0xf0000 /* SPS SKU : SPS <= 4.0 */
+#  define PCI_CFG_HFS_1_INITSTATE    0x00000200
 #define PCI_CFG_HFS_2         0x48
+#  define PCI_CFG_HFS_2_PM_CMOFF_TO_CMX_ERROR 0x1000000 /* CMoff->CMx wake after an error */
+#  define PCI_CFG_HFS_2_PM_CM_RESET_ERROR     0x5000000 /* CME reset due to exception */
+#  define PCI_CFG_HFS_2_PM_EVENT_MASK         0xf000000
 #define PCI_CFG_HFS_3         0x60
 #  define PCI_CFG_HFS_3_FW_SKU_MSK   0x00000070
 #  define PCI_CFG_HFS_3_FW_SKU_IGN   0x00000000

@@ -27,6 +27,7 @@ const char *mei_dev_state_str(int state)
 	MEI_DEV_STATE(POWERING_DOWN);
 	MEI_DEV_STATE(POWER_DOWN);
 	MEI_DEV_STATE(POWER_UP);
+	MEI_DEV_STATE(FW_DOWN);
 	default:
 		return "unknown";
 	}
@@ -89,6 +90,22 @@ void mei_cancel_work(struct mei_device *dev)
 }
 EXPORT_SYMBOL_GPL(mei_cancel_work);
 
+static void mei_save_fw_status(struct mei_device *dev)
+{
+	struct mei_fw_status fw_status;
+	int ret;
+
+	ret = mei_fw_status(dev, &fw_status);
+	if (ret) {
+		dev_err(dev->dev, "failed to read firmware status: %d\n", ret);
+		return;
+	}
+
+	dev->saved_dev_state = dev->dev_state;
+	dev->saved_fw_status_flag = true;
+	memcpy(&dev->saved_fw_status, &fw_status, sizeof(fw_status));
+}
+
 /**
  * mei_reset - resets host and fw.
  *
@@ -105,12 +122,19 @@ int mei_reset(struct mei_device *dev)
 	if (state != MEI_DEV_INITIALIZING &&
 	    state != MEI_DEV_DISABLED &&
 	    state != MEI_DEV_POWER_DOWN &&
-	    state != MEI_DEV_POWER_UP) {
+	    state != MEI_DEV_POWER_UP &&
+	    state != MEI_DEV_FW_DOWN) {
 		char fw_sts_str[MEI_FW_STATUS_STR_SZ];
 
 		mei_fw_status_str(dev, fw_sts_str, MEI_FW_STATUS_STR_SZ);
-		dev_warn(dev->dev, "unexpected reset: dev_state = %s fw status = %s\n",
-			 mei_dev_state_str(state), fw_sts_str);
+		if (kind_is_gsc(dev) || kind_is_gscfi(dev)) {
+			dev_dbg(dev->dev, "unexpected reset: dev_state = %s fw status = %s\n",
+				mei_dev_state_str(state), fw_sts_str);
+			mei_save_fw_status(dev);
+		} else {
+			dev_warn(dev->dev, "unexpected reset: dev_state = %s fw status = %s\n",
+				 mei_dev_state_str(state), fw_sts_str);
+		}
 	}
 
 	mei_clear_interrupts(dev);
@@ -338,7 +362,8 @@ EXPORT_SYMBOL_GPL(mei_stop);
  */
 bool mei_write_is_idle(struct mei_device *dev)
 {
-	bool idle = (dev->dev_state == MEI_DEV_ENABLED &&
+	bool idle = ((dev->dev_state == MEI_DEV_ENABLED ||
+		      dev->dev_state == MEI_DEV_FW_DOWN) &&
 		list_empty(&dev->ctrl_wr_list) &&
 		list_empty(&dev->write_list)   &&
 		list_empty(&dev->write_waiting_list));
@@ -378,6 +403,7 @@ void mei_device_init(struct mei_device *dev,
 	init_waitqueue_head(&dev->wait_pg);
 	init_waitqueue_head(&dev->wait_hbm_start);
 	dev->dev_state = MEI_DEV_INITIALIZING;
+	init_waitqueue_head(&dev->wait_dev_state);
 	dev->reset_count = 0;
 
 	INIT_LIST_HEAD(&dev->write_list);
@@ -394,6 +420,7 @@ void mei_device_init(struct mei_device *dev,
 	dev->open_handle_count = 0;
 
 	dev->pxp_mode = MEI_DEV_PXP_DEFAULT;
+	dev->gsc_reset_to_pxp = MEI_DEV_RESET_TO_PXP_DEFAULT;
 
 	/*
 	 * Reserving the first client ID
@@ -410,6 +437,8 @@ void mei_device_init(struct mei_device *dev,
 	dev->timeouts.client_init = MEI_CLIENTS_INIT_TIMEOUT;
 	dev->timeouts.pgi = mei_secs_to_jiffies(MEI_PGI_TIMEOUT);
 	dev->timeouts.d0i3 = mei_secs_to_jiffies(MEI_D0I3_TIMEOUT);
+	dev->timeouts.gt_forcewake = mei_secs_to_jiffies(MEI_GT_FORCEWAKE_TIMEOUT);
+	dev->timeouts.gt_forcewake_link = mei_secs_to_jiffies(MEI_GT_FORCEWAKE_LINK_TIMEOUT);
 	if (slow_fw) {
 		dev->timeouts.cl_connect = mei_secs_to_jiffies(MEI_CL_CONNECT_TIMEOUT_SLOW);
 		dev->timeouts.hbm = mei_secs_to_jiffies(MEI_HBM_TIMEOUT_SLOW);
