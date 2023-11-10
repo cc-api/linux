@@ -2104,6 +2104,13 @@
 			0 -- basic integrity auditing messages. (Default)
 			1 -- additional integrity auditing messages.
 
+	intel_hfi=	[X86] Control enablement of the HFI driver
+		force_enable
+			Enable forcefully the HFI driver on platforms that
+			support it but are known to be broken.
+		disable
+			Disable the HFI driver
+
 	intel_iommu=	[DMAR] Intel IOMMU driver (DMAR) option
 		on
 			Enable intel iommu driver.

@@ -32,6 +32,8 @@ int thermal_notify_tz_gov_change(int tz_id, const char *name);
 int thermal_genl_sampling_temp(int id, int temp);
 int thermal_genl_cpu_capability_event(int count,
 				      struct thermal_genl_cpu_caps *caps);
+int thermal_genl_cpu_forced_idle_event(int count,
+				       struct thermal_genl_cpu_caps *caps);
 #else
 static inline int thermal_netlink_init(void)
 {
@@ -112,6 +114,11 @@ static inline int thermal_genl_sampling_temp(int id, int temp)
 }
 
 static inline int thermal_genl_cpu_capability_event(int count, struct thermal_genl_cpu_caps *caps)
+{
+	return 0;
+}
+
+static inline int thermal_genl_cpu_forced_idle_event(int count, struct thermal_genl_cpu_caps *caps)
 {
 	return 0;
 }

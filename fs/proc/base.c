@@ -378,6 +378,56 @@ static const struct file_operations proc_pid_cmdline_ops = {
 	.llseek	= generic_file_llseek,
 };
 
+#ifdef CONFIG_SCHED_DEBUG
+static ssize_t proc_pid_class_read(struct file *file, char __user *buf,
+				   size_t count, loff_t *pos)
+{
+	char buffer[PROC_NUMBUF];
+	struct task_struct *tsk;
+	ssize_t len;
+
+	tsk = get_proc_task(file_inode(file));
+	if (!tsk)
+		return -ESRCH;
+
+	len = snprintf(buffer, sizeof(buffer), "%d\n", arch_ipcc_of(tsk));
+	put_task_struct(tsk);
+	return simple_read_from_buffer(buf, count, pos, buffer, len);
+}
+
+static const struct file_operations proc_pid_class_ops = {
+	.read	= proc_pid_class_read,
+	.llseek	= generic_file_llseek,
+};
+
+static ssize_t proc_pid_class_raw_read(struct file *file, char __user *buf,
+				       size_t count, loff_t *pos)
+{
+	struct task_struct *tsk;
+	char buffer[PROC_NUMBUF];
+	int class_raw;
+	ssize_t len;
+
+	tsk = get_proc_task(file_inode(file));
+	if (!tsk)
+		return -ESRCH;
+
+#ifdef CONFIG_IPC_CLASSES
+	class_raw = tsk->ipcc_raw;
+#else
+	class_raw = IPC_CLASS_UNCLASSIFIED;
+#endif
+	len = snprintf(buffer, sizeof(buffer), "%d\n", class_raw);
+	put_task_struct(tsk);
+	return simple_read_from_buffer(buf, count, pos, buffer, len);
+}
+
+static const struct file_operations proc_pid_class_raw_ops = {
+	.read	= proc_pid_class_raw_read,
+	.llseek	= generic_file_llseek,
+};
+#endif
+
 #ifdef CONFIG_KALLSYMS
 /*
  * Provides a wchan file via kallsyms in a proper one-value-per-file format.
@@ -3266,6 +3316,10 @@ static const struct pid_entry tgid_base_stuff[] = {
 	ONE("syscall",    S_IRUSR, proc_pid_syscall),
 #endif
 	REG("cmdline",    S_IRUGO, proc_pid_cmdline_ops),
+#ifdef CONFIG_SCHED_DEBUG
+	REG("classid_raw", S_IRUGO, proc_pid_class_raw_ops),
+	REG("classid",    S_IRUGO, proc_pid_class_ops),
+#endif
 	ONE("stat",       S_IRUGO, proc_tgid_stat),
 	ONE("statm",      S_IRUGO, proc_pid_statm),
 	REG("maps",       S_IRUGO, proc_pid_maps_operations),
@@ -3613,6 +3667,10 @@ static const struct pid_entry tid_base_stuff[] = {
 	ONE("syscall",   S_IRUSR, proc_pid_syscall),
 #endif
 	REG("cmdline",   S_IRUGO, proc_pid_cmdline_ops),
+#ifdef CONFIG_SCHED_DEBUG
+	REG("classid_raw", S_IRUGO, proc_pid_class_raw_ops),
+	REG("classid",   S_IRUGO, proc_pid_class_ops),
+#endif
 	ONE("stat",      S_IRUGO, proc_tid_stat),
 	ONE("statm",     S_IRUGO, proc_pid_statm),
 	REG("maps",      S_IRUGO, proc_pid_maps_operations),

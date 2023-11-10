@@ -213,4 +213,16 @@ static inline void cpuhp_report_idle_dead(void) { }
 extern bool cpu_mitigations_off(void);
 extern bool cpu_mitigations_auto_nosmt(void);
 
+#ifndef CPUTYPES_MAX_NR
+/*
+ * The maximum number of types of cpus. Architecture-specific implementations
+ * shall override this value.
+ */
+#define CPUTYPES_MAX_NR 0
+#endif
+
+extern u32 arch_get_cpu_type(int cpu);
+extern bool arch_has_cpu_type(void);
+extern const char *arch_get_cpu_type_name(u32 cpu_type);
+
 #endif /* _LINUX_CPU_H_ */

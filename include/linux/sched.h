@@ -128,6 +128,8 @@ struct user_event_mm;
 					 __TASK_TRACED | EXIT_DEAD | EXIT_ZOMBIE | \
 					 TASK_PARKED)
 
+#define IPC_CLASS_UNCLASSIFIED		0
+
 #define task_is_running(task)		(READ_ONCE((task)->__state) == TASK_RUNNING)
 
 #define task_is_traced(task)		((READ_ONCE(task->jobctl) & JOBCTL_TRACED) != 0)
@@ -292,7 +294,7 @@ enum {
 	TASK_COMM_LEN = 16,
 };
 
-extern void scheduler_tick(void);
+extern void scheduler_tick(bool user_tick);
 
 #define	MAX_SCHEDULE_TIMEOUT		LONG_MAX
 
@@ -1536,6 +1538,19 @@ struct task_struct {
 	struct user_event_mm		*user_event_mm;
 #endif
 
+#ifdef CONFIG_IPC_CLASSES
+	/*
+	 * An architecture-defined classification of the task that reflects but
+	 * is not identical to the number of instructions per cycle. The
+	 * scheduler should not use this value directly.
+	 */
+	unsigned int			ipcc;
+	/*
+	 * Type of task as read when entering kernel mode.
+	 */
+	unsigned int			ipcc_raw;
+#endif
+
 	/*
 	 * New fields for task_struct should be added above here, so that
 	 * they are included in the randomized portion of task_struct.
@@ -2456,5 +2471,7 @@ static inline int sched_core_idle_cpu(int cpu) { return idle_cpu(cpu); }
 #endif
 
 extern void sched_set_stop_task(int cpu, struct task_struct *stop);
+
+extern bool sched_smt_siblings_idle(int cpu);
 
 #endif
