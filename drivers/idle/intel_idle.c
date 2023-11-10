@@ -130,12 +130,22 @@ static unsigned int mwait_substates __initdata;
 #define flg2MWAIT(flags) (((flags) >> 24) & 0xFF)
 #define MWAIT2flg(eax) ((eax & 0xFF) << 24)
 
+#ifdef CONFIG_SVOS
+static void c1e_promotion_enable(void);
+static void c1e_promotion_disable(void);
+
+#include "svos_intel_idle_hooks_ext.c"
+#endif
+
 static __always_inline int __intel_idle(struct cpuidle_device *dev,
 					struct cpuidle_driver *drv, int index)
 {
 	struct cpuidle_state *state = &drv->states[index];
 	unsigned long eax = flg2MWAIT(state->flags);
 	unsigned long ecx = 1; /* break on interrupt flag */
+#ifdef CONFIG_SVOS // Compile with intel_idle extensions
+	#include "svos_intel_idle_routine_ext.c"
+#endif
 
 	mwait_idle_with_hints(eax, ecx);
 
@@ -2129,6 +2139,16 @@ static int __init intel_idle_init(void)
 	if (retval < 0)
 		goto hp_setup_fail;
 
+#ifdef CONFIG_SVOS
+	else {
+		if (svos_enable_intel_idle_extensions) {
+			printk(KERN_DEBUG pr_fmt("Intel_idle SVOS variation registered as cpuidle driver\n"));
+			setup_svos_idle_routines_table();
+		} else {
+			printk(KERN_DEBUG pr_fmt("Intel_idle generic variation registered as cpuidle driver\n"));
+		}
+	}
+#endif
 	pr_debug("Local APIC timer is reliable in %s\n",
 		 boot_cpu_has(X86_FEATURE_ARAT) ? "all C-states" : "C1");
 

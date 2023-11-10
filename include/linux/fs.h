@@ -3014,6 +3014,9 @@ extern int page_symlink(struct inode *inode, const char *symname, int len);
 extern const struct inode_operations page_symlink_inode_operations;
 extern void kfree_link(void *);
 void generic_fillattr(struct mnt_idmap *, u32, struct inode *, struct kstat *);
+#ifdef CONFIG_SVOS
+extern int generic_readlink(struct dentry *, char __user *, int);
+#endif
 void generic_fill_statx_attr(struct inode *inode, struct kstat *stat);
 extern int vfs_getattr_nosec(const struct path *, struct kstat *, u32, unsigned int);
 extern int vfs_getattr(const struct path *, struct kstat *, u32, unsigned int);
@@ -3377,5 +3380,9 @@ extern int vfs_fadvise(struct file *file, loff_t offset, loff_t len,
 		       int advice);
 extern int generic_fadvise(struct file *file, loff_t offset, loff_t len,
 			   int advice);
+
+#ifdef CONFIG_SVOS
+extern int ksys_close_svos(unsigned int fd);
+#endif
 
 #endif /* _LINUX_FS_H */
