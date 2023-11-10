@@ -36,6 +36,8 @@ static void pci_destroy_dev(struct pci_dev *dev)
 	device_del(&dev->dev);
 
 	down_write(&pci_bus_sem);
+	if (pci_is_pcie(dev) && PCI_FUNC(dev->devfn) == 0)
+		dev->bus->pcie_dev_speeds = 0;
 	list_del(&dev->bus_list);
 	up_write(&pci_bus_sem);
 

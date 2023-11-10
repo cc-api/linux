@@ -770,6 +770,29 @@ static enum pci_bus_speed agp_speed(int agp3, int agpstat)
 	return agp_speeds[index];
 }
 
+/*
+ * Implementation Note in PCIe r6.0.1 sec 7.5.3.18 recommends determining
+ * supported link speeds using the Supported Link Speeds Vector in the Link
+ * Capabilities 2 Register (when available).
+ */
+static u8 pcie_get_supported_speeds(u32 linkcap, u32 linkcap2)
+{
+	u8 speeds;
+
+	speeds = linkcap2 & PCI_EXP_LNKCAP2_SLS;
+	if (speeds)
+		return speeds;
+
+	/*
+	 * Synthetize supported link speeds from the Max Link Speed in the
+	 * Link Capabilities Register.
+	 */
+	speeds = PCI_EXP_LNKCAP2_SLS_2_5GB;
+	if ((linkcap & PCI_EXP_LNKCAP_SLS) == PCI_EXP_LNKCAP_SLS_5_0GB)
+		speeds |= PCI_EXP_LNKCAP2_SLS_5_0GB;
+	return speeds;
+}
+
 static void pci_set_bus_speed(struct pci_bus *bus)
 {
 	struct pci_dev *bridge = bus->self;
@@ -817,11 +840,14 @@ static void pci_set_bus_speed(struct pci_bus *bus)
 	}
 
 	if (pci_is_pcie(bridge)) {
-		u32 linkcap;
+		u32 linkcap, linkcap2;
 		u16 linksta;
 
 		pcie_capability_read_dword(bridge, PCI_EXP_LNKCAP, &linkcap);
 		bus->max_bus_speed = pcie_link_speed[linkcap & PCI_EXP_LNKCAP_SLS];
+
+		pcie_capability_read_dword(bridge, PCI_EXP_LNKCAP2, &linkcap2);
+		bus->pcie_bus_speeds = pcie_get_supported_speeds(linkcap, linkcap2);
 
 		pcie_capability_read_word(bridge, PCI_EXP_LNKSTA, &linksta);
 		pcie_update_link_speed(bus, linksta);
@@ -2548,6 +2574,7 @@ static void pci_set_msi_domain(struct pci_dev *dev)
 
 void pci_device_add(struct pci_dev *dev, struct pci_bus *bus)
 {
+	u8 dev_speeds = 0;
 	int ret;
 
 	pci_configure_device(dev);
@@ -2576,11 +2603,20 @@ void pci_device_add(struct pci_dev *dev, struct pci_bus *bus)
 
 	pci_init_capabilities(dev);
 
+	if (pci_is_pcie(dev) && PCI_FUNC(dev->devfn) == 0) {
+		u32 linkcap, linkcap2;
+
+		pcie_capability_read_dword(dev, PCI_EXP_LNKCAP, &linkcap);
+		pcie_capability_read_dword(dev, PCI_EXP_LNKCAP2, &linkcap2);
+		dev_speeds = pcie_get_supported_speeds(linkcap, linkcap2);
+	}
 	/*
 	 * Add the device to our list of discovered devices
 	 * and the bus list for fixup functions, etc.
 	 */
 	down_write(&pci_bus_sem);
+	if (dev_speeds)
+		bus->pcie_dev_speeds = dev_speeds;
 	list_add_tail(&dev->bus_list, &bus->devices);
 	up_write(&pci_bus_sem);
 

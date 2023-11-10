@@ -1,0 +1,12 @@
+New Features:
+=============
+
+PCIe Bandwidth Control (allows throttling PCIe Link Speed)
+PCIe Cooling Device per PCIe Root Port
+
+The PCIe Cooling Devices provide userspace interface that can be managed by
+thermald (an userspace daemon).
+
+While PCIe Bandwidth Control is targeted for LNL and MTL to help staying
+within thermal envelope under some scenarios, the mechanism is generic and
+can be used on older platforms as well.
