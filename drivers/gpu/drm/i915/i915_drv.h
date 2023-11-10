@@ -306,6 +306,7 @@ struct drm_i915_private {
 			INTEL_DRAM_LPDDR4,
 			INTEL_DRAM_DDR5,
 			INTEL_DRAM_LPDDR5,
+			INTEL_DRAM_GDDR,
 		} type;
 		u8 num_qgv_points;
 		u8 num_psf_gv_points;
@@ -414,6 +415,10 @@ static inline struct intel_gt *to_gt(struct drm_i915_private *i915)
 	     (engine__) && (engine__)->uabi_class == (class__); \
 	     (engine__) = rb_to_uabi_engine(rb_next(&(engine__)->uabi_node)))
 
+#define IS_SIMULATOR(i915) (0)
+#define IS_PRESILICON(i915) (0)
+#define XE_PRESI_SKIP_FEATURE(i915, feature) (0)
+
 #define INTEL_INFO(i915)	((i915)->__info)
 #define RUNTIME_INFO(i915)	(&(i915)->__runtime)
 #define DISPLAY_INFO(i915)	((i915)->display.info.__device_info)
@@ -437,6 +442,8 @@ static inline struct intel_gt *to_gt(struct drm_i915_private *i915)
 	(MEDIA_VER(i915) >= (from) && MEDIA_VER(i915) <= (until))
 
 #define DISPLAY_VER(i915)	(DISPLAY_RUNTIME_INFO(i915)->ip.ver)
+#define DISPLAY_VER_FULL(i915)	IP_VER(DISPLAY_RUNTIME_INFO(i915)->ip.ver, \
+				       DISPLAY_RUNTIME_INFO(i915)->ip.rel)
 #define IS_DISPLAY_VER(i915, from, until) \
 	(DISPLAY_VER(i915) >= (from) && DISPLAY_VER(i915) <= (until))
 
@@ -572,11 +579,8 @@ IS_SUBPLATFORM(const struct drm_i915_private *i915,
 #define IS_DG2(i915)	IS_PLATFORM(i915, INTEL_DG2)
 #define IS_PONTEVECCHIO(i915) IS_PLATFORM(i915, INTEL_PONTEVECCHIO)
 #define IS_METEORLAKE(i915) IS_PLATFORM(i915, INTEL_METEORLAKE)
+#define IS_BATTLEMAGE(dev_priv)  0
 
-#define IS_METEORLAKE_M(i915) \
-	IS_SUBPLATFORM(i915, INTEL_METEORLAKE, INTEL_SUBPLATFORM_M)
-#define IS_METEORLAKE_P(i915) \
-	IS_SUBPLATFORM(i915, INTEL_METEORLAKE, INTEL_SUBPLATFORM_P)
 #define IS_DG2_G10(i915) \
 	IS_SUBPLATFORM(i915, INTEL_DG2, INTEL_SUBPLATFORM_G10)
 #define IS_DG2_G11(i915) \
@@ -648,50 +652,8 @@ IS_SUBPLATFORM(const struct drm_i915_private *i915,
 #define IS_TIGERLAKE_UY(i915) \
 	IS_SUBPLATFORM(i915, INTEL_TIGERLAKE, INTEL_SUBPLATFORM_UY)
 
-
-
-
-
-
-
-
 #define IS_XEHPSDV_GRAPHICS_STEP(__i915, since, until) \
 	(IS_XEHPSDV(__i915) && IS_GRAPHICS_STEP(__i915, since, until))
-
-#define IS_MTL_GRAPHICS_STEP(__i915, variant, since, until) \
-	(IS_SUBPLATFORM(__i915, INTEL_METEORLAKE, INTEL_SUBPLATFORM_##variant) && \
-	 IS_GRAPHICS_STEP(__i915, since, until))
-
-#define IS_MTL_DISPLAY_STEP(__i915, since, until) \
-	(IS_METEORLAKE(__i915) && \
-	 IS_DISPLAY_STEP(__i915, since, until))
-
-#define IS_MTL_MEDIA_STEP(__i915, since, until) \
-	(IS_METEORLAKE(__i915) && \
-	 IS_MEDIA_STEP(__i915, since, until))
-
-/*
- * DG2 hardware steppings are a bit unusual.  The hardware design was forked to
- * create three variants (G10, G11, and G12) which each have distinct
- * workaround sets.  The G11 and G12 forks of the DG2 design reset the GT
- * stepping back to "A0" for their first iterations, even though they're more
- * similar to a G10 B0 stepping and G10 C0 stepping respectively in terms of
- * functionality and workarounds.  However the display stepping does not reset
- * in the same manner --- a specific stepping like "B0" has a consistent
- * meaning regardless of whether it belongs to a G10, G11, or G12 DG2.
- *
- * TLDR:  All GT workarounds and stepping-specific logic must be applied in
- * relation to a specific subplatform (G10/G11/G12), whereas display workarounds
- * and stepping-specific logic will be applied with a general DG2-wide stepping
- * number.
- */
-#define IS_DG2_GRAPHICS_STEP(__i915, variant, since, until) \
-	(IS_SUBPLATFORM(__i915, INTEL_DG2, INTEL_SUBPLATFORM_##variant) && \
-	 IS_GRAPHICS_STEP(__i915, since, until))
-
-#define IS_DG2_DISPLAY_STEP(__i915, since, until) \
-	(IS_DG2(__i915) && \
-	 IS_DISPLAY_STEP(__i915, since, until))
 
 #define IS_PVC_BD_STEP(__i915, since, until) \
 	(IS_PONTEVECCHIO(__i915) && \
@@ -737,7 +699,6 @@ IS_SUBPLATFORM(const struct drm_i915_private *i915,
 #define CMDPARSER_USES_GGTT(i915) (GRAPHICS_VER(i915) == 7)
 
 #define HAS_LLC(i915)	(INTEL_INFO(i915)->has_llc)
-#define HAS_4TILE(i915)	(INTEL_INFO(i915)->has_4tile)
 #define HAS_SNOOP(i915)	(INTEL_INFO(i915)->has_snoop)
 #define HAS_EDRAM(i915)	((i915)->edram_size_mb)
 #define HAS_SECURE_BATCHES(i915) (GRAPHICS_VER(i915) < 6)
@@ -834,12 +795,6 @@ IS_SUBPLATFORM(const struct drm_i915_private *i915,
 #define HAS_L3_DPF(i915) (INTEL_INFO(i915)->has_l3_dpf)
 #define NUM_L3_SLICES(i915) (IS_HASWELL_GT3(i915) ? \
 				 2 : HAS_L3_DPF(i915))
-
-/* Only valid when HAS_DISPLAY() is true */
-#define INTEL_DISPLAY_ENABLED(i915) \
-	(drm_WARN_ON(&(i915)->drm, !HAS_DISPLAY(i915)),		\
-	 !(i915)->params.disable_display &&				\
-	 !intel_opregion_headless_sku(i915))
 
 #define HAS_GUC_DEPRIVILEGE(i915) \
 	(INTEL_INFO(i915)->has_guc_deprivilege)

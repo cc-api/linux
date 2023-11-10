@@ -434,11 +434,33 @@ display_crc_ctl_parse_source(const char *buf, enum intel_pipe_crc_source *s)
 	return 0;
 }
 
+void sim_trigger_compute_crc(struct drm_i915_private *i915)
+{
+/*
+ * SW Flag register used by Has Fulsim to generate events
+ */
+#define I915_PLANE_PROCESSING_SWF	_MMIO(0x4F080)
+#define PLANE_PROCESSING_START		0x1
+
+	drm_dbg_kms(&i915->drm, "Trigger plane processing for CRC\n");
+	intel_de_write(i915, I915_PLANE_PROCESSING_SWF, PLANE_PROCESSING_START);
+}
+
 void intel_crtc_crc_init(struct intel_crtc *crtc)
 {
 	struct intel_pipe_crc *pipe_crc = &crtc->pipe_crc;
 
 	spin_lock_init(&pipe_crc->lock);
+}
+
+int intel_crtc_pre_crc_read(struct drm_crtc *crtc)
+{
+	struct drm_i915_private *dev_priv = to_i915(crtc->dev);
+
+	if (IS_SIMULATOR(dev_priv))
+		sim_trigger_compute_crc(dev_priv);
+
+	return 0;
 }
 
 static int i8xx_crc_source_valid(struct drm_i915_private *dev_priv,
@@ -617,6 +639,14 @@ int intel_crtc_set_crc_source(struct drm_crtc *_crtc, const char *source_name)
 	}
 
 	pipe_crc->skipped = 0;
+
+	if (IS_SIMULATOR(dev_priv)) {
+		/* Don't skip initial 2 CRC in case of Simulator */
+		pipe_crc->skipped = 2;
+
+		/* Generate one CRC to make poll callback happy */
+		sim_trigger_compute_crc(dev_priv);
+	}
 
 out:
 	if (!enable)

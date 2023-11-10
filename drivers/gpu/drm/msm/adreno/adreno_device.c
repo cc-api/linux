@@ -751,10 +751,9 @@ static int adreno_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int adreno_remove(struct platform_device *pdev)
+static void adreno_remove(struct platform_device *pdev)
 {
 	component_del(&pdev->dev, &a3xx_ops);
-	return 0;
 }
 
 static void adreno_shutdown(struct platform_device *pdev)
@@ -810,7 +809,7 @@ static void suspend_scheduler(struct msm_gpu *gpu)
 	 */
 	for (i = 0; i < gpu->nr_rings; i++) {
 		struct drm_gpu_scheduler *sched = &gpu->rb[i]->sched;
-		kthread_park(sched->thread);
+		drm_sched_run_wq_stop(sched);
 	}
 }
 
@@ -820,7 +819,7 @@ static void resume_scheduler(struct msm_gpu *gpu)
 
 	for (i = 0; i < gpu->nr_rings; i++) {
 		struct drm_gpu_scheduler *sched = &gpu->rb[i]->sched;
-		kthread_unpark(sched->thread);
+		drm_sched_run_wq_start(sched);
 	}
 }
 
@@ -869,7 +868,7 @@ static const struct dev_pm_ops adreno_pm_ops = {
 
 static struct platform_driver adreno_driver = {
 	.probe = adreno_probe,
-	.remove = adreno_remove,
+	.remove_new = adreno_remove,
 	.shutdown = adreno_shutdown,
 	.driver = {
 		.name = "adreno",

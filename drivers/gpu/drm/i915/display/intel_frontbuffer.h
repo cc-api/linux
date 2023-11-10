@@ -28,6 +28,10 @@
 #include <linux/bits.h>
 #include <linux/kref.h>
 
+#ifndef I915
+#include "xe_bo.h"
+#endif
+
 #include "i915_active_types.h"
 
 struct drm_i915_private;
@@ -46,6 +50,8 @@ struct intel_frontbuffer {
 	struct i915_active write;
 	struct drm_i915_gem_object *obj;
 	struct rcu_head rcu;
+
+	struct work_struct flush_work;
 };
 
 /*
@@ -134,6 +140,8 @@ static inline void intel_frontbuffer_flush(struct intel_frontbuffer *front,
 
 	__intel_fb_flush(front, origin, frontbuffer_bits);
 }
+
+void intel_frontbuffer_queue_flush(struct intel_frontbuffer *front);
 
 void intel_frontbuffer_track(struct intel_frontbuffer *old,
 			     struct intel_frontbuffer *new,

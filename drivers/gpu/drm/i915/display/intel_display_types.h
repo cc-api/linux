@@ -97,6 +97,12 @@ enum intel_broadcast_rgb {
 	INTEL_BROADCAST_RGB_LIMITED,
 };
 
+/* HISTOGRAM property */
+enum intel_histogram_en_prop {
+	INTEL_HISTOGRAM_PROP_DISABLE,
+	INTEL_HISTOGRAM_PROP_ENABLE,
+};
+
 struct intel_fb_view {
 	/*
 	 * The remap information used in the remapped and rotated views to
@@ -143,7 +149,9 @@ struct intel_framebuffer {
 		struct intel_fb_view remapped_view;
 	};
 
+#ifdef I915
 	struct i915_address_space *dpt_vm;
+#endif
 };
 
 enum intel_hotplug_state {
@@ -500,15 +508,15 @@ struct intel_hdcp_shim {
 	enum hdcp_wired_protocol protocol;
 
 	/* Detects whether sink is HDCP2.2 capable */
-	int (*hdcp_2_2_capable)(struct intel_digital_port *dig_port,
+	int (*hdcp_2_2_capable)(struct intel_connector *connector,
 				bool *capable);
 
 	/* Write HDCP2.2 messages */
-	int (*write_2_2_msg)(struct intel_digital_port *dig_port,
+	int (*write_2_2_msg)(struct intel_connector *connector,
 			     void *buf, size_t size);
 
 	/* Read HDCP2.2 messages */
-	int (*read_2_2_msg)(struct intel_digital_port *dig_port,
+	int (*read_2_2_msg)(struct intel_connector *connector,
 			    u8 msg_id, void *buf, size_t size);
 
 	/*
@@ -516,7 +524,7 @@ struct intel_hdcp_shim {
 	 * type to Receivers. In DP HDCP2.2 Stream type is one of the input to
 	 * the HDCP2.2 Cipher for En/De-Cryption. Not applicable for HDMI.
 	 */
-	int (*config_stream_type)(struct intel_digital_port *dig_port,
+	int (*config_stream_type)(struct intel_connector *connector,
 				  bool is_repeater, u8 type);
 
 	/* Enable/Disable HDCP 2.2 stream encryption on DP MST Transport Link */
@@ -670,7 +678,9 @@ struct intel_atomic_state {
 
 	bool rps_interactive;
 
+#ifdef I915
 	struct i915_sw_fence commit_ready;
+#endif
 
 	struct llist_node freed;
 };
@@ -696,7 +706,11 @@ struct intel_plane_state {
 	} hw;
 
 	struct i915_vma *ggtt_vma;
+#ifdef I915
 	struct i915_vma *dpt_vma;
+#else
+	struct i915_vma embed_vma;
+#endif
 	unsigned long flags;
 #define PLANE_HAS_FENCE BIT(0)
 
@@ -1083,6 +1097,8 @@ struct intel_crtc_state {
 
 	unsigned fb_bits; /* framebuffers to flip */
 	bool update_pipe; /* can a fast modeset be performed? */
+	bool update_m_n; /* update M/N seamlessly during fastset? */
+	bool update_lrr; /* update TRANS_VTOTAL/etc. during fastset? */
 	bool disable_cxsr;
 	bool update_wm_pre, update_wm_post; /* watermarks are updated */
 	bool fifo_changed; /* FIFO split is changed */
@@ -1189,13 +1205,13 @@ struct intel_crtc_state {
 		u32 ctrl, div;
 	} dsi_pll;
 
-	int pipe_bpp;
+	int max_link_bpp_x16;	/* in 1/16 bpp units */
+	int pipe_bpp;		/* in 1 bpp units */
 	struct intel_link_m_n dp_m_n;
 
 	/* m2_n2 for eDP downclock */
 	struct intel_link_m_n dp_m2_n2;
 	bool has_drrs;
-	bool seamless_m_n;
 
 	/* PSR is supported but might not be enabled due the lack of enabled planes */
 	bool has_psr;
@@ -1362,7 +1378,14 @@ struct intel_crtc_state {
 	u16 linetime;
 	u16 ips_linetime;
 
-	/* Forward Error correction State */
+	bool enhanced_framing;
+
+	/*
+	 * Forward Error Correction.
+	 *
+	 * Note: This will be false for 128b/132b, which will always have FEC
+	 * enabled automatically.
+	 */
 	bool fec_enable;
 
 	bool sdp_split_enable;
@@ -1383,7 +1406,7 @@ struct intel_crtc_state {
 
 	/* Variable Refresh Rate state */
 	struct {
-		bool enable;
+		bool enable, in_range;
 		u8 pipeline_full;
 		u16 flipline, vmin, vmax, guardband;
 	} vrr;
@@ -1397,6 +1420,13 @@ struct intel_crtc_state {
 
 	/* for loading single buffered registers during vblank */
 	struct drm_vblank_work vblank_work;
+
+	/* HISTOGRAM data */
+	int histogram_en;
+	struct drm_property_blob *global_iet;
+	struct drm_property_blob *histogram;
+	bool global_iet_changed;
+	bool histogram_en_changed;
 };
 
 enum intel_pipe_crc_source {
@@ -1500,6 +1530,13 @@ struct intel_crtc {
 	/* for loading single buffered registers during vblank */
 	struct pm_qos_request vblank_pm_qos;
 
+	/* histogram data */
+	struct intel_histogram *histogram;
+	/* HISTOGRAM properties */
+	struct drm_property *histogram_en_property;
+	struct drm_property *global_iet_property;
+	struct drm_property *histogram_property;
+
 #ifdef CONFIG_DEBUG_FS
 	struct intel_pipe_crc pipe_crc;
 #endif
@@ -1581,7 +1618,6 @@ struct intel_watermark_params {
 
 struct intel_hdmi {
 	i915_reg_t hdmi_reg;
-	int ddc_bus;
 	struct {
 		enum drm_dp_dual_mode_type type;
 		int max_tmds_clock;
@@ -1700,7 +1736,7 @@ struct intel_psr {
 
 struct intel_dp {
 	i915_reg_t output_reg;
-	u32 DP;
+	u32 output_reg_bits;
 	int link_rate;
 	u8 lane_count;
 	u8 sink_count;
@@ -2099,13 +2135,40 @@ intel_crtc_needs_color_update(const struct intel_crtc_state *crtc_state)
 
 static inline u32 intel_plane_ggtt_offset(const struct intel_plane_state *plane_state)
 {
+#ifdef I915
 	return i915_ggtt_offset(plane_state->ggtt_vma);
+#else
+	return plane_state->ggtt_vma->node.start;
+#endif
 }
 
 static inline struct intel_frontbuffer *
 to_intel_frontbuffer(struct drm_framebuffer *fb)
 {
 	return fb ? to_intel_framebuffer(fb)->frontbuffer : NULL;
+}
+
+static inline int to_bpp_int(int bpp_x16)
+{
+	return bpp_x16 >> 4;
+}
+
+static inline int to_bpp_frac(int bpp_x16)
+{
+	return bpp_x16 & 0xf;
+}
+
+#define BPP_X16_FMT		"%d.%04d"
+#define BPP_X16_ARGS(bpp_x16)	to_bpp_int(bpp_x16), (to_bpp_frac(bpp_x16) * 625)
+
+static inline int to_bpp_int_roundup(int bpp_x16)
+{
+	return (bpp_x16 + 0xf) >> 4;
+}
+
+static inline int to_bpp_x16(int bpp)
+{
+	return bpp << 4;
 }
 
 #endif /*  __INTEL_DISPLAY_TYPES_H__ */

@@ -19,11 +19,13 @@
 #include "intel_crtc_state_dump.h"
 #include "intel_ddi.h"
 #include "intel_de.h"
+#include "intel_dp.h"
 #include "intel_display.h"
 #include "intel_display_power.h"
 #include "intel_display_types.h"
 #include "intel_dmc.h"
 #include "intel_fifo_underrun.h"
+#include "intel_histogram.h"
 #include "intel_modeset_setup.h"
 #include "intel_pch_display.h"
 #include "intel_pmdemand.h"
@@ -636,6 +638,7 @@ static void intel_sanitize_encoder(struct intel_encoder *encoder)
 
 	if (HAS_DDI(i915))
 		intel_ddi_sanitize_encoder_pll_mapping(encoder);
+
 }
 
 /* FIXME read out full plane state for all planes */

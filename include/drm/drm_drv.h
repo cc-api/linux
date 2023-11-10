@@ -434,6 +434,13 @@ struct drm_driver {
 	 */
 	const struct file_operations *fops;
 
+	/**
+	 * @genl_ops:
+	 *
+	 * Drivers private callback to genl commands
+	 */
+	const struct driver_genl_ops *genl_ops;
+
 #ifdef CONFIG_DRM_LEGACY
 	/* Everything below here is for legacy driver, never use! */
 	/* private: */
@@ -580,5 +587,13 @@ static inline bool drm_firmware_drivers_only(void)
 {
 	return video_firmware_drivers_only();
 }
+
+#if defined(CONFIG_DEBUG_FS)
+void drm_debugfs_dev_init(struct drm_device *dev, struct dentry *root);
+#else
+static inline void drm_debugfs_dev_init(struct drm_device *dev, struct dentry *root)
+{
+}
+#endif
 
 #endif

@@ -8,6 +8,7 @@
 
 #include <drm/drm_legacy.h>
 #include <drm/drm_mode_config.h>
+#include <drm/drm_netlink.h>
 
 struct drm_driver;
 struct drm_minor;
@@ -312,19 +313,18 @@ struct drm_device {
 	struct drm_fb_helper *fb_helper;
 
 	/**
-	 * @debugfs_mutex:
+	 * @debugfs_root:
 	 *
-	 * Protects &debugfs_list access.
+	 * Root directory for debugfs files.
 	 */
-	struct mutex debugfs_mutex;
+	struct dentry *debugfs_root;
 
 	/**
-	 * @debugfs_list:
+	 * @drm_genl_family:
 	 *
-	 * List of debugfs files to be created by the DRM device. The files
-	 * must be added during drm_dev_register().
+	 * Generic netlink family registration structure.
 	 */
-	struct list_head debugfs_list;
+	struct genl_family drm_genl_family;
 
 	/* Everything below here is for legacy driver, never use! */
 	/* private: */

@@ -34,6 +34,7 @@
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_blend.h>
 #include <drm/drm_fourcc.h>
+#include <drm/drm_gem_atomic_helper.h>
 
 #include "i915_config.h"
 #include "i915_reg.h"
@@ -108,7 +109,9 @@ intel_plane_duplicate_state(struct drm_plane *plane)
 	__drm_atomic_helper_plane_duplicate_state(plane, &intel_state->uapi);
 
 	intel_state->ggtt_vma = NULL;
+#ifdef I915
 	intel_state->dpt_vma = NULL;
+#endif
 	intel_state->flags = 0;
 
 	/* add reference to fb */
@@ -133,7 +136,9 @@ intel_plane_destroy_state(struct drm_plane *plane,
 	struct intel_plane_state *plane_state = to_intel_plane_state(state);
 
 	drm_WARN_ON(plane->dev, plane_state->ggtt_vma);
+#ifdef I915
 	drm_WARN_ON(plane->dev, plane_state->dpt_vma);
+#endif
 
 	__drm_atomic_helper_plane_destroy_state(&plane_state->uapi);
 	if (plane_state->hw.fb)
@@ -214,9 +219,6 @@ intel_plane_relative_data_rate(const struct intel_crtc_state *crtc_state,
 	int width, height;
 	unsigned int rel_data_rate;
 
-	if (plane->id == PLANE_CURSOR)
-		return 0;
-
 	if (!plane_state->uapi.visible)
 		return 0;
 
@@ -243,6 +245,9 @@ intel_plane_relative_data_rate(const struct intel_crtc_state *crtc_state,
 	}
 
 	rel_data_rate = width * height * fb->format->cpp[color_plane];
+
+	if (plane->id == PLANE_CURSOR)
+		return rel_data_rate;
 
 	return intel_adjusted_rate(&plane_state->uapi.src,
 				   &plane_state->uapi.dst,
@@ -981,6 +986,14 @@ int intel_plane_check_src_coordinates(struct intel_plane_state *plane_state)
 	if (fb->format->format == DRM_FORMAT_RGB565 && rotated) {
 		hsub = 2;
 		vsub = 2;
+	} else if (DISPLAY_VER(i915) >= 20 &&
+		   intel_format_info_is_yuv_semiplanar(fb->format, fb->modifier)) {
+		/*
+		 * This allows NV12 and P0xx formats to have odd size and/or odd
+		 * source coordinates on DISPLAY_VER(i915) >= 20
+		 */
+		hsub = 1;
+		vsub = 1;
 	} else {
 		hsub = fb->format->hsub;
 		vsub = fb->format->vsub;
@@ -1020,10 +1033,11 @@ static int
 intel_prepare_plane_fb(struct drm_plane *_plane,
 		       struct drm_plane_state *_new_plane_state)
 {
-	struct i915_sched_attr attr = { .priority = I915_PRIORITY_DISPLAY };
-	struct intel_plane *plane = to_intel_plane(_plane);
 	struct intel_plane_state *new_plane_state =
 		to_intel_plane_state(_new_plane_state);
+#ifdef I915
+	struct i915_sched_attr attr = { .priority = I915_PRIORITY_DISPLAY };
+	struct intel_plane *plane = to_intel_plane(_plane);
 	struct intel_atomic_state *state =
 		to_intel_atomic_state(new_plane_state->uapi.state);
 	struct drm_i915_private *dev_priv = to_i915(plane->base.dev);
@@ -1119,6 +1133,22 @@ unpin_fb:
 	intel_plane_unpin_fb(new_plane_state);
 
 	return ret;
+#else
+	int ret;
+
+	if (!intel_fb_obj(new_plane_state->hw.fb))
+		return 0;
+
+	ret = intel_plane_pin_fb(new_plane_state);
+	if (ret)
+		return ret;
+
+	ret = drm_gem_plane_helper_prepare_fb(_plane, _new_plane_state);
+	if (ret)
+		intel_plane_unpin_fb(new_plane_state);
+
+	return ret;
+#endif
 }
 
 /**
@@ -1134,9 +1164,9 @@ intel_cleanup_plane_fb(struct drm_plane *plane,
 {
 	struct intel_plane_state *old_plane_state =
 		to_intel_plane_state(_old_plane_state);
-	struct intel_atomic_state *state =
+	__maybe_unused struct intel_atomic_state *state =
 		to_intel_atomic_state(old_plane_state->uapi.state);
-	struct drm_i915_private *dev_priv = to_i915(plane->dev);
+	__maybe_unused struct drm_i915_private *dev_priv = to_i915(plane->dev);
 	struct drm_i915_gem_object *obj = intel_fb_obj(old_plane_state->hw.fb);
 
 	if (!obj)

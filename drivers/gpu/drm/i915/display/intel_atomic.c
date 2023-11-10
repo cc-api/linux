@@ -245,6 +245,8 @@ intel_crtc_duplicate_state(struct drm_crtc *crtc)
 
 	__drm_atomic_helper_crtc_duplicate_state(crtc, &crtc_state->uapi);
 
+	if (crtc_state->global_iet)
+		drm_property_blob_get(crtc_state->global_iet);
 	/* copy color blobs */
 	if (crtc_state->hw.degamma_lut)
 		drm_property_blob_get(crtc_state->hw.degamma_lut);
@@ -259,6 +261,8 @@ intel_crtc_duplicate_state(struct drm_crtc *crtc)
 		drm_property_blob_get(crtc_state->post_csc_lut);
 
 	crtc_state->update_pipe = false;
+	crtc_state->update_m_n = false;
+	crtc_state->update_lrr = false;
 	crtc_state->disable_lp_wm = false;
 	crtc_state->disable_cxsr = false;
 	crtc_state->update_wm_pre = false;
@@ -270,6 +274,7 @@ intel_crtc_duplicate_state(struct drm_crtc *crtc)
 	crtc_state->fb_bits = 0;
 	crtc_state->update_planes = 0;
 	crtc_state->dsb = NULL;
+	crtc_state->histogram_en_changed = false;
 
 	return &crtc_state->uapi;
 }
@@ -305,6 +310,8 @@ intel_crtc_destroy_state(struct drm_crtc *crtc,
 
 	drm_WARN_ON(crtc->dev, crtc_state->dsb);
 
+	if (crtc_state->global_iet)
+		drm_property_blob_put(crtc_state->global_iet);
 	__drm_atomic_helper_crtc_destroy_state(&crtc_state->uapi);
 	intel_crtc_free_hw_state(crtc_state);
 	kfree(crtc_state);
@@ -330,7 +337,9 @@ void intel_atomic_state_free(struct drm_atomic_state *_state)
 	drm_atomic_state_default_release(&state->base);
 	kfree(state->global_objs);
 
+#ifdef I915
 	i915_sw_fence_fini(&state->commit_ready);
+#endif
 
 	kfree(state);
 }

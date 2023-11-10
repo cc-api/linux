@@ -1,0 +1,25 @@
+name: 'Check labels'
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - labeled
+      - unlabeled
+
+jobs:
+  check-upstream:
+    runs-on: [ self-hosted ]
+    steps:
+      - name: Fail if PR is labeled "upstream-discussion-needed"
+        if: contains(github.event.pull_request.labels.*.name, 'upstream-discussion-needed')
+        run: |
+          echo "Do **not** merge in xe-internal. This should go upstream!" >> $GITHUB_STEP_SUMMARY
+          exit 1
+
+      - name: Summary
+        run: |
+          echo "All label checks done: success ✅" >> $GITHUB_STEP_SUMMARY
