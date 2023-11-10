@@ -103,6 +103,14 @@
 
 #define LOCAL_TIMER_VECTOR		0xea
 
+#if defined(CONFIG_HAVE_KVM) && defined(CONFIG_INTEL_TDX_HOST)
+#define TDX_GUEST_PMI_VECTOR		0xe9
+#endif
+
+#if IS_ENABLED(CONFIG_INTEL_TDX_GUEST)
+#define TDCM_EVENT_VECTOR		0xc0
+#endif
+
 #define NR_VECTORS			 256
 
 #ifdef CONFIG_X86_LOCAL_APIC

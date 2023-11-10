@@ -298,6 +298,25 @@ static bool ex_handler_eretu(const struct exception_table_entry *fixup,
 }
 #endif
 
+static bool ex_handler_tdx_mc(const struct exception_table_entry *fixup,
+			      struct pt_regs *regs, int trapnr,
+			      unsigned long error_code,
+			      unsigned long fault_addr)
+{
+#define TDX_SEAMCALL_STATUS_MASK	0xffffffff00000000ULL
+#define TDX_NON_RECOVERABLE_FATAL	0x4000000500000000ULL
+#define TDX_EXIT_REASON_BASIC_MASK	0xffffULL
+#define EXIT_REASON_OTHER_SMI           6
+#define TD_EXIT_OTHER_SMI_IS_MSMI	0x1
+
+	if ((regs->ax & TDX_SEAMCALL_STATUS_MASK) == TDX_NON_RECOVERABLE_FATAL &&
+	    (regs->ax & TDX_EXIT_REASON_BASIC_MASK) == EXIT_REASON_OTHER_SMI &&
+	    regs->cx & TD_EXIT_OTHER_SMI_IS_MSMI)
+		return ex_handler_default(fixup, regs);
+
+	return false;
+}
+
 int ex_get_fixup_type(unsigned long ip)
 {
 	const struct exception_table_entry *e = search_exception_tables(ip);
@@ -379,6 +398,8 @@ int fixup_exception(struct pt_regs *regs, int trapnr, unsigned long error_code,
 	case EX_TYPE_ERETU:
 		return ex_handler_eretu(e, regs, error_code);
 #endif
+	case EX_TYPE_TDX_MC:
+		return ex_handler_tdx_mc(e, regs, trapnr, error_code, fault_addr);
 	}
 	BUG();
 }

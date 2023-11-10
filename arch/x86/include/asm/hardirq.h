@@ -19,6 +19,9 @@ typedef struct {
 	unsigned int kvm_posted_intr_ipis;
 	unsigned int kvm_posted_intr_wakeup_ipis;
 	unsigned int kvm_posted_intr_nested_ipis;
+#ifdef CONFIG_INTEL_TDX_HOST
+	unsigned int kvm_tdx_guest_pmis;
+#endif
 #endif
 #ifdef CONFIG_X86_USER_INTERRUPTS
 	unsigned int uintr_spurious_count;

@@ -310,3 +310,13 @@ time it will be set using the Dirty tracking mechanism described above.
     be changed, or when we handle the virtual HFI table's update, this lock is
     needed to create the atomi context and to avoid competing behavior of other
     vCPUs in the same VM.
+
+``kvm_firmware->srcu``
+^^^^^^^^^^^^^^^^^^^^^^
+:Type:		srcu lock
+:Arch:		any
+:Protects:	- any operations on guests associated with the firmware
+:Comments:	The srcu read lock should be held while doing any operations
+		on guests associated with the firmware. The srcu index can be
+		stored in kvm_vcpu->fw_srcu_idx if it is needed by multiple
+		functions.
