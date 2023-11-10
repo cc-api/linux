@@ -11,6 +11,9 @@
 
 struct option;
 
+#define PERF_NUM_INTR_REGS	(PERF_NUM_REGS_EXT_ARRAY + 1)
+#define PERF_NUM_INTR_REGS_SIZE		PERF_NUM_INTR_REGS * 64
+
 struct record_opts {
 	struct target target;
 	bool	      inherit_stat;
@@ -57,7 +60,7 @@ struct record_opts {
 	unsigned int  auxtrace_mmap_pages;
 	unsigned int  user_freq;
 	u64	      branch_stack;
-	u64	      sample_intr_regs;
+	u64	      sample_intr_regs[PERF_NUM_INTR_REGS];
 	u64	      sample_user_regs;
 	u64	      default_interval;
 	u64	      user_interval;

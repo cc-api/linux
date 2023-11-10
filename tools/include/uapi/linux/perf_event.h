@@ -204,6 +204,8 @@ enum perf_branch_sample_type_shift {
 
 	PERF_SAMPLE_BRANCH_PRIV_SAVE_SHIFT	= 18, /* save privilege mode */
 
+	PERF_SAMPLE_BRANCH_EVT_CNTRS_SHIFT	= 19, /* save occurrences of events on a branch */
+
 	PERF_SAMPLE_BRANCH_MAX_SHIFT		/* non-ABI */
 };
 
@@ -234,6 +236,8 @@ enum perf_branch_sample_type {
 	PERF_SAMPLE_BRANCH_HW_INDEX	= 1U << PERF_SAMPLE_BRANCH_HW_INDEX_SHIFT,
 
 	PERF_SAMPLE_BRANCH_PRIV_SAVE	= 1U << PERF_SAMPLE_BRANCH_PRIV_SAVE_SHIFT,
+
+	PERF_SAMPLE_BRANCH_EVT_CNTRS	= 1U << PERF_SAMPLE_BRANCH_EVT_CNTRS_SHIFT,
 
 	PERF_SAMPLE_BRANCH_MAX		= 1U << PERF_SAMPLE_BRANCH_MAX_SHIFT,
 };
@@ -324,8 +328,9 @@ enum {
 	PERF_TXN_CONFLICT       = (1 << 5), /* Conflict abort */
 	PERF_TXN_CAPACITY_WRITE = (1 << 6), /* Capacity write abort */
 	PERF_TXN_CAPACITY_READ  = (1 << 7), /* Capacity read abort */
+	PERF_TXN_INSUSPEND      = (1 << 8), /* While in a suspend region abort */
 
-	PERF_TXN_MAX	        = (1 << 8), /* non-ABI */
+	PERF_TXN_MAX	        = (1 << 9), /* non-ABI */
 
 	/* bits 32..63 are reserved for the abort code */
 
@@ -375,6 +380,10 @@ enum perf_event_read_format {
 #define PERF_ATTR_SIZE_VER6	120	/* add: aux_sample_size */
 #define PERF_ATTR_SIZE_VER7	128	/* add: sig_data */
 #define PERF_ATTR_SIZE_VER8	136	/* add: config3 */
+#define PERF_ATTR_SIZE_VER9	168	/* add: sample_regs_intr_ext[PERF_NUM_REGS_EXT_ARRAY] */
+
+#define PERF_NUM_REGS_EXT_ARRAY		4
+#define PERF_REGS_EXT_ARRAY_SIZE	(PERF_NUM_REGS_EXT_ARRAY * 64)
 
 /*
  * Hardware event_id to monitor via a performance monitoring event:
@@ -518,6 +527,12 @@ struct perf_event_attr {
 	__u64	sig_data;
 
 	__u64	config3; /* extension of config2 */
+
+	/*
+	 * Extension sets of regs to dump for each sample.
+	 * See asm/perf_regs.h for details.
+	 */
+	__u64	sample_regs_intr_ext[PERF_NUM_REGS_EXT_ARRAY];
 };
 
 /*
@@ -1411,6 +1426,7 @@ union perf_mem_data_src {
  *    cycles: cycles from last branch (or 0 if not supported)
  *      type: branch type
  *      spec: branch speculation info (or 0 if not supported)
+ *       ext: has extension space for extra info (or 0 if not supported)
  */
 struct perf_branch_entry {
 	__u64	from;
@@ -1424,7 +1440,8 @@ struct perf_branch_entry {
 		spec:2,     /* branch speculation info */
 		new_type:4, /* additional branch type */
 		priv:3,     /* privilege level */
-		reserved:31;
+		ext:1,      /* has extension */
+		reserved:30;
 };
 
 union perf_sample_weight {

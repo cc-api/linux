@@ -126,6 +126,16 @@ struct perf_branch_stack {
 	struct perf_branch_entry	entries[];
 };
 
+/*
+ * The extension space is appended after the struct perf_branch_stack.
+ * It is used to store the extra data of each branch, e.g.,
+ * the occurrences of events since the last branch entry for Intel LBR.
+ */
+struct perf_branch_stack_ext {
+	__u64				nr;
+	__u64				data[];
+};
+
 struct task_struct;
 
 /*
@@ -291,6 +301,7 @@ struct perf_event_pmu_context;
 #define PERF_PMU_CAP_NO_EXCLUDE			0x0040
 #define PERF_PMU_CAP_AUX_OUTPUT			0x0080
 #define PERF_PMU_CAP_EXTENDED_HW_TYPE		0x0100
+#define PERF_PMU_CAP_EXTENDED_REGS_ARRAY	0x0200
 
 struct perf_output_handle;
 
@@ -1058,6 +1069,11 @@ perf_cgroup_from_task(struct task_struct *task, struct perf_event_context *ctx)
 }
 #endif /* CONFIG_CGROUP_PERF */
 
+struct td_metrics {
+	u64	slots;
+	u64	metric;
+};
+
 #ifdef CONFIG_PERF_EVENTS
 
 extern struct perf_event_context *perf_cpu_task_ctx(void);
@@ -1103,6 +1119,7 @@ extern struct perf_event *
 perf_event_create_kernel_counter(struct perf_event_attr *attr,
 				int cpu,
 				struct task_struct *task,
+				struct perf_event *group_leader,
 				perf_overflow_handler_t callback,
 				void *context);
 extern void perf_pmu_migrate_context(struct pmu *pmu,
@@ -1139,6 +1156,15 @@ static inline bool branch_sample_priv(const struct perf_event *event)
 	return event->attr.branch_sample_type & PERF_SAMPLE_BRANCH_PRIV_SAVE;
 }
 
+static inline bool branch_sample_evt_cntrs(const struct perf_event *event)
+{
+	return event->attr.branch_sample_type & PERF_SAMPLE_BRANCH_EVT_CNTRS;
+}
+
+static inline bool branch_sample_call_stack(const struct perf_event *event)
+{
+	return event->attr.branch_sample_type & PERF_SAMPLE_BRANCH_CALL_STACK;
+}
 
 struct perf_sample_data {
 	/*
@@ -1173,6 +1199,7 @@ struct perf_sample_data {
 	struct perf_callchain_entry	*callchain;
 	struct perf_raw_record		*raw;
 	struct perf_branch_stack	*br_stack;
+	struct perf_branch_stack_ext	*br_stack_ext;
 	union perf_sample_weight	weight;
 	union  perf_mem_data_src	data_src;
 	u64				txn;
@@ -1250,7 +1277,8 @@ static inline void perf_sample_save_raw_data(struct perf_sample_data *data,
 
 static inline void perf_sample_save_brstack(struct perf_sample_data *data,
 					    struct perf_event *event,
-					    struct perf_branch_stack *brs)
+					    struct perf_branch_stack *brs,
+					    struct perf_branch_stack_ext *brs_ext)
 {
 	int size = sizeof(u64); /* nr */
 
@@ -1258,7 +1286,11 @@ static inline void perf_sample_save_brstack(struct perf_sample_data *data,
 		size += sizeof(u64);
 	size += brs->nr * sizeof(struct perf_branch_entry);
 
+	if (brs_ext)
+		size += (1 + brs_ext->nr) * sizeof(u64);
+
 	data->br_stack = brs;
+	data->br_stack_ext = brs_ext;
 	data->dyn_size += size;
 	data->sample_flags |= PERF_SAMPLE_BRANCH_STACK;
 }
@@ -1707,6 +1739,8 @@ extern void perf_event_task_tick(void);
 extern int perf_event_account_interrupt(struct perf_event *event);
 extern int perf_event_period(struct perf_event *event, u64 value);
 extern u64 perf_event_pause(struct perf_event *event, bool reset);
+extern int perf_event_topdown_metrics(struct perf_event *event,
+				      struct td_metrics *value);
 #else /* !CONFIG_PERF_EVENTS: */
 static inline void *
 perf_aux_output_begin(struct perf_output_handle *handle,
@@ -1790,6 +1824,12 @@ static inline int perf_event_period(struct perf_event *event, u64 value)
 	return -EINVAL;
 }
 static inline u64 perf_event_pause(struct perf_event *event, bool reset)
+{
+	return 0;
+}
+
+static inline int perf_event_topdown_metrics(struct perf_event *event,
+					     struct td_metrics *value)
 {
 	return 0;
 }

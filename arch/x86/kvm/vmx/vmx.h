@@ -115,6 +115,9 @@ struct lbr_desc {
 
 	/* True if LBRs are marked as not intercepted in the MSR bitmap */
 	bool msr_passthrough;
+
+	/* True if LBR is frozen on PMI */
+	bool freeze_on_pmi;
 };
 
 /*
@@ -765,6 +768,11 @@ static __always_inline struct vcpu_vmx *to_vmx(struct kvm_vcpu *vcpu)
 		   vcpu->kvm->arch.vm_type != KVM_X86_SW_PROTECTED_VM,
 		   vcpu->kvm);
 	return container_of(vcpu, struct vcpu_vmx, vcpu);
+}
+
+static inline bool intel_pmu_metrics_is_enabled(struct kvm_vcpu *vcpu)
+{
+	return vcpu->arch.perf_capabilities & PMU_CAP_PERF_METRICS;
 }
 
 void intel_pmu_cross_mapped_check(struct kvm_pmu *pmu);
