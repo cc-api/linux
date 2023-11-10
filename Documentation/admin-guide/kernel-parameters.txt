@@ -6374,6 +6374,12 @@
 
 	tdfx=		[HW,DRM]
 
+	tdx_init_rsvd_mem
+			[X86-64, TDX]
+			Build TDMR/PAMT for memory range reserved by "mem="
+			when initializing TDX module so that adding a page
+			in reserved memory range to TDX module or TD won't fail.
+
 	tdx_allow_acpi= [X86,INTEL]
 			Override the TDX ACPI filter allowing ACPI tables
 			table. Multiple tables can be separated by comma.
