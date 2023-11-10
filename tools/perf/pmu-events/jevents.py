@@ -289,10 +289,16 @@ class JsonEvent:
           'cpu_core': 'cpu_core',
           'cpu_atom': 'cpu_atom',
           'ali_drw': 'ali_drw',
+          'intel_pmt': 'intel_pmt',
       }
       return table[unit] if unit in table else f'uncore_{unit.lower()}'
 
     eventcode = 0
+    config_val = 0
+    self.offset = 0
+    self.lsb = 0
+    self.msb = 0
+    self.guid = 0
     if 'EventCode' in jd:
       eventcode = int(jd['EventCode'].split(',', 1)[0], 0)
     if 'ExtSel' in jd:
@@ -331,11 +337,24 @@ class JsonEvent:
     # and > have incorrect precedence.
     self.metric_threshold = jd.get('MetricThreshold')
 
+    self.offset = jd.get('offset')
+    self.lsb= jd.get('lsb')
+    self.msb= jd.get('msb')
+    self.guid= jd.get('guid')
+
     arch_std = jd.get('ArchStdEvent')
     if precise and self.desc and '(Precise Event)' not in self.desc:
       extra_desc += ' (Must be precise)' if precise == '2' else (' (Precise '
                                                                  'event)')
     event = f'config={llx(configcode)}' if configcode is not None else f'event={llx(eventcode)}'
+
+    if self.pmu == 'intel_pmt':
+        config_val = self.offset
+        config_val |= int(self.lsb) << 16
+        config_val |= int(self.msb) << 24
+        event = f'config={llx(config_val)}'
+        event += f',config1={self.guid}'
+
     event_fields = [
         ('AnyThread', 'any='),
         ('PortMask', 'ch_mask='),

@@ -11,40 +11,32 @@
 #include <linux/auxiliary_bus.h>
 #include <linux/bits.h>
 #include <linux/bitfield.h>
+#include <linux/cleanup.h>
 #include <linux/device.h>
 #include <linux/iopoll.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/overflow.h>
 #include <linux/pci.h>
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/types.h>
 #include <linux/uaccess.h>
 
+#include "sdsi.h"
 #include "vsec.h"
 
 #define ACCESS_TYPE_BARID		2
 #define ACCESS_TYPE_LOCAL		3
 
 #define SDSI_MIN_SIZE_DWORDS		276
-#define SDSI_SIZE_MAILBOX		1024
 #define SDSI_SIZE_REGS			80
 #define SDSI_SIZE_CMD			sizeof(u64)
 
-/*
- * Write messages are currently up to the size of the mailbox
- * while read messages are up to 4 times the size of the
- * mailbox, sent in packets
- */
-#define SDSI_SIZE_WRITE_MSG		SDSI_SIZE_MAILBOX
-#define SDSI_SIZE_READ_MSG		(SDSI_SIZE_MAILBOX * 4)
-
 #define SDSI_ENABLED_FEATURES_OFFSET	16
 #define SDSI_FEATURE_SDSI		BIT(3)
+#define SDSI_FEATURE_ATTESTATION	BIT(12)
 #define SDSI_FEATURE_METERING		BIT(26)
-
-#define SDSI_SOCKET_ID_OFFSET		64
-#define SDSI_SOCKET_ID			GENMASK(3, 0)
 
 #define SDSI_MBOX_CMD_SUCCESS		0x40
 #define SDSI_MBOX_CMD_TIMEOUT		0x80
@@ -66,6 +58,8 @@
 #define CTRL_OWNER			GENMASK(5, 4)
 #define CTRL_COMPLETE			BIT(6)
 #define CTRL_READY			BIT(7)
+#define CTRL_INBAND_LOCK		BIT(32)
+#define CTRL_METER_ENABLE_DRAM		BIT(33)
 #define CTRL_STATUS			GENMASK(15, 8)
 #define CTRL_PACKET_SIZE		GENMASK(31, 16)
 #define CTRL_MSG_SIZE			GENMASK(63, 48)
@@ -83,11 +77,18 @@
 #define GUID_V2_CNTRL_SIZE		16
 #define GUID_V2_REGS_SIZE		80
 
+static int timeout_us = MBOX_TIMEOUT_US;
+module_param(timeout_us, int, 0644);
+
+LIST_HEAD(sdsi_list);
+DEFINE_MUTEX(sdsi_list_lock);
+
 enum sdsi_command {
 	SDSI_CMD_PROVISION_AKC		= 0x0004,
 	SDSI_CMD_PROVISION_CAP		= 0x0008,
 	SDSI_CMD_READ_STATE		= 0x0010,
 	SDSI_CMD_READ_METER		= 0x0014,
+	SDSI_CMD_ATTESTATION		= 0x1012,
 };
 
 struct sdsi_mbox_info {
@@ -100,19 +101,6 @@ struct disc_table {
 	u32	access_info;
 	u32	guid;
 	u32	offset;
-};
-
-struct sdsi_priv {
-	struct mutex		mb_lock;	/* Mailbox access lock */
-	struct device		*dev;
-	void __iomem		*control_addr;
-	void __iomem		*mbox_addr;
-	void __iomem		*regs_addr;
-	int			control_size;
-	int			maibox_size;
-	int			registers_size;
-	u32			guid;
-	u32			features;
 };
 
 /* SDSi mailbox operations must be performed using 64bit mov instructions */
@@ -156,8 +144,8 @@ static int sdsi_status_to_errno(u32 status)
 	}
 }
 
-static int sdsi_mbox_cmd_read(struct sdsi_priv *priv, struct sdsi_mbox_info *info,
-			      size_t *data_size)
+static int sdsi_mbox_poll(struct sdsi_priv *priv, struct sdsi_mbox_info *info,
+			  size_t *data_size)
 {
 	struct device *dev = priv->dev;
 	u32 total, loop, eom, status, message_size;
@@ -177,12 +165,13 @@ static int sdsi_mbox_cmd_read(struct sdsi_priv *priv, struct sdsi_mbox_info *inf
 	total = 0;
 	loop = 0;
 	do {
-		void *buf = info->buffer + (SDSI_SIZE_MAILBOX * loop);
 		u32 packet_size;
 
 		/* Poll on ready bit */
-		ret = readq_poll_timeout(priv->control_addr, control, control & CTRL_READY,
-					 MBOX_POLLING_PERIOD_US, MBOX_TIMEOUT_US);
+		ret = readq_poll_timeout(priv->control_addr, control,
+					 control & CTRL_READY,
+					 MBOX_POLLING_PERIOD_US,
+					 timeout_us);
 		if (ret)
 			break;
 
@@ -191,9 +180,21 @@ static int sdsi_mbox_cmd_read(struct sdsi_priv *priv, struct sdsi_mbox_info *inf
 		packet_size = FIELD_GET(CTRL_PACKET_SIZE, control);
 		message_size = FIELD_GET(CTRL_MSG_SIZE, control);
 
+		dev_info(priv->dev,
+			 "\n"
+			 "Packet:        %d\n"
+			 "Packet Size:   %d\n"
+			 "Messags Size:  %d\n",
+			 loop, packet_size, message_size);
+
 		ret = sdsi_status_to_errno(status);
 		if (ret)
 			break;
+
+		if (!packet_size) {
+			sdsi_complete_transaction(priv);
+			break;
+		}
 
 		/* Only the last packet can be less than the mailbox size. */
 		if (!eom && packet_size != SDSI_SIZE_MAILBOX) {
@@ -208,9 +209,13 @@ static int sdsi_mbox_cmd_read(struct sdsi_priv *priv, struct sdsi_mbox_info *inf
 			break;
 		}
 
-		sdsi_memcpy64_fromio(buf, priv->mbox_addr, round_up(packet_size, SDSI_SIZE_CMD));
+		if (packet_size && info->buffer) {
+			void *buf = info->buffer + array_size(SDSI_SIZE_MAILBOX, loop);
 
-		total += packet_size;
+			sdsi_memcpy64_fromio(buf, priv->mbox_addr,
+					     round_up(packet_size, SDSI_SIZE_CMD));
+			total += packet_size;
+		}
 
 		sdsi_complete_transaction(priv);
 	} while (!eom && ++loop < MBOX_MAX_PACKETS);
@@ -230,16 +235,43 @@ static int sdsi_mbox_cmd_read(struct sdsi_priv *priv, struct sdsi_mbox_info *inf
 		dev_warn(dev, "Read count %u differs from expected count %u\n",
 			 total, message_size);
 
-	*data_size = total;
+	if (data_size) {
+		dev_dbg(priv->dev, "%s: Received %d bytes\n", __func__,
+			total);
+		*data_size = total;
+	}
 
+	dev_dbg(priv->dev,
+		"%s: Mailbox transaction completely successfully\n",
+		__func__);
 	return 0;
 }
 
-static int sdsi_mbox_cmd_write(struct sdsi_priv *priv, struct sdsi_mbox_info *info)
+static int sdsi_mbox_cmd_read(struct sdsi_priv *priv, struct sdsi_mbox_info *info,
+			      size_t *data_size)
 {
 	u64 control;
-	u32 status;
-	int ret;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
+
+	lockdep_assert_held(&priv->mb_lock);
+
+	/* Format and send the read command */
+	control = FIELD_PREP(CTRL_EOM, 1) |
+		  FIELD_PREP(CTRL_SOM, 1) |
+		  FIELD_PREP(CTRL_RUN_BUSY, 1) |
+		  FIELD_PREP(CTRL_PACKET_SIZE, info->size);
+	writeq(control, priv->control_addr);
+
+	return sdsi_mbox_poll(priv, info, data_size);
+}
+
+static int sdsi_mbox_cmd_write(struct sdsi_priv *priv, struct sdsi_mbox_info *info,
+			       size_t *data_size)
+{
+	u64 control;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	lockdep_assert_held(&priv->mb_lock);
 
@@ -252,23 +284,11 @@ static int sdsi_mbox_cmd_write(struct sdsi_priv *priv, struct sdsi_mbox_info *in
 		  FIELD_PREP(CTRL_SOM, 1) |
 		  FIELD_PREP(CTRL_RUN_BUSY, 1) |
 		  FIELD_PREP(CTRL_READ_WRITE, 1) |
+		  FIELD_PREP(CTRL_MSG_SIZE, info->size) |
 		  FIELD_PREP(CTRL_PACKET_SIZE, info->size);
 	writeq(control, priv->control_addr);
 
-	/* Poll on ready bit */
-	ret = readq_poll_timeout(priv->control_addr, control, control & CTRL_READY,
-				 MBOX_POLLING_PERIOD_US, MBOX_TIMEOUT_US);
-
-	if (ret)
-		goto release_mbox;
-
-	status = FIELD_GET(CTRL_STATUS, control);
-	ret = sdsi_status_to_errno(status);
-
-release_mbox:
-	sdsi_complete_transaction(priv);
-
-	return ret;
+	return sdsi_mbox_poll(priv, info, data_size);
 }
 
 static int sdsi_mbox_acquire(struct sdsi_priv *priv, struct sdsi_mbox_info *info)
@@ -282,14 +302,20 @@ static int sdsi_mbox_acquire(struct sdsi_priv *priv, struct sdsi_mbox_info *info
 	/* Check mailbox is available */
 	control = readq(priv->control_addr);
 	owner = FIELD_GET(CTRL_OWNER, control);
-	if (owner != MBOX_OWNER_NONE)
+	if (owner != MBOX_OWNER_NONE) {
+		dev_err(priv->dev,
+			"%s: Unable to acquire mailbox, owner is %s\n",
+			__func__,
+			owner == MBOX_OWNER_INBAND ? "INBAND" : "OOB");
 		return -EBUSY;
+	}
 
 	/*
 	 * If there has been no recent transaction and no one owns the mailbox,
 	 * we should acquire it in under 1ms. However, if we've accessed it
 	 * recently it may take up to 2.1 seconds to acquire it again.
 	 */
+	dev_dbg(priv->dev, "%s: Attemping to acquire mailbox\n", __func__);
 	do {
 		/* Write first qword of payload */
 		writeq(info->payload[0], priv->mbox_addr);
@@ -301,6 +327,9 @@ static int sdsi_mbox_acquire(struct sdsi_priv *priv, struct sdsi_mbox_info *info
 
 		if (FIELD_GET(CTRL_OWNER, control) == MBOX_OWNER_NONE &&
 		    retries++ < MBOX_ACQUIRE_NUM_RETRIES) {
+			dev_dbg(priv->dev,
+				"%s: Not acquired. Delaying %dms\n",
+				__func__, MBOX_ACQUIRE_RETRY_DELAY_MS);
 			msleep(MBOX_ACQUIRE_RETRY_DELAY_MS);
 			continue;
 		}
@@ -309,12 +338,21 @@ static int sdsi_mbox_acquire(struct sdsi_priv *priv, struct sdsi_mbox_info *info
 		break;
 	} while (true);
 
+	if (ret)
+		dev_dbg(priv->dev,
+			"%s: Failed to acquire mailbox\n", __func__);
+	else
+		dev_dbg(priv->dev,
+			"%s: Successfully acquired mailbox\n", __func__);
 	return ret;
 }
 
-static int sdsi_mbox_write(struct sdsi_priv *priv, struct sdsi_mbox_info *info)
+static int sdsi_mbox_write(struct sdsi_priv *priv, struct sdsi_mbox_info *info,
+			   size_t *data_size)
 {
 	int ret;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	lockdep_assert_held(&priv->mb_lock);
 
@@ -322,12 +360,14 @@ static int sdsi_mbox_write(struct sdsi_priv *priv, struct sdsi_mbox_info *info)
 	if (ret)
 		return ret;
 
-	return sdsi_mbox_cmd_write(priv, info);
+	return sdsi_mbox_cmd_write(priv, info, data_size);
 }
 
 static int sdsi_mbox_read(struct sdsi_priv *priv, struct sdsi_mbox_info *info, size_t *data_size)
 {
 	int ret;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	lockdep_assert_held(&priv->mb_lock);
 
@@ -338,11 +378,26 @@ static int sdsi_mbox_read(struct sdsi_priv *priv, struct sdsi_mbox_info *info, s
 	return sdsi_mbox_cmd_read(priv, info, data_size);
 }
 
+static bool sdsi_ib_locked(struct sdsi_priv *priv)
+{
+	return !!FIELD_GET(CTRL_INBAND_LOCK, readq(priv->control_addr));
+}
+
 static ssize_t sdsi_provision(struct sdsi_priv *priv, char *buf, size_t count,
 			      enum sdsi_command command)
 {
-	struct sdsi_mbox_info info;
+	struct sdsi_mbox_info info = {};
 	int ret;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
+
+	/* Make sure In-band lock is not set */
+	if (sdsi_ib_locked(priv)) {
+		dev_dbg(priv->dev,
+			"%s: Unable to provision due to In-band lock enabled by BIOS\n",
+			__func__);
+		return -EPERM;
+	}
 
 	if (count > (SDSI_SIZE_WRITE_MSG - SDSI_SIZE_CMD))
 		return -EOVERFLOW;
@@ -363,7 +418,9 @@ static ssize_t sdsi_provision(struct sdsi_priv *priv, char *buf, size_t count,
 	ret = mutex_lock_interruptible(&priv->mb_lock);
 	if (ret)
 		goto free_payload;
-	ret = sdsi_mbox_write(priv, &info);
+
+	ret = sdsi_mbox_write(priv, &info, NULL);
+
 	mutex_unlock(&priv->mb_lock);
 
 free_payload:
@@ -382,6 +439,8 @@ static ssize_t provision_akc_write(struct file *filp, struct kobject *kobj,
 	struct device *dev = kobj_to_dev(kobj);
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
 
+	dev_dbg(priv->dev, "%s\n", __func__);
+
 	if (off)
 		return -ESPIPE;
 
@@ -396,6 +455,8 @@ static ssize_t provision_cap_write(struct file *filp, struct kobject *kobj,
 	struct device *dev = kobj_to_dev(kobj);
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
 
+	dev_dbg(priv->dev, "%s\n", __func__);
+
 	if (off)
 		return -ESPIPE;
 
@@ -407,9 +468,11 @@ static ssize_t
 certificate_read(u64 command, struct sdsi_priv *priv, char *buf, loff_t off,
 		 size_t count)
 {
-	struct sdsi_mbox_info info;
+	struct sdsi_mbox_info info = {};
 	size_t size;
 	int ret;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	if (off)
 		return 0;
@@ -452,9 +515,24 @@ state_certificate_read(struct file *filp, struct kobject *kobj,
 	struct device *dev = kobj_to_dev(kobj);
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
 
+	dev_dbg(priv->dev, "%s\n", __func__);
+
 	return certificate_read(SDSI_CMD_READ_STATE, priv, buf, off, count);
 }
 static BIN_ATTR_ADMIN_RO(state_certificate, SDSI_SIZE_READ_MSG);
+
+static void sdsi_read_meter_from_nvram(struct sdsi_priv *priv)
+{
+	u64 control;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
+
+	lockdep_assert_held(&priv->meter_lock);
+
+	control = readq(priv->control_addr);
+	control &= ~CTRL_METER_ENABLE_DRAM;
+	writeq(control, priv->control_addr);
+}
 
 static ssize_t
 meter_certificate_read(struct file *filp, struct kobject *kobj,
@@ -463,10 +541,59 @@ meter_certificate_read(struct file *filp, struct kobject *kobj,
 {
 	struct device *dev = kobj_to_dev(kobj);
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
+	int ret = 0;
 
-	return certificate_read(SDSI_CMD_READ_METER, priv, buf, off, count);
+	dev_dbg(priv->dev, "%s\n", __func__);
+
+	ret = mutex_lock_interruptible(&priv->meter_lock);
+	if (ret)
+		return ret;
+
+	sdsi_read_meter_from_nvram(priv);
+	ret = certificate_read(SDSI_CMD_READ_METER, priv, buf, off, count);
+
+	mutex_unlock(&priv->meter_lock);
+
+	return ret;
 }
 static BIN_ATTR_ADMIN_RO(meter_certificate, SDSI_SIZE_READ_MSG);
+
+static void sdsi_read_meter_from_dram(struct sdsi_priv *priv)
+{
+	u64 control;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
+
+	lockdep_assert_held(&priv->meter_lock);
+
+	control = readq(priv->control_addr);
+	control |= CTRL_METER_ENABLE_DRAM;
+	writeq(control, priv->control_addr);
+}
+
+static ssize_t
+meter_current_read(struct file *filp, struct kobject *kobj,
+		   struct bin_attribute *attr, char *buf, loff_t off,
+		   size_t count)
+{
+	struct device *dev = kobj_to_dev(kobj);
+	struct sdsi_priv *priv = dev_get_drvdata(dev);
+	int ret;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
+
+	ret = mutex_lock_interruptible(&priv->meter_lock);
+	if (ret)
+		return ret;
+
+	sdsi_read_meter_from_dram(priv);
+	ret = certificate_read(SDSI_CMD_READ_METER, priv, buf, off, count);
+
+	mutex_unlock(&priv->meter_lock);
+
+	return ret;
+}
+static BIN_ATTR_ADMIN_RO(meter_current, SDSI_SIZE_READ_MSG);
 
 static ssize_t registers_read(struct file *filp, struct kobject *kobj,
 			      struct bin_attribute *attr, char *buf, loff_t off,
@@ -476,6 +603,8 @@ static ssize_t registers_read(struct file *filp, struct kobject *kobj,
 	struct sdsi_priv *priv = dev_get_drvdata(dev);
 	void __iomem *addr = priv->regs_addr;
 	int size =  priv->registers_size;
+
+	dev_dbg(priv->dev, "%s\n", __func__);
 
 	/*
 	 * The check below is performed by the sysfs caller based on the static
@@ -498,6 +627,7 @@ static struct bin_attribute *sdsi_bin_attrs[] = {
 	&bin_attr_registers,
 	&bin_attr_state_certificate,
 	&bin_attr_meter_certificate,
+	&bin_attr_meter_current,
 	&bin_attr_provision_akc,
 	&bin_attr_provision_cap,
 	NULL
@@ -517,7 +647,7 @@ sdsi_battr_is_visible(struct kobject *kobj, struct bin_attribute *attr, int n)
 	if (!(priv->features & SDSI_FEATURE_SDSI))
 		return 0;
 
-	if (attr == &bin_attr_meter_certificate)
+	if (attr == &bin_attr_meter_certificate || attr == &bin_attr_meter_current)
 		return (priv->features & SDSI_FEATURE_METERING) ?
 				attr->attr.mode : 0;
 
@@ -543,6 +673,99 @@ static const struct attribute_group sdsi_group = {
 	.is_bin_visible = sdsi_battr_is_visible,
 };
 __ATTRIBUTE_GROUPS(sdsi);
+
+bool sdsi_supports_attestation(struct sdsi_priv *priv)
+{
+	return priv->features & SDSI_FEATURE_ATTESTATION;
+}
+
+/* SPDM transport  */
+int sdsi_spdm_exchange(void *private, const void *request, size_t request_sz,
+		       void *response, size_t response_sz)
+{
+	struct sdsi_priv *priv = private;
+	struct sdsi_mbox_info info = {};
+	size_t spdm_msg_size, size;
+	int ret;
+	u64 *payload __free(kfree) = NULL;
+
+	/*
+	 * For the attestation command, the mailbox write size is the sum of:
+	 *     Size of the SPDM request payload, padded for qword alignment
+	 *     8 bytes for the mailbox command
+	 *     8 bytes for the actual (non-padded) size of the SPDM request
+	 */
+	if (request_sz > (SDSI_SIZE_WRITE_MSG - (2 * sizeof(u64))))
+		return -EOVERFLOW;
+
+	info.size = round_up(request_sz, sizeof(u64)) + 2 * sizeof(u64);
+
+	payload = kzalloc(info.size, GFP_KERNEL);
+	if (!payload)
+		return -ENOMEM;
+
+	memcpy(payload, request, request_sz);
+
+	/* The non-padded SPDM payload size is the 2nd-to-last qword */
+	payload[(info.size / sizeof(u64)) - 2] = request_sz;
+
+	/* Attestation mailbox command is the last qword of payload buffer */
+	payload[(info.size / sizeof(u64)) - 1] = SDSI_CMD_ATTESTATION;
+
+	info.payload = payload;
+	info.buffer = response;
+
+	ret = mutex_lock_interruptible(&priv->mb_lock);
+	if (ret)
+		return ret;
+	ret = sdsi_mbox_write(priv, &info, &size);
+	mutex_unlock(&priv->mb_lock);
+
+	if (ret < 0)
+		return ret;
+
+	/*
+	 * The read size is the sum of:
+	 *     Size of the SPDM response payload, padded for qword alignment
+	 *     8 bytes for the actual (non-padded) size of the SPDM payload
+	 */
+
+	if (size < sizeof(u64)) {
+		dev_err(priv->dev,
+			"Attestation error: Mailbox reply size, %ld, too small\n",
+			size);
+		return -EPROTO;
+	}
+
+	if (!IS_ALIGNED(size, sizeof(u64))) {
+		dev_err(priv->dev,
+			"Attestation error: Mailbox reply size, %ld, is not aligned\n",
+			size);
+		return -EPROTO;
+	}
+
+	/*
+	 * Get the SPDM response size from the last QWORD and check it fits
+	 * with no more than 7 bytes of padding
+	 */
+	spdm_msg_size = ((u64 *)info.buffer)[(size - sizeof(u64)) / sizeof(u64)];
+	if (!in_range(size - spdm_msg_size - sizeof(u64), 0, 7)) {
+		dev_err(priv->dev,
+			"Attestation error: Invalid SPDM response size, %ld\n",
+			spdm_msg_size);
+		return -EPROTO;
+	}
+
+	if (spdm_msg_size > response_sz) {
+		dev_err(priv->dev, "Attestation error: Expected response size %ld, got %ld\n",
+			 response_sz, spdm_msg_size);
+		return -EOVERFLOW;
+	}
+
+	memcpy(response, info.buffer, spdm_msg_size);
+
+	return spdm_msg_size;
+}
 
 static int sdsi_get_layout(struct sdsi_priv *priv, struct disc_table *table)
 {
@@ -625,7 +848,9 @@ static int sdsi_probe(struct auxiliary_device *auxdev, const struct auxiliary_de
 		return -ENOMEM;
 
 	priv->dev = &auxdev->dev;
+	priv->id = auxdev->id;
 	mutex_init(&priv->mb_lock);
+	mutex_init(&priv->meter_lock);
 	auxiliary_set_drvdata(auxdev, priv);
 
 	/* Get the SDSi discovery table */
@@ -648,7 +873,34 @@ static int sdsi_probe(struct auxiliary_device *auxdev, const struct auxiliary_de
 	if (ret)
 		return ret;
 
+	mutex_lock(&sdsi_list_lock);
+	list_add(&priv->node, &sdsi_list);
+	mutex_unlock(&sdsi_list_lock);
+
 	return 0;
+}
+
+static void sdsi_remove(struct auxiliary_device *auxdev)
+{
+	struct sdsi_priv *priv = auxiliary_get_drvdata(auxdev);
+
+	list_del(&priv->node);
+}
+
+struct sdsi_priv *sdsi_dev_get_by_id(int id)
+{
+	struct sdsi_priv *priv, *match = NULL;
+
+	mutex_lock(&sdsi_list_lock);
+	list_for_each_entry(priv, &sdsi_list, node) {
+		if (priv->id == id) {
+			match = priv;
+			break;
+		}
+	}
+	mutex_unlock(&sdsi_list_lock);
+
+	return match;
 }
 
 static const struct auxiliary_device_id sdsi_aux_id_table[] = {
@@ -663,9 +915,42 @@ static struct auxiliary_driver sdsi_aux_driver = {
 	},
 	.id_table	= sdsi_aux_id_table,
 	.probe		= sdsi_probe,
-	/* No remove. All resources are handled under devm */
+	.remove		= sdsi_remove,
 };
-module_auxiliary_driver(sdsi_aux_driver);
+
+static bool netlink_initialized;
+
+static int __init sdsi_init(void)
+{
+	int ret;
+
+	ret = auxiliary_driver_register(&sdsi_aux_driver);
+	if (ret)
+		goto error;
+
+	if (sdsi_netlink_init())
+		pr_warn("Intel SDSi failed to init netlink\n");
+	else
+		netlink_initialized = true;
+
+	return 0;
+
+error:
+	mutex_destroy(&sdsi_list_lock);
+	return ret;
+}
+module_init(sdsi_init);
+
+static void __exit sdsi_exit(void)
+{
+	if (netlink_initialized)
+		sdsi_netlink_exit();
+
+	auxiliary_driver_unregister(&sdsi_aux_driver);
+
+	mutex_destroy(&sdsi_list_lock);
+}
+module_exit(sdsi_exit);
 
 MODULE_AUTHOR("David E. Box <david.e.box@linux.intel.com>");
 MODULE_DESCRIPTION("Intel On Demand (SDSi) driver");
