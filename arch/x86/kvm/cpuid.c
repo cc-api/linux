@@ -669,12 +669,24 @@ void kvm_set_cpu_caps(void)
 	kvm_cpu_cap_mask(CPUID_7_1_EAX,
 		F(AVX_VNNI) | F(AVX512_BF16) | F(LASS) | F(CMPCCXADD) |
 		F(FZRM) | F(FSRS) | F(FSRC) |
-		F(AMX_FP16) | F(AVX_IFMA) | F(LAM)
+		F(AMX_FP16) | F(AVX_IFMA) | F(LAM) |
+		F(SHA512) | F(SM3) | F(SM4) | F(AVX512_MEDIAX) | F(RAO_INT) | F(MOVRS)
 	);
 
 	kvm_cpu_cap_init_kvm_defined(CPUID_7_1_EDX,
 		F(AVX_VNNI_INT8) | F(AVX_NE_CONVERT) | F(PREFETCHITI) |
-		F(AMX_COMPLEX)
+		F(AMX_COMPLEX) | F(AVX_VNNI_INT16) | F(AVX512_VNNI_INT8) |
+		F(AVX512_VNNI_FP16) | F(AVX512_NE_CONVERT) | F(AVX512_BF16_NE) |
+		F(AMX_TRANSPOSE) | F(AMX_TF32) | F(AMX_AVX512) | F(AMX_SPARSE) |
+		F(AMX_MOVRS) | F(AVX10_MOVRS)
+	);
+
+	kvm_cpu_cap_init_kvm_defined(CPUID_7_1_EBX,
+		F(AVX_RAO_FP) | F(AVX512_RAO_FP)
+	);
+
+	kvm_cpu_cap_init_kvm_defined(CPUID_7_1_ECX,
+		F(AMX_FP8)
 	);
 
 	kvm_cpu_cap_mask(CPUID_D_1_EAX,
@@ -968,9 +980,9 @@ static inline int __do_cpuid_func(struct kvm_cpuid_array *array, u32 function)
 				goto out;
 
 			cpuid_entry_override(entry, CPUID_7_1_EAX);
+			cpuid_entry_override(entry, CPUID_7_1_EBX);
+			cpuid_entry_override(entry, CPUID_7_1_ECX);
 			cpuid_entry_override(entry, CPUID_7_1_EDX);
-			entry->ebx = 0;
-			entry->ecx = 0;
 		}
 		break;
 	case 0xa: { /* Architectural Performance Monitoring */

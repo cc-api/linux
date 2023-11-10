@@ -314,6 +314,10 @@
 #define X86_FEATURE_IBPB_ON_VMEXIT	(11*32+26) /* "" Issue an IBPB only on VMEXIT */
 
 /* Intel-defined CPU features, CPUID level 0x00000007:1 (EAX), word 12 */
+#define X86_FEATURE_SHA512		(12*32+ 0) /* "" SHA512 instructions */
+#define X86_FEATURE_SM3			(12*32+ 1) /* "" SM3 instructions */
+#define X86_FEATURE_SM4			(12*32+ 2) /* "" SM4 instructions */
+#define X86_FEATURE_RAO_INT		(12*32+ 3) /* "" RAO-INT instructions */
 #define X86_FEATURE_AVX_VNNI		(12*32+ 4) /* AVX VNNI instructions */
 #define X86_FEATURE_AVX512_BF16		(12*32+ 5) /* AVX512 BFLOAT16 instructions */
 #define X86_FEATURE_LASS		(12*32+ 6) /* Linear address space separation */
@@ -327,6 +331,8 @@
 #define X86_FEATURE_HRESET		(12*32+22) /* Hardware history reset instruction */
 #define X86_FEATURE_AVX_IFMA            (12*32+23) /* "" Support for VPMADD52[H,L]UQ */
 #define X86_FEATURE_LAM			(12*32+26) /* Linear Address Masking */
+#define X86_FEATURE_AVX512_MEDIAX	(12*32+28) /* "" Support for Media Acceleration */
+#define X86_FEATURE_MOVRS		(12*32+31) /* "" MOVRS instructions */
 
 /* AMD-defined CPU features, CPUID level 0x80000008 (EBX), word 13 */
 #define X86_FEATURE_CLZERO		(13*32+ 0) /* CLZERO instruction */
