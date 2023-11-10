@@ -3976,45 +3976,6 @@
             "feature_jiras": ""
         },
         {
-            "branch": "svos-next-tdx-pull-6.6",
-            "branch_type": "expiring",
-            "config_options": [
-                {
-                    "name": "CONFIG_SVOS",
-                    "value": "n"
-                }
-            ],
-            "contributor": [
-                {
-                    "name": "Rodolfo Gomez Zurita",
-                    "email": "rodolfo.gomez.zurita@intel.com"
-                }
-            ],
-            "description": "SVOS TDX Modifications for v6.5",
-            "enabled": true,
-            "ip_owner": [
-                {
-                    "name": "Sergio Perez Gonzalez",
-                    "email": "sergio.perez.gonzalez@intel.com"
-                }
-            ],
-            "jira": "NEXT-3549",
-            "name": "svos_tdx",
-            "repourl": "https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next.git",
-            "sdl_contact": [
-                {
-                    "name": "Rodolfo Gomez Zurita",
-                    "email": "rodolfo.gomez.zurita@intel.com"
-                }
-            ],
-            "status": "intel confidential",
-            "stuck_at_ref": "",
-            "last_enabled": "v6.6",
-            "maillist": "",
-            "platforms": "",
-            "feature_jiras": ""
-        },
-        {
             "branch": "iordt",
             "branch_type": "expiring",
             "config_options": [],
@@ -6848,6 +6809,45 @@
             "platforms": "",
             "feature_jiras": "LFE-9151",
             "last_enabled": "v6.6"
+        },
+        {
+            "branch": "svos-next-tdx-pull-6.6",
+            "branch_type": "expiring",
+            "config_options": [
+                {
+                    "name": "CONFIG_SVOS",
+                    "value": "n"
+                }
+            ],
+            "contributor": [
+                {
+                    "name": "Rodolfo Gomez Zurita",
+                    "email": "rodolfo.gomez.zurita@intel.com"
+                }
+            ],
+            "description": "SVOS TDX Modifications for v6.5",
+            "enabled": true,
+            "ip_owner": [
+                {
+                    "name": "Sergio Perez Gonzalez",
+                    "email": "sergio.perez.gonzalez@intel.com"
+                }
+            ],
+            "jira": "NEXT-3549",
+            "name": "svos_tdx",
+            "repourl": "https://github.com/intel-innersource/os.linux.validation.svos-next.svos-next.git",
+            "sdl_contact": [
+                {
+                    "name": "Rodolfo Gomez Zurita",
+                    "email": "rodolfo.gomez.zurita@intel.com"
+                }
+            ],
+            "status": "intel confidential",
+            "stuck_at_ref": "",
+            "last_enabled": "v6.6",
+            "maillist": "",
+            "platforms": "",
+            "feature_jiras": ""
         }
     ]
 }
