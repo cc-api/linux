@@ -645,7 +645,8 @@ static void kvm_leave_nested(struct kvm_vcpu *vcpu)
 
 static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 		unsigned nr, bool has_error, u32 error_code,
-	        bool has_payload, unsigned long payload, bool reinject)
+	        bool has_payload, unsigned long payload,
+		bool reinject, bool nested)
 {
 	u32 prev_nr;
 	int class1, class2;
@@ -678,10 +679,13 @@ static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 			 */
 			WARN_ON_ONCE(kvm_is_exception_pending(vcpu));
 			vcpu->arch.exception.injected = true;
+			vcpu->arch.exception.nested = nested;
 			if (WARN_ON_ONCE(has_payload)) {
 				/*
-				 * A reinjected event has already
-				 * delivered its payload.
+				 * For a reinjected event, KVM delivers its
+				 * payload through saving %cr2 into arch.cr2
+				 * immediately after VM exits and %dr6 into
+				 * arch.dr6 in sync_dirty_debug_regs().
 				 */
 				has_payload = false;
 				payload = 0;
@@ -721,6 +725,8 @@ static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 
 		kvm_queue_exception_e(vcpu, DF_VECTOR, 0);
 	} else {
+		vcpu->arch.exception.nested = true;
+
 		/* replace previous exception with a new one in a hope
 		   that instruction re-execution will regenerate lost
 		   exception */
@@ -730,20 +736,20 @@ static void kvm_multiple_exception(struct kvm_vcpu *vcpu,
 
 void kvm_queue_exception(struct kvm_vcpu *vcpu, unsigned nr)
 {
-	kvm_multiple_exception(vcpu, nr, false, 0, false, 0, false);
+	kvm_multiple_exception(vcpu, nr, false, 0, false, 0, false, false);
 }
 EXPORT_SYMBOL_GPL(kvm_queue_exception);
 
-void kvm_requeue_exception(struct kvm_vcpu *vcpu, unsigned nr)
+void kvm_requeue_exception(struct kvm_vcpu *vcpu, unsigned nr, bool nested)
 {
-	kvm_multiple_exception(vcpu, nr, false, 0, false, 0, true);
+	kvm_multiple_exception(vcpu, nr, false, 0, false, 0, true, nested);
 }
 EXPORT_SYMBOL_GPL(kvm_requeue_exception);
 
 void kvm_queue_exception_p(struct kvm_vcpu *vcpu, unsigned nr,
 			   unsigned long payload)
 {
-	kvm_multiple_exception(vcpu, nr, false, 0, true, payload, false);
+	kvm_multiple_exception(vcpu, nr, false, 0, true, payload, false, false);
 }
 EXPORT_SYMBOL_GPL(kvm_queue_exception_p);
 
@@ -751,7 +757,7 @@ static void kvm_queue_exception_e_p(struct kvm_vcpu *vcpu, unsigned nr,
 				    u32 error_code, unsigned long payload)
 {
 	kvm_multiple_exception(vcpu, nr, true, error_code,
-			       true, payload, false);
+			       true, payload, false, false);
 }
 
 int kvm_complete_insn_gp(struct kvm_vcpu *vcpu, int err)
@@ -823,13 +829,13 @@ void kvm_inject_nmi(struct kvm_vcpu *vcpu)
 
 void kvm_queue_exception_e(struct kvm_vcpu *vcpu, unsigned nr, u32 error_code)
 {
-	kvm_multiple_exception(vcpu, nr, true, error_code, false, 0, false);
+	kvm_multiple_exception(vcpu, nr, true, error_code, false, 0, false, false);
 }
 EXPORT_SYMBOL_GPL(kvm_queue_exception_e);
 
-void kvm_requeue_exception_e(struct kvm_vcpu *vcpu, unsigned nr, u32 error_code)
+void kvm_requeue_exception_e(struct kvm_vcpu *vcpu, unsigned nr, u32 error_code, bool nested)
 {
-	kvm_multiple_exception(vcpu, nr, true, error_code, false, 0, true);
+	kvm_multiple_exception(vcpu, nr, true, error_code, false, 0, true, nested);
 }
 EXPORT_SYMBOL_GPL(kvm_requeue_exception_e);
 
@@ -1451,6 +1457,9 @@ static const u32 msrs_to_save_base[] = {
 	MSR_STAR,
 #ifdef CONFIG_X86_64
 	MSR_CSTAR, MSR_KERNEL_GS_BASE, MSR_SYSCALL_MASK, MSR_LSTAR,
+	MSR_IA32_FRED_RSP0, MSR_IA32_FRED_RSP1, MSR_IA32_FRED_RSP2,
+	MSR_IA32_FRED_RSP3, MSR_IA32_FRED_STKLVLS, MSR_IA32_FRED_SSP1,
+	MSR_IA32_FRED_SSP2, MSR_IA32_FRED_SSP3, MSR_IA32_FRED_CONFIG,
 #endif
 	MSR_IA32_TSC, MSR_IA32_CR_PAT, MSR_VM_HSAVE_PA,
 	MSR_IA32_FEAT_CTL, MSR_IA32_BNDCFGS, MSR_TSC_AUX,
@@ -1900,6 +1909,16 @@ static int __kvm_set_msr(struct kvm_vcpu *vcpu, u32 index, u64 data,
 
 		data = (u32)data;
 		break;
+	case MSR_IA32_FRED_RSP0 ... MSR_IA32_FRED_CONFIG:
+		if (host_initiated || guest_cpuid_has(vcpu, X86_FEATURE_FRED))
+			break;
+
+		/*
+		 * Inject #GP upon FRED MSRs accesses from a non-FRED guest to
+		 * make sure no malicious guest can write to FRED MSRs thus to
+		 * corrupt host FRED MSRs.
+		 */
+		return 1;
 	}
 
 	msr.data = data;
@@ -1943,6 +1962,16 @@ int __kvm_get_msr(struct kvm_vcpu *vcpu, u32 index, u64 *data,
 		    !guest_cpuid_has(vcpu, X86_FEATURE_RDPID))
 			return 1;
 		break;
+	case MSR_IA32_FRED_RSP0 ... MSR_IA32_FRED_CONFIG:
+		if (host_initiated || guest_cpuid_has(vcpu, X86_FEATURE_FRED))
+			break;
+
+		/*
+		 * Inject #GP upon FRED MSRs accesses from a non-FRED guest to
+		 * make sure no malicious guest can write to FRED MSRs thus to
+		 * corrupt host FRED MSRs.
+		 */
+		return 1;
 	}
 
 	msr.index = index;

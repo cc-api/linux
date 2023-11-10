@@ -103,7 +103,12 @@
 	 VM_EXIT_LOAD_IA32_EFER |					\
 	 VM_EXIT_CLEAR_BNDCFGS |					\
 	 VM_EXIT_PT_CONCEAL_PIP |					\
-	 VM_EXIT_CLEAR_IA32_RTIT_CTL)
+	 VM_EXIT_CLEAR_IA32_RTIT_CTL |					\
+	 VM_EXIT_ACTIVATE_SECONDARY_CONTROLS)
+
+#define EVMCS1_SUPPORTED_VMEXIT_CTRL2					\
+	(SECONDARY_VM_EXIT_SAVE_IA32_FRED |				\
+	 SECONDARY_VM_EXIT_LOAD_IA32_FRED)
 
 #define EVMCS1_SUPPORTED_VMENTRY_CTRL					\
 	(VM_ENTRY_ALWAYSON_WITHOUT_TRUE_MSR |				\
@@ -114,7 +119,8 @@
 	 VM_ENTRY_LOAD_IA32_EFER |					\
 	 VM_ENTRY_LOAD_BNDCFGS |					\
 	 VM_ENTRY_PT_CONCEAL_PIP |					\
-	 VM_ENTRY_LOAD_IA32_RTIT_CTL)
+	 VM_ENTRY_LOAD_IA32_RTIT_CTL |					\
+	 VM_ENTRY_LOAD_IA32_FRED)
 
 #define EVMCS1_SUPPORTED_VMFUNC (0)
 
@@ -240,6 +246,8 @@ const struct evmcs_field vmcs_field_to_evmcs_1[] = {
 		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP2),
 	EVMCS1_FIELD(TSC_MULTIPLIER, tsc_multiplier,
 		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP2),
+	EVMCS1_FIELD(INJECTED_EVENT_DATA, injected_event_data,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_EVENT),
 	/*
 	 * Not used by KVM:
 	 *
@@ -259,10 +267,46 @@ const struct evmcs_field vmcs_field_to_evmcs_1[] = {
 	 *	     HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_GRP1),
 	 */
 
+	/* FRED guest and host context */
+	EVMCS1_FIELD(GUEST_IA32_FRED_CONFIG, guest_ia32_fred_config,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2),
+	EVMCS1_FIELD(GUEST_IA32_FRED_RSP1, guest_ia32_fred_rsp1,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2),
+	EVMCS1_FIELD(GUEST_IA32_FRED_RSP2, guest_ia32_fred_rsp2,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2),
+	EVMCS1_FIELD(GUEST_IA32_FRED_RSP3, guest_ia32_fred_rsp3,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2),
+	EVMCS1_FIELD(GUEST_IA32_FRED_STKLVLS, guest_ia32_fred_stklvls,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2),
+	EVMCS1_FIELD(GUEST_IA32_FRED_SSP1, guest_ia32_fred_ssp1,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2),
+	EVMCS1_FIELD(GUEST_IA32_FRED_SSP2, guest_ia32_fred_ssp2,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2),
+	EVMCS1_FIELD(GUEST_IA32_FRED_SSP3, guest_ia32_fred_ssp3,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2),
+	EVMCS1_FIELD(HOST_IA32_FRED_CONFIG, host_ia32_fred_config,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER),
+	EVMCS1_FIELD(HOST_IA32_FRED_RSP1, host_ia32_fred_rsp1,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER),
+	EVMCS1_FIELD(HOST_IA32_FRED_RSP2, host_ia32_fred_rsp2,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER),
+	EVMCS1_FIELD(HOST_IA32_FRED_RSP3, host_ia32_fred_rsp3,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER),
+	EVMCS1_FIELD(HOST_IA32_FRED_STKLVLS, host_ia32_fred_stklvls,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER),
+	EVMCS1_FIELD(HOST_IA32_FRED_SSP1, host_ia32_fred_ssp1,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER),
+	EVMCS1_FIELD(HOST_IA32_FRED_SSP2, host_ia32_fred_ssp2,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER),
+	EVMCS1_FIELD(HOST_IA32_FRED_SSP3, host_ia32_fred_ssp3,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER),
+
 	/* 64 bit read only */
 	EVMCS1_FIELD(GUEST_PHYSICAL_ADDRESS, guest_physical_address,
 		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE),
 	EVMCS1_FIELD(EXIT_QUALIFICATION, exit_qualification,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE),
+	EVMCS1_FIELD(ORIGINAL_EVENT_DATA, original_event_data,
 		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE),
 	/*
 	 * Not defined in KVM:
@@ -314,6 +358,8 @@ const struct evmcs_field vmcs_field_to_evmcs_1[] = {
 	EVMCS1_FIELD(PIN_BASED_VM_EXEC_CONTROL, pin_based_vm_exec_control,
 		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1),
 	EVMCS1_FIELD(VM_EXIT_CONTROLS, vm_exit_controls,
+		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1),
+	EVMCS1_FIELD(SECONDARY_VM_EXIT_CONTROLS, secondary_vm_exit_controls,
 		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1),
 	EVMCS1_FIELD(SECONDARY_VM_EXEC_CONTROL, secondary_vm_exec_control,
 		     HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP1),
@@ -464,6 +510,7 @@ enum evmcs_revision {
 
 enum evmcs_ctrl_type {
 	EVMCS_EXIT_CTRLS,
+	EVMCS_2NDEXIT,
 	EVMCS_ENTRY_CTRLS,
 	EVMCS_EXEC_CTRL,
 	EVMCS_2NDEXEC,
@@ -476,6 +523,9 @@ enum evmcs_ctrl_type {
 static const u32 evmcs_supported_ctrls[NR_EVMCS_CTRLS][NR_EVMCS_REVISIONS] = {
 	[EVMCS_EXIT_CTRLS] = {
 		[EVMCSv1_LEGACY] = EVMCS1_SUPPORTED_VMEXIT_CTRL,
+	},
+	[EVMCS_2NDEXIT] = {
+		[EVMCSv1_LEGACY] = EVMCS1_SUPPORTED_VMEXIT_CTRL2,
 	},
 	[EVMCS_ENTRY_CTRLS] = {
 		[EVMCSv1_LEGACY] = EVMCS1_SUPPORTED_VMENTRY_CTRL,
@@ -539,6 +589,9 @@ void nested_evmcs_filter_control_msr(struct kvm_vcpu *vcpu, u32 msr_index, u64 *
 			supported_ctrls &= ~VM_EXIT_LOAD_IA32_PERF_GLOBAL_CTRL;
 		ctl_high &= supported_ctrls;
 		break;
+	case MSR_IA32_VMX_EXIT_CTLS2:
+		ctl_low &= evmcs_get_supported_ctls(EVMCS_2NDEXIT);
+		break;
 	case MSR_IA32_VMX_ENTRY_CTLS:
 	case MSR_IA32_VMX_TRUE_ENTRY_CTLS:
 		supported_ctrls = evmcs_get_supported_ctls(EVMCS_ENTRY_CTRLS);
@@ -587,6 +640,10 @@ int nested_evmcs_check_controls(struct vmcs12 *vmcs12)
 
 	if (CC(!nested_evmcs_is_valid_controls(EVMCS_EXIT_CTRLS,
 					       vmcs12->vm_exit_controls)))
+		return -EINVAL;
+
+	if (CC(!nested_evmcs_is_valid_controls(EVMCS_2NDEXIT,
+					       vmcs12->secondary_vm_exit_controls)))
 		return -EINVAL;
 
 	if (CC(!nested_evmcs_is_valid_controls(EVMCS_ENTRY_CTRLS,

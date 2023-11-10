@@ -83,7 +83,18 @@ static void init_vmcs_shadow_fields(void)
 			pr_err("Missing field from shadow_read_only_field %x\n",
 			       field + 1);
 
+		switch (field) {
+		case ORIGINAL_EVENT_DATA:
+		case ORIGINAL_EVENT_DATA_HIGH:
+			if (!cpu_feature_enabled(X86_FEATURE_FRED))
+				continue;
+			break;
+		default:
+			break;
+		}
+
 		clear_bit(field, vmx_vmread_bitmap);
+
 		if (field & 1)
 #ifdef CONFIG_X86_64
 			continue;
@@ -124,6 +135,11 @@ static void init_vmcs_shadow_fields(void)
 			break;
 		case GUEST_INTR_STATUS:
 			if (!cpu_has_vmx_apicv())
+				continue;
+			break;
+		case INJECTED_EVENT_DATA:
+		case INJECTED_EVENT_DATA_HIGH:
+			if (!cpu_feature_enabled(X86_FEATURE_FRED))
 				continue;
 			break;
 		default:
@@ -650,6 +666,9 @@ static inline bool nested_vmx_prepare_msr_bitmap(struct kvm_vcpu *vcpu,
 
 	nested_vmx_set_intercept_for_msr(vmx, msr_bitmap_l1, msr_bitmap_l0,
 					 MSR_KERNEL_GS_BASE, MSR_TYPE_RW);
+
+	nested_vmx_set_intercept_for_msr(vmx, msr_bitmap_l1, msr_bitmap_l0,
+					 MSR_IA32_FRED_RSP0, MSR_TYPE_RW);
 #endif
 	nested_vmx_set_intercept_for_msr(vmx, msr_bitmap_l1, msr_bitmap_l0,
 					 MSR_IA32_SPEC_CTRL, MSR_TYPE_RW);
@@ -1203,21 +1222,17 @@ static bool is_bitwise_subset(u64 superset, u64 subset, u64 mask)
 
 static int vmx_restore_vmx_basic(struct vcpu_vmx *vmx, u64 data)
 {
-	const u64 feature_and_reserved =
-		/* feature (except bit 48; see below) */
-		BIT_ULL(49) | BIT_ULL(54) | BIT_ULL(55) |
-		/* reserved */
-		BIT_ULL(31) | GENMASK_ULL(47, 45) | GENMASK_ULL(63, 56);
 	u64 vmx_basic = vmcs_config.nested.basic;
 
-	if (!is_bitwise_subset(vmx_basic, data, feature_and_reserved))
+	if (!is_bitwise_subset(vmx_basic, data,
+			       VMX_BASIC_FEATURES | VMX_BASIC_RESERVED_BITS))
 		return -EINVAL;
 
 	/*
 	 * KVM does not emulate a version of VMX that constrains physical
 	 * addresses of VMX structures (e.g. VMCS) to 32-bits.
 	 */
-	if (data & BIT_ULL(48))
+	if (data & VMX_BASIC_32BIT_PHYS_ADDR_ONLY)
 		return -EINVAL;
 
 	if (vmx_basic_vmcs_revision_id(vmx_basic) !=
@@ -1382,6 +1397,7 @@ int vmx_set_vmx_msr(struct kvm_vcpu *vcpu, u32 msr_index, u64 data)
 	case MSR_IA32_VMX_PINBASED_CTLS:
 	case MSR_IA32_VMX_PROCBASED_CTLS:
 	case MSR_IA32_VMX_EXIT_CTLS:
+	case MSR_IA32_VMX_EXIT_CTLS2:
 	case MSR_IA32_VMX_ENTRY_CTLS:
 		/*
 		 * The "non-true" VMX capability MSRs are generated from the
@@ -1460,6 +1476,9 @@ int vmx_get_vmx_msr(struct nested_vmx_msrs *msrs, u32 msr_index, u64 *pdata)
 		if (msr_index == MSR_IA32_VMX_EXIT_CTLS)
 			*pdata |= VM_EXIT_ALWAYSON_WITHOUT_TRUE_MSR;
 		break;
+	case MSR_IA32_VMX_EXIT_CTLS2:
+		*pdata = msrs->secondary_exit_ctls;
+		break;
 	case MSR_IA32_VMX_TRUE_ENTRY_CTLS:
 	case MSR_IA32_VMX_ENTRY_CTLS:
 		*pdata = vmx_control_msr(
@@ -1532,6 +1551,17 @@ static void copy_shadow_to_vmcs12(struct vcpu_vmx *vmx)
 
 	for (i = 0; i < max_shadow_read_write_fields; i++) {
 		field = shadow_read_write_fields[i];
+
+		switch (field.encoding) {
+		case INJECTED_EVENT_DATA:
+		case INJECTED_EVENT_DATA_HIGH:
+			if (!cpu_feature_enabled(X86_FEATURE_FRED))
+				continue;
+			break;
+		default:
+			break;
+		}
+
 		val = __vmcs_readl(field.encoding);
 		vmcs12_write_any(vmcs12, field.encoding, field.offset, val);
 	}
@@ -1566,6 +1596,19 @@ static void copy_vmcs12_to_shadow(struct vcpu_vmx *vmx)
 	for (q = 0; q < ARRAY_SIZE(fields); q++) {
 		for (i = 0; i < max_fields[q]; i++) {
 			field = fields[q][i];
+
+			switch (field.encoding) {
+			case INJECTED_EVENT_DATA:
+			case INJECTED_EVENT_DATA_HIGH:
+			case ORIGINAL_EVENT_DATA:
+			case ORIGINAL_EVENT_DATA_HIGH:
+				if (!cpu_feature_enabled(X86_FEATURE_FRED))
+					continue;
+				break;
+			default:
+				break;
+			}
+
 			val = vmcs12_read_any(vmcs12, field.encoding,
 					      field.offset);
 			__vmcs_writel(field.encoding, val);
@@ -1627,6 +1670,8 @@ static void copy_enlightened_to_vmcs12(struct vcpu_vmx *vmx, u32 hv_clean_fields
 			evmcs->vm_entry_intr_info_field;
 		vmcs12->vm_entry_exception_error_code =
 			evmcs->vm_entry_exception_error_code;
+		vmcs12->injected_event_data =
+			evmcs->injected_event_data;
 		vmcs12->vm_entry_instruction_len =
 			evmcs->vm_entry_instruction_len;
 	}
@@ -1663,6 +1708,8 @@ static void copy_enlightened_to_vmcs12(struct vcpu_vmx *vmx, u32 hv_clean_fields
 		vmcs12->pin_based_vm_exec_control =
 			evmcs->pin_based_vm_exec_control;
 		vmcs12->vm_exit_controls = evmcs->vm_exit_controls;
+		vmcs12->secondary_vm_exit_controls =
+			evmcs->secondary_vm_exit_controls;
 		vmcs12->secondary_vm_exec_control =
 			evmcs->secondary_vm_exec_control;
 	}
@@ -1690,6 +1737,14 @@ static void copy_enlightened_to_vmcs12(struct vcpu_vmx *vmx, u32 hv_clean_fields
 		vmcs12->guest_tr_base = evmcs->guest_tr_base;
 		vmcs12->guest_gdtr_base = evmcs->guest_gdtr_base;
 		vmcs12->guest_idtr_base = evmcs->guest_idtr_base;
+		vmcs12->guest_ia32_fred_config = evmcs->guest_ia32_fred_config;
+		vmcs12->guest_ia32_fred_rsp1 = evmcs->guest_ia32_fred_rsp1;
+		vmcs12->guest_ia32_fred_rsp2 = evmcs->guest_ia32_fred_rsp2;
+		vmcs12->guest_ia32_fred_rsp3 = evmcs->guest_ia32_fred_rsp3;
+		vmcs12->guest_ia32_fred_stklvls = evmcs->guest_ia32_fred_stklvls;
+		vmcs12->guest_ia32_fred_ssp1 = evmcs->guest_ia32_fred_ssp1;
+		vmcs12->guest_ia32_fred_ssp2 = evmcs->guest_ia32_fred_ssp2;
+		vmcs12->guest_ia32_fred_ssp3 = evmcs->guest_ia32_fred_ssp3;
 		vmcs12->guest_es_limit = evmcs->guest_es_limit;
 		vmcs12->guest_cs_limit = evmcs->guest_cs_limit;
 		vmcs12->guest_ss_limit = evmcs->guest_ss_limit;
@@ -1746,6 +1801,14 @@ static void copy_enlightened_to_vmcs12(struct vcpu_vmx *vmx, u32 hv_clean_fields
 		vmcs12->host_tr_base = evmcs->host_tr_base;
 		vmcs12->host_gdtr_base = evmcs->host_gdtr_base;
 		vmcs12->host_idtr_base = evmcs->host_idtr_base;
+		vmcs12->host_ia32_fred_config = evmcs->host_ia32_fred_config;
+		vmcs12->host_ia32_fred_rsp1 = evmcs->host_ia32_fred_rsp1;
+		vmcs12->host_ia32_fred_rsp2 = evmcs->host_ia32_fred_rsp2;
+		vmcs12->host_ia32_fred_rsp3 = evmcs->host_ia32_fred_rsp3;
+		vmcs12->host_ia32_fred_stklvls = evmcs->host_ia32_fred_stklvls;
+		vmcs12->host_ia32_fred_ssp1 = evmcs->host_ia32_fred_ssp1;
+		vmcs12->host_ia32_fred_ssp2 = evmcs->host_ia32_fred_ssp2;
+		vmcs12->host_ia32_fred_ssp3 = evmcs->host_ia32_fred_ssp3;
 		vmcs12->host_rsp = evmcs->host_rsp;
 	}
 
@@ -1805,6 +1868,7 @@ static void copy_enlightened_to_vmcs12(struct vcpu_vmx *vmx, u32 hv_clean_fields
 	 * vmcs12->vm_exit_intr_error_code = evmcs->vm_exit_intr_error_code;
 	 * vmcs12->idt_vectoring_info_field = evmcs->idt_vectoring_info_field;
 	 * vmcs12->idt_vectoring_error_code = evmcs->idt_vectoring_error_code;
+	 * vmcs12->original_event_data = evmcs->original_event_data;
 	 * vmcs12->vm_exit_instruction_len = evmcs->vm_exit_instruction_len;
 	 * vmcs12->vmx_instruction_info = evmcs->vmx_instruction_info;
 	 * vmcs12->exit_qualification = evmcs->exit_qualification;
@@ -1865,6 +1929,7 @@ static void copy_vmcs12_to_enlightened(struct vcpu_vmx *vmx)
 	 * evmcs->vmcs_link_pointer = vmcs12->vmcs_link_pointer;
 	 * evmcs->pin_based_vm_exec_control = vmcs12->pin_based_vm_exec_control;
 	 * evmcs->vm_exit_controls = vmcs12->vm_exit_controls;
+	 * evmcs->secondary_vm_exit_controls = vmcs12->secondary_vm_exit_controls;
 	 * evmcs->secondary_vm_exec_control = vmcs12->secondary_vm_exec_control;
 	 * evmcs->page_fault_error_code_mask =
 	 *		vmcs12->page_fault_error_code_mask;
@@ -1939,6 +2004,14 @@ static void copy_vmcs12_to_enlightened(struct vcpu_vmx *vmx)
 	evmcs->guest_tr_base = vmcs12->guest_tr_base;
 	evmcs->guest_gdtr_base = vmcs12->guest_gdtr_base;
 	evmcs->guest_idtr_base = vmcs12->guest_idtr_base;
+	evmcs->guest_ia32_fred_config = vmcs12->guest_ia32_fred_config;
+	evmcs->guest_ia32_fred_rsp1 = vmcs12->guest_ia32_fred_rsp1;
+	evmcs->guest_ia32_fred_rsp2 = vmcs12->guest_ia32_fred_rsp2;
+	evmcs->guest_ia32_fred_rsp3 = vmcs12->guest_ia32_fred_rsp3;
+	evmcs->guest_ia32_fred_stklvls = vmcs12->guest_ia32_fred_stklvls;
+	evmcs->guest_ia32_fred_ssp1 = vmcs12->guest_ia32_fred_ssp1;
+	evmcs->guest_ia32_fred_ssp2 = vmcs12->guest_ia32_fred_ssp2;
+	evmcs->guest_ia32_fred_ssp3 = vmcs12->guest_ia32_fred_ssp3;
 
 	evmcs->guest_ia32_pat = vmcs12->guest_ia32_pat;
 	evmcs->guest_ia32_efer = vmcs12->guest_ia32_efer;
@@ -1969,6 +2042,7 @@ static void copy_vmcs12_to_enlightened(struct vcpu_vmx *vmx)
 	evmcs->vm_exit_intr_error_code = vmcs12->vm_exit_intr_error_code;
 	evmcs->idt_vectoring_info_field = vmcs12->idt_vectoring_info_field;
 	evmcs->idt_vectoring_error_code = vmcs12->idt_vectoring_error_code;
+	evmcs->original_event_data = vmcs12->original_event_data;
 	evmcs->vm_exit_instruction_len = vmcs12->vm_exit_instruction_len;
 	evmcs->vmx_instruction_info = vmcs12->vmx_instruction_info;
 
@@ -1985,6 +2059,7 @@ static void copy_vmcs12_to_enlightened(struct vcpu_vmx *vmx)
 	evmcs->vm_entry_intr_info_field = vmcs12->vm_entry_intr_info_field;
 	evmcs->vm_entry_exception_error_code =
 		vmcs12->vm_entry_exception_error_code;
+	evmcs->injected_event_data = vmcs12->injected_event_data;
 	evmcs->vm_entry_instruction_len = vmcs12->vm_entry_instruction_len;
 
 	evmcs->guest_rip = vmcs12->guest_rip;
@@ -2382,6 +2457,11 @@ static void prepare_vmcs02_early(struct vcpu_vmx *vmx, struct loaded_vmcs *vmcs0
 		exec_control &= ~VM_EXIT_LOAD_IA32_EFER;
 	vm_exit_controls_set(vmx, exec_control);
 
+	if (exec_control & VM_EXIT_ACTIVATE_SECONDARY_CONTROLS) {
+		exec_control = __secondary_vm_exit_controls_get(vmcs01);
+		secondary_vm_exit_controls_set(vmx, exec_control);
+	}
+
 	/*
 	 * Interrupt/Exception Fields
 	 */
@@ -2394,6 +2474,8 @@ static void prepare_vmcs02_early(struct vcpu_vmx *vmx, struct loaded_vmcs *vmcs0
 			     vmcs12->vm_entry_instruction_len);
 		vmcs_write32(GUEST_INTERRUPTIBILITY_INFO,
 			     vmcs12->guest_interruptibility_info);
+		if (cpu_feature_enabled(X86_FEATURE_FRED))
+			vmcs_write64(INJECTED_EVENT_DATA, vmcs12->injected_event_data);
 		vmx->loaded_vmcs->nmi_known_unmasked =
 			!(vmcs12->guest_interruptibility_info & GUEST_INTR_STATE_NMI);
 	} else {
@@ -2443,6 +2525,17 @@ static void prepare_vmcs02_rare(struct vcpu_vmx *vmx, struct vmcs12 *vmcs12)
 		vmcs_writel(GUEST_TR_BASE, vmcs12->guest_tr_base);
 		vmcs_writel(GUEST_GDTR_BASE, vmcs12->guest_gdtr_base);
 		vmcs_writel(GUEST_IDTR_BASE, vmcs12->guest_idtr_base);
+
+		if (cpu_feature_enabled(X86_FEATURE_FRED)) {
+			vmcs_write64(GUEST_IA32_FRED_CONFIG, vmcs12->guest_ia32_fred_config);
+			vmcs_write64(GUEST_IA32_FRED_RSP1, vmcs12->guest_ia32_fred_rsp1);
+			vmcs_write64(GUEST_IA32_FRED_RSP2, vmcs12->guest_ia32_fred_rsp2);
+			vmcs_write64(GUEST_IA32_FRED_RSP3, vmcs12->guest_ia32_fred_rsp3);
+			vmcs_write64(GUEST_IA32_FRED_STKLVLS, vmcs12->guest_ia32_fred_stklvls);
+			vmcs_write64(GUEST_IA32_FRED_SSP1, vmcs12->guest_ia32_fred_ssp1);
+			vmcs_write64(GUEST_IA32_FRED_SSP2, vmcs12->guest_ia32_fred_ssp2);
+			vmcs_write64(GUEST_IA32_FRED_SSP3, vmcs12->guest_ia32_fred_ssp3);
+		}
 
 		vmx->segment_cache.bitmask = 0;
 	}
@@ -2812,6 +2905,7 @@ static int nested_check_vm_entry_controls(struct kvm_vcpu *vcpu,
 					  struct vmcs12 *vmcs12)
 {
 	struct vcpu_vmx *vmx = to_vmx(vcpu);
+	bool fred_enabled = !!(vmcs12->guest_cr4 & X86_CR4_FRED);
 
 	if (CC(!vmx_control_verify(vmcs12->vm_entry_controls,
 				    vmx->nested.msrs.entry_ctls_low,
@@ -2830,6 +2924,7 @@ static int nested_check_vm_entry_controls(struct kvm_vcpu *vcpu,
 		u32 intr_type = intr_info & INTR_INFO_INTR_TYPE_MASK;
 		bool has_error_code = intr_info & INTR_INFO_DELIVER_CODE_MASK;
 		bool should_have_error_code;
+		bool has_nested_exception = vmx->nested.msrs.basic & VMX_BASIC_NESTED_EXCEPTION;
 		bool urg = nested_cpu_has2(vmcs12,
 					   SECONDARY_EXEC_UNRESTRICTED_GUEST);
 		bool prot_mode = !urg || vmcs12->guest_cr0 & X86_CR0_PE;
@@ -2843,7 +2938,9 @@ static int nested_check_vm_entry_controls(struct kvm_vcpu *vcpu,
 		/* VM-entry interruption-info field: vector */
 		if (CC(intr_type == INTR_TYPE_NMI_INTR && vector != NMI_VECTOR) ||
 		    CC(intr_type == INTR_TYPE_HARD_EXCEPTION && vector > 31) ||
-		    CC(intr_type == INTR_TYPE_OTHER_EVENT && vector != 0))
+		    CC(intr_type == INTR_TYPE_OTHER_EVENT &&
+		       ((!fred_enabled && vector > 0) ||
+		        (fred_enabled && vector > 2))))
 			return -EINVAL;
 
 		/* VM-entry interruption-info field: deliver error code */
@@ -2862,6 +2959,15 @@ static int nested_check_vm_entry_controls(struct kvm_vcpu *vcpu,
 		if (CC(intr_info & INTR_INFO_RESVD_BITS_MASK))
 			return -EINVAL;
 
+		/*
+		 * When the CPU enumerates VMX nested-exception support, bit 13
+		 * (set to indicate a nested exception) of the intr info field
+		 * may have value 1. Otherwise the bit 13 is reserved.
+		 */
+		if (CC(!has_nested_exception &&
+		       (intr_info & INTR_INFO_NESTED_EXCEPTION_MASK)))
+			return -EINVAL;
+
 		/* VM-entry instruction length */
 		switch (intr_type) {
 		case INTR_TYPE_SOFT_EXCEPTION:
@@ -2871,6 +2977,12 @@ static int nested_check_vm_entry_controls(struct kvm_vcpu *vcpu,
 			    CC(vmcs12->vm_entry_instruction_len == 0 &&
 			    CC(!nested_cpu_has_zero_length_injection(vcpu))))
 				return -EINVAL;
+			break;
+		case INTR_TYPE_OTHER_EVENT:
+			if (fred_enabled && (vector == 1 || vector == 2))
+				if (CC(vmcs12->vm_entry_instruction_len > 15))
+					return -EINVAL;
+			break;
 		}
 	}
 
@@ -2928,13 +3040,30 @@ static int nested_vmx_check_host_state(struct kvm_vcpu *vcpu,
 					   vmcs12->host_ia32_perf_global_ctrl)))
 		return -EINVAL;
 
+	/* Host FRED state checking */
 	if (ia32e) {
 		if (CC(!(vmcs12->host_cr4 & X86_CR4_PAE)))
 			return -EINVAL;
+		if (vmcs12->vm_exit_controls & VM_EXIT_ACTIVATE_SECONDARY_CONTROLS &&
+		    vmcs12->secondary_vm_exit_controls & SECONDARY_VM_EXIT_LOAD_IA32_FRED) {
+			/* Bit 2, bits 5:4, and bit 11 of the IA32_FRED_CONFIG must be zero */
+			if (CC(vmcs12->host_ia32_fred_config & 0x834) ||
+			    CC(vmcs12->host_ia32_fred_rsp1 & 0x3F) ||
+			    CC(vmcs12->host_ia32_fred_rsp2 & 0x3F) ||
+			    CC(vmcs12->host_ia32_fred_rsp3 & 0x3F))
+				return -EINVAL;
+			if (CC(is_noncanonical_address(vmcs12->host_ia32_fred_config & ~0xFFFULL, vcpu)) ||
+			    CC(is_noncanonical_address(vmcs12->host_ia32_fred_rsp1, vcpu)) ||
+			    CC(is_noncanonical_address(vmcs12->host_ia32_fred_rsp2, vcpu)) ||
+			    CC(is_noncanonical_address(vmcs12->host_ia32_fred_rsp3, vcpu)))
+				return -EINVAL;
+		}
 	} else {
 		if (CC(vmcs12->vm_entry_controls & VM_ENTRY_IA32E_MODE) ||
 		    CC(vmcs12->host_cr4 & X86_CR4_PCIDE) ||
 		    CC((vmcs12->host_rip) >> 32))
+			return -EINVAL;
+		if (CC(vmcs12->host_cr4 & X86_CR4_FRED))
 			return -EINVAL;
 	}
 
@@ -3076,6 +3205,38 @@ static int nested_vmx_check_guest_state(struct kvm_vcpu *vcpu,
 	    (CC(is_noncanonical_address(vmcs12->guest_bndcfgs & PAGE_MASK, vcpu)) ||
 	     CC((vmcs12->guest_bndcfgs & MSR_IA32_BNDCFGS_RSVD))))
 		return -EINVAL;
+
+	/* Guest FRED state checking */
+	if (ia32e) {
+		if (vmcs12->vm_entry_controls & VM_ENTRY_LOAD_IA32_FRED) {
+			/* Bit 2, bits 5:4, and bit 11 of the IA32_FRED_CONFIG must be zero */
+			if (CC(vmcs12->guest_ia32_fred_config & 0x834) ||
+			    CC(vmcs12->guest_ia32_fred_rsp1 & 0x3F) ||
+			    CC(vmcs12->guest_ia32_fred_rsp2 & 0x3F) ||
+			    CC(vmcs12->guest_ia32_fred_rsp3 & 0x3F))
+				return -EINVAL;
+			if (CC(is_noncanonical_address(vmcs12->guest_ia32_fred_config & ~0xFFFULL, vcpu)) ||
+			    CC(is_noncanonical_address(vmcs12->guest_ia32_fred_rsp1, vcpu)) ||
+			    CC(is_noncanonical_address(vmcs12->guest_ia32_fred_rsp2, vcpu)) ||
+			    CC(is_noncanonical_address(vmcs12->guest_ia32_fred_rsp3, vcpu)))
+				return -EINVAL;
+		}
+		if (vmcs12->guest_cr4 & X86_CR4_FRED) {
+			unsigned int ss_dpl = VMX_AR_DPL(vmcs12->guest_ss_ar_bytes);
+			if (CC(ss_dpl == 1 || ss_dpl == 2))
+				return -EINVAL;
+			if (ss_dpl == 0 &&
+			    CC(!(vmcs12->guest_cs_ar_bytes & VMX_AR_L_MASK)))
+				return -EINVAL;
+			if (ss_dpl == 3 &&
+			    (CC(vmcs12->guest_rflags & X86_EFLAGS_IOPL) ||
+			     CC(vmcs12->guest_interruptibility_info & GUEST_INTR_STATE_STI)))
+				return -EINVAL;
+		}
+	} else {
+		if (CC(vmcs12->guest_cr4 & X86_CR4_FRED))
+			return -EINVAL;
+	}
 
 	if (nested_check_guest_non_reg_state(vmcs12))
 		return -EINVAL;
@@ -3724,12 +3885,30 @@ vmcs12_guest_cr4(struct kvm_vcpu *vcpu, struct vmcs12 *vmcs12)
 			vcpu->arch.cr4_guest_owned_bits));
 }
 
+static inline unsigned long
+nested_vmx_get_event_data(struct kvm_vcpu *vcpu, bool for_ex_vmexit)
+{
+	struct kvm_queued_exception *ex = for_ex_vmexit ?
+		&vcpu->arch.exception_vmexit : &vcpu->arch.exception;
+
+	if (ex->has_payload)
+		return ex->payload;
+	else if (ex->vector == PF_VECTOR)
+		return vcpu->arch.cr2;
+	else if (ex->vector == DB_VECTOR)
+		return (vcpu->arch.dr6 & ~DR6_BT) ^ DR6_ACTIVE_LOW;
+	else
+		return 0;
+}
+
 static void vmcs12_save_pending_event(struct kvm_vcpu *vcpu,
 				      struct vmcs12 *vmcs12,
 				      u32 vm_exit_reason, u32 exit_intr_info)
 {
 	u32 idt_vectoring;
 	unsigned int nr;
+
+	vmcs12->original_event_data = 0;
 
 	/*
 	 * Per the SDM, VM-Exits due to double and triple faults are never
@@ -3768,6 +3947,12 @@ static void vmcs12_save_pending_event(struct kvm_vcpu *vcpu,
 			vmcs12->idt_vectoring_error_code =
 				vcpu->arch.exception.error_code;
 		}
+
+		idt_vectoring |= vcpu->arch.exception.nested ?
+				INTR_INFO_NESTED_EXCEPTION_MASK : 0;
+
+		vmcs12->original_event_data =
+			nested_vmx_get_event_data(vcpu, false);
 
 		vmcs12->idt_vectoring_info_field = idt_vectoring;
 	} else if (vcpu->arch.nmi_injected) {
@@ -3859,19 +4044,7 @@ static void nested_vmx_inject_exception_vmexit(struct kvm_vcpu *vcpu)
 	struct kvm_queued_exception *ex = &vcpu->arch.exception_vmexit;
 	u32 intr_info = ex->vector | INTR_INFO_VALID_MASK;
 	struct vmcs12 *vmcs12 = get_vmcs12(vcpu);
-	unsigned long exit_qual;
-
-	if (ex->has_payload) {
-		exit_qual = ex->payload;
-	} else if (ex->vector == PF_VECTOR) {
-		exit_qual = vcpu->arch.cr2;
-	} else if (ex->vector == DB_VECTOR) {
-		exit_qual = vcpu->arch.dr6;
-		exit_qual &= ~DR6_BT;
-		exit_qual ^= DR6_ACTIVE_LOW;
-	} else {
-		exit_qual = 0;
-	}
+	unsigned long exit_qual = nested_vmx_get_event_data(vcpu, true);
 
 	/*
 	 * Unlike AMD's Paged Real Mode, which reports an error code on #PF
@@ -4241,6 +4414,14 @@ static bool is_vmcs12_ext_field(unsigned long field)
 	case GUEST_TR_BASE:
 	case GUEST_GDTR_BASE:
 	case GUEST_IDTR_BASE:
+	case GUEST_IA32_FRED_CONFIG:
+	case GUEST_IA32_FRED_RSP1:
+	case GUEST_IA32_FRED_RSP2:
+	case GUEST_IA32_FRED_RSP3:
+	case GUEST_IA32_FRED_STKLVLS:
+	case GUEST_IA32_FRED_SSP1:
+	case GUEST_IA32_FRED_SSP2:
+	case GUEST_IA32_FRED_SSP3:
 	case GUEST_PENDING_DBG_EXCEPTIONS:
 	case GUEST_BNDCFGS:
 		return true;
@@ -4290,6 +4471,18 @@ static void sync_vmcs02_to_vmcs12_rare(struct kvm_vcpu *vcpu,
 	vmcs12->guest_tr_base = vmcs_readl(GUEST_TR_BASE);
 	vmcs12->guest_gdtr_base = vmcs_readl(GUEST_GDTR_BASE);
 	vmcs12->guest_idtr_base = vmcs_readl(GUEST_IDTR_BASE);
+
+	if (cpu_feature_enabled(X86_FEATURE_FRED)) {
+		vmcs12->guest_ia32_fred_config = vmcs_read64(GUEST_IA32_FRED_CONFIG);
+		vmcs12->guest_ia32_fred_rsp1 = vmcs_read64(GUEST_IA32_FRED_RSP1);
+		vmcs12->guest_ia32_fred_rsp2 = vmcs_read64(GUEST_IA32_FRED_RSP2);
+		vmcs12->guest_ia32_fred_rsp3 = vmcs_read64(GUEST_IA32_FRED_RSP3);
+		vmcs12->guest_ia32_fred_stklvls = vmcs_read64(GUEST_IA32_FRED_STKLVLS);
+		vmcs12->guest_ia32_fred_ssp1 = vmcs_read64(GUEST_IA32_FRED_SSP1);
+		vmcs12->guest_ia32_fred_ssp2 = vmcs_read64(GUEST_IA32_FRED_SSP2);
+		vmcs12->guest_ia32_fred_ssp3 = vmcs_read64(GUEST_IA32_FRED_SSP3);
+	}
+
 	vmcs12->guest_pending_dbg_exceptions =
 		vmcs_readl(GUEST_PENDING_DBG_EXCEPTIONS);
 
@@ -4513,6 +4706,17 @@ static void load_vmcs12_host_state(struct kvm_vcpu *vcpu,
 	vmcs_writel(GUEST_GDTR_BASE, vmcs12->host_gdtr_base);
 	vmcs_write32(GUEST_IDTR_LIMIT, 0xFFFF);
 	vmcs_write32(GUEST_GDTR_LIMIT, 0xFFFF);
+
+	if (cpu_feature_enabled(X86_FEATURE_FRED)) {
+		vmcs_write64(GUEST_IA32_FRED_CONFIG, vmcs12->host_ia32_fred_config);
+		vmcs_write64(GUEST_IA32_FRED_RSP1, vmcs12->host_ia32_fred_rsp1);
+		vmcs_write64(GUEST_IA32_FRED_RSP2, vmcs12->host_ia32_fred_rsp2);
+		vmcs_write64(GUEST_IA32_FRED_RSP3, vmcs12->host_ia32_fred_rsp3);
+		vmcs_write64(GUEST_IA32_FRED_STKLVLS, vmcs12->host_ia32_fred_stklvls);
+		vmcs_write64(GUEST_IA32_FRED_SSP1, vmcs12->host_ia32_fred_ssp1);
+		vmcs_write64(GUEST_IA32_FRED_SSP2, vmcs12->host_ia32_fred_ssp2);
+		vmcs_write64(GUEST_IA32_FRED_SSP3, vmcs12->host_ia32_fred_ssp3);
+	}
 
 	/* If not VM_EXIT_CLEAR_BNDCFGS, the L2 value propagates to L1.  */
 	if (vmcs12->vm_exit_controls & VM_EXIT_CLEAR_BNDCFGS)
@@ -6796,12 +7000,16 @@ static void nested_vmx_setup_exit_ctls(struct vmcs_config *vmcs_conf,
 		VM_EXIT_HOST_ADDR_SPACE_SIZE |
 #endif
 		VM_EXIT_LOAD_IA32_PAT | VM_EXIT_SAVE_IA32_PAT |
-		VM_EXIT_CLEAR_BNDCFGS;
+		VM_EXIT_CLEAR_BNDCFGS | VM_EXIT_ACTIVATE_SECONDARY_CONTROLS;
 	msrs->exit_ctls_high |=
 		VM_EXIT_ALWAYSON_WITHOUT_TRUE_MSR |
 		VM_EXIT_LOAD_IA32_EFER | VM_EXIT_SAVE_IA32_EFER |
 		VM_EXIT_SAVE_VMX_PREEMPTION_TIMER | VM_EXIT_ACK_INTR_ON_EXIT |
 		VM_EXIT_LOAD_IA32_PERF_GLOBAL_CTRL;
+
+	/* secondary exit controls */
+	if (msrs->exit_ctls_high & VM_EXIT_ACTIVATE_SECONDARY_CONTROLS)
+		rdmsrl(MSR_IA32_VMX_EXIT_CTLS2, msrs->secondary_exit_ctls);
 
 	/* We support free control of debug control saving. */
 	msrs->exit_ctls_low &= ~VM_EXIT_SAVE_DEBUG_CONTROLS;
@@ -6818,7 +7026,8 @@ static void nested_vmx_setup_entry_ctls(struct vmcs_config *vmcs_conf,
 #ifdef CONFIG_X86_64
 		VM_ENTRY_IA32E_MODE |
 #endif
-		VM_ENTRY_LOAD_IA32_PAT | VM_ENTRY_LOAD_BNDCFGS;
+		VM_ENTRY_LOAD_IA32_PAT | VM_ENTRY_LOAD_BNDCFGS |
+		VM_ENTRY_LOAD_IA32_FRED;
 	msrs->entry_ctls_high |=
 		(VM_ENTRY_ALWAYSON_WITHOUT_TRUE_MSR | VM_ENTRY_LOAD_IA32_EFER |
 		 VM_ENTRY_LOAD_IA32_PERF_GLOBAL_CTRL);
@@ -6974,6 +7183,9 @@ static void nested_vmx_setup_basic(struct nested_vmx_msrs *msrs)
 
 	if (cpu_has_vmx_basic_inout())
 		msrs->basic |= VMX_BASIC_INOUT;
+
+	if (cpu_feature_enabled(X86_FEATURE_FRED))
+		msrs->basic |= VMX_BASIC_NESTED_EXCEPTION;
 }
 
 static void nested_vmx_setup_cr_fixed(struct nested_vmx_msrs *msrs)

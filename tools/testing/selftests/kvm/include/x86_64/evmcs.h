@@ -216,6 +216,27 @@ struct hv_enlightened_vmcs {
 	u64 host_ssp;
 	u64 host_ia32_int_ssp_table_addr;
 	u64 padding64_6;
+
+	u64 host_ia32_fred_config;
+	u64 host_ia32_fred_rsp1;
+	u64 host_ia32_fred_rsp2;
+	u64 host_ia32_fred_rsp3;
+	u64 host_ia32_fred_stklvls;
+	u64 host_ia32_fred_ssp1;
+	u64 host_ia32_fred_ssp2;
+	u64 host_ia32_fred_ssp3;
+
+	u64 guest_ia32_fred_config;
+	u64 guest_ia32_fred_rsp1;
+	u64 guest_ia32_fred_rsp2;
+	u64 guest_ia32_fred_rsp3;
+	u64 guest_ia32_fred_stklvls;
+	u64 guest_ia32_fred_ssp1;
+	u64 guest_ia32_fred_ssp2;
+	u64 guest_ia32_fred_ssp3;
+
+	u64 injected_event_data;
+	u64 original_event_data;
 } __packed;
 
 #define HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE                     0
@@ -450,6 +471,9 @@ static inline int evmcs_vmread(uint64_t encoding, uint64_t *value)
 	case GUEST_LINEAR_ADDRESS:
 		*value = current_evmcs->guest_linear_address;
 		break;
+	case ORIGINAL_EVENT_DATA:
+		*value = current_evmcs->original_event_data;
+		break;
 	case VM_EXIT_MSR_STORE_ADDR:
 		*value = current_evmcs->vm_exit_msr_store_addr;
 		break;
@@ -491,6 +515,9 @@ static inline int evmcs_vmread(uint64_t encoding, uint64_t *value)
 		break;
 	case VM_ENTRY_EXCEPTION_ERROR_CODE:
 		*value = current_evmcs->vm_entry_exception_error_code;
+		break;
+	case INJECTED_EVENT_DATA:
+		*value = current_evmcs->injected_event_data;
 		break;
 	case VM_ENTRY_INSTRUCTION_LEN:
 		*value = current_evmcs->vm_entry_instruction_len;
@@ -668,6 +695,54 @@ static inline int evmcs_vmread(uint64_t encoding, uint64_t *value)
 		break;
 	case TSC_MULTIPLIER:
 		*value = current_evmcs->tsc_multiplier;
+		break;
+	case HOST_IA32_FRED_CONFIG:
+		*value = current_evmcs->host_ia32_fred_config;
+		break;
+	case HOST_IA32_FRED_RSP1:
+		*value = current_evmcs->host_ia32_fred_rsp1;
+		break;
+	case HOST_IA32_FRED_RSP2:
+		*value = current_evmcs->host_ia32_fred_rsp2;
+		break;
+	case HOST_IA32_FRED_RSP3:
+		*value = current_evmcs->host_ia32_fred_rsp3;
+		break;
+	case HOST_IA32_FRED_STKLVLS:
+		*value = current_evmcs->host_ia32_fred_stklvls;
+		break;
+	case HOST_IA32_FRED_SSP1:
+		*value = current_evmcs->host_ia32_fred_ssp1;
+		break;
+	case HOST_IA32_FRED_SSP2:
+		*value = current_evmcs->host_ia32_fred_ssp2;
+		break;
+	case HOST_IA32_FRED_SSP3:
+		*value = current_evmcs->host_ia32_fred_ssp3;
+		break;
+	case GUEST_IA32_FRED_CONFIG:
+		*value = current_evmcs->guest_ia32_fred_config;
+		break;
+	case GUEST_IA32_FRED_RSP1:
+		*value = current_evmcs->guest_ia32_fred_rsp1;
+		break;
+	case GUEST_IA32_FRED_RSP2:
+		*value = current_evmcs->guest_ia32_fred_rsp2;
+		break;
+	case GUEST_IA32_FRED_RSP3:
+		*value = current_evmcs->guest_ia32_fred_rsp3;
+		break;
+	case GUEST_IA32_FRED_STKLVLS:
+		*value = current_evmcs->guest_ia32_fred_stklvls;
+		break;
+	case GUEST_IA32_FRED_SSP1:
+		*value = current_evmcs->guest_ia32_fred_ssp1;
+		break;
+	case GUEST_IA32_FRED_SSP2:
+		*value = current_evmcs->guest_ia32_fred_ssp2;
+		break;
+	case GUEST_IA32_FRED_SSP3:
+		*value = current_evmcs->guest_ia32_fred_ssp3;
 		break;
 	default: return 1;
 	}
@@ -906,6 +981,10 @@ static inline int evmcs_vmwrite(uint64_t encoding, uint64_t value)
 		current_evmcs->guest_linear_address = value;
 		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE;
 		break;
+	case ORIGINAL_EVENT_DATA:
+		current_evmcs->original_event_data = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_NONE;
+		break;
 	case VM_EXIT_MSR_STORE_ADDR:
 		current_evmcs->vm_exit_msr_store_addr = value;
 		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_ALL;
@@ -960,6 +1039,10 @@ static inline int evmcs_vmwrite(uint64_t encoding, uint64_t value)
 		break;
 	case VM_ENTRY_EXCEPTION_ERROR_CODE:
 		current_evmcs->vm_entry_exception_error_code = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_EVENT;
+		break;
+	case INJECTED_EVENT_DATA:
+		current_evmcs->injected_event_data = value;
 		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_EVENT;
 		break;
 	case VM_ENTRY_INSTRUCTION_LEN:
@@ -1197,6 +1280,69 @@ static inline int evmcs_vmwrite(uint64_t encoding, uint64_t value)
 	case TSC_MULTIPLIER:
 		current_evmcs->tsc_multiplier = value;
 		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_CONTROL_GRP2;
+		break;
+	case HOST_IA32_FRED_CONFIG:
+		current_evmcs->host_ia32_fred_config = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER;
+		break;
+	case HOST_IA32_FRED_RSP1:
+		current_evmcs->host_ia32_fred_rsp1 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER;
+		break;
+	case HOST_IA32_FRED_RSP2:
+		current_evmcs->host_ia32_fred_rsp2 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER;
+		break;
+	case HOST_IA32_FRED_RSP3:
+		current_evmcs->host_ia32_fred_rsp3 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER;
+		break;
+	case HOST_IA32_FRED_STKLVLS:
+		current_evmcs->host_ia32_fred_stklvls = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER;
+		break;
+	case HOST_IA32_FRED_SSP1:
+		current_evmcs->host_ia32_fred_ssp1 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER;
+		break;
+	case HOST_IA32_FRED_SSP2:
+		current_evmcs->host_ia32_fred_ssp2 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER;
+		break;
+	case HOST_IA32_FRED_SSP3:
+		current_evmcs->host_ia32_fred_ssp3 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_HOST_POINTER;
+		break;
+	case GUEST_IA32_FRED_CONFIG:
+		current_evmcs->guest_ia32_fred_config = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2;
+	case GUEST_IA32_FRED_RSP1:
+		current_evmcs->guest_ia32_fred_rsp1 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2;
+		break;
+	case GUEST_IA32_FRED_RSP2:
+		current_evmcs->guest_ia32_fred_rsp2 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2;
+		break;
+	case GUEST_IA32_FRED_RSP3:
+		current_evmcs->guest_ia32_fred_rsp3 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2;
+		break;
+	case GUEST_IA32_FRED_STKLVLS:
+		current_evmcs->guest_ia32_fred_stklvls = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2;
+		break;
+	case GUEST_IA32_FRED_SSP1:
+		current_evmcs->guest_ia32_fred_ssp1 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2;
+		break;
+	case GUEST_IA32_FRED_SSP2:
+		current_evmcs->guest_ia32_fred_ssp2 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2;
+		break;
+	case GUEST_IA32_FRED_SSP3:
+		current_evmcs->guest_ia32_fred_ssp3 = value;
+		current_evmcs->hv_clean_fields &= ~HV_VMX_ENLIGHTENED_CLEAN_FIELD_GUEST_GRP2;
 		break;
 	default: return 1;
 	}
