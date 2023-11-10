@@ -21,22 +21,177 @@
 #include <linux/cpu.h>
 #include <linux/uio.h>
 #include <linux/mm.h>
+#include <linux/bitops.h>
+#include <linux/debugfs.h>
 
 #include <asm/intel-family.h>
+#include <asm/msr-index.h>
 #include <asm/processor.h>
 #include <asm/tlbflush.h>
 #include <asm/setup.h>
 #include <asm/msr.h>
 
 #include "internal.h"
+#include "doe.h"
 
 static const char ucode_path[] = "kernel/x86/microcode/GenuineIntel.bin";
 
-/* Current microcode patch used in early patching on the APs. */
-static struct microcode_intel *intel_ucode_patch;
+static bool ucode_staging = true;
+extern struct dentry *dentry_ucode;
+
+/*
+ * Holds the microcode whose SVN is committed.
+ */
+static struct microcode_intel *committed_ucode;
+
+/*
+ * Always hold the currently applied microcode in the CPU. mc->hdr.rev
+ * should match whats in the CPU revision MSR but SVN may not be committed yet.
+ */
+static struct microcode_intel *applied_ucode;
+
+/*
+ * Holds the microcode read from the file system and is yet to be applied to
+ * the CPU. This allows post_apply() to free it in case the applying microcode
+ * fails.
+ */
+static struct microcode_intel *unapplied_ucode;
+
+struct ucode_info {
+	struct microcode_intel *ucode;
+	int size;
+};
 
 /* last level cache size per core */
 static int llc_size_per_core;
+
+enum scope {
+	UNIFORM_CORE     = 0x02, // Core Scope
+	UNIFORM_PACKAGE  = 0x80, // Package Scope
+	UNIFORM_PLATFORM = 0xC0, // Platform Scope
+};
+
+union mcu_enumeration {
+	u64	data;
+	struct {
+		u64	uniform_available:1;
+		u64	cfg_required:1;
+		u64	cfg_completed:1;
+		u64	rollback_supported:1;
+		u64	staging_supported:1;
+		u64	reserved:3;
+		u64	uniform_scope:8;
+	};
+};
+
+union mcu_status {
+	u64	data;
+	struct {
+		u64	partial:1;
+		u64	auth_fail:1;
+		u64	rsvd:1;
+		u64	post_bios_mcu:1;
+	};
+};
+
+/*
+ * MSR's related to deferred commit architecture
+ */
+#define MSR_MCU_CONFIG		(0x7a0)
+#define MSR_MCU_COMMIT		(0x7a1)
+#define MSR_MCU_INFO		(0x7a2)
+
+/* MSR_MCU_CONFIG */
+union svn_config {
+	u64	data;
+	struct {
+		u64	lock:1;
+		u64	defer_svn:1;
+		u64	rsvd:62;
+	};
+};
+
+/* MSR_MCU_COMMIT */
+union svn_commit {
+	u64	data;
+	struct {
+		u64	commit_svn:1;
+		u64	rsvd:63;
+	};
+};
+
+/* MSR_MCU_SVN_INFO */
+union svn_info {
+	u64	data;
+	struct {
+		u64	committed_mcu_svn:16;
+		u64	pending_mcu_svn:16;
+		u64	rsvd:32;
+	};
+};
+
+/*
+ * MSR's related to rollback architecture
+ */
+#define MSR_MCU_ROLLBACK_MIN_ID	(0x7a4)
+
+/* MSR_MCU_ROLLBACK_MIN_ID */
+union rollback_min_id {
+	u64	data;
+	struct {
+		u64	min_rev_id:32;
+		u64	rsvd:32;
+	};
+};
+
+/* Rollback metadata block */
+struct rb_svn_info {
+	u32	mcu_svn:16;
+	u32	min_mcu_svn:16;
+};
+
+#define NUM_RB_INFO	16
+struct ucode_meta {
+	struct	metadata_header	rb_hdr;
+	struct  rb_svn_info svn_info;
+	u32	rollback_id[NUM_RB_INFO];
+	u16	rollback_svn[NUM_RB_INFO];
+};
+
+enum commit_cfg {
+	AUTO_COMMIT = 0,
+	MANUAL_COMMIT
+};
+
+/**
+ * struct mcu_staging -  Information of per package staging mailbox instances
+ *
+ * @mboxes    : Array of per package staging mailbox instances
+ * @work      : Work to stage microcode
+ * @scheduled : Whether the work to stage microcode is scheduled
+ * @creating  : Whether the mailbox instance is being created
+ * @result    : Result of microcode staging by @work
+ * @mbox_num  : Number of staging mailbox instances
+ */
+struct mcu_staging {
+	struct {
+		struct uc_doe_mbox *mbox;
+		struct work_struct work;
+		bool scheduled;
+		unsigned long creating;
+		enum ucode_state result;
+	} *mboxes;
+	int mbox_num;
+};
+
+#define MSR_MCU_ENUM		(0x7b)
+#define MSR_MCU_STATUS		(0x7c)
+#define MSR_MCU_MBOX_ADDR	(0x7a5)
+
+#define META_TYPE_ROLLBACK	(0x2)
+
+static union mcu_enumeration mcu_cap;
+static struct mcu_staging mcu_staging;
 
 /* microcode format is extended from prescott processors */
 struct extended_signature {
@@ -125,6 +280,39 @@ int intel_find_matching_signature(void *mc, unsigned int csig, int cpf)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(intel_find_matching_signature);
+
+/**
+ * intel_microcode_find_meta_data() - Find start of metadata in the microcode
+ * @mc: Pointer to the microcode file contents.
+ * @meta_type: Type of metadata block to locate
+ *
+ * Return: Return pointer to the start of metadata, or NULL if none is
+ */
+struct metadata_header *intel_microcode_find_meta_data(void *mc, unsigned int meta_type)
+{
+        struct metadata_header *meta_header;
+        unsigned long data_size, total_meta;
+        unsigned long meta_size = 0;
+
+        data_size = intel_microcode_get_datasize(mc);
+        total_meta = ((struct microcode_intel *)mc)->hdr.metasize;
+        if (!total_meta)
+                return NULL;
+
+        meta_header = (mc + MC_HEADER_SIZE + data_size) - total_meta;
+
+        while (meta_header->type != MC_HEADER_META_TYPE_END &&
+               meta_header->blk_size &&
+               meta_size < total_meta) {
+                if (meta_header->type == meta_type)
+                        return meta_header;
+
+                meta_size += meta_header->blk_size;
+                meta_header = (void *)meta_header + meta_header->blk_size;
+        }
+        return NULL;
+}
+EXPORT_SYMBOL_GPL(intel_microcode_find_meta_data);
 
 /**
  * intel_microcode_sanity_check() - Sanity check microcode file.
@@ -240,6 +428,171 @@ int intel_microcode_sanity_check(void *mc, bool print_err, int hdr_type)
 }
 EXPORT_SYMBOL_GPL(intel_microcode_sanity_check);
 
+/* Vendor specific ucode control flags */
+static enum late_load_flags intel_ucode_control;
+
+union rollback_min_id rollback_rev;
+
+static union svn_info bsp_svn_info;
+static void save_bsp_svn_info(void)
+{
+	if (!mcu_cap.rollback_supported)
+		return;
+
+	rdmsrl(MSR_MCU_INFO, bsp_svn_info.data);
+	pr_debug("committed_svn: 0x%x pending_svn: 0x%x\n",
+		 bsp_svn_info.committed_mcu_svn, bsp_svn_info.pending_mcu_svn);
+}
+
+static bool pending_commit;
+static void read_commit_status(struct work_struct *work)
+{
+	union svn_commit commit;
+
+	rdmsrl(MSR_MCU_COMMIT, commit.data);
+	if (commit.commit_svn && !pending_commit)
+		pending_commit = 1;
+}
+
+static int check_pending(void)
+{
+	int ret = 0;
+
+	pending_commit = 0;
+	ret = schedule_on_each_cpu_locked(read_commit_status);
+
+	if (!ret && pending_commit) {
+		pr_err("Pending commit, Please commit before proceeding\n");
+		ret = -EBUSY;
+	}
+
+	return ret;
+}
+
+static bool check_pending_commits(void)
+{
+	if (!mcu_cap.rollback_supported)
+		return false;
+
+	return !!check_pending();
+}
+
+static long read_msr_mcu_config(void *arg)
+{
+	union svn_config *cfg = arg;
+
+	rdmsrl(MSR_MCU_CONFIG, cfg->data);
+	return 0;
+}
+
+static long write_msr_mcu_config(void *arg)
+{
+	union svn_config *cfg = arg;
+
+	wrmsrl(MSR_MCU_CONFIG, cfg->data);
+	return 0;
+}
+
+static int switch_mcu_commit_config(bool commit_cfg)
+{
+	union svn_config cfg;
+	int ret, cpu, first_cpu;
+
+	if (!mcu_cap.rollback_supported)
+		return 0;
+
+	ret = check_pending();
+	if (ret)
+		return ret;
+
+	for_each_online_cpu(cpu) {
+		first_cpu = cpumask_first(topology_core_cpumask(cpu));
+		if (cpu != first_cpu)
+			continue;
+
+		cfg.data = 0;
+		work_on_cpu(cpu, read_msr_mcu_config, &cfg);
+
+		if (cfg.defer_svn == commit_cfg)
+			continue;
+
+		/*
+		 * Admin has locked commit mode configuration, it is not a
+		 * preferred setting since booting a new kernel via kexec()
+		 * will not know how to deal in case of manual commit.
+		 */
+		if (cfg.lock) {
+			pr_err_once("mcu commit configuration locked, can't switch!\n");
+			return -EBUSY;
+		}
+
+		cfg.defer_svn = commit_cfg;
+		work_on_cpu(cpu, write_msr_mcu_config, &cfg);
+	}
+
+	return ret;
+}
+
+static inline void clear_ucode_store(struct microcode_intel **ucode)
+{
+	*ucode = NULL;
+}
+
+static void free_ucode_store(struct microcode_intel **ucode)
+{
+	kfree(*ucode);
+	clear_ucode_store(ucode);
+}
+
+static enum ucode_load_scope get_load_scope(void)
+{
+	/*
+	 * If no capability is found, default to CORE scope
+	 */
+	if (!mcu_cap.uniform_available)
+		return CORE_SCOPE;
+
+	/*
+	 * If enumeration requires UNIFORM and the platform configuration
+	 * is not complete, disable any further attempt to late loading.
+	 */
+	if (mcu_cap.cfg_required && !mcu_cap.cfg_completed)
+		return NO_LATE_UPDATE;
+
+	if (mcu_cap.uniform_scope == UNIFORM_PLATFORM)
+		return PLATFORM_SCOPE;
+
+	if (mcu_cap.uniform_scope == UNIFORM_PACKAGE)
+		return PACKAGE_SCOPE;
+
+	return CORE_SCOPE;
+}
+
+static enum ucode_state get_apply_status(void)
+{
+	enum ucode_state ret = UCODE_UPDATED;
+	union mcu_status status;
+
+	if (!mcu_cap.data)
+		return ret;
+
+	status.data = 0;
+	rdmsrl(MSR_MCU_STATUS, status.data);
+
+	/*
+	 * AUTH_FAIL is evil, best to trigger reset
+	 * PARTIAL update is ok, but OS policy is TBD.
+	 */
+	if (status.auth_fail)
+		ret = UCODE_UPDATED_AUTH;
+	else if (status.partial)
+		ret = UCODE_UPDATED_PART;
+	else if (!status.post_bios_mcu)
+		ret = UCODE_ERROR;
+
+	return ret;
+}
+
 /*
  * Returns 1 if update has been found, 0 otherwise.
  */
@@ -253,70 +606,18 @@ static int has_newer_microcode(void *mc, unsigned int csig, int cpf, int new_rev
 	return intel_find_matching_signature(mc, csig, cpf);
 }
 
-static struct ucode_patch *memdup_patch(void *data, unsigned int size)
+static void save_microcode_patch(struct microcode_intel **ucode_ptr, void *data, unsigned int size)
 {
-	struct ucode_patch *p;
+	struct microcode_header_intel *p;
 
-	p = kzalloc(sizeof(struct ucode_patch), GFP_KERNEL);
-	if (!p)
-		return NULL;
-
-	p->data = kmemdup(data, size, GFP_KERNEL);
-	if (!p->data) {
-		kfree(p);
-		return NULL;
-	}
-
-	return p;
-}
-
-static void save_microcode_patch(struct ucode_cpu_info *uci, void *data, unsigned int size)
-{
-	struct microcode_header_intel *mc_hdr, *mc_saved_hdr;
-	struct ucode_patch *iter, *tmp, *p = NULL;
-	bool prev_found = false;
-	unsigned int sig, pf;
-
-	mc_hdr = (struct microcode_header_intel *)data;
-
-	list_for_each_entry_safe(iter, tmp, &microcode_cache, plist) {
-		mc_saved_hdr = (struct microcode_header_intel *)iter->data;
-		sig	     = mc_saved_hdr->sig;
-		pf	     = mc_saved_hdr->pf;
-
-		if (intel_find_matching_signature(data, sig, pf)) {
-			prev_found = true;
-
-			if (mc_hdr->rev <= mc_saved_hdr->rev)
-				continue;
-
-			p = memdup_patch(data, size);
-			if (!p)
-				pr_err("Error allocating buffer %p\n", data);
-			else {
-				list_replace(&iter->plist, &p->plist);
-				kfree(iter->data);
-				kfree(iter);
-			}
-		}
-	}
-
-	/*
-	 * There weren't any previous patches found in the list cache; save the
-	 * newly found.
-	 */
-	if (!prev_found) {
-		p = memdup_patch(data, size);
-		if (!p)
-			pr_err("Error allocating buffer for %p\n", data);
-		else
-			list_add_tail(&p->plist, &microcode_cache);
-	}
-
-	if (!p)
+	if (!(ucode_ptr && data))
 		return;
 
-	if (!intel_find_matching_signature(p->data, uci->cpu_sig.sig, uci->cpu_sig.pf))
+	kfree(*ucode_ptr);
+	*ucode_ptr = NULL;
+
+	p = kmemdup(data, size, GFP_KERNEL);
+	if (!p)
 		return;
 
 	/*
@@ -325,20 +626,61 @@ static void save_microcode_patch(struct ucode_cpu_info *uci, void *data, unsigne
 	 * paging has been enabled.
 	 */
 	if (IS_ENABLED(CONFIG_X86_32))
-		intel_ucode_patch = (struct microcode_intel *)__pa_nodebug(p->data);
+		*ucode_ptr = (struct microcode_intel *)__pa_nodebug(p);
 	else
-		intel_ucode_patch = p->data;
+		*ucode_ptr = (struct microcode_intel *)p;
+}
+
+static int __is_lateload_safe(struct microcode_header_intel *mc_header)
+{
+	int cur_rev = boot_cpu_data.microcode;
+
+	/*
+	 * If minrev is bypassed via debugfs, then allow late-load.
+	 */
+	if (override_minrev) {
+		pr_warn_once("Bypassing minrev enforcement via debugfs\n");
+		return 0;
+	}
+
+	/*
+	 * When late-loading, ensure the header declares a minimum revision
+	 * required to perform a late-load.
+	 */
+	if (!mc_header->min_req_ver) {
+		pr_warn("Late loading denied: No min version in microcode header\n");
+		return -EINVAL;
+	}
+
+	if (cur_rev > mc_header->rev) {
+		pr_warn("Current microcode rev 0x%x greater than 0x%x, aborting\n",
+			cur_rev, mc_header->rev);
+		return -EINVAL;
+	}
+
+	/*
+	 * Enforce the minimum revision specified in the header is either
+	 * greater or equal to the current revision.
+	 */
+	if (cur_rev < mc_header->min_req_ver) {
+		pr_warn("Late loading denied: Current revision 0x%x too old to update\n", cur_rev);
+		pr_warn("Must be at 0x%x or higher. Use early loading instead\n",
+			mc_header->min_req_ver);
+		return -EINVAL;
+	}
+
+	return 0;
 }
 
 /*
  * Get microcode matching with BSP's model. Only CPUs with the same model as
  * BSP can stay in the platform.
  */
-static struct microcode_intel *
+static struct ucode_info
 scan_microcode(void *data, size_t size, struct ucode_cpu_info *uci, bool save)
 {
 	struct microcode_header_intel *mc_header;
-	struct microcode_intel *patch = NULL;
+	struct ucode_info patch = {0};
 	unsigned int mc_size;
 
 	while (size) {
@@ -362,12 +704,20 @@ scan_microcode(void *data, size_t size, struct ucode_cpu_info *uci, bool save)
 		}
 
 		if (save) {
-			save_microcode_patch(uci, data, mc_size);
+			save_microcode_patch(&unapplied_ucode, data, mc_size);
 			goto next;
 		}
 
+		if (!patch.ucode) {
+			/*
+			 * Save patch even if it matches what's loaded.
+			 * This is done for platforms supporting uniform update,
+			 * so that APs can store the ucode patch found during
+			 * early load.
+			 */
+			if (uci->cpu_sig.rev == mc_header->rev)
+				goto save;
 
-		if (!patch) {
 			if (!has_newer_microcode(data,
 						 uci->cpu_sig.sig,
 						 uci->cpu_sig.pf,
@@ -375,7 +725,7 @@ scan_microcode(void *data, size_t size, struct ucode_cpu_info *uci, bool save)
 				goto next;
 
 		} else {
-			struct microcode_header_intel *phdr = &patch->hdr;
+			struct microcode_header_intel *phdr = &patch.ucode->hdr;
 
 			if (!has_newer_microcode(data,
 						 phdr->sig,
@@ -384,18 +734,35 @@ scan_microcode(void *data, size_t size, struct ucode_cpu_info *uci, bool save)
 				goto next;
 		}
 
-		/* We have a newer patch, save it. */
-		patch = data;
+save:
+		patch.ucode = data;
+		patch.size = mc_size;
 
 next:
 		data += mc_size;
 	}
 
-	if (size)
-		return NULL;
-
 	return patch;
 }
+
+#ifdef DEBUG
+static void dump_rollback_meta(struct ucode_meta *rb)
+{
+	int i;
+
+	pr_debug("Type    : 0x%x\n", rb->rb_hdr.type);
+	pr_debug("Block SZ: 0x%x\n", rb->rb_hdr.blk_size);
+	pr_debug("MCU SVN : 0x%x\n", rb->svn_info.mcu_svn);
+	pr_debug("Min SVN : 0x%x\n", rb->svn_info.min_mcu_svn);
+
+	for (i = 0; i < NUM_RB_INFO; i++) {
+		if (!rb->rollback_id[i])
+			break;
+		pr_debug("Rollback[%d]: ID: 0x%x SVN 0x%x\n", i, rb->rollback_id[i],
+			 rb->rollback_svn[i]);
+	}
+}
+#endif
 
 static bool load_builtin_intel_microcode(struct cpio_data *cp)
 {
@@ -422,12 +789,7 @@ static bool load_builtin_intel_microcode(struct cpio_data *cp)
 
 static void print_ucode_info(int old_rev, int new_rev, unsigned int date)
 {
-	pr_info_once("updated early: 0x%x -> 0x%x, date = %04x-%02x-%02x\n",
-		     old_rev,
-		     new_rev,
-		     date & 0xffff,
-		     date >> 24,
-		     (date >> 16) & 0xff);
+	pr_info_once("Early load succeeded, microcode revision: 0x%x -> 0x%x\n", old_rev, new_rev);
 }
 
 #ifdef CONFIG_X86_32
@@ -498,12 +860,6 @@ static int apply_microcode_early(struct ucode_cpu_info *uci, bool early)
 
 	old_rev = rev;
 
-	/*
-	 * Writeback and invalidate caches before updating microcode to avoid
-	 * internal issues depending on what the microcode is updating.
-	 */
-	native_wbinvd();
-
 	/* write microcode via MSR 0x79 */
 	native_wrmsrl(MSR_IA32_UCODE_WRITE, (unsigned long)mc->bits);
 
@@ -532,7 +888,7 @@ int __init save_microcode_in_initrd_intel(void)
 	 * update that pointer too, with a stable patch address to use when
 	 * resuming the cores.
 	 */
-	intel_ucode_patch = NULL;
+	unapplied_ucode = NULL;
 
 	if (!load_builtin_intel_microcode(&cp))
 		cp = find_microcode_in_initrd(ucode_path, false);
@@ -549,11 +905,12 @@ int __init save_microcode_in_initrd_intel(void)
 /*
  * @res_patch, output: a pointer to the patch we found.
  */
-static struct microcode_intel *__load_ucode_intel(struct ucode_cpu_info *uci)
+static struct ucode_info __load_ucode_intel(struct ucode_cpu_info *uci)
 {
 	static const char *path;
 	struct cpio_data cp;
 	bool use_pa;
+	struct ucode_info patch = {0};
 
 	if (IS_ENABLED(CONFIG_X86_32)) {
 		path	  = (const char *)__pa_nodebug(ucode_path);
@@ -568,7 +925,7 @@ static struct microcode_intel *__load_ucode_intel(struct ucode_cpu_info *uci)
 		cp = find_microcode_in_initrd(path, use_pa);
 
 	if (!(cp.data && cp.size))
-		return NULL;
+		return patch;
 
 	intel_cpu_collect_info(uci);
 
@@ -577,61 +934,77 @@ static struct microcode_intel *__load_ucode_intel(struct ucode_cpu_info *uci)
 
 void __init load_ucode_intel_bsp(void)
 {
-	struct microcode_intel *patch;
+	struct ucode_info patch;
 	struct ucode_cpu_info uci;
 
 	patch = __load_ucode_intel(&uci);
-	if (!patch)
+	if (!patch.ucode)
 		return;
 
-	uci.mc = patch;
+	uci.mc = patch.ucode;
 
 	apply_microcode_early(&uci, true);
 }
 
+static bool early_load_ap_failed;
+static bool ucode_committed;
 void load_ucode_intel_ap(void)
 {
-	struct microcode_intel *patch, **iup;
+	struct microcode_intel **iup;
 	struct ucode_cpu_info uci;
+	struct ucode_info patch = {0};
+	int ret;
 
 	if (IS_ENABLED(CONFIG_X86_32))
-		iup = (struct microcode_intel **) __pa_nodebug(&intel_ucode_patch);
+		iup = (struct microcode_intel **)__pa_nodebug(&applied_ucode);
 	else
-		iup = &intel_ucode_patch;
+		iup = &applied_ucode;
+
+	/*
+	 * Stop scanning and applying microcode after the first failure which
+	 * clears the applied_ucode.
+	 */
+	if (early_load_ap_failed)
+		return;
 
 	if (!*iup) {
 		patch = __load_ucode_intel(&uci);
-		if (!patch)
+		if (!patch.ucode)
 			return;
-
-		*iup = patch;
+		/*
+		 * Copy the patch to kernel memory so that it can be freed
+		 * later when we receive newer patch during late loading.
+		 */
+		save_microcode_patch(&unapplied_ucode, patch.ucode, patch.size);
+		*iup = unapplied_ucode;
+		clear_ucode_store(&unapplied_ucode);
 	}
 
 	uci.mc = *iup;
 
-	apply_microcode_early(&uci, true);
+	ret = apply_microcode_early(&uci, true);
+
+	/*
+	 * Even if one cpu fails applying microcode, clear applied_ucode and
+	 * cache when late loading succeeds.
+	 */
+	if (ret < 0 && !early_load_ap_failed) {
+		early_load_ap_failed = true;
+		free_ucode_store(&applied_ucode);
+		free_ucode_store(&committed_ucode);
+		return;
+	}
+
+	/* Promote from applied to committed ucode after successful apply */
+	if (!ucode_committed) {
+		committed_ucode = applied_ucode;
+		ucode_committed = true;
+	}
 }
 
-static struct microcode_intel *find_patch(struct ucode_cpu_info *uci)
+static struct microcode_intel *find_patch(void)
 {
-	struct microcode_header_intel *phdr;
-	struct ucode_patch *iter, *tmp;
-
-	list_for_each_entry_safe(iter, tmp, &microcode_cache, plist) {
-
-		phdr = (struct microcode_header_intel *)iter->data;
-
-		if (phdr->rev <= uci->cpu_sig.rev)
-			continue;
-
-		if (!intel_find_matching_signature(phdr,
-						   uci->cpu_sig.sig,
-						   uci->cpu_sig.pf))
-			continue;
-
-		return iter->data;
-	}
-	return NULL;
+	return unapplied_ucode ? unapplied_ucode : applied_ucode;
 }
 
 void reload_ucode_intel(void)
@@ -641,7 +1014,7 @@ void reload_ucode_intel(void)
 
 	intel_cpu_collect_info(&uci);
 
-	p = find_patch(&uci);
+	p = find_patch();
 	if (!p)
 		return;
 
@@ -650,10 +1023,54 @@ void reload_ucode_intel(void)
 	apply_microcode_early(&uci, false);
 }
 
+static void intel_set_control_flags(enum late_load_flags flags)
+{
+	intel_ucode_control |= flags;
+}
+
+static enum late_load_flags intel_get_control_flags(void)
+{
+	return intel_ucode_control;
+}
+
+static void collect_staging_mailbox(int cpu)
+{
+	struct uc_doe_mbox *mbox;
+	u64 mbox_addr;
+	int i;
+
+	if (!mcu_cap.staging_supported)
+		return;
+
+	i = topology_physical_package_id(cpu);
+
+	/* Avoid multiple mailbox instances per package */
+	if (test_and_set_bit(0, &mcu_staging.mboxes[i].creating))
+		return;
+
+	if (mcu_staging.mboxes[i].mbox)
+		goto out;
+
+	rdmsrl(MSR_MCU_MBOX_ADDR, mbox_addr);
+	if (!mbox_addr)
+		goto out;
+
+	mbox = uc_doe_create_mbox(mbox_addr);
+	if (!mbox)
+		goto out;
+
+	mcu_staging.mboxes[i].mbox = mbox;
+out:
+	clear_bit(0, &mcu_staging.mboxes[i].creating);
+}
+
 static int collect_cpu_info(int cpu_num, struct cpu_signature *csig)
 {
 	struct cpuinfo_x86 *c = &cpu_data(cpu_num);
 	unsigned int val[2];
+
+	/* Ensure the thread reads on the same CPU */
+	WARN_ON_ONCE(cpu_num != raw_smp_processor_id());
 
 	memset(csig, 0, sizeof(*csig));
 
@@ -665,12 +1082,15 @@ static int collect_cpu_info(int cpu_num, struct cpu_signature *csig)
 		csig->pf = 1 << ((val[1] >> 18) & 7);
 	}
 
+	c->microcode = intel_get_microcode_revision();
 	csig->rev = c->microcode;
+
+	collect_staging_mailbox(cpu_num);
 
 	return 0;
 }
 
-static enum ucode_state apply_microcode_intel(int cpu)
+static enum ucode_state apply_microcode_intel(int cpu, enum reload_type type)
 {
 	struct ucode_cpu_info *uci = ucode_cpu_info + cpu;
 	struct cpuinfo_x86 *c = &cpu_data(cpu);
@@ -685,7 +1105,7 @@ static enum ucode_state apply_microcode_intel(int cpu)
 		return UCODE_ERROR;
 
 	/* Look for a newer patch in our cache: */
-	mc = find_patch(uci);
+	mc = find_patch();
 	if (!mc) {
 		mc = uci->mc;
 		if (!mc)
@@ -698,16 +1118,10 @@ static enum ucode_state apply_microcode_intel(int cpu)
 	 * already.
 	 */
 	rev = intel_get_microcode_revision();
-	if (rev >= mc->hdr.rev) {
+	if (rev >= mc->hdr.rev && type != RELOAD_ROLLBACK && !ucode_load_same) {
 		ret = UCODE_OK;
 		goto out;
 	}
-
-	/*
-	 * Writeback and invalidate caches before updating microcode to avoid
-	 * internal issues depending on what the microcode is updating.
-	 */
-	native_wbinvd();
 
 	/* write microcode via MSR 0x79 */
 	wrmsrl(MSR_IA32_UCODE_WRITE, (unsigned long)mc->bits);
@@ -721,24 +1135,16 @@ static enum ucode_state apply_microcode_intel(int cpu)
 	}
 
 	if (bsp && rev != prev_rev) {
-		pr_info("updated to revision 0x%x, date = %04x-%02x-%02x\n",
-			rev,
-			mc->hdr.date & 0xffff,
-			mc->hdr.date >> 24,
-			(mc->hdr.date >> 16) & 0xff);
 		prev_rev = rev;
+		save_bsp_svn_info();
 	}
 
 	ret = UCODE_UPDATED;
 
 out:
 	uci->cpu_sig.rev = rev;
-	c->microcode	 = rev;
 
-	/* Update boot_cpu_data's revision too, if we're on the BSP: */
-	if (bsp)
-		boot_cpu_data.microcode = rev;
-
+	ret = get_apply_status();
 	return ret;
 }
 
@@ -784,13 +1190,15 @@ static enum ucode_state generic_load_microcode(int cpu, struct iov_iter *iter)
 		memcpy(mc, &mc_header, sizeof(mc_header));
 		data = mc + sizeof(mc_header);
 		if (!copy_from_iter_full(data, data_size, iter) ||
-		    intel_microcode_sanity_check(mc, true, MC_HEADER_TYPE_MICROCODE) < 0) {
+		    intel_microcode_sanity_check(mc, true, MC_HEADER_TYPE_MICROCODE) < 0 ||
+		    __is_lateload_safe(&mc_header)) {
+			ret = UCODE_ERROR;
 			break;
 		}
 
 		csig = uci->cpu_sig.sig;
 		cpf = uci->cpu_sig.pf;
-		if (has_newer_microcode(mc, csig, cpf, new_rev)) {
+		if (ucode_load_same || !committed_ucode || has_newer_microcode(mc, csig, cpf, new_rev)) {
 			vfree(new_mc);
 			new_rev = mc_header.rev;
 			new_mc  = mc;
@@ -802,24 +1210,271 @@ static enum ucode_state generic_load_microcode(int cpu, struct iov_iter *iter)
 
 	vfree(mc);
 
-	if (iov_iter_count(iter)) {
+	if (iov_iter_count(iter) || ret == UCODE_ERROR) {
 		vfree(new_mc);
 		return UCODE_ERROR;
 	}
 
-	if (!new_mc)
+	if (!new_mc) {
+		pr_debug("Newer microcode not found, check your microcode version\n");
 		return UCODE_NFOUND;
+	}
 
 	vfree(uci->mc);
 	uci->mc = (struct microcode_intel *)new_mc;
 
-	/* Save for CPU hotplug */
-	save_microcode_patch(uci, new_mc, new_mc_size);
+	save_microcode_patch(&unapplied_ucode, new_mc, new_mc_size);
 
 	pr_debug("CPU%d found a matching microcode update with version 0x%x (current=0x%x)\n",
 		 cpu, new_rev, uci->cpu_sig.rev);
 
 	return ret;
+}
+
+static void do_staging(struct work_struct *work)
+{
+	int i, cpu = smp_processor_id();
+	struct ucode_cpu_info *uci;
+	struct microcode_intel *mc;
+	struct uc_doe_mbox *mbox;
+
+	uci = ucode_cpu_info + cpu;
+	i = topology_physical_package_id(cpu);
+
+	mc = find_patch();
+	if (!mc) {
+		mc = uci->mc;
+		if (!mc) {
+			mcu_staging.mboxes[i].result = UCODE_NFOUND;
+			return;
+		}
+	}
+
+	if (uci->cpu_sig.rev >= mc->hdr.rev && !override_minrev) {
+		mcu_staging.mboxes[i].result  = UCODE_OK;
+		return;
+	}
+
+	mbox = mcu_staging.mboxes[i].mbox;
+
+	/* Need to include the external header */
+	if (uc_doe_stage_ucode(mbox, mc, mc->hdr.totalsize)) {
+		mcu_staging.mboxes[i].result = UCODE_ERROR;
+		return;
+	}
+
+	mcu_staging.mboxes[i].result = UCODE_OK;
+
+	pr_debug("Microcode is staged for package %d\n", i);
+}
+
+static enum ucode_state perform_staging(void)
+{
+	enum ucode_state ret = UCODE_OK;
+	struct work_struct *work;
+	int cpu, i;
+
+	if (!mcu_cap.staging_supported || !ucode_staging)
+		return UCODE_OK;
+
+	for (i = 0; i < mcu_staging.mbox_num; i++) {
+		mcu_staging.mboxes[i].scheduled = false;
+		mcu_staging.mboxes[i].result = UCODE_OK;
+	}
+
+	for_each_online_cpu(cpu) {
+		i = topology_physical_package_id(cpu);
+
+		if (!mcu_staging.mboxes[i].mbox)
+			continue;
+
+		if (mcu_staging.mboxes[i].scheduled)
+			continue;
+
+		mcu_staging.mboxes[i].scheduled = true;
+
+		work = &mcu_staging.mboxes[i].work;
+		INIT_WORK(work, do_staging);
+		schedule_work_on(cpu, work);
+	}
+
+	for (i = 0; i < mcu_staging.mbox_num; i++) {
+		if (!mcu_staging.mboxes[i].scheduled)
+			continue;
+
+		work = &mcu_staging.mboxes[i].work;
+		flush_work(work);
+
+		if (ret < mcu_staging.mboxes[i].result)
+			ret = mcu_staging.mboxes[i].result;
+
+		mcu_staging.mboxes[i].scheduled = false;
+	}
+
+	return ret;
+}
+
+static  bool commit_status;
+static void do_commit(struct work_struct *work)
+{
+	union svn_commit commit;
+
+	if (!mcu_cap.rollback_supported)
+		return;
+
+	commit.data = 0;
+	rdmsrl(MSR_MCU_COMMIT, commit.data);
+
+	/* Nothing to commit */
+	if (!commit.commit_svn)
+		return;
+
+	commit.data = 0;
+	commit.commit_svn = 1;
+	wrmsrl(MSR_MCU_COMMIT, commit.data);
+
+	commit.data = 0;
+	rdmsrl(MSR_MCU_COMMIT, commit.data);
+
+	if (commit.commit_svn && !commit_status)
+		commit_status = 1;
+}
+
+static int perform_commit(void)
+{
+	int ret;
+
+	commit_status = 0;
+	ret = schedule_on_each_cpu_locked(do_commit);
+
+	if (!ret && !commit_status) {
+		free_ucode_store(&committed_ucode);
+		committed_ucode = applied_ucode;
+		return ret;
+	}
+
+	pr_err("Commit failed: Pending commit\n");
+	return -EBUSY;
+}
+
+static int pre_apply_intel(enum reload_type type)
+{
+	int ret;
+
+	switch (type) {
+	case RELOAD_COMMIT:
+		ret = switch_mcu_commit_config(AUTO_COMMIT);
+		if (ret)
+			return ret;
+		break;
+	case RELOAD_NO_COMMIT:
+		if (!mcu_cap.rollback_supported)
+			return -EINVAL;
+
+		if (!committed_ucode) {
+			pr_debug("Defer Commit: no prior microcode, can't continue...\n");
+			return -ENOENT;
+		}
+
+		ret = switch_mcu_commit_config(MANUAL_COMMIT);
+		if (ret)
+			return ret;
+		break;
+	case RELOAD_ROLLBACK:
+		if (!mcu_cap.rollback_supported)
+			return -EINVAL;
+
+		if (!committed_ucode) {
+			pr_debug("Rollback: no prior microcode, can't continue...\n");
+			return -ENOENT;
+		}
+
+		unapplied_ucode = committed_ucode;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	ret = perform_staging();
+	if (ret == UCODE_ERROR || ret == UCODE_NFOUND) {
+		pr_err("Error staging microcode\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static void post_apply_intel(enum reload_type type, bool apply_state)
+{
+	switch (type) {
+	case RELOAD_COMMIT:
+		/*
+		 * If apply was successful, then move from unapplied to applied_ucode
+		 */
+		if (apply_state) {
+			free_ucode_store(&applied_ucode);
+			applied_ucode = unapplied_ucode;
+			committed_ucode = applied_ucode;
+			clear_ucode_store(&unapplied_ucode);
+		} else {
+			free_ucode_store(&unapplied_ucode);
+		}
+		break;
+	case RELOAD_NO_COMMIT:
+		if (apply_state) {
+			/*
+			 * Don't free applied_ucode yet as committed_ucode is
+			 * may also be pointing to the same microcode. We can
+			 * free it once the microcode is committed.
+			 */
+			applied_ucode = unapplied_ucode;
+			clear_ucode_store(&unapplied_ucode);
+		} else {
+			free_ucode_store(&unapplied_ucode);
+		}
+		break;
+	case RELOAD_ROLLBACK:
+		if (apply_state) {
+			free_ucode_store(&applied_ucode);
+			applied_ucode = unapplied_ucode;
+			clear_ucode_store(&unapplied_ucode);
+		}
+		break;
+
+	default:
+		return;
+	}
+}
+
+static void release_staging_mailbox(int cpu)
+{
+	struct uc_doe_mbox *mbox;
+	int i, cpus;
+
+	if (!mcu_cap.staging_supported)
+		return;
+
+	i = topology_physical_package_id(cpu);
+	mbox = mcu_staging.mboxes[i].mbox;
+	if (!mbox)
+		return;
+
+	/* The number of online CPUs of current package */
+	cpus = cpumask_weight_and(topology_core_cpumask(cpu), cpu_online_mask);
+
+	/*
+	 * If current CPU is the last online CPU of current package,
+	 * release the staging mailbox instance.
+	 */
+	if (cpus == 1) {
+		uc_doe_destroy_mbox(mbox);
+		mcu_staging.mboxes[i].mbox = NULL;
+	}
+}
+
+static void microcode_fini_cpu_intel(int cpu)
+{
+	release_staging_mailbox(cpu);
 }
 
 static bool is_blacklisted(unsigned int cpu)
@@ -845,7 +1500,110 @@ static bool is_blacklisted(unsigned int cpu)
 	return false;
 }
 
-static enum ucode_state request_microcode_fw(int cpu, struct device *device)
+static bool check_svn_update(struct ucode_meta *rb_meta)
+{
+	if (rb_meta->svn_info.mcu_svn < bsp_svn_info.committed_mcu_svn) {
+		pr_err("MCU SVN 0x%x less than CPU SVN 0x%x, can't update\n",
+		       rb_meta->svn_info.mcu_svn, bsp_svn_info.committed_mcu_svn);
+		return false;
+	}
+
+	return true;
+}
+
+static bool is_ucode_listed(struct ucode_meta *rb_meta)
+{
+
+	/* TODO: Uncomment this check when ucode supports rollback_id and rollback_svn */
+#if 0
+	int i;
+	int cpu = raw_smp_processor_id();
+	struct ucode_cpu_info *uci;
+	int rev, svn;
+
+	uci = ucode_cpu_info + cpu;
+	rev = uci->cpu_sig.rev;
+	svn = bsp_svn_info.committed_mcu_svn;
+
+	for (i = 0; i < NUM_RB_INFO; i++) {
+		if (!rb_meta->rollback_id[i])
+			return false;
+		if (rb_meta->rollback_id[i] == rev && rb_meta->rollback_svn[i] == svn)
+			return true;
+	}
+#endif
+
+	/*
+	 * FIXME: Current ucode doesn't populate rollback_id and rollback_svn and
+	 * so always return true. (must be false)
+	 */
+	return true;
+}
+
+static bool can_do_nocommit(struct ucode_meta *rb_meta)
+{
+	if (!check_svn_update(rb_meta))
+		return false;
+
+	if (!is_ucode_listed(rb_meta))
+		return false;
+
+	/*
+	 * From the spec POV, it is actually OK to manually commit(defer commit) microcode whose
+	 * min svn is greater than the current cpu svn. But this will make rollback impossible
+	 * as now cpu svn will be set to microcode's min svn and we cannot load mcu with svn lower
+	 * than cpu svn.
+	 */
+	if (rb_meta->svn_info.min_mcu_svn > bsp_svn_info.committed_mcu_svn) {
+		pr_err("MCU MIN SVN 0x%x greater than CPU SVN 0x%x, can't update\n",
+		       rb_meta->svn_info.min_mcu_svn, bsp_svn_info.committed_mcu_svn);
+		return false;
+	}
+
+	return true;
+}
+
+static bool check_ucode_constraints(enum reload_type type)
+{
+	struct ucode_meta *rb_meta;
+	struct microcode_header_intel *mc_header = (struct microcode_header_intel *)unapplied_ucode;
+
+	if (mc_header->rev < rollback_rev.min_rev_id) {
+		pr_err("Microcode Revision 0x%x less than 0x%x (Post BIOS rev)\n",
+		       mc_header->rev, rollback_rev.min_rev_id);
+		return false;
+	}
+
+	if (check_pending())
+		return false;
+
+	/*
+	 * If platform supports architectural rollback, microcode is
+	 * expected to have rollback meta data.
+	 */
+	rb_meta = (struct ucode_meta *)intel_microcode_find_meta_data((void *)unapplied_ucode,
+								      META_TYPE_ROLLBACK);
+	if (!rb_meta) {
+		/* TODO: `relax_rbmeta` is temp hack as many test ucode
+		 * do not have metadata. Needs to be removed before
+		 * upstreaming!
+		 */
+		if (!relax_rbmeta)
+			return false;
+		goto out;
+	}
+
+	if (type == RELOAD_NO_COMMIT && !can_do_nocommit(rb_meta))
+		return false;
+
+	if (type == RELOAD_COMMIT && !check_svn_update(rb_meta))
+		return false;
+
+out:
+	return true;
+}
+
+static enum ucode_state request_microcode_fw(int cpu, struct device *device, enum reload_type type)
 {
 	struct cpuinfo_x86 *c = &cpu_data(cpu);
 	const struct firmware *firmware;
@@ -853,12 +1611,25 @@ static enum ucode_state request_microcode_fw(int cpu, struct device *device)
 	enum ucode_state ret;
 	struct kvec kvec;
 	char name[30];
+	bool fetch_committed_ucode = false;
 
 	if (is_blacklisted(cpu))
 		return UCODE_NFOUND;
 
+reget:
 	sprintf(name, "intel-ucode/%02x-%02x-%02x",
 		c->x86, c->x86_model, c->x86_stepping);
+
+	if (type == RELOAD_NO_COMMIT) {
+		if (committed_ucode) {
+			sprintf(name, "intel-ucode/stage/%02x-%02x-%02x", c->x86, c->x86_model,
+				c->x86_stepping);
+		} else {
+			/* fetch and cache currently committed ucode */
+			fetch_committed_ucode = true;
+			pr_warn("committed ucode is not cached, fetching\n");
+		}
+	}
 
 	if (request_firmware_direct(&firmware, name, device)) {
 		pr_debug("data file %s load failed\n", name);
@@ -870,15 +1641,55 @@ static enum ucode_state request_microcode_fw(int cpu, struct device *device)
 	iov_iter_kvec(&iter, ITER_SOURCE, &kvec, 1, firmware->size);
 	ret = generic_load_microcode(cpu, &iter);
 
+	/*
+	* fetch_orig is a hack since we haven't done a load. Ideally must
+	* be in the initrd
+	*/
+	if (fetch_committed_ucode && ret == UCODE_NEW) {
+		if (unapplied_ucode->hdr.rev == c->microcode) {
+			committed_ucode = unapplied_ucode;
+			clear_ucode_store(&unapplied_ucode);
+		} else {
+			pr_warn("committed ucode not found in firmware prod path!\n");
+			ret = UCODE_NFOUND;
+			goto out;
+		}
+
+		fetch_committed_ucode = false;
+		/* Free the original firmware before getting the staged one. */
+		release_firmware(firmware);
+		goto reget;
+	}
+
+	if (ret == UCODE_NEW && mcu_cap.rollback_supported && !check_ucode_constraints(type))
+		ret = UCODE_ERROR;
+
+out:
 	release_firmware(firmware);
+	if (ret == UCODE_ERROR)
+		free_ucode_store(&unapplied_ucode);
 
 	return ret;
 }
 
+static bool is_rollback_supported(void)
+{
+	return mcu_cap.rollback_supported;
+}
+
 static struct microcode_ops microcode_intel_ops = {
+	.get_control_flags                = intel_get_control_flags,
+	.get_load_scope                   = get_load_scope,
+	.check_pending_commits            = check_pending_commits,
+	.perform_commit                   = perform_commit,
+	.is_rollback_supported            = is_rollback_supported,
 	.request_microcode_fw             = request_microcode_fw,
 	.collect_cpu_info                 = collect_cpu_info,
 	.apply_microcode                  = apply_microcode_intel,
+	.get_current_rev                  = intel_get_microcode_revision,
+	.pre_apply                        = pre_apply_intel,
+	.post_apply                       = post_apply_intel,
+	.microcode_fini_cpu               = microcode_fini_cpu_intel,
 };
 
 static int __init calc_llc_size_per_core(struct cpuinfo_x86 *c)
@@ -888,6 +1699,52 @@ static int __init calc_llc_size_per_core(struct cpuinfo_x86 *c)
 	do_div(llc_size, c->x86_max_cores);
 
 	return (int)llc_size;
+}
+
+static void setup_mcu_enumeration(void)
+{
+	u64 arch_cap;
+	union mcu_status status;
+
+	arch_cap = x86_read_arch_cap_msr();
+	if (!(arch_cap & ARCH_CAP_MCU_ENUM))
+		return;
+
+	rdmsrl(MSR_MCU_ENUM, mcu_cap.data);
+
+	if (mcu_cap.uniform_available) {
+		pr_info_once("Microcode Uniform Update Capability detected\n");
+
+		status.data = 0;
+		rdmsrl(MSR_MCU_STATUS, status.data);
+		if (!status.post_bios_mcu)
+			pr_warn("WARNING: Post bios update not successful! Contact BIOS Vendor.\n");
+	}
+
+	if (mcu_cap.staging_supported) {
+		pr_info_once("Microcode Staging Capability detected\n");
+
+		mcu_staging.mbox_num = topology_max_packages();
+		mcu_staging.mboxes   = kcalloc(mcu_staging.mbox_num,
+					       sizeof(*mcu_staging.mboxes),
+					       GFP_KERNEL);
+
+		if (!dentry_ucode)
+			dentry_ucode = debugfs_create_dir("microcode", NULL);
+
+		debugfs_create_bool("ucode_staging", 0644, dentry_ucode,
+				    &ucode_staging);
+	}
+
+	if (mcu_cap.rollback_supported) {
+		pr_info_once("Microcode Rollback Capability detected\n");
+
+		/* Store the minimum mcu revision for rollback */
+		rollback_rev.data = 0;
+		rdmsrl(MSR_MCU_ROLLBACK_MIN_ID, rollback_rev.data);
+
+		save_bsp_svn_info();
+	}
 }
 
 struct microcode_ops * __init init_intel_microcode(void)
@@ -901,6 +1758,9 @@ struct microcode_ops * __init init_intel_microcode(void)
 	}
 
 	llc_size_per_core = calc_llc_size_per_core(c);
+	intel_set_control_flags(LATE_LOAD_SAFE);
+
+	setup_mcu_enumeration();
 
 	return &microcode_intel_ops;
 }

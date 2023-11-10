@@ -2,6 +2,10 @@
 #ifndef _ASM_X86_MICROCODE_H
 #define _ASM_X86_MICROCODE_H
 
+extern bool override_minrev;
+extern bool ucode_load_same;
+extern bool relax_rbmeta;
+
 struct cpu_signature {
 	unsigned int sig;
 	unsigned int pf;
@@ -36,7 +40,8 @@ struct microcode_header_intel {
 	unsigned int	datasize;
 	unsigned int	totalsize;
 	unsigned int	metasize;
-	unsigned int	reserved[2];
+	unsigned int	min_req_ver;
+	unsigned int	reserved3;
 };
 
 struct microcode_intel {
@@ -48,6 +53,12 @@ struct microcode_intel {
 #define MC_HEADER_SIZE			(sizeof(struct microcode_header_intel))
 #define MC_HEADER_TYPE_MICROCODE	1
 #define MC_HEADER_TYPE_IFS		2
+#define MC_HEADER_META_TYPE_END		(0)
+
+struct metadata_header {
+	unsigned int	type;
+	unsigned int	blk_size;
+};
 
 static inline int intel_microcode_get_datasize(struct microcode_header_intel *hdr)
 {
@@ -74,5 +85,11 @@ void show_ucode_info_early(void);
 #else /* CONFIG_CPU_SUP_INTEL */
 static inline void show_ucode_info_early(void) { }
 #endif /* !CONFIG_CPU_SUP_INTEL */
+
+#ifdef CONFIG_MICROCODE_LATE_LOADING
+extern void inform_ucode_mce_in_progress(void);
+#else
+static void inform_ucode_mce_in_progress(void) { }
+#endif
 
 #endif /* _ASM_X86_MICROCODE_H */

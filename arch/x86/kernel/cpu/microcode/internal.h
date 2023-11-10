@@ -20,18 +20,53 @@ extern struct list_head microcode_cache;
 
 struct device;
 
+enum _late_load_flags {
+	__LATE_LOAD_BOTH,
+	__LATE_LOAD_SAFE,
+	__LATE_LOAD_MAX,
+};
+
+enum late_load_flags {
+	LATE_LOAD_BOTH = BIT(__LATE_LOAD_BOTH),
+	LATE_LOAD_SAFE = BIT(__LATE_LOAD_SAFE),
+	LATE_LOAD_MAX  = BIT(__LATE_LOAD_MAX)
+};
+
 enum ucode_state {
 	UCODE_OK	= 0,
 	UCODE_NEW,
 	UCODE_UPDATED,
 	UCODE_NFOUND,
+	UCODE_UPDATED_PART,
+	UCODE_UPDATED_AUTH,
 	UCODE_ERROR,
 };
 
-struct microcode_ops {
-	enum ucode_state (*request_microcode_fw)(int cpu, struct device *dev);
+enum ucode_load_scope {
+	NO_LATE_UPDATE = 0,
+	CORE_SCOPE,
+	PACKAGE_SCOPE,
+	PLATFORM_SCOPE,
+};
 
+enum reload_type {
+	RELOAD_COMMIT,
+	RELOAD_NO_COMMIT,
+	RELOAD_ROLLBACK,
+	RELOAD_INVALID,
+};
+
+struct microcode_ops {
+	enum late_load_flags (*get_control_flags)(void);
+	enum ucode_load_scope (*get_load_scope)(void);
+	enum ucode_state (*request_microcode_fw)(int cpu, struct device *device,
+						 enum reload_type type);
+	bool (*check_pending_commits)(void);
+	int (*perform_commit)(void);
+	bool (*is_rollback_supported)(void);
 	void (*microcode_fini_cpu)(int cpu);
+	int (*pre_apply)(enum reload_type type);
+	void (*post_apply)(enum reload_type type, bool success);
 
 	/*
 	 * The generic 'microcode_core' part guarantees that
@@ -39,8 +74,9 @@ struct microcode_ops {
 	 * are being called.
 	 * See also the "Synchronization" section in microcode_core.c.
 	 */
-	enum ucode_state (*apply_microcode)(int cpu);
+	enum ucode_state (*apply_microcode)(int cpu, enum reload_type type);
 	int (*collect_cpu_info)(int cpu, struct cpu_signature *csig);
+	u32 (*get_current_rev)(void);
 };
 
 extern struct ucode_cpu_info ucode_cpu_info[];
