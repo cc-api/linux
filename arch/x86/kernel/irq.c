@@ -22,6 +22,7 @@
 #include <asm/desc.h>
 #include <asm/traps.h>
 #include <asm/thermal.h>
+#include <asm/uintr.h>
 
 #define CREATE_TRACE_POINTS
 #include <asm/trace/irq_vectors.h>
@@ -188,6 +189,19 @@ int arch_show_interrupts(struct seq_file *p, int prec)
 		seq_printf(p, "%10u ", irq_stats(j)->tdx_ve_count);
 	seq_puts(p, "  TDX Guest VE event\n");
 #endif
+#ifdef CONFIG_X86_USER_INTERRUPTS
+	if (cpu_feature_enabled(X86_FEATURE_UINTR)) {
+		seq_printf(p, "%*s: ", prec, "UIS");
+		for_each_online_cpu(j)
+			seq_printf(p, "%10u ", irq_stats(j)->uintr_spurious_count);
+		seq_puts(p, "  User-interrupt spurious event\n");
+
+		seq_printf(p, "%*s: ", prec, "UKN");
+		for_each_online_cpu(j)
+			seq_printf(p, "%10u ", irq_stats(j)->uintr_kernel_notifications);
+		seq_puts(p, "  User-interrupt kernel notification event\n");
+	}
+#endif
 	return 0;
 }
 
@@ -337,6 +351,64 @@ DEFINE_IDTENTRY_SYSVEC_SIMPLE(sysvec_kvm_posted_intr_nested_ipi)
 {
 	apic_eoi();
 	inc_irq_stat(kvm_posted_intr_nested_ipis);
+}
+#endif
+
+#ifdef CONFIG_X86_USER_INTERRUPTS
+/*
+ * Handler for UINTR_NOTIFICATION_VECTOR.
+ *
+ * The notification vector is used by the cpu to detect a User Interrupt. In
+ * the typical usage, the cpu would handle this interrupt and clear the local
+ * apic.
+ *
+ * However, it is possible that the kernel might receive this vector. This can
+ * happen if the receiver thread was running when the interrupt was sent but it
+ * got scheduled out before the interrupt was delivered. The kernel doesn't
+ * need to do anything other than clearing the local APIC. A pending user
+ * interrupt is always saved in the receiver's UPID which can be referenced
+ * when the receiver gets scheduled back.
+ *
+ * If the kernel receives a storm of these, it could mean an issue with the
+ * kernel's saving and restoring of the User Interrupt MSR state; Specifically,
+ * the notification vector bits in the IA32_UINTR_MISC_MSR.
+ */
+DEFINE_IDTENTRY_SYSVEC(sysvec_uintr_spurious_interrupt)
+{
+	/* TODO: Add entry-exit tracepoints */
+	apic_eoi();
+	inc_irq_stat(uintr_spurious_count);
+
+	/*
+	 * Typically, we only expect wake-ups to happen using the kernel
+	 * notification. However, there might be a possibility that a process
+	 * blocked while a notification with UINTR_NOTIFICATION_VECTOR was
+	 * in-progress. This could result in a spurious interrupt that needs to
+	 * wake up the process to avoid missing a notification.
+	 *
+	 * There might be an option to detect this wake notification earlier by
+	 * checking the ON bit right before letting the task block. That needs
+	 * further investigation. For now, leave it here for paranoid reasons.
+	 */
+	if (IS_ENABLED(CONFIG_X86_UINTR_BLOCKING))
+		uintr_wake_up_process();
+
+}
+
+/*
+ * Handler for UINTR_KERNEL_VECTOR.
+ */
+DEFINE_IDTENTRY_SYSVEC(sysvec_uintr_kernel_notification)
+{
+	/* TODO: Add entry-exit tracepoints */
+	apic_eoi();
+	inc_irq_stat(uintr_kernel_notifications);
+
+	pr_debug_ratelimited("uintr: Kernel notification interrupt on %d\n",
+			     smp_processor_id());
+
+	if (IS_ENABLED(CONFIG_X86_UINTR_BLOCKING))
+		uintr_wake_up_process();
 }
 #endif
 

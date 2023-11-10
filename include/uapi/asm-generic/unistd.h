@@ -823,8 +823,33 @@ __SYSCALL(__NR_cachestat, sys_cachestat)
 #define __NR_fchmodat2 452
 __SYSCALL(__NR_fchmodat2, sys_fchmodat2)
 
+/*
+ * Skip syscall numbers until 470. Start UINTR syscall numbers at 471 to avoid
+ * upstream merge conflicts during internal development.
+ */
+#define __NR_uintr_register_handler 471
+__SYSCALL(__NR_uintr_register_handler, sys_uintr_register_handler)
+#define __NR_uintr_unregister_handler 472
+__SYSCALL(__NR_uintr_unregister_handler, sys_uintr_unregister_handler)
+#define __NR_uintr_vector_fd 473
+__SYSCALL(__NR_uintr_vector_fd, sys_uintr_vector_fd)
+#define __NR_uintr_register_sender 474
+__SYSCALL(__NR_uintr_register_sender, sys_uintr_register_sender)
+#define __NR_uintr_unregister_sender 475
+__SYSCALL(__NR_uintr_unregister_sender, sys_uintr_unregister_sender)
+#define __NR_uintr_wait 476
+__SYSCALL(__NR_uintr_wait, sys_uintr_wait)
+#define __NR_uintr_register_self 477
+__SYSCALL(__NR_uintr_register_self, sys_uintr_register_self)
+#define __NR_uintr_alt_stack 478
+__SYSCALL(__NR_uintr_alt_stack, sys_uintr_alt_stack)
+#define __NR_uintr_ipi_fd 479
+__SYSCALL(__NR_uintr_ipi_fd, sys_uintr_ipi_fd)
+#define __NR_uintr_set_timer 480
+__SYSCALL(__NR_uintr_set_timer, sys_uintr_set_timer)
+
 #undef __NR_syscalls
-#define __NR_syscalls 453
+#define __NR_syscalls 481
 
 /*
  * 32 bit systems traditionally used different

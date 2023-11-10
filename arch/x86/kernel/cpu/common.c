@@ -376,6 +376,73 @@ static int __init svos_enable_sld(char *str)
 early_param("svos_enable_sld", svos_enable_sld);
 #endif
 
+static __init int setup_disable_uintr(char *arg)
+{
+	/* No additional arguments expected */
+	if (strlen(arg))
+		return 0;
+
+	/* Do not emit a message if the feature is not present. */
+	if (!boot_cpu_has(X86_FEATURE_UINTR))
+		return 1;
+
+	setup_clear_cpu_cap(X86_FEATURE_UINTR);
+	pr_info_once("x86: 'nouintr' specified, User Interrupts support disabled\n");
+	return 1;
+}
+__setup("nouintr", setup_disable_uintr);
+
+static void setup_uintr(struct cpuinfo_x86 *c)
+{
+	/* check the boot processor, plus compile options for UINTR. */
+	if (!cpu_feature_enabled(X86_FEATURE_UINTR))
+		goto disable_uintr;
+
+	/* checks the current processor's cpuid bits: */
+	if (!cpu_has(c, X86_FEATURE_UINTR))
+		goto disable_uintr;
+
+	/* Confirm XSAVE support for UINTR is present.
+	if (!cpu_has_xfeatures(XFEATURE_MASK_UINTR, NULL)) {
+		pr_info_once("x86: User Interrupts (UINTR) not enabled. XSAVE support for UINTR is missing.\n");
+		goto clear_uintr_cap;
+	}
+	   Skip this check for now since xfeatures initialization has been delayed */
+
+	/*
+	 * User Interrupts currently doesn't support PTI. For processors that
+	 * support User interrupts PTI in auto mode will default to off.  Need
+	 * this check only for users who have force enabled PTI.
+	 */
+	if (boot_cpu_has(X86_FEATURE_PTI)) {
+		pr_info_once("x86: User Interrupts (UINTR) not enabled since Page table isolation (PTI) is active.\n");
+		goto clear_uintr_cap;
+	}
+
+	cr4_set_bits(X86_CR4_UINTR);
+	pr_info_once("x86: User Interrupts (UINTR) enabled\n");
+
+	if (cpu_feature_enabled(X86_FEATURE_UTIMER)) {
+		if (cpu_feature_enabled(X86_FEATURE_USER_MSR)) {
+			pr_info_once("x86: User Timer (UTIMER) enabled with User MSR support\n");
+		} else {
+			pr_info_once("x86: User Timer (UTIMER) enabled without User MSR support\n");
+		}
+	}
+
+	return;
+
+clear_uintr_cap:
+	setup_clear_cpu_cap(X86_FEATURE_UINTR);
+
+disable_uintr:
+	/*
+	 * Make sure UINTR is disabled in case it was enabled in a
+	 * previous boot (e.g., via kexec).
+	 */
+	cr4_clear_bits(X86_CR4_UINTR);
+}
+
 static __always_inline void setup_smap(struct cpuinfo_x86 *c)
 {
 	unsigned long eflags = native_save_fl();
@@ -1936,6 +2003,9 @@ static void identify_cpu(struct cpuinfo_x86 *c)
 	setup_umip(c);
 	setup_hreset(c);
 	setup_lass(c);
+
+	/* Set up User Interrupts */
+	setup_uintr(c);
 
 	/* Enable FSGSBASE instructions if available. */
 	if (cpu_has(c, X86_FEATURE_FSGSBASE)) {

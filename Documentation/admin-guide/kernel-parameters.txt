@@ -3964,6 +3964,8 @@
 	no_uaccess_flush
 	                [PPC] Don't flush the L1-D cache after accessing user data.
 
+	nouintr		[X86-64] Disables User Interrupts support.
+
 	novmcoredd	[KNL,KDUMP]
 			Disable device dump. Device dump allows drivers to
 			append dump data to vmcore so you can collect driver

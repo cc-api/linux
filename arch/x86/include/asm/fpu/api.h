@@ -13,6 +13,7 @@
 #include <linux/bottom_half.h>
 
 #include <asm/fpu/types.h>
+#include <linux/sched.h>
 
 /*
  * Use kernel_fpu_begin/end() if you intend to use FPU in kernel context. It
@@ -183,4 +184,9 @@ static inline void arch_stop_machine(void)
 
 #define arch_stop_machine arch_stop_machine
 
+void *start_update_xsave_msrs(int xfeature_nr);
+void end_update_xsave_msrs(void);
+int xsave_rdmsrl(void *state, unsigned int msr, unsigned long long *p);
+int xsave_wrmsrl(void *state, u32 msr, u64 val);
+int xsave_set_clear_bits_msrl(void *state, u32 msr, u64 set, u64 clear);
 #endif /* _ASM_X86_FPU_API_H */

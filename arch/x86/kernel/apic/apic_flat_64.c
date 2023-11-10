@@ -104,6 +104,9 @@ static struct apic apic_flat __ro_after_init = {
 	.send_IPI_all			= default_send_IPI_all,
 	.send_IPI_self			= default_send_IPI_self,
 
+	/* Check: If phys mode can be used even if apic is in flat mode? */
+	.send_UINTR			= default_send_UINTR_single_phys,
+
 	.read				= native_apic_mem_read,
 	.write				= native_apic_mem_write,
 	.eoi				= native_apic_mem_eoi,
@@ -175,6 +178,8 @@ static struct apic apic_physflat __ro_after_init = {
 	.send_IPI_allbutself		= default_send_IPI_allbutself,
 	.send_IPI_all			= default_send_IPI_all,
 	.send_IPI_self			= default_send_IPI_self,
+
+	.send_UINTR			= default_send_UINTR_single_phys,
 
 	.read				= native_apic_mem_read,
 	.write				= native_apic_mem_write,

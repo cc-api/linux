@@ -60,6 +60,7 @@
 #include <asm/fpu/xstate.h>
 #include <asm/vm86.h>
 #include <asm/umip.h>
+#include <asm/uintr.h>
 #include <asm/insn.h>
 #include <asm/insn-eval.h>
 #include <asm/vdso.h>
@@ -256,9 +257,247 @@ static noinstr bool handle_bug(struct pt_regs *regs)
 	return handled;
 }
 
+#ifdef CONFIG_X86_USER_INTERRUPTS
+/**
+ * is_senduipi_insn() - Determine if instruction is a senduipi instruction
+ * @insn:	Instruction containing the opcode to inspect
+ *
+ * Returns:
+ *
+ * true if the instruction, determined by the opcode, is a senduipi
+ * instructions as defined in the Intel Software Development manual.
+ * False otherwise.
+ */
+static bool is_senduipi_insn(struct insn *insn)
+{
+	pr_debug("insn->opcode: nbytes %d, byte[0]:%x, byte[1]:%x, byte[2]:%x, byte[3]:%x\n",
+		 insn->opcode.nbytes,
+		 insn->opcode.bytes[0],
+		 insn->opcode.bytes[1],
+		 insn->opcode.bytes[2],
+		 insn->opcode.bytes[3]);
+
+	/* SENDUIPI instruction size is 2 bytes. */
+	if (insn->opcode.nbytes != 2)
+		return false;
+
+	if ((insn->opcode.bytes[0] == 0xf) && (insn->opcode.bytes[1] == 0xc7))
+		return true;
+
+	return false;
+}
+
+/* Check if this needs to run with interrupts disabled */
+/*
+ * No prints in this function to avoid the warning exc_invalid_op()+0x6f: call
+ * to __dynamic_pr_debug() leaves .noinstr.text section
+ */
+static bool fixup_senduipi_ud_exception(struct pt_regs *regs)
+{
+	struct task_struct *t = current;
+	struct uintr_uitt_ctx *uitt_ctx;
+	unsigned char buf[MAX_INSN_SIZE];
+	struct insn insn;
+	//long uipi_index;
+	int nr_copied;
+
+	//pr_debug("uintr: In ud exception fix function\n");
+
+	/* Check if the UITT is already activated */
+	if (is_uintr_sender(t))
+		return false;
+
+	uitt_ctx = t->mm->context.uitt_ctx;
+	if (!uitt_ctx)
+		return false;
+
+	if (!regs)
+		return false;
+
+	/*
+	 * The SENDUIPI instruction decoding could be avoided based on the fact
+	 * that the UITT hasn't been activated but the mm has a uitt_ctx. This
+	 * would be a reasonable guess.
+	 *
+	 * For now, avoid the optimization and do the hard work.
+	 */
+
+	//pr_debug("uintr: Starting to Decode fault instruction\n");
+
+	nr_copied = insn_fetch_from_user(regs, buf);
+	if (nr_copied <= 0)
+		return false;
+
+	if (!insn_decode_from_regs(&insn, regs, buf, nr_copied))
+		return false;
+
+	if (!is_senduipi_insn(&insn))
+		return false;
+
+	//pr_debug("uintr: senduipi instruction detected. Activate the sender MSRs");
+	uintr_set_sender_msrs(t);
+
+	/* SENDUIPI index is not important in this case. Also it wouldn't generate a #UD */
+#if 0
+	uipi_index = senduipi_decode_index(&insn, regs);
+	if (uipi_index < 0)
+		return false;
+
+	pr_debug("uintr: Re-executing SENDUIPI\n");
+#endif
+	return true;
+}
+
+/* TODO: Check is the code flow is common and introduce a generic function */
+static long senduipi_decode_index(struct insn *insn, struct pt_regs *regs)
+{
+	unsigned long *reg_addr;
+	int reg_offset;
+
+#if 0
+	pr_debug("uintr: senduipi instruction detected insn.modrm.value:%x insn.modrm.got:%d ax:%lx &ax:%lx\n",
+		 insn->modrm.value,
+		 insn->modrm.got,
+		 regs->ax,
+		 (unsigned long)&regs->ax);
+
+	pr_debug("uintr: senduipi instruction detected - SENDUIPI 1-%lx 2-%x 3-%lx 4-%lx\n",
+		 (unsigned long)regs,
+		 insn_get_modrm_reg_off(insn, regs),
+		 (unsigned long)insn_get_modrm_reg_ptr(insn, regs),
+		 *insn_get_modrm_reg_ptr(insn, regs));
+#endif
+
+	reg_offset = insn_get_modrm_rm_off(insn, regs);
+
+	/*
+	 * Negative values are usually errors. In memory addressing,
+	 * the exception is -EDOM. Since we expect a register operand,
+	 * all negative values are errors.
+	 */
+	if (reg_offset < 0)
+		return -1;
+
+	reg_addr = (unsigned long *)((unsigned long)regs + reg_offset);
+
+	return *reg_addr;
+}
+
+static struct uintr_upid_ctx *get_upid_ctx_from_senduipi_index(struct task_struct *t,
+							       long uipi_index)
+{
+	struct uintr_uitt_ctx *uitt_ctx = t->mm->context.uitt_ctx;
+
+	return uitt_ctx->r_upid_ctx[uipi_index];
+}
+
+static int get_vector_from_senduipi_index(struct task_struct *t, long entry)
+{
+	struct uintr_uitt_ctx *uitt_ctx = t->mm->context.uitt_ctx;
+	struct uintr_uitt_entry *uitte = uitte = &uitt_ctx->uitt[entry];
+
+	return uitte->user_vec;
+}
+
+/* TODO: Check the entire function for concurrency and racing */
+/* Called from the GP exception handler with interrupts enabled */
+static bool fixup_uintr_gp_exception(struct pt_regs *regs)
+{
+	struct uintr_upid_ctx *r_upid_ctx;
+	struct task_struct *t = current;
+	unsigned char buf[MAX_INSN_SIZE];
+	struct insn insn;
+	long uipi_index;
+	int nr_copied;
+	int uvec;
+	int ret;
+
+	pr_debug("uintr: In gp exception fix function\n");
+
+	if (!is_uintr_sender(t))
+		return false;
+
+	if (!regs)
+		return false;
+
+	pr_debug("uintr: Starting to Decode fault instruction\n");
+
+	nr_copied = insn_fetch_from_user(regs, buf);
+	if (nr_copied <= 0)
+		return false;
+
+	if (!insn_decode_from_regs(&insn, regs, buf, nr_copied))
+		return false;
+
+	if (!is_senduipi_insn(&insn))
+		return false;
+
+	pr_debug("uintr: senduipi instruction detected");
+
+	uipi_index = senduipi_decode_index(&insn, regs);
+	if (uipi_index < 0)
+		return false;
+
+	pr_debug("uintr: SENDUIPI index %lx\n", uipi_index);
+
+	if (!uintr_check_uitte_valid(t->mm->context.uitt_ctx, uipi_index))
+		return false;
+
+	r_upid_ctx = get_upid_ctx_from_senduipi_index(t, uipi_index);
+	if (!r_upid_ctx)
+		return false;
+
+	pr_debug("uintr: Checking if UPID=%px is blocked\n",
+		 r_upid_ctx->upid);
+
+	uvec = get_vector_from_senduipi_index(t, uipi_index);
+
+	/* TODO: Confirm: Can we come here because of a GP not related to UPID Blocked? */
+
+	/* The next few steps are prone to racing and could have issues with concurrency */
+
+	/* Check if use of a mutex here would help avoid concurrency issues */
+
+	/*
+	 * Probably need a cmpxchg() here to also set the ON bit and uvec along
+	 * with clearing the Blocked bit
+	 */
+	if (!test_and_clear_bit(UINTR_UPID_STATUS_BLKD,
+				(unsigned long *)&r_upid_ctx->upid->nc.status)) {
+		/* Let the process execute this instruction again */
+		return true;
+	}
+
+	set_bit(uvec, (unsigned long *)&r_upid_ctx->upid->puir);
+
+	set_bit(UINTR_UPID_STATUS_ON, (unsigned long *)&r_upid_ctx->upid->nc.status);
+
+	r_upid_ctx->waiting = false;
+
+	set_tsk_thread_flag(r_upid_ctx->task, TIF_NOTIFY_SIGNAL);
+	ret = wake_up_process(r_upid_ctx->task);
+
+	pr_debug("uintr: task=%d UPID=%px was blocked. Set vector=%d Now the task is %s\n",
+		 r_upid_ctx->task->pid, r_upid_ctx->upid, uvec,
+		 ret ? "unblocked" : "already running");
+
+	/* Increase IP to avoid executing senduipi again. */
+	regs->ip += insn.length;
+
+	return true;
+}
+
+#else
+static inline bool is_senduipi_insn(struct insn *insn) { return false; }
+static inline bool fixup_senduipi_ud_exception(struct pt_regs *regs) { return false; }
+static inline long senduipi_decode_index(struct insn *insn, struct pt_regs *regs) { return 0; }
+static inline bool fixup_uintr_gp_exception(struct pt_regs *regs) { return false; }
+#endif
+
 DEFINE_IDTENTRY_RAW(exc_invalid_op)
 {
 	irqentry_state_t state;
+	bool senduipi_fixed;
 
 	/*
 	 * We use UD2 as a short encoding for 'CALL __WARN', as such
@@ -270,7 +509,20 @@ DEFINE_IDTENTRY_RAW(exc_invalid_op)
 
 	state = irqentry_enter(regs);
 	instrumentation_begin();
+
+	/* Check: Where should the senduipi fix be done in this function exactly? */
+	/* Check: Does this need cond_local_irq_enable/disable pair? */
+	if (cpu_feature_enabled(X86_FEATURE_UINTR) && user_mode(regs)) {
+		cond_local_irq_enable(regs);
+		senduipi_fixed = fixup_senduipi_ud_exception(regs);
+		cond_local_irq_disable(regs);
+		if (senduipi_fixed)
+			goto exit;
+	}
+
 	handle_invalid_op(regs);
+
+exit:
 	instrumentation_end();
 	irqentry_exit(regs, state);
 }
@@ -659,6 +911,16 @@ DEFINE_IDTENTRY_ERRORCODE(exc_general_protection)
 		return;
 
 	cond_local_irq_enable(regs);
+
+	if (static_cpu_has(X86_FEATURE_UMIP)) {
+		if (user_mode(regs) && fixup_umip_exception(regs))
+			goto exit;
+	}
+
+	if (cpu_feature_enabled(X86_FEATURE_UINTR) && IS_ENABLED(CONFIG_X86_UINTR_BLOCKING)) {
+		if (user_mode(regs) && fixup_uintr_gp_exception(regs))
+			goto exit;
+	}
 
 	if (v8086_mode(regs)) {
 		local_irq_enable();

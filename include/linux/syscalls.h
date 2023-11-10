@@ -948,6 +948,18 @@ asmlinkage long sys_map_shadow_stack(unsigned long addr, unsigned long size, uns
 /* x86 */
 asmlinkage long sys_ioperm(unsigned long from, unsigned long num, int on);
 
+/* arch/x86/kernel/uintr_fd.c */
+asmlinkage long sys_uintr_register_handler(u64 __user *handler, unsigned int flags);
+asmlinkage long sys_uintr_unregister_handler(unsigned int flags);
+asmlinkage long sys_uintr_vector_fd(u64 vector, unsigned int flags);
+asmlinkage long sys_uintr_register_sender(int uvec_fd, unsigned int flags);
+asmlinkage long sys_uintr_unregister_sender(int uvec_fd, unsigned int flags);
+asmlinkage long sys_uintr_wait(u64 usec, unsigned int flags);
+asmlinkage long sys_uintr_register_self(u64 vector, unsigned int flags);
+asmlinkage long sys_uintr_alt_stack(void __user *sp, size_t size, unsigned int flags);
+asmlinkage long sys_uintr_ipi_fd(unsigned int flags);
+asmlinkage long sys_uintr_set_timer(u64 deadline, u64 vector, unsigned int flags);
+
 /* pciconfig: alpha, arm, arm64, ia64, sparc */
 asmlinkage long sys_pciconfig_read(unsigned long bus, unsigned long dfn,
 				unsigned long off, unsigned long len,
