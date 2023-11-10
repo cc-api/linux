@@ -10907,6 +10907,7 @@ out:
 static inline int vcpu_block(struct kvm_vcpu *vcpu)
 {
 	bool hv_timer;
+	bool virt_timer;
 
 	if (!kvm_arch_vcpu_runnable(vcpu)) {
 		/*
@@ -10916,8 +10917,9 @@ static inline int vcpu_block(struct kvm_vcpu *vcpu)
 		 * Switch before halt-polling so that KVM recognizes an expired
 		 * timer before blocking.
 		 */
+		virt_timer = kvm_lapic_guest_virt_timer_in_use(vcpu);
 		hv_timer = kvm_lapic_hv_timer_in_use(vcpu);
-		if (hv_timer)
+		if (virt_timer || hv_timer)
 			kvm_lapic_switch_to_sw_timer(vcpu);
 
 		kvm_vcpu_srcu_read_unlock(vcpu);
@@ -10929,6 +10931,8 @@ static inline int vcpu_block(struct kvm_vcpu *vcpu)
 
 		if (hv_timer)
 			kvm_lapic_switch_to_hv_timer(vcpu);
+		else if (virt_timer)
+			kvm_lapic_switch_to_guest_virt_timer(vcpu);
 
 		/*
 		 * If the vCPU is not runnable, a signal or another host event

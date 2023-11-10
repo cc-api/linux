@@ -1715,6 +1715,9 @@ struct kvm_x86_ops {
 	int (*set_hv_timer)(struct kvm_vcpu *vcpu, u64 guest_deadline_tsc,
 			    bool *expired);
 	void (*cancel_hv_timer)(struct kvm_vcpu *vcpu);
+	int (*set_guest_virt_timer)(struct kvm_vcpu *vcpu, u16 vector);
+	void (*cancel_guest_virt_timer)(struct kvm_vcpu *vcpu);
+	u64 (*get_guest_tsc_deadline_virt)(struct kvm_vcpu *vcpu);
 
 	void (*setup_mce)(struct kvm_vcpu *vcpu);
 
