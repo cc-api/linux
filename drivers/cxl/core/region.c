@@ -1520,6 +1520,26 @@ static int match_switch_decoder_by_range(struct device *dev, void *data)
 	return (r1->start == r2->start && r1->end == r2->end);
 }
 
+/**
+ * cxl_find_pos_and_ways() - find the position of a port in a parent
+ *			     and the parent interleave ways
+ *
+ * @port: the port in search of parent info
+ * @range: the hpa range that the parent must map
+ * @pos: the position of @port in the parent decoder target list
+ * @ways: the interleave ways of the parent decoder
+ *
+ * This helper function for cxl_calc_interleave_pos() provides the
+ * @pos and @ways used to calculate the endpoint position in a region
+ * interleave.
+ *
+ * Use @range to find @port's parent port and follow that to the
+ * parent switch decoder. Extract @ways from the switch decoder and
+ * lookup the @port @pos in the switch decoder target list.
+ *
+ * Returns:	0: success, @pos and @ways are updated
+ *	   -ENXIO: failed to find @pos or @ways
+ */
 static int find_pos_and_ways(struct cxl_port *port, struct range *range,
 			     int *pos, int *ways)
 {
@@ -1557,19 +1577,43 @@ static int find_pos_and_ways(struct cxl_port *port, struct range *range,
 
 /**
  * cxl_calc_interleave_pos() - calculate an endpoint position in a region
- * @cxled: endpoint decoder member of given region
+ * @cxled: the endpoint decoder
  *
- * The endpoint position is calculated by traversing the topology from
- * the endpoint to the root decoder and iteratively applying this
- * calculation:
+ * The endpoint position is calculated by traversing from the endpoint to
+ * the root decoder and iteratively applying this calculation:
+ *	position = position * parent_ways + parent_pos;
  *
- *    position = position * parent_ways + parent_pos;
+ * For example, the expected interleave order of the 4-way region shown
+ * below is: mem0, mem2, mem1, mem3
  *
- * ...where @position is inferred from switch and root decoder target lists.
+ *		  root_port
+ *                 /      \
+ *      host_bridge_0    host_bridge_1
+ *        |    |           |    |
+ *       mem0 mem1        mem2 mem3
+ *
+ * In the example the calculator will iterate twice. The first iteration
+ * uses the mem position in the host-bridge and the ways of the host-
+ * bridge to generate the first, or local, position. The second iteration
+ * uses the host-bridge position in the root_port and the ways of the
+ * root_port to refine the position.
+ *
+ * A trace of the calculation per endpoint looks like this:
+ * mem0:	pos = 0 * 2 + 0		mem2:	pos = 0 * 2 + 0
+ *		pos = 0 * 2 + 0			pos = 0 * 2 + 1
+ *		pos: 0				pos: 1
+ *
+ * mem1:	pos = 0 * 2 + 1		mem3:	pos = 0 * 2 + 1
+ *		pos = 1 * 2 + 0			pos = 1 * 2 + 1
+ *		pos: 2				pos = 3
+ *
+ * Note that while this example is simple, the method applies to more
+ * complex topologies, including those with switches.
  *
  * Return: position >= 0 on success
  *	   -ENXIO on failure
  */
+
 static int cxl_calc_interleave_pos(struct cxl_endpoint_decoder *cxled)
 {
 	struct cxl_port *iter, *port = cxled_to_port(cxled);
