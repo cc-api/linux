@@ -2026,6 +2026,7 @@ static const struct flash_info spi_nor_generic_flash = {
 	 */
 	.page_size = 256,
 	.parse_sfdp = true,
+	.n_banks = 1,
 };
 
 static const struct flash_info *spi_nor_match_id(struct spi_nor *nor,
@@ -3252,7 +3253,8 @@ static void spi_nor_soft_reset(struct spi_nor *nor)
 
 	ret = spi_mem_exec_op(nor->spimem, &op);
 	if (ret) {
-		dev_warn(nor->dev, "Software reset failed: %d\n", ret);
+		if (ret != -ENOTSUPP)
+			dev_warn(nor->dev, "Software reset failed: %d\n", ret);
 		return;
 	}
 
@@ -3262,7 +3264,8 @@ static void spi_nor_soft_reset(struct spi_nor *nor)
 
 	ret = spi_mem_exec_op(nor->spimem, &op);
 	if (ret) {
-		dev_warn(nor->dev, "Software reset failed: %d\n", ret);
+		if (ret != -ENOTSUPP)
+			dev_warn(nor->dev, "Software reset failed: %d\n", ret);
 		return;
 	}
 
