@@ -2861,6 +2861,15 @@ void kvm_apic_nmi_wd_deliver(struct kvm_vcpu *vcpu)
 		kvm_apic_local_deliver(apic, APIC_LVT0);
 }
 
+void kvm_apic_therm_deliver(struct kvm_vcpu *vcpu)
+{
+	struct kvm_lapic *apic = vcpu->arch.apic;
+
+	if (apic)
+		kvm_apic_local_deliver(apic, APIC_LVTTHMR);
+}
+EXPORT_SYMBOL_GPL(kvm_apic_therm_deliver);
+
 static const struct kvm_io_device_ops apic_mmio_ops = {
 	.read     = apic_mmio_read,
 	.write    = apic_mmio_write,

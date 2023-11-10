@@ -1541,6 +1541,16 @@ static const u32 emulated_msrs_all[] = {
 	MSR_AMD64_TSC_RATIO,
 	MSR_IA32_POWER_CTL,
 	MSR_IA32_UCODE_REV,
+	MSR_IA32_THERM_CONTROL,
+	MSR_IA32_THERM_INTERRUPT,
+	MSR_IA32_THERM_STATUS,
+	MSR_IA32_PACKAGE_THERM_INTERRUPT,
+	MSR_IA32_PACKAGE_THERM_STATUS,
+	MSR_IA32_HW_FEEDBACK_CONFIG,
+	MSR_IA32_HW_FEEDBACK_PTR,
+	MSR_IA32_HW_FEEDBACK_THREAD_CONFIG,
+	MSR_IA32_HW_FEEDBACK_CHAR,
+	MSR_IA32_HW_HRESET_ENABLE,
 
 	/*
 	 * KVM always supports the "true" VMX control MSRs, even if the host
@@ -10673,6 +10683,8 @@ static int vcpu_enter_guest(struct kvm_vcpu *vcpu)
 
 		if (kvm_check_request(KVM_REQ_UPDATE_CPU_DIRTY_LOGGING, vcpu))
 			static_call(kvm_x86_update_cpu_dirty_logging)(vcpu);
+		if (kvm_check_request(KVM_REQ_HFI_UPDATE, vcpu))
+			static_call(kvm_x86_update_hfi)(vcpu);
 	}
 
 	if (kvm_check_request(KVM_REQ_EVENT, vcpu) || req_int_win ||

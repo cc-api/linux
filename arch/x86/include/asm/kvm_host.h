@@ -113,6 +113,7 @@
 	KVM_ARCH_REQ_FLAGS(31, KVM_REQUEST_WAIT | KVM_REQUEST_NO_WAKEUP)
 #define KVM_REQ_HV_TLB_FLUSH \
 	KVM_ARCH_REQ_FLAGS(32, KVM_REQUEST_WAIT | KVM_REQUEST_NO_WAKEUP)
+#define KVM_REQ_HFI_UPDATE		KVM_ARCH_REQ(33)
 
 #define CR0_RESERVED_BITS                                               \
 	(~(unsigned long)(X86_CR0_PE | X86_CR0_MP | X86_CR0_EM | X86_CR0_TS \
@@ -1758,6 +1759,7 @@ struct kvm_x86_ops {
 
 	bool (*is_lass_violation)(struct kvm_vcpu *vcpu, unsigned long addr,
 				  unsigned int size, unsigned int flags);
+	void (*update_hfi)(struct kvm_vcpu *vcpu);
 };
 
 struct kvm_x86_nested_ops {

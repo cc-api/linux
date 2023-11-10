@@ -5653,7 +5653,12 @@ void scheduler_tick(bool user_tick)
 	if (housekeeping_cpu(cpu, HK_TYPE_TICK))
 		arch_scale_freq_tick();
 
-	if (sched_ipcc_enabled() && user_tick)
+	/*
+	 * KVM calls tick interrupt handler directly (at kernel space) while
+	 * vCPU thread is running, so explicitly check if current task is a
+	 * vCPU thread and update the ipc class for vCPUs.
+	 */
+	if (sched_ipcc_enabled() && (user_tick || curr->flags & PF_VCPU))
 		arch_update_ipcc(curr);
 
 	sched_clock_tick();

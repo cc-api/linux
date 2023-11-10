@@ -48,6 +48,7 @@
 #include <linux/workqueue.h>
 
 #include <asm/intel-family.h>
+#include <asm/hfi.h>
 #include <asm/msr.h>
 
 #ifdef CONFIG_DEBUG_FS
@@ -62,44 +63,7 @@
 
 #include "../thermal_netlink.h"
 
-
-/* Hardware Feedback Interface MSR configuration bits */
-#define HW_FEEDBACK_PTR_VALID_BIT		BIT(0)
-#define HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT	BIT(0)
-#define HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT	BIT(1)
-#define HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT	BIT(0)
-
-/* CPUID detection and enumeration definitions for HFI */
-
 #define CPUID_HFI_LEAF 6
-
-union hfi_capabilities {
-	struct {
-		u8	performance:1;
-		u8	energy_efficiency:1;
-		u8	__reserved:6;
-	} split;
-	u8 bits;
-};
-
-union cpuid6_edx {
-	struct {
-		union hfi_capabilities	capabilities;
-		u32			table_pages:4;
-		u32			__reserved:4;
-		s32			index:16;
-	} split;
-	u32 full;
-};
-
-union cpuid6_ecx {
-	struct {
-		u32	dont_care0:8;
-		u32	nr_classes:8;
-		u32	dont_care1:16;
-	} split;
-	u32 full;
-};
 
 union hfi_thread_feedback_char_msr {
 	struct {
@@ -122,72 +86,6 @@ struct hfi_cpu_data {
 	u8	perf_cap;
 	u8	ee_cap;
 } __packed;
-
-/**
- * struct hfi_hdr - Header of the HFI table
- * @perf_updated:	Hardware updated performance capabilities
- * @ee_updated:		Hardware updated energy efficiency capabilities
- *
- * Properties of the data in an HFI table. There exists one header per each
- * HFI class.
- */
-struct hfi_hdr {
-	u8	perf_updated;
-	u8	ee_updated;
-} __packed;
-
-/**
- * struct hfi_instance - Representation of an HFI instance (i.e., a table)
- * @local_table:	Base of the local copy of the HFI table
- * @timestamp:		Timestamp of the last update of the local table.
- *			Located at the base of the local table.
- * @hdr:		Base address of the header of the local table
- * @data:		Base address of the data of the local table
- * @cpus:		CPUs represented in this HFI table instance
- * @hw_table:		Pointer to the HFI table of this instance
- * @update_work:	Delayed work to process HFI updates
- * @table_lock:		Lock to protect acceses to the table of this instance
- * @event_lock:		Lock to process HFI interrupts
- *
- * A set of parameters to parse and navigate a specific HFI table.
- */
-struct hfi_instance {
-	union {
-		void			*local_table;
-		u64			*timestamp;
-	};
-	void			*hdr;
-	void			*data;
-	cpumask_var_t		cpus;
-	void			*hw_table;
-	struct delayed_work	update_work;
-	raw_spinlock_t		table_lock;
-	raw_spinlock_t		event_lock;
-#ifdef CONFIG_DEBUG_FS
-	struct hfi_hdr		*cap_upd_hist;
-	unsigned int		cap_upd_hist_idx;
-#endif
-};
-
-/**
- * struct hfi_features - Supported HFI features
- * @nr_classes:		Number of classes supported
- * @nr_table_pages:	Size of the HFI table in 4KB pages
- * @cpu_stride:		Stride size to locate the capability data of a logical
- *			processor within the table (i.e., row stride)
- * @class_stride:	Stride size to locate a class within the capability
- *			data of a logical processor or the HFI table header
- * @hdr_size:		Size of the table header
- *
- * Parameters and supported features that are common to all HFI instances
- */
-struct hfi_features {
-	unsigned int	nr_classes;
-	size_t		nr_table_pages;
-	unsigned int	cpu_stride;
-	unsigned int	class_stride;
-	unsigned int	hdr_size;
-};
 
 /**
  * struct hfi_cpu_info - Per-CPU attributes to consume HFI data
@@ -509,23 +407,23 @@ static int hfi_state_show(struct seq_file *s, void *unused)
 	}
 
 	raw_spin_lock_irq(&hfi_instance->table_lock);
-	memcpy(table_copy, hfi_instance->local_table,
+	memcpy(table_copy, hfi_instance->local_table.base_addr,
 	       hfi_features.nr_table_pages << PAGE_SHIFT);
 	raw_spin_unlock_irq(&hfi_instance->table_lock);
 
-	hfi_tmp.local_table = table_copy;
-	hfi_tmp.hdr = hfi_tmp.local_table + sizeof(*hfi_tmp.timestamp);
-	hfi_tmp.data = hfi_tmp.hdr + hfi_features.hdr_size;
+	hfi_tmp.local_table.base_addr = table_copy;
+	hfi_tmp.local_table.hdr = hfi_tmp.local_table.base_addr + sizeof(*hfi_tmp.local_table.timestamp);
+	hfi_tmp.local_table.data = hfi_tmp.local_table.hdr + hfi_features.hdr_size;
 
 	/* Dump the HFI table parameters */
-	seq_printf(s, "Table base\t0x%px\n", hfi_instance->local_table);
-	seq_printf(s, "Headers base\t0x%px\n", hfi_instance->hdr);
-	seq_printf(s, "Data base\t0x%px\n", hfi_instance->data);
+	seq_printf(s, "Table base\t0x%px\n", hfi_instance->local_table.base_addr);
+	seq_printf(s, "Headers base\t0x%px\n", hfi_instance->local_table.hdr);
+	seq_printf(s, "Data base\t0x%px\n", hfi_instance->local_table.data);
 	seq_printf(s, "Die id\t%u\n",
 		   topology_logical_die_id(cpumask_first(hfi_instance->cpus)));
 	seq_printf(s, "CPUs\t%*pbl\n", cpumask_pr_args(hfi_instance->cpus));
 	/* Use our local temp copy. */
-	seq_printf(s, "Timestamp\t%lld\n", *hfi_tmp.timestamp);
+	seq_printf(s, "Timestamp\t%lld\n", *hfi_tmp.local_table.timestamp);
 	seq_puts(s, "\nPer-CPU data\n");
 	seq_puts(s, "CPU\tInstance data address:\tHFI interrupts\n");
 	seq_puts(s, "\t\treceived\tnot hfi\tnot initialized\tprocessed\tskipped\tignored\tbad timestamp\n");
@@ -548,7 +446,7 @@ static int hfi_state_show(struct seq_file *s, void *unused)
 
 	seq_puts(s, "\n");
 
-	hfi_hdr = hfi_tmp.hdr;
+	hfi_hdr = hfi_tmp.local_table.hdr;
 	for (i = 0; i < hfi_features.nr_classes; i++) {
 		seq_printf(s, "0x%x\t", hfi_hdr->perf_updated);
 		hfi_hdr++;
@@ -561,7 +459,7 @@ static int hfi_state_show(struct seq_file *s, void *unused)
 
 	seq_puts(s, "\n");
 
-	hfi_hdr = hfi_tmp.hdr;
+	hfi_hdr = hfi_tmp.local_table.hdr;
 	for (i = 0; i < hfi_features.nr_classes; i++) {
 		seq_printf(s, "0x%x\t", hfi_hdr->ee_updated);
 		hfi_hdr++;
@@ -583,7 +481,7 @@ static int hfi_state_show(struct seq_file *s, void *unused)
 		s16 index = per_cpu(hfi_cpu_info, i).index;
 
 		/* Use our local copy. */
-		void *data_ptr = hfi_tmp.data +
+		void *data_ptr = hfi_tmp.local_table.data +
 				       index * hfi_features.cpu_stride;
 
 		seq_printf(s, "%4u\t%4d\t%2c", i, index, get_cpu_type(i));
@@ -661,7 +559,7 @@ static int hfi_inject_table(struct hfi_instance *hfi_instance,
 	fake_data = fake_hdr + hfi_features.hdr_size;
 
 	/* Fake timestamp. */
-	*fake_timestamp = *hfi_instance->timestamp + 1;
+	*fake_timestamp = *hfi_instance->local_table.timestamp + 1;
 
 	/* Fake header. */
 	hfi_hdr = fake_hdr;
@@ -686,7 +584,7 @@ static int hfi_inject_table(struct hfi_instance *hfi_instance,
 		}
 	}
 
-	memcpy(hfi_instance->local_table, fake_table,
+	memcpy(hfi_instance->local_table.base_addr, fake_table,
 	       hfi_features.nr_table_pages << PAGE_SHIFT);
 
 	queue_delayed_work(hfi_updates_wq, &hfi_instance->update_work,
@@ -1076,7 +974,7 @@ static void set_hfi_ipcc_scores(struct hfi_instance *hfi_instance)
 		for (c = 0;  c < hfi_features.nr_classes; c++) {
 			struct hfi_cpu_data *caps;
 
-			caps = hfi_instance->data +
+			caps = hfi_instance->local_table.data +
 			       index * hfi_features.cpu_stride +
 			       c * hfi_features.class_stride;
 			scores[c] = caps->perf_cap;
@@ -1126,7 +1024,7 @@ static void get_hfi_caps(struct hfi_instance *hfi_instance,
 		s16 index;
 
 		index = per_cpu(hfi_cpu_info, cpu).index;
-		caps = hfi_instance->data + index * hfi_features.cpu_stride;
+		caps = hfi_instance->local_table.data + index * hfi_features.cpu_stride;
 		cpu_caps[i].cpu = cpu;
 
 		/*
@@ -1156,7 +1054,7 @@ static void update_capabilities(struct hfi_instance *hfi_instance)
 	/* CPUs may come online/offline while processing an HFI update. */
 	mutex_lock(&hfi_instance_lock);
 
-	hfi_hdr = hfi_instance->hdr;
+	hfi_hdr = hfi_instance->local_table.hdr;
 	if (hfi_hdr->perf_updated & HFI_HEADER_BIT_FORCED_IDLE)
 		forced_idle = true;
 
@@ -1225,6 +1123,7 @@ static void hfi_update_work_fn(struct work_struct *work)
 #endif
 
 	update_capabilities(hfi_instance);
+	blocking_notifier_call_chain(&hfi_instance->notifier_chain, 0, NULL);
 }
 
 void intel_hfi_process_event(__u64 pkg_therm_status_msr_val)
@@ -1294,7 +1193,7 @@ void intel_hfi_process_event(__u64 pkg_therm_status_msr_val)
 	 * where a lagging CPU entered the locked region.
 	 */
 	new_timestamp = *(u64 *)hfi_instance->hw_table;
-	if (*hfi_instance->timestamp == new_timestamp) {
+	if (*hfi_instance->local_table.timestamp == new_timestamp) {
 
 		thermal_clear_package_intr_status(PACKAGE_LEVEL, PACKAGE_THERM_STATUS_HFI_UPDATED);
 
@@ -1312,7 +1211,7 @@ void intel_hfi_process_event(__u64 pkg_therm_status_msr_val)
 	 * Copy the updated table into our local copy. This includes the new
 	 * timestamp.
 	 */
-	memcpy(hfi_instance->local_table, hfi_instance->hw_table,
+	memcpy(hfi_instance->local_table.base_addr, hfi_instance->hw_table,
 	       hfi_features.nr_table_pages << PAGE_SHIFT);
 
 #ifdef CONFIG_DEBUG_FS
@@ -1321,7 +1220,7 @@ void intel_hfi_process_event(__u64 pkg_therm_status_msr_val)
 						      HFI_CAP_UPD_HIST_SZ) *
 						     hfi_features.nr_classes),
 		       /* Skip the timestamp */
-		       hfi_instance->hw_table + sizeof(hfi_instance->timestamp),
+		       hfi_instance->hw_table + sizeof(hfi_instance->local_table.timestamp),
 		       hfi_features.nr_classes * sizeof(*hfi_instance->cap_upd_hist));
 
 		hfi_instance->cap_upd_hist_idx++;
@@ -1373,11 +1272,12 @@ static void init_hfi_cpu_index(struct hfi_cpu_info *info)
 static void init_hfi_instance(struct hfi_instance *hfi_instance)
 {
 	/* The HFI header is below the time-stamp. */
-	hfi_instance->hdr = hfi_instance->local_table +
-			    sizeof(*hfi_instance->timestamp);
+	hfi_instance->local_table.hdr = hfi_instance->local_table.base_addr +
+					sizeof(*hfi_instance->local_table.timestamp);
 
 	/* The HFI data starts below the header. */
-	hfi_instance->data = hfi_instance->hdr + hfi_features.hdr_size;
+	hfi_instance->local_table.data = hfi_instance->local_table.hdr +
+					 hfi_features.hdr_size;
 }
 
 static ssize_t intel_hfi_show(struct device *dev, struct device_attribute *attr,
@@ -1420,10 +1320,10 @@ static void hfi_enable(void)
 	u64 msr_val;
 
 	rdmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
-	msr_val |= HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT;
+	msr_val |= HW_FEEDBACK_CONFIG_HFI_ENABLE;
 
 	if (cpu_feature_enabled(X86_FEATURE_ITD))
-		msr_val |= HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT;
+		msr_val |= HW_FEEDBACK_CONFIG_ITD_ENABLE;
 
 	wrmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
 }
@@ -1434,7 +1334,7 @@ static void hfi_set_hw_table(struct hfi_instance *hfi_instance)
 	phys_addr_t hw_table_pa;
 
 	hw_table_pa = virt_to_phys(hfi_instance->hw_table);
-	msr_val = hw_table_pa | HW_FEEDBACK_PTR_VALID_BIT;
+	msr_val = hw_table_pa | HW_FEEDBACK_PTR_VALID;
 	wrmsrl(MSR_IA32_HW_FEEDBACK_PTR, msr_val);
 }
 
@@ -1443,10 +1343,10 @@ static void hfi_disable(void)
 	u64 msr_val;
 
 	rdmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
-	msr_val &= ~HW_FEEDBACK_CONFIG_HFI_ENABLE_BIT;
+	msr_val &= ~HW_FEEDBACK_CONFIG_HFI_ENABLE;
 
 	if (cpu_feature_enabled(X86_FEATURE_ITD))
-		msr_val &= ~HW_FEEDBACK_CONFIG_ITD_ENABLE_BIT;
+		msr_val &= ~HW_FEEDBACK_CONFIG_ITD_ENABLE;
 
 	wrmsrl(MSR_IA32_HW_FEEDBACK_CONFIG, msr_val);
 }
@@ -1459,7 +1359,7 @@ static void hfi_enable_itd_classification(void)
 		return;
 
 	rdmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
-	msr_val |= HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT;
+	msr_val |= HW_FEEDBACK_THREAD_CONFIG_ENABLE;
 	wrmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
 }
 
@@ -1471,7 +1371,7 @@ static void hfi_disable_itd_classification(void)
 		return;
 
 	rdmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
-	msr_val &= ~HW_FEEDBACK_THREAD_CONFIG_ENABLE_BIT;
+	msr_val &= ~HW_FEEDBACK_THREAD_CONFIG_ENABLE;
 	wrmsrl(MSR_IA32_HW_FEEDBACK_THREAD_CONFIG, msr_val);
 }
 
@@ -1526,7 +1426,7 @@ void intel_hfi_online(unsigned int cpu)
 	 * if needed.
 	 */
 	mutex_lock(&hfi_instance_lock);
-	if (hfi_instance->hdr) {
+	if (hfi_instance->local_table.hdr) {
 		u64 msr_val;
 
 		/*
@@ -1545,7 +1445,7 @@ void intel_hfi_online(unsigned int cpu)
 		raw_spin_lock_irq(&hfi_instance->table_lock);
 		rdmsrl(MSR_IA32_PACKAGE_THERM_STATUS, msr_val);
 		if (msr_val & PACKAGE_THERM_STATUS_HFI_UPDATED) {
-			memcpy(hfi_instance->local_table, hfi_instance->hw_table,
+			memcpy(hfi_instance->local_table.base_addr, hfi_instance->hw_table,
 			       hfi_features.nr_table_pages << PAGE_SHIFT);
 
 			thermal_clear_package_intr_status(PACKAGE_LEVEL, PACKAGE_THERM_STATUS_HFI_UPDATED);
@@ -1585,14 +1485,15 @@ void intel_hfi_online(unsigned int cpu)
 	 * Allocate memory to keep a local copy of the table that
 	 * hardware generates.
 	 */
-	hfi_instance->local_table = kzalloc(hfi_features.nr_table_pages << PAGE_SHIFT,
-					    GFP_KERNEL);
-	if (!hfi_instance->local_table)
+	hfi_instance->local_table.base_addr = kzalloc(hfi_features.nr_table_pages << PAGE_SHIFT,
+						      GFP_KERNEL);
+	if (!hfi_instance->local_table.base_addr)
 		goto free_hw_table;
 
 	init_hfi_instance(hfi_instance);
 
 	INIT_DELAYED_WORK(&hfi_instance->update_work, hfi_update_work_fn);
+	BLOCKING_INIT_NOTIFIER_HEAD(&hfi_instance->notifier_chain);
 	raw_spin_lock_init(&hfi_instance->table_lock);
 	raw_spin_lock_init(&hfi_instance->event_lock);
 
@@ -1652,7 +1553,7 @@ void intel_hfi_offline(unsigned int cpu)
 	if (!hfi_instance)
 		return;
 
-	if (!hfi_instance->hdr)
+	if (!hfi_instance->local_table.hdr)
 		return;
 
 	hfi_disable_itd_classification();
@@ -1876,3 +1777,214 @@ err_nomem:
 	kfree(hfi_instances);
 	hfi_instances = NULL;
 }
+
+/**
+ * intel_hfi_enabled() - Check if intel_hfi driver enables HFI function.
+ *
+ * Return: True iff intel_hfi driver enables HFI function.
+ */
+bool intel_hfi_enabled(void)
+{
+	return hfi_instances;
+}
+EXPORT_SYMBOL_GPL(intel_hfi_enabled);
+
+/**
+ * intel_hfi_max_instances() - Get the maximum number of hfi instances.
+ *
+ * Return: the maximum number of hfi instances.
+ */
+int intel_hfi_max_instances(void)
+{
+	return max_hfi_instances;
+}
+EXPORT_SYMBOL_GPL(intel_hfi_max_instances);
+
+/**
+ * intel_hfi_build_virt_features() - Build a virtual hfi_features structure.
+ *
+ * @features:		Feature structure need to be filled
+ * @nr_classes:		Maximum number of classes supported. 1 class indicates
+ *			only HFI feature is configured and 4 classes indicates
+ *			both HFI and ITD features.
+ *
+ * Fill a virtual hfi_features structure which is used for HFI/ITD virtualization.
+ * HFI and ITD have different feature information, and the virtual feature
+ * structure is based on the corresponding configured number of classes (in Guest
+ * CPUID) to be built.
+ *
+ * Return: -EINVAL if there's the error for the parameters, otherwise 0.
+ */
+int intel_hfi_build_virt_features(struct hfi_features *features,
+				  unsigned int nr_classes)
+{
+	if (!features)
+		return -EINVAL;
+
+	/*
+	 * The virtual feature must be based on the Host's feature; when Host
+	 * enables both HFI and ITD, it is allowed for Guest to create only the
+	 * HFI feature structure which has fewer classes than ITD.
+	 */
+	if (nr_classes > hfi_features.nr_classes)
+		return -EINVAL;
+
+	features->nr_classes = nr_classes;
+	features->nr_table_pages = hfi_features.nr_table_pages;
+	features->class_stride = hfi_features.class_stride;
+	/*
+	 * For the meaning of these two calculations, please refer to the comments
+	 * in hfi_parse_features().
+	 */
+	features->hdr_size =
+		round_up(features->class_stride * hfi_features.nr_classes, 8);
+	features->cpu_stride =
+		round_up(features->class_stride * hfi_features.nr_classes, 8);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(intel_hfi_build_virt_features);
+
+/**
+ * intel_hfi_build_virt_table() - Fill the data of @hfi_index in virtual HFI table.
+ *
+ * @table:		HFI table to be filled
+ * @features:		Configured feature information of the HFI table
+ * @nr_classes:		Number of classes to be updated for @table. This field is
+ *			based on the enabled feature, which may be different with
+ *			the feature information configured in @features.
+ * @hfi_index:		Index of the HFI data in HFI table to be filled
+ * @cpu:		CPU whose real HFI data is used to fill the @hfi_index
+ *
+ * Fill the row data of hfi_index in a virtual HFI table which is used for HFI/ITD
+ * virtualization. The size of the virtual HFI table is decided by the configured
+ * feature information in @features, and the filled HFI data range is decided by
+ * specified number of classes @nr_classes.
+ *
+ * Virtual machine may disable ITD at runtime through MSR_IA32_HW_FEEDBACK_CONFIG,
+ * in this case, only 1 class data (class 0) can be dynamically updated in virtual
+ * HFI table (class 0).
+ *
+ * Return: 1 if the @table is changed, 0 if the @table isn't changed, and
+ * -EINVAL/-ENOMEM if there's the error for the parameters.
+ */
+int intel_hfi_build_virt_table(struct hfi_table *table,
+			       struct hfi_features *features,
+			       unsigned int nr_classes,
+			       unsigned int hfi_index,
+			       unsigned int cpu)
+{
+	struct hfi_instance *hfi_instance;
+	struct hfi_hdr *hfi_hdr = table->hdr;
+	s16 host_hfi_index;
+	void *src_ptr, *dst_ptr;
+	int table_changed = 0;
+
+	if (!table || !features)
+		return -EINVAL;
+
+	if (nr_classes > features->nr_classes ||
+	    nr_classes > hfi_features.nr_classes)
+		return -EINVAL;
+
+	/*
+	 * Make sure that this raw that will be filled doesn't cause overflow.
+	 * features->nr_classes indicates the maximum number of possible
+	 * classes.
+	 */
+	if (features->hdr_size + (hfi_index + 1) * features->cpu_stride >
+	    features->nr_table_pages << PAGE_SHIFT)
+		return -ENOMEM;
+
+	if (cpu >= nr_cpu_ids)
+		return -EINVAL;
+
+	if (features->class_stride != hfi_features.class_stride)
+		return -EINVAL;
+
+	hfi_instance = per_cpu(hfi_cpu_info, cpu).hfi_instance;
+	host_hfi_index = per_cpu(hfi_cpu_info, cpu).index;
+
+	src_ptr = hfi_instance->local_table.data +
+		  host_hfi_index * hfi_features.cpu_stride;
+	dst_ptr = table->data + hfi_index * features->cpu_stride;
+
+	raw_spin_lock_irq(&hfi_instance->table_lock);
+	for (int i = 0; i < nr_classes; i++) {
+		struct hfi_cpu_data *src = src_ptr + i * hfi_features.class_stride;
+		struct hfi_cpu_data *dst = dst_ptr + i * features->class_stride;
+
+		if (dst->perf_cap != src->perf_cap) {
+			dst->perf_cap = src->perf_cap;
+			hfi_hdr->perf_updated = 1;
+		}
+		if (dst->ee_cap != src->ee_cap) {
+			dst->ee_cap = src->ee_cap;
+			hfi_hdr->ee_updated = 1;
+		}
+		if (hfi_hdr->perf_updated || hfi_hdr->ee_updated)
+			table_changed = 1;
+		hfi_hdr++;
+	}
+	raw_spin_unlock_irq(&hfi_instance->table_lock);
+
+	return table_changed;
+}
+EXPORT_SYMBOL_GPL(intel_hfi_build_virt_table);
+
+/**
+ * intel_hfi_instance - Get the hfi instances of @cpu.
+ *
+ * @cpu:		CPU whose HFI instance pointer needs to be obtained
+ *
+ * Return: the pointer of the hfi_instance structure of @cpu if successful,
+ *	   otherwise NULL.
+ */
+struct hfi_instance *intel_hfi_instance(unsigned int cpu)
+{
+	if (cpu >= nr_cpu_ids)
+		return NULL;
+
+	return per_cpu(hfi_cpu_info, cpu).hfi_instance;
+}
+EXPORT_SYMBOL_GPL(intel_hfi_instance);
+
+/**
+ * intel_hfi_notifier_register() - Register @notifier hook at @hfi_instance.
+ *
+ * @notifier:		HFI notifier hook to be registered
+ * @hfi_instance:	HFI instance that HFI notifier is registered at
+ *
+ * When @cpus receive HFI interrupt and update its HFI table (of its HFI instance),
+ * the registered HFI notifier will be called.
+ *
+ * Return: 0 if successful, otherwise error.
+ */
+int intel_hfi_notifier_register(struct notifier_block *notifier,
+				struct hfi_instance *hfi_instance)
+{
+	if (!notifier || !hfi_instance)
+		return -EINVAL;
+
+	return blocking_notifier_chain_register(&hfi_instance->notifier_chain,
+						notifier);
+}
+EXPORT_SYMBOL_GPL(intel_hfi_notifier_register);
+
+/**
+ * intel_hfi_notifier_unregister() - Unregister @notifier hook at @hfi_instance
+ *
+ * @notifier:		HFI notifier hook to be unregistered
+ * @hfi_instance:	HFI instance that HFI notifier is unregistered at
+ *
+ * Return: 0 if successful, otherwise error.
+ */
+int intel_hfi_notifier_unregister(struct notifier_block *notifier,
+				  struct hfi_instance *hfi_instance)
+{
+	if (!notifier || !hfi_instance)
+		return -EINVAL;
+
+	return blocking_notifier_chain_unregister(&hfi_instance->notifier_chain,
+						  notifier);
+}
+EXPORT_SYMBOL_GPL(intel_hfi_notifier_unregister);

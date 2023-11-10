@@ -7,6 +7,7 @@
 #include <asm/kvm.h>
 #include <asm/intel_pt.h>
 #include <asm/perf_event.h>
+#include <asm/hfi.h>
 
 #include "capabilities.h"
 #include "../kvm_cache_regs.h"
@@ -68,6 +69,12 @@ struct pt_desc {
 	u32 caps[PT_CPUID_REGS_NUM * PT_CPUID_LEAVES];
 	struct pt_ctx host;
 	struct pt_ctx guest;
+};
+
+struct vcpu_hfi_desc {
+	u64 hfi_thread_cfg;
+	u64 host_hreset_enable;
+	u64 guest_hreset_enable;
 };
 
 union vmx_exit_reason {
@@ -280,6 +287,10 @@ struct vcpu_vmx {
 
 	u64		      spec_ctrl;
 	u32		      msr_ia32_umwait_control;
+	u64		      msr_ia32_therm_control;
+	u64		      msr_ia32_therm_interrupt;
+	u64		      msr_ia32_therm_status;
+	struct vcpu_hfi_desc  vcpu_hfi_desc;
 
 	/*
 	 * loaded_vmcs points to the VMCS currently used in this vcpu. For a
@@ -357,12 +368,78 @@ struct vcpu_vmx {
 	struct pt_desc pt_desc;
 	struct lbr_desc lbr_desc;
 
+	/* Should be extracted from Guest's CPUID.0x06.edx[bits 16-31]. */
+	int hfi_table_idx;
+
 	/* Save desired MSR intercept (read: pass-through) state */
 #define MAX_POSSIBLE_PASSTHROUGH_MSRS	17
 	struct {
 		DECLARE_BITMAP(read, MAX_POSSIBLE_PASSTHROUGH_MSRS);
 		DECLARE_BITMAP(write, MAX_POSSIBLE_PASSTHROUGH_MSRS);
 	} shadow_msr_intercept;
+};
+
+/**
+ * struct hfi_desc - Representation of an HFI instance (i.e., a table)
+ * @hfi_enabled:	Flag to indicate whether HFI is enabled at runtime.
+ *			Parsed from the Guest's MSR_IA32_HW_FEEDBACK_CONFIG.
+ * @itd_enabled:	Flag to indicate whether ITD is enabled at runtime.
+ *			Parsed from the Guest's MSR_IA32_HW_FEEDBACK_CONFIG.
+ * @hfi_int_enabled:	Flag to indicate whether HFI is enabled at runtime.
+ *			Parsed from Guest's MSR_IA32_PACKAGE_THERM_INTERRUPT[bit 25].
+ * @table_ptr_valid:	Flag to indicate whether the memory of Guest HFI table is ready.
+ *			Parsed from the valid bit of Guest's MSR_IA32_HW_FEEDBACK_PTR.
+ * @hfi_update_status:	Flag to indicate whether Guest has handled the virtual HFI table
+ *			update.
+ *			Parsed from Guest's MSR_IA32_PACKAGE_THERM_STATUS[bit 26].
+ * @hfi_update_pending:	Flag to indicate whether there's any update on Host that is not
+ *			synced to Guest.
+ *			KVM should update the Guest's HFI table and inject the notification
+ *			until Guest has cleared hfi_update_status.
+ * @table_base:		GPA of Guest's HFI table, which is parsed from Guest's
+ *			MSR_IA32_HW_FEEDBACK_PTR.
+ * @hfi_features:	Feature information based on Guest's HFI/ITD CPUID.
+ * @hfi_table:		Local virtual HFI table based on the HFI data of the pCPU that
+ *			the vCPU is running on.
+ *			When KVM updates the Guest's HFI table, it writes the local
+ *			virtual HFI table to the Guest HFI table memory in @table_base.
+ * @hfi_host_instance:	Pointer of Host HFI instance that vCPU is running on.
+ *			Currently ITD/HFI virtualization is only supported for
+ *			client platforms (only one HFI instance), so only one
+ *			pointer is used instead of an array of pointers.
+ * @hfi_nb:		Notifier block to be registered in Host HFI instance.
+ * @vmx:		Points to the kvm_vmx where the current nb is located.
+ *			Used to get the corresponding kvm_vmx of the nb when it
+ *			is executed.
+ *
+ * A set of status flags and feature information, used to maintain local virtual HFI table
+ * and sync updates to Guest HFI table.
+ */
+
+struct hfi_desc {
+	bool			hfi_enabled;
+	bool			itd_enabled;
+	bool			hfi_int_enabled;
+	bool			table_ptr_valid;
+	bool			hfi_update_status;
+	bool			hfi_update_pending;
+	gpa_t			table_base;
+	struct			hfi_features hfi_features;
+	struct hfi_table	hfi_table;
+	struct hfi_instance	*hfi_host_instance;
+	struct notifier_block	hfi_nb;
+	struct kvm_vmx		*vmx;
+};
+
+struct pkg_therm_desc {
+	u64			msr_pkg_therm_int;
+	u64			msr_pkg_therm_status;
+	u64			msr_ia32_hfi_cfg;
+	u64			msr_ia32_hfi_ptr;
+	/* Currently HFI is only supported at package level. */
+	struct hfi_desc		hfi_desc;
+	/* All members before "struct mutex pkg_therm_lock" are protected by the lock. */
+	struct mutex		pkg_therm_lock;
 };
 
 struct kvm_vmx {
@@ -373,6 +450,8 @@ struct kvm_vmx {
 	gpa_t ept_identity_map_addr;
 	/* Posted Interrupt Descriptor (PID) table for IPI virtualization */
 	u64 *pid_table;
+
+	struct pkg_therm_desc pkg_therm;
 };
 
 void vmx_vcpu_load_vmcs(struct kvm_vcpu *vcpu, int cpu,
